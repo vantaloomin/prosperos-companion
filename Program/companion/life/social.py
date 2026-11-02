@@ -27,6 +27,7 @@ who doesn't know the poster seldom even sees it and never comments; family and o
 (by their tie, or by the words of their role for the companion) keeps quiet or gets in a dig, as Settings > Realism
 > "Trolls and snark on posts" (life_settings.trolls_realism, companion/life/post_snark.py) says.
 """
+import json
 import logging
 import re
 from datetime import date, datetime, time, timedelta
@@ -36,6 +37,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import circle, composer, loss, love_life, post_snark, wedding
+from companion.world import catalog
 from companion.world.generators import pick, unit
 
 KINDS = ('status', 'friend', 'birthday', 'holiday', 'city', 'question')
@@ -51,6 +53,7 @@ MAX_COMMENTS = 3
 REACTION_WINDOW = timedelta(hours=8)
 HOT_F, COLD_F = 86, 40
 SICK = {'sick', 'under the weather'}
+LINES = json.loads((catalog.DATA / 'feed_lines.json').read_text(encoding='utf-8'))
 DOWN = {'tired', 'hungover', 'worn out', 'sore', 'drained', 'sluggish'}
 
 STATUS = {
@@ -74,27 +77,34 @@ STATUS = {
     'books': ('{item} keeps popping up everywhere. Has anyone read it?',),
     # While grief is raw or heavy (companion/life/loss.py): nothing playful, no questions.
     'grief': ('Quiet few days.', 'Taking things slowly this week.', 'Keeping to myself for a bit.'),
-    'any': ('Small wins today.', "Some days are just quiet, and that's fine.", 'Good music, good mood.',
-            'Note to self: drink more water.'),
+    # Passing thoughts for any day (companion/world/data/feed_lines.json).
+    'any': tuple(line for group in LINES['status_any'].values() for line in group),
 }
-QUESTIONS = (
-    ('Dinner tonight?', ('Tacos', 'Ramen')),
-    ('Movie night: something scary or something cozy?', ('Scary', 'Cozy')),
-    ('Coffee or tea this morning?', ('Coffee', 'Tea')),
-    ('Thinking about cutting my hair short. Yes or no?', ('Do it', "Don't you dare")),
-    ('Early night or one more episode?', ('Early night', 'One more episode')),
-    ('Beach or mountains?', ('Beach', 'Mountains')),
-    ('Is pineapple on pizza okay?', ('Yes', 'Absolutely not')),
-    ('Sunrise or sunset?', ('Sunrise', 'Sunset')),
-)
+# Small either-or questions the user can answer: (question, (option, option)).
+QUESTIONS = tuple((row[0], tuple(row[1:])) for group in LINES['questions'].values() for row in group)
+# Which worlds a bank line fits (feed_lines.json): 'anywhen' every era, 'since_1850' none before the Victorian age,
+# 'modern' only modern and future worlds; and, in a Back when year, nothing named before it existed (SINCE).
+WHEN = {**{row[0]: group for group, rows in LINES['questions'].items() for row in rows},
+        **{line: group for group, lines in LINES['status_any'].items() for line in lines}}
+ERA_WHEN = {'medieval': {'anywhen'}, 'fantasy': {'anywhen'}}
+PAST_WHEN = {'anywhen', 'since_1850'}
+SINCE = tuple((re.compile(pattern, re.IGNORECASE), year) for pattern, year in LINES['since'])
+# A day offers this many of the any-day thoughts beside the weather, weekday, charts and interests, so a bigger bank
+# never crowds those out.
+ANY_OFFERED = 4
+# The companion never repeats a status line within this long, nor asks a question again until every other one that
+# fits their world has been asked (then the one asked longest ago comes back first).
+STATUS_GAP = timedelta(days=45)
 # Lines that belong to today (and the near future): before about 1950 nobody watches episodes or orders tacos, and
 # in a medieval or fantasy town nobody drinks coffee; aboard a ship or station there is no beach, sunrise or
 # outdoors to linger in (companion/world/ships.py). The rest suit any world.
-TODAYS = re.compile(r'\b(?:tv|episodes?|movies?|pizza|tacos|ramen|iced|couch)\b', re.IGNORECASE)
+TODAYS = re.compile(r'\b(?:tv|episodes?|movies?|pizza|tacos|ramen|iced|couch|peanut|cereal|karaoke|popcorn|brownies|'
+                    r'audio|shower|ice cream|order in)\b', re.IGNORECASE)
 COFFEE = re.compile(r'\bcoffee\b', re.IGNORECASE)
 NO_COFFEE_ERAS = {'medieval', 'fantasy'}
 TODAYS_ERAS = {'modern', 'future'}
-GROUNDED = re.compile(r'\b(?:beach|sunrise|sunset|outside|umbrella|rain)\b', re.IGNORECASE)
+GROUNDED = re.compile(r'\b(?:beach|sunrise|sunset|outside|umbrella|rain|lake|sea|snow|park|garden|hiking|swimming|'
+                      r'camping|countryside|walk|stars|window|bird|picnic|balcony|trip|weekend away)\b', re.IGNORECASE)
 BIRTHDAY = ('Happy birthday, {name}! 🎂', 'Happy birthday to {name}, who makes everything more fun. 🎉',
             'Another year of {name}. Lucky us. Happy birthday! 🎂')
 FAMILY_BIRTHDAY = 'Happy birthday to my favorite {role}, {name}! 🎂'
@@ -303,6 +313,7 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
     result = []
     days = local_dates(since, now, timezone)
     fits = fits_world(connection, definition)
+    said = Said(connection, timeline_id)
     for day in days:
         local_date, prefix = day.isoformat(), f'{timeline_id}:{day.isoformat()}'
         facts = day_facts(connection, timeline_id, local_date)
@@ -310,17 +321,17 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
         facts['culture'] = culture_picks(connection, now, definition) if day == days[-1] else {}
         grieving = loss.raw_or_heavy(connection, timeline_id, day)
         if unit(prefix, 'status') < STATUS_CHANCE:
-            text, tone = (pick(prefix, 'line', list(STATUS['grief'])), 'down') if grieving else \
-                status_text(prefix, day, facts, definition, fits)
-            result.append(own('status', f'status:{prefix}', at(day, timezone, f'status:{prefix}', 8, 22),
-                              {'text': text, 'tone': tone}))
+            occurs_at = at(day, timezone, f'status:{prefix}', 8, 22)
+            result.append(said.post('status', f'status:{prefix}', occurs_at, lambda recent: (
+                {'text': pick(prefix, 'line', list(STATUS['grief'])), 'tone': 'down'} if grieving else
+                dict(zip(('text', 'tone'), status_text(prefix, day, facts, definition, fits, recent),
+                         strict=True)))))
         if grieving:
             continue  # Only a quiet status while grief is raw or heavy.
         if unit(prefix, 'question') < QUESTION_CHANCE:
-            question, options = pick(prefix, 'question', [item for item in QUESTIONS if fits(
-                ' '.join([item[0], *item[1]]))])
-            result.append(own('question', f'question:{prefix}', at(day, timezone, f'question:{prefix}', 12, 21),
-                              {'text': question, 'options': list(options)}))
+            occurs_at = at(day, timezone, f'question:{prefix}', 12, 21)
+            result.append(said.post('question', f'question:{prefix}', occurs_at, lambda _recent: question_content(
+                prefix, [item for item in QUESTIONS if fits(' '.join([item[0], *item[1]]), item[0])], said.asked)))
         result += celebrations(prefix, day, timezone, facts, people)
     # Date nights and steps with someone they are seeing (companion/life/love_life.py).
     # The day they got engaged to the user (companion/life/wedding.py).
@@ -328,31 +339,82 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
         wedding.feed_posts(connection, companion, days, timezone)
 
 
+class Said:
+    """What the companion already said in status and question posts on this timeline, so the feed doesn't repeat
+    itself: a day already posted keeps what it said, a new status skips lines used within STATUS_GAP and a new
+    question skips every question asked before, answered or not, until all that fit have been asked."""
+
+    def __init__(self, connection, timeline_id):
+        rows = many(connection, "SELECT idempotency_key, kind, content, occurs_at FROM social_posts WHERE timeline_id=? "
+                    "AND author=? AND kind IN ('status', 'question') ORDER BY occurs_at", (timeline_id, COMPANION))
+        self.stored = {row['idempotency_key']: decode(row['content']) for row in rows}
+        self.lines: dict[str, str] = {}
+        self.asked: dict[str, str] = {}
+        for row in rows:
+            self.note(row['kind'], self.stored[row['idempotency_key']].get('text'), row['occurs_at'])
+
+    def note(self, kind, text, occurs_at):
+        if isinstance(text, str):
+            (self.asked if kind == 'question' else self.lines)[text] = occurs_at
+
+    def recent(self, occurs_at) -> set[str]:
+        moment = parse(occurs_at)
+        since, until = stamp(moment - STATUS_GAP), stamp(moment + STATUS_GAP)
+        return {text for text, said_at in self.lines.items() if since <= said_at <= until}
+
+    def post(self, kind, key, occurs_at, content) -> dict:
+        """The post under `key`: as already written, or new from `content(recent lines)`."""
+        found = self.stored.get(key) or content(self.recent(occurs_at))
+        if key not in self.stored:
+            self.note(kind, found.get('text'), occurs_at)
+        return own(kind, key, occurs_at, found)
+
+
+def question_content(seed: str, questions: list, asked: dict[str, str]) -> dict:
+    """A question not asked before; once all have been, one of the half asked longest ago."""
+    fresh = [item for item in questions if item[0] not in asked]
+    if not fresh:
+        oldest = sorted(questions, key=lambda item: asked.get(item[0], ''))
+        fresh = oldest[:max(1, len(oldest) // 2)]
+    question, options = pick(seed, 'question', fresh)
+    return {'text': question, 'options': list(options)}
+
+
 def own(kind, key, occurs_at, content) -> dict:
     return {'kind': kind, 'author': COMPANION, 'key': key, 'occurs_at': occurs_at, 'content': content}
 
 
 def fits_world(connection, definition: dict):
-    """Whether a status or question line suits the companion's world: its era (TODAYS, COFFEE) and whether they
-    live aboard (GROUNDED)."""
-    from companion.world import ships
+    """Whether a status or question line suits the companion's world: its era (WHEN, TODAYS, COFFEE), its year in a
+    Back when world (SINCE) and whether they live aboard (GROUNDED). `line` names the bank line when `text` is more
+    than it (a question with its options)."""
+    from companion.world import decades, ships
     data = city_data(connection, definition)
     era = (data or {}).get('era', 'modern')
     aboard = bool(data) and ships.enclosed(data)
+    allowed = ERA_WHEN.get(era) or (set(WHEN.values()) if era in TODAYS_ERAS else PAST_WHEN)
+    year = decades.year_of(data)
 
-    def fits(text: str) -> bool:
-        return not ((era not in TODAYS_ERAS and TODAYS.search(text)) or (era in NO_COFFEE_ERAS and COFFEE.search(text))
-                    or (aboard and GROUNDED.search(text)))
+    def fits(text: str, line: str | None = None) -> bool:
+        return WHEN.get(line or text, 'anywhen') in allowed and not (
+            (era not in TODAYS_ERAS and TODAYS.search(text)) or (era in NO_COFFEE_ERAS and COFFEE.search(text))
+            or (aboard and GROUNDED.search(text)) or (year and any(year < first for pattern, first in SINCE
+                                                                    if pattern.search(text))))
     return fits
 
 
-def status_text(seed: str, day: date, facts: dict, definition: dict, fits=lambda _text: True) -> tuple[str, str]:
-    """A thought that fits the day and the world (`fits`) and claims nothing happened. Returns the text and its
-    tone."""
+def status_text(seed: str, day: date, facts: dict, definition: dict, fits=lambda _text: True,
+                recent: set[str] = frozenset()) -> tuple[str, str]:
+    """A thought that fits the day and the world (`fits`) and claims nothing happened, and that isn't one of the
+    `recent` lines when another will do. Returns the text and its tone."""
+    def fresh(lines):
+        lines = [line for line in lines if fits(line)]
+        return [line for line in lines if line not in recent] or lines
     state = (facts['body'] or {}).get('state')
-    if state in STATUS and (lines := [line for line in STATUS[state] if fits(line)]):
+    if state in STATUS and (lines := fresh(STATUS[state])):
         return pick(seed, 'line', lines), 'sick' if state == 'sick' else 'down'
-    choices = [*STATUS['any']]
+    offered = fresh(STATUS['any'])
+    choices = [pick(seed, f'any:{n}', offered) for n in range(ANY_OFFERED)]
     weather = facts['weather'] or {}
     if weather:
         hot, cold = weather.get('high_f', 60) >= HOT_F, weather.get('high_f', 60) <= COLD_F
@@ -364,7 +426,7 @@ def status_text(seed: str, day: date, facts: dict, definition: dict, fits=lambda
     if interests:
         interest = pick(seed, 'interest', interests)
         choices += [line.format(interest=interest_text(interest)) for line in STATUS['interest']]
-    return pick(seed, 'line', [line for line in choices if fits(line)] or list(STATUS['any'])), ''
+    return pick(seed, 'line', fresh(choices) or offered or list(STATUS['any'])), ''
 
 
 def interest_text(interest: str) -> str:
