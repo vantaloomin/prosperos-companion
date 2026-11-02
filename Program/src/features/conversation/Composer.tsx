@@ -11,28 +11,32 @@ import { useEraWords } from '../world/useEraWords'
 import { say } from '../world/eraWords'
 import { setFolded, useMessageBox } from './messageBox'
 import { MessageBox } from './MessageBoxControls'
+import { talkLine } from './actionText'
 
 /** On a phone the box shows only their first name, so a period line like "Write a letter to Wren" stays on one line. */
 const onPhone = () => !!window.matchMedia?.('(max-width: 720px)').matches
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || name
 
-/** "Message Sam", or the era's line: "Write a letter to Wren" in Camelot (eraWords.ts). `phoneName` replaces the
+/** "Message Sam", or the era's line: "Write a letter to Wren" in Camelot (eraWords.ts); "Talk to Sam" while
+ * together in person or on a call (`talking`). `phoneName` replaces the
  * first name on a phone, for a group whose name is not a person's ("Night out", not "Night"). */
-function usePlaceholder(name: string, phoneName?: string): string {
-  return say(useEraWords(), 'message_to', onPhone() ? phoneName ?? firstName(name) : name)
+function usePlaceholder(name: string, phoneName?: string, talking = false): string {
+  const words = useEraWords()
+  const shown = onPhone() ? phoneName ?? firstName(name) : name
+  return talking ? talkLine(shown) : say(words, 'message_to', shown)
 }
 
 const OUT_OF_CHARACTER = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)) for a plain, honest answer.'
 
 /** `compact` while the reader scrolls up through the history: on a phone the box keeps one line until they come back
  * down or tap it. A group chat has no picture button (`pictures` false). `chat` names the chat's author's note. */
-export function Composer({ name, phoneName, chat, draft, streaming, compact, onSend, onStop, pictures: withPictures }: { name: string; phoneName?: string; chat: string; draft: DraftState; streaming: boolean; compact: boolean; onSend: () => void; onStop: () => void; pictures?: boolean }) {
+export function Composer({ name, phoneName, chat, draft, streaming, compact, onSend, onStop, pictures: withPictures, talking }: { name: string; phoneName?: string; chat: string; draft: DraftState; streaming: boolean; compact: boolean; onSend: () => void; onStop: () => void; pictures?: boolean; talking?: boolean }) {
   const prepare = usePrepare()
   const { text, folded } = useMessageBox(draft.value.text, compact)
   const pictures = usePictureAdder(draft, withPictures !== false)
   const canSend = ready(draft.value.text, draft.value.pictures?.length ?? 0, draft.sending || streaming || pictures.busy)
   const onKeyDown = keyHandler(canSend, streaming, onSend, onStop)
-  const placeholder = usePlaceholder(name, phoneName)
+  const placeholder = usePlaceholder(name, phoneName, talking)
   return (<>
     {/* Sending with the button disables it; keep the keyboard in the message box for the next message. */}
     <form className={compact ? 'composer compact' : 'composer'} onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) onSend() }}

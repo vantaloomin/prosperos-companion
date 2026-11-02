@@ -2180,6 +2180,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip > svg { flex: none; width: 1rem; height: 1rem; color: var(--accent); }
 .where-strip > span { flex: 1; min-width: 0; }
 .where-strip .text-button { flex: none; }
+.action-text { font-style: italic; color: var(--muted); }
 .where-strip-actions { display: flex; flex: none; gap: 0 4px; }
 @media (max-width: 600px) {
   .where-strip.two-actions { flex-wrap: wrap; row-gap: 0; }

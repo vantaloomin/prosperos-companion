@@ -1,4 +1,5 @@
 import { appNow, realDelay } from '../../appTime.ts'
+import { actionParts } from './actionText'
 import { memo, useContext, useEffect, useState, type ContextType, type ReactNode } from 'react'
 import { AlertCircle, BookmarkPlus, BookmarkX, ChevronLeft, ChevronRight, Ellipsis, GitBranch, HeartHandshake, Info, Lightbulb, Pencil, Pin, PinOff, RefreshCw, RotateCcw, Shuffle, Square, Trash2 } from 'lucide-react'
 import type { Message } from '../../types'
@@ -49,7 +50,12 @@ interface Props {
 }
 
 function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }) {
-  return <>{text.split(/\n{2,}/).map((part, index) => <p key={index} className={bursts ? 'burst' : undefined}>{part}</p>)}</>
+  return <>{text.split(/\n{2,}/).map((part, index) => <p key={index} className={bursts ? 'burst' : undefined}><Actions text={part} /></p>)}</>
+}
+
+/** "*He grins.*" as the action itself, in italics, without the asterisks (actionText.ts). */
+function Actions({ text }: { text: string }) {
+  return <>{actionParts(text).map((part, index) => part.action ? <em key={index} className="action-text">{part.text}</em> : part.text)}</>
 }
 
 /** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
