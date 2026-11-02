@@ -4,7 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
  * The message box grows with what is written, up to its maximum height (styles.css), then scrolls. On a computer
  * its top edge can be pulled up to keep it taller (MessageBoxControls.tsx); the box sits at the bottom of the chat,
  * so the edge that moves is the one you hold. It can also fold down to one line to see more of the chat, and opens
- * again when you click into it. The height is kept in this browser only, like a window size; folding lasts the visit.
+ * again when you click into it. A height pulled taller lasts until the message is sent, then the box fits its text
+ * again (a draft left unsent keeps it, in this browser only); folding lasts the visit.
  */
 const KEY = 'companion.messageBox.height'
 const listeners = new Set<() => void>()
@@ -29,6 +30,12 @@ export function keepHeight(next: number) {
   folded = false
   try { localStorage.setItem(KEY, String(height)) } catch { /* Still changes for this visit. */ }
   changed()
+}
+
+/** After a send: back to the box's usual size, fitted to the (now empty) text and open. */
+export function fitAfterSend() {
+  if (readHeight() === 0 && !folded) return
+  keepHeight(0)
 }
 
 export function setFolded(next: boolean) {
