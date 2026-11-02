@@ -246,18 +246,19 @@ def place_name(place) -> str:
 
 
 def friend_posts(connection, timeline_id, people, since, now) -> list[dict]:
-    """At most one shared entry per person a day, and a few a day across the circle."""
+    """At most one shared entry per person a day, and a few a day across the circle; never a day with none (`floor`)."""
     rows = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND subject!=? AND status='happened' "
                 'AND entry IS NOT NULL AND ends_at>? AND ends_at<=? ORDER BY starts_at',
                 (timeline_id, COMPANION, stamp(since), stamp(now)))
+    floors = floor(connection, timeline_id, people, {row['local_date'] for row in rows})
     result, posted, daily = [], set(), {}
     for row in rows:
-        entry, block = decode(row['entry']), decode(row['block'])
-        key = f"friend:{timeline_id}:{row['subject']}:{row['slot_key']}"
+        entry = decode(row['entry'])
+        key = friend_key(timeline_id, row)
         day = (row['subject'], row['local_date'])
         if row['subject'] not in people or day in posted or daily.get(row['local_date'], 0) >= FRIEND_DAILY:
             continue
-        if unit(key, 'share') >= SHARE.get(block.get('kind'), 0.1) or not isinstance(entry.get('post'), str):
+        if (not shares(key, row) and key != floors.get(row['local_date'])) or not isinstance(entry.get('post'), str):
             continue
         posted.add(day)
         daily[row['local_date']] = daily.get(row['local_date'], 0) + 1
@@ -265,6 +266,39 @@ def friend_posts(connection, timeline_id, people, since, now) -> list[dict]:
                        'content': {'text': entry['post'] or entry['summary'], 'context': entry['summary'],
                                    'place': place_name(entry.get('place')), 'mood': entry.get('mood') or ''}})
     return result
+
+
+def friend_key(timeline_id, row) -> str:
+    return f"friend:{timeline_id}:{row['subject']}:{row['slot_key']}"
+
+
+def shares(key: str, row) -> bool:
+    """Whether a circle member shares this entry: seeded, likelier for an evening out than a shift."""
+    return unit(key, 'share') < SHARE.get(decode(row['block']).get('kind'), 0.1)
+
+
+def floor(connection, timeline_id, people, local_dates) -> dict[str, str]:
+    """For a local day on which nobody in the circle would share anything, the one entry shared anyway: the nearest to
+    sharing. A small circle's quiet day otherwise left the feed empty (tester, 2026-10-31). Decided over the whole day,
+    entries still to come included, so it is the same however often the feed is read."""
+    if not local_dates:
+        return {}
+    marks = ','.join('?' * len(local_dates))
+    sharing, nearest = set(), {}
+    for row in many(connection, 'SELECT subject, slot_key, local_date, block FROM life_agenda WHERE timeline_id=? '
+                    f"AND subject!=? AND status IN ('happened', 'upcoming') AND json_type(entry, '$.post')='text' "
+                    f'AND local_date IN ({marks})', (timeline_id, COMPANION, *sorted(local_dates))):
+        if row['subject'] not in people:
+            continue
+        key = friend_key(timeline_id, row)
+        if shares(key, row):
+            sharing.add(row['local_date'])
+            continue
+        # How far the entry is from sharing: its roll over its chance.
+        distance = unit(key, 'share') / SHARE.get(decode(row['block']).get('kind'), 0.1)
+        if row['local_date'] not in nearest or distance < nearest[row['local_date']][0]:
+            nearest[row['local_date']] = (distance, key)
+    return {local_date: key for local_date, (_distance, key) in nearest.items() if local_date not in sharing}
 
 
 def local_dates(since: datetime, now: datetime, timezone: str) -> list[date]:

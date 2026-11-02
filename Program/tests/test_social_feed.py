@@ -641,3 +641,16 @@ def test_once_every_question_was_asked_the_oldest_come_back_first():
     asked = {'A?': '2026-01-04', 'B?': '2026-01-01', 'C?': '2026-01-02', 'D?': '2026-01-03'}
     assert {social.question_content(f'seed-{n}', questions, asked)['text'] for n in range(40)} == {'B?', 'C?'}
     assert social.question_content('seed', questions, {'A?': '2026-01-01'})['text'] != 'A?'
+
+
+def test_a_quiet_day_in_the_circle_still_gets_one_post(client, city, clock, monkeypatch):
+    # Nobody would share anything (tester, 2026-10-31: a whole day with no posts): the nearest entry each day is shared.
+    monkeypatch.setattr(social, 'SHARE', {})
+    monkeypatch.setattr(social, 'unit', lambda *_args: 0.5)  # 0.5 / 0.1 default chance: no entry ever shares.
+    live_days(client, clock, days=3)
+    friends = [post for post in feed(client)['posts'] if post['kind'] == 'friend']
+    timezone = zone(city['version']['timezone'])
+    days = [datetime.fromisoformat(post['occurs_at']).astimezone(timezone).date() for post in friends]
+    assert days and len(days) == len(set(days))
+    # Reading again posts nothing new.
+    assert len([post for post in feed(client)['posts'] if post['kind'] == 'friend']) == len(friends)
