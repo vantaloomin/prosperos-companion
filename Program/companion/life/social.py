@@ -78,10 +78,17 @@ STATUS = {
     # While grief is raw or heavy (companion/life/loss.py): nothing playful, no questions.
     'grief': ('Quiet few days.', 'Taking things slowly this week.', 'Keeping to myself for a bit.'),
     # Passing thoughts for any day (companion/world/data/feed_lines.json).
-    'any': tuple(LINES['status_any']),
+    'any': tuple(line for group in LINES['status_any'].values() for line in group),
 }
 # Small either-or questions the user can answer: (question, (option, option)).
-QUESTIONS = tuple((row[0], tuple(row[1:])) for row in LINES['questions'])
+QUESTIONS = tuple((row[0], tuple(row[1:])) for group in LINES['questions'].values() for row in group)
+# Which worlds a bank line fits (feed_lines.json): 'anywhen' every era, 'since_1850' none before the Victorian age,
+# 'modern' only modern and future worlds; and, in a Back when year, nothing named before it existed (SINCE).
+WHEN = {**{row[0]: group for group, rows in LINES['questions'].items() for row in rows},
+        **{line: group for group, lines in LINES['status_any'].items() for line in lines}}
+ERA_WHEN = {'medieval': {'anywhen'}, 'fantasy': {'anywhen'}}
+PAST_WHEN = {'anywhen', 'since_1850'}
+SINCE = tuple((re.compile(pattern, re.IGNORECASE), year) for pattern, year in LINES['since'])
 # A day offers this many of the any-day thoughts beside the weather, weekday, charts and interests, so a bigger bank
 # never crowds those out.
 ANY_OFFERED = 4
@@ -324,7 +331,7 @@ def day_posts(connection, companion, people, since, now) -> list[dict]:
         if unit(prefix, 'question') < QUESTION_CHANCE:
             occurs_at = at(day, timezone, f'question:{prefix}', 12, 21)
             result.append(said.post('question', f'question:{prefix}', occurs_at, lambda _recent: question_content(
-                prefix, [item for item in QUESTIONS if fits(' '.join([item[0], *item[1]]))], said.asked)))
+                prefix, [item for item in QUESTIONS if fits(' '.join([item[0], *item[1]]), item[0])], said.asked)))
         result += celebrations(prefix, day, timezone, facts, people)
     # Date nights and steps with someone they are seeing (companion/life/love_life.py).
     # The day they got engaged to the user (companion/life/wedding.py).
@@ -378,16 +385,21 @@ def own(kind, key, occurs_at, content) -> dict:
 
 
 def fits_world(connection, definition: dict):
-    """Whether a status or question line suits the companion's world: its era (TODAYS, COFFEE) and whether they
-    live aboard (GROUNDED)."""
-    from companion.world import ships
+    """Whether a status or question line suits the companion's world: its era (WHEN, TODAYS, COFFEE), its year in a
+    Back when world (SINCE) and whether they live aboard (GROUNDED). `line` names the bank line when `text` is more
+    than it (a question with its options)."""
+    from companion.world import decades, ships
     data = city_data(connection, definition)
     era = (data or {}).get('era', 'modern')
     aboard = bool(data) and ships.enclosed(data)
+    allowed = ERA_WHEN.get(era) or (set(WHEN.values()) if era in TODAYS_ERAS else PAST_WHEN)
+    year = decades.year_of(data)
 
-    def fits(text: str) -> bool:
-        return not ((era not in TODAYS_ERAS and TODAYS.search(text)) or (era in NO_COFFEE_ERAS and COFFEE.search(text))
-                    or (aboard and GROUNDED.search(text)))
+    def fits(text: str, line: str | None = None) -> bool:
+        return WHEN.get(line or text, 'anywhen') in allowed and not (
+            (era not in TODAYS_ERAS and TODAYS.search(text)) or (era in NO_COFFEE_ERAS and COFFEE.search(text))
+            or (aboard and GROUNDED.search(text)) or (year and any(year < first for pattern, first in SINCE
+                                                                    if pattern.search(text))))
     return fits
 
 
