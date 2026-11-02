@@ -338,6 +338,8 @@ def write_slot(connection, scope: dict, slot, facts: dict, recent: list) -> int:
         if together:
             entry = together[1]
             starts_at = joint.start(entry, starts_at, ends_at, disruptions.MIN_LEFT)
+            # Their block starts with the outing, so the place is open when it says (the outing's own hour).
+            block = {**block, 'start': starts_at.astimezone(zone(scope.get('timezone') or 'UTC')).strftime('%H:%M')}
         else:
             entry, block = slot_entry(connection, scope, slot, view, pinned, company, recent, seed, shift)
         entry = hobbies.touch(connection, timeline_id, subject, entry, block, slot.local_date.isoformat(), definition,
