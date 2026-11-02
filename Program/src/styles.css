@@ -577,6 +577,12 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 
 .post-list { display: flex; flex-direction: column; gap: 14px; max-width: 680px; }
 .post { scroll-margin-top: 72px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.post { transition: box-shadow 0.6s ease; }
+.post.arrived { box-shadow: 0 0 0 2px var(--accent); }
+.post:focus:not(:focus-visible) { outline: none; }
+.nowrap { white-space: nowrap; }
+.inline-link { padding: 0; font: inherit; color: var(--accent); }
+.inline-link:hover, .inline-link:focus-visible { text-decoration: underline; }
 .post.hidden-post { opacity: .7; border-style: dashed; }
 .post-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .post-header .speaker { flex: 1; min-width: 0; }

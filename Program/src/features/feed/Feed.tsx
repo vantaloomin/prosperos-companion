@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, Download } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { api, newId } from '../../api'
 import { HISTORY_KEY, type View } from '../../companion'
 import type { Companion, FeedPage, FeedPost, FeedSource } from '../../types'
@@ -86,8 +86,7 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
       <header className="page-header">
         <div>
           <h2>{words.posts_tab}</h2>
-          <p className="subtle">{name}'s {words.posts}, what their friends are up to, and yours{unreadText(unread)}. Nobody outside the app sees them.</p>
-          <NewPostsLink count={newPosts.offer} seek={newPosts.seek} words={words} />
+          <p className="subtle">{name}'s {words.posts}, what their friends are up to, and yours<UnreadCount count={unread} linked={newPosts.offer > 0} seek={newPosts.seek} /> Nobody outside the app sees them.</p>
         </div>
         <button type="button" className="button" onClick={() => void exportFeed()}><Download aria-hidden="true" />Export</button>
       </header>
@@ -152,11 +151,12 @@ function OwnPost({ onPosted, onError }: { onPosted: () => void; onError: (messag
   )
 }
 
-const unreadText = (count: number) => count ? `. ${count} new` : ''
-/** To the newest post not yet seen, when it sits below posts already seen. */
-function NewPostsLink({ count, seek, words }: { count: number; seek: () => void; words: EraWords }) {
-  if (!count) return null
-  return <button type="button" className="text-button" onClick={seek}><ArrowDown aria-hidden="true" />Go to the new {count === 1 ? words.post : words.posts}</button>
+/** ". 1 new." after the description. When the new post sits below posts already seen, the count is a link to it, kept
+ * on one line with its full stop. */
+function UnreadCount({ count, linked, seek }: { count: number; linked: boolean; seek: () => void }) {
+  if (!count) return <>.</>
+  if (!linked) return <>. {count} new.</>
+  return <>. <span className="nowrap"><button type="button" className="inline-link" aria-label="Go to the newest unread post" onClick={seek}>{count} new <span aria-hidden="true">↓</span></button>.</span></>
 }
 
 function FeedStatus({ pending, error, retrying, retry, empty, mine, name, words }: { pending: boolean; error: Error | null; retrying: boolean; retry: () => void; empty: boolean; mine: boolean; name: string; words: EraWords }) {

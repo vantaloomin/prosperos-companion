@@ -45,7 +45,7 @@ export function PostCard({ post, name, actions }: { post: FeedPost; name: string
   // The user's own post: nothing to react to or talk over, only to take down.
   const own = post.source === 'user'
   return (
-    <article ref={card} className={`post${hidden ? ' hidden-post' : ''}`} aria-labelledby={`post-${post.id}`}>
+    <article ref={card} tabIndex={-1} className={`post${hidden ? ' hidden-post' : ''}`} aria-labelledby={`post-${post.id}`}>
       <PostHeader post={post} name={name} />
       {post.intro && <p className="post-intro">{post.intro}</p>}
       <PostBody post={post} actions={actions} />

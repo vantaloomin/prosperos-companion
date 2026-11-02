@@ -33,6 +33,12 @@ function showPost(id: string) {
   const card = document.getElementById(`post-${id}`)?.closest('article')
   if (!card) return
   card.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' })
+  // Focus follows, for a keyboard or screen reader; a soft highlight shows where it landed (none with reduced motion).
+  card.focus({ preventScroll: true })
+  if (!reducedMotion()) {
+    card.classList.add('arrived')
+    window.setTimeout(() => card.classList.remove('arrived'), 1500)
+  }
   // Pictures above it can still be loading and push it down; once they have, it comes back to the top.
   window.setTimeout(() => {
     const top = card.getBoundingClientRect().top
