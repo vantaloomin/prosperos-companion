@@ -347,11 +347,9 @@ def beside(event, subject, who) -> str:
     if not event.get('user'):
         return ''
     verb = 'are' if who == 'they' else 'is'
-    return (f"Beside {OBJECTS.get(who, 'them')} is one other person, {event['user']}. {subject} {verb} the main "
+    return (f"Beside {OBJECT.get(who, 'them')} is one other person, {event['user']}. {subject} {verb} the main "
             'subject; there are exactly two people in the picture.')
 
-
-OBJECTS = {'she': 'her', 'he': 'him', 'they': 'them'}
 # "with you" in a moment's own words: the picture says who "you" are (`beside`).
 WITH_YOU = re.compile(r',? with you\b', re.IGNORECASE)
 
