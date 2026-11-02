@@ -55,7 +55,7 @@ function Paragraphs({ text, bursts = false }: { text: string; bursts?: boolean }
 
 /** "*He grins.*" as the action itself, in italics, without the asterisks (actionText.ts). */
 function Actions({ text }: { text: string }) {
-  return <>{actionParts(text).map((part, index) => part.action ? <em key={index} className="action-text">{part.text}</em> : part.text)}</>
+  return <>{actionParts(text).map((part, index) => part.action ? <em key={index} className="msg-action">{part.text}</em> : part.text)}</>
 }
 
 /** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
