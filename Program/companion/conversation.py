@@ -90,6 +90,8 @@ def record_user(database, body) -> dict:
         occasions.note(connection, message, database.now())
         # Asked out, the companion settles where and when before the reply is written (companion/life/outings.py).
         outings.note(connection, message, companion, database.now())
+        # Still talking as a meetup winds down: it runs on an hour (companion/life/outings.py).
+        outings.keep_going(connection, companion, message, parse(database.now()))
         # Answering a ring, hanging up, or asking to call (companion/life/calls.py), likewise before the reply.
         calls.note(connection, message, companion, database.now())
         # An answer to a next step they brought up, or one the user brings up (companion/life/steps.py), likewise.

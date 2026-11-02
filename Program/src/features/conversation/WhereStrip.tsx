@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { DoorOpen, EyeOff, Home, Hourglass, Luggage, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
+import { Bike, Bus, Car, DoorOpen, EyeOff, Footprints, Home, Hourglass, Luggage, Navigation, Ship, TrainFront, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import { appNow } from '../../appTime.ts'
 import { TOGETHER_KEY } from '../today/outingText'
@@ -11,6 +11,8 @@ import { say, type EraWords } from '../world/eraWords'
 import { WHERE_KEY, callActions, canStayLonger, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
 const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
+// On their way home after a meetup, by how they travel (companion/life/heading_home.py).
+const HEADING_GLYPHS = { walk: Footprints, car: Car, rideshare: Car, bus: Bus, subway: TrainFront, tram: TrainFront, streetcar: TrainFront, 'light-rail': TrainFront, monorail: TrainFront, 'bike-share': Bike, ferry: Ship, 'water-taxi': Ship, boat: Ship } as Record<string, typeof Home>
 const CALL_GLYPHS = { answer: Phone, decline: PhoneOff, end: PhoneOff, call: Phone } as Record<CallAction['action'], typeof Home>
 // In a fantasy town a call is a scrying glass or a speaking stone, so no handsets (Iris, 2026-10-21).
 const MAGIC_GLYPHS = { answer: Sparkles, decline: EyeOff, end: EyeOff, call: Sparkles } as Record<CallAction['action'], typeof Home>
@@ -36,13 +38,19 @@ export function WhereStrip({ name }: { name: string }) {
   if (where.data?.home && !line) return <HomeStrip where={where.data} name={name} onDone={refresh} />
   if (!line || !where.data) return null
   if (call) return <CallStrip call={call} lead={line.lead} short={line.short} tail={line.tail} name={name} words={words} onDone={refresh} />
-  if (where.data.visit) return (
-    <aside className="where-strip" aria-label="Where you are" aria-live="polite">
-      <Luggage aria-hidden="true" />
+  if (where.data.heading || where.data.visit) return <PlainStrip where={where.data} line={line} />
+  return <OutingStrip where={where.data} line={line} onDone={refresh} />
+}
+
+/** A strip with no buttons: a weekend visit across the distance, or them on their way home after a meetup. */
+function PlainStrip({ where, line }: { where: WhereState; line: StripLine }) {
+  const Glyph = where.heading ? HEADING_GLYPHS[where.heading.by] ?? Navigation : Luggage
+  return (
+    <aside className="where-strip" aria-label={where.heading ? 'Where they are' : 'Where you are'} aria-live="polite">
+      <Glyph aria-hidden="true" />
       <span>{line.lead}{line.tail}</span>
     </aside>
   )
-  return <OutingStrip where={where.data} line={line} onDone={refresh} />
 }
 
 /** Time together out or at one of your places, with its one button. */
