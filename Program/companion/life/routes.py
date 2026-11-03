@@ -1,5 +1,5 @@
 """Life simulation, Today and Feed API (PRD T1–T7, F1, F2, F4)."""
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Request
@@ -7,7 +7,7 @@ from pydantic import Field
 
 from companion import consequences, conversation, news
 from companion.characters import require_current
-from companion.clock import parse, stamp
+from companion.clock import parse, stamp, zone
 from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
@@ -213,6 +213,13 @@ def list_runs(request: Request, limit: int = 20):
     return simulation.runs(db(request), min(max(limit, 1), 100))
 
 
+def today_slots(schedule, timezone: str, now) -> list[dict]:
+    """Their routine across their own calendar day, midnight to midnight where they live, for Today's day strip."""
+    local = now.astimezone(zone(timezone))
+    start = datetime.combine(local.date(), time(), local.tzinfo)
+    return [slot.view() for slot in routine.slots(schedule, timezone, start, start + timedelta(days=1))]
+
+
 @router.get('/routine')
 def read_routine(request: Request):
     database = db(request)
@@ -224,7 +231,7 @@ def read_routine(request: Request):
     schedule, default = routine.blocks(version['definition'])
     now_slot, next_slot = routine.current_and_next(schedule, version['timezone'], now)
     return {'timezone': version['timezone'], 'default_schedule': default,
-            'blocks': [block.view() for block in schedule],
+            'blocks': [block.view() for block in schedule], 'today': today_slots(schedule, version['timezone'], now),
             'current': now_slot.view() if now_slot else None, 'next': next_slot.view() if next_slot else None,
             'simulated_through': position['simulated_through'], 'now': stamp(now),
             'clock_behind': now < parse(position['simulated_through'])}

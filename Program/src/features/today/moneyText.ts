@@ -33,9 +33,9 @@ export function cycleText(view: Budget): string {
 
 /** How the pay period feels, as one plain sentence. */
 export function moodOfMoney(view: Budget, name: string): string {
-  if (view.tight) return `Money is tight for ${name} until payday.`
-  if (view.flush) return `${name} has some spending money: about ${view.text.left} until payday.`
-  return `About ${view.text.left} left to spend until payday.`
+  if (view.tight) return `Money is tight for ${name} until payday`
+  if (view.flush) return `${name} has some spending money: about ${view.text.left} until payday`
+  return `About ${view.text.left} left to spend until payday`
 }
 
 export function goalText(view: Budget): string {

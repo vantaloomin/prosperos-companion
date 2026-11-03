@@ -518,6 +518,46 @@ a.button { color: inherit; text-decoration: none; }
 .settings-section a { color: var(--accent); }
 .settings-panel > .settings-intro + .settings-section { border-top: 0; padding-top: 0; }
 
+/* Today (v1.3 design): a header with the tools, then the Now card: what they're doing, their day as a strip. */
+.today-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 760px; margin-bottom: 16px; }
+.today-head h1 { margin: 0; margin-right: auto; }
+.today-tools { display: flex; gap: 4px; }
+.now-card { max-width: 760px; display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 8px; }
+.now-card > p { margin: 0; }
+.now-head { display: flex; align-items: center; gap: 12px; }
+.now-text { flex: 1; min-width: 0; }
+.now-line { font-family: inherit; font-size: 1.05rem; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+.now-name { color: var(--accent); }
+.now-card.their-look .now-name { color: var(--their-name); font-family: var(--their-font); font-weight: var(--their-weight); }
+.now-text .row-sub { margin: 2px 0 0; }
+.now-message { flex: none; }
+.day-strip-wrap { display: grid; gap: 4px; }
+.day-strip { position: relative; height: 28px; margin: 0; padding: 0; list-style: none; border-radius: 6px; overflow: hidden; background: var(--raised); }
+.day-strip > li { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; padding: 0 6px; overflow: hidden; font-size: 0.75rem; color: var(--text); white-space: nowrap; box-shadow: inset -1px 0 0 var(--surface); }
+.day-label { white-space: nowrap; }
+.day-sleep, .day-rest { background: color-mix(in srgb, var(--muted) 18%, var(--raised)); color: var(--muted) !important; }
+.day-work, .day-study { background: color-mix(in srgb, var(--accent) 34%, var(--raised)); }
+.day-errand { background: color-mix(in srgb, var(--accent) 18%, var(--raised)); }
+.day-leisure, .day-social { background: color-mix(in srgb, var(--text) 10%, var(--raised)); }
+.day-strip > .day-now { width: 2px; padding: 0; margin-left: -1px; background: var(--text); box-shadow: none; }
+.day-hours { display: flex; justify-content: space-between; font-size: 0.6875rem; color: var(--faint); }
+.today-section-title { display: flex; align-items: center; gap: 4px; }
+.today-section-title h2 { margin: 0; }
+.today-folds { max-width: 760px; margin-top: 28px; }
+/* Centered on a wide screen, like the profile (Iris): the column and its header icons. */
+@media (min-width: 1200px) { .page.today { padding-left: max(40px, calc((100% - 760px) / 2)); padding-right: max(40px, calc((100% - 760px) / 2)); } }
+.today-section-title .today-more, .today-group-title .today-more { margin-left: auto; font-size: 0.8125rem; }
+.today-group-title { display: flex; align-items: baseline; gap: 8px; }
+.today-group-title h3 { margin-top: 10px; }
+.plain-list.money-list { padding-left: 0; list-style: none; }
+.money-goal-label { flex-wrap: nowrap; align-items: flex-start; }
+.admin-move-words { display: none; }
+@media (max-width: 720px) { .admin-move-words { display: inline; } }
+@media (max-width: 600px) {
+  .now-head { flex-wrap: wrap; }
+  .now-message { width: 100%; justify-content: center; }
+  .day-hours span:nth-child(even) { visibility: hidden; }
+}
 .today > .notice, .today > div > .notice { max-width: 760px; margin-bottom: 12px; }
 .today-section { max-width: 760px; margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }
 .today-section h3 { font-size: 1rem; margin-top: 10px; color: var(--muted); }
@@ -2076,7 +2116,11 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* On their mind (features/today/OnTheirMind.tsx): a folded line under the day's heading. */
 .on-their-mind { margin-top: 6px; max-width: 640px; }
 .on-their-mind summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); font-size: 0.92rem; }
-.on-their-mind summary svg { width: 15px; height: 15px; }
+.on-their-mind > p { margin: 0; font-size: 0.92rem; }
+.on-their-mind .mind-label { color: var(--muted); }
+.on-their-mind details { margin-top: 4px; }
+.on-their-mind summary::before { content: "▸"; font-size: 0.75rem; }
+.on-their-mind details[open] summary::before { content: "▾"; }
 .on-their-mind ul { margin-top: 8px; gap: 6px; }
 .on-their-mind time { color: var(--muted); font-size: 0.85rem; margin-right: 4px; }
 
