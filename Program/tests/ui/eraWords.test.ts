@@ -36,6 +36,6 @@ test('pictures and the profile tabs take the era words', () => {
   assert.equal(photoAlt('Alfie', photo, words('historical')), 'Photograph of the view from Alfie: the harbour')
   assert.equal(photoLine({ ...photo, kind: 'selfie' }, words('fantasy')), 'The likeness is on its way.')
   assert.equal(photoLine(photo), 'The photo is on its way.')
-  assert.deepEqual(profileTabs(words('fantasy')).map((tab) => tab.label), ['Letters', 'Chronicle', 'Memories', 'Character'])
-  assert.deepEqual(profileTabs(words('future')).map((tab) => tab.label), ['Comms', 'Posts', 'Memories', 'Character'])
+  assert.deepEqual(profileTabs(words('fantasy')).map((tab) => tab.label), ['Chronicle', 'Memories', 'Character'])
+  assert.deepEqual(profileTabs(words('future')).map((tab) => tab.label), ['Posts', 'Memories', 'Character'])
 })

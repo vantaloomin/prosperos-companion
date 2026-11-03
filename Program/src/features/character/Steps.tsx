@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { COMPANION_KEY } from '../../companion'
 import type { StepsView } from '../../types'
-import { Field, Toggle } from '../../components/Fields'
+import { FoldRow, SettingRow, SwitchRow } from '../../components/Rows'
 import { Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
@@ -31,32 +31,51 @@ export function Steps({ name }: { name: string }) {
       void client.invalidateQueries({ queryKey: COMPANION_KEY })
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'That was not saved.') }
   }
+  return <StepsFold name={name} view={view} breakup={breakup.data} save={save} error={error} />
+}
+
+/** The fold's value: the step you are at, or where you stand while apart. */
+function stepsValue(view: StepsView, breakup: BreakupView | undefined): string | undefined {
+  return isApart(breakup) ? standsLabel(breakup) : view.ladder_steps?.find((item) => item.step === view.step)?.label
+}
+
+/** The plain line about where you stand, and the breakup line while you are apart. */
+function StepsLead({ name, view, breakup }: { name: string; view: StepsView; breakup: BreakupView | undefined }) {
+  const line = isApart(breakup) ? apartSummary(breakup) : view.text
+  if (!line && !breakup) return null
+  return <div className="fold-extra">{line && <p className="steps-line">{line}</p>}<BreakupLine name={name} view={breakup} /></div>
+}
+
+interface FoldProps { name: string; view: StepsView; breakup: BreakupView | undefined; save: (change: { step?: string; just_friends?: boolean }) => Promise<void>; error: string }
+
+/** One fold row: "You and Maya" with the step you are at as its value. */
+function StepsFold({ name, view, breakup: breakupView, save, error }: FoldProps) {
+  const breakup = { data: breakupView }
   const who = firstName(name)
   // On a break or broken up (companion/life/breakups.py) the summary says so, and the steps wait.
   const apart = isApart(breakup.data)
-  const line = apart ? apartSummary(breakup.data) : view.text
   const hint = apartHint(breakup.data) ||
     `Picked and moved on by the app, as ${who} brings things up and you answer. Set it yourself any time; moving it back takes the later steps back.`
   return (
-    <section id="steps" className="home-panel steps-panel" aria-labelledby="steps-heading">
-      <h2 id="steps-heading">You and {who}</h2>
-      {line && <p className="steps-line">{line}</p>}
-      <BreakupLine name={name} view={breakup.data} />
-      <Field label={standsLabel(breakup.data)} hint={hint}>
-        {(id, describedBy) => (
-          <select id={id} aria-describedby={describedBy} value={view.step} disabled={apart} onChange={(event) => void save({ step: event.target.value })}>
+    <FoldRow summary={`You and ${who}`} value={stepsValue(view, breakup.data)}>
+      <StepsLead name={name} view={view} breakup={breakup.data} />
+      <SettingRow label={standsLabel(breakup.data)} tip={hint}>
+        {(id) => (
+          <select id={id} value={view.step} disabled={apart} onChange={(event) => void save({ step: event.target.value })}>
             {view.ladder_steps?.map((item) => <option key={item.step} value={item.step}>{item.label}</option>)}
           </select>
         )}
-      </Field>
-      <StepsSoFar view={view} name={name} ended={endedStep(breakup.data, name) || apartStep(view, name)} />
-      <Wedding name={name} />
+      </SettingRow>
       {view.can_fall && (
-        <Toggle label="Just friends" checked={view.just_friends} disabled={apart} onChange={(just_friends) => void save({ just_friends })}
-          hint={`On: ${who} stays a friend. Off: a close friend can fall for you now and then, if Friends can fall for you is on in Settings > Realism.`} />
+        <SwitchRow label="Just friends" checked={view.just_friends} disabled={apart} onChange={(just_friends) => void save({ just_friends })}
+          tip={`On: ${who} stays a friend. Off: a close friend can fall for you now and then, if Friends can fall for you is on in Settings > Realism.`} />
       )}
-      {error && <Notice tone="error">{error}</Notice>}
-    </section>
+      <div className="fold-extra" id="steps">
+        <StepsSoFar view={view} name={name} ended={endedStep(breakup.data, name) || apartStep(view, name)} />
+        <Wedding name={name} />
+        {error && <Notice tone="error">{error}</Notice>}
+      </div>
+    </FoldRow>
   )
 }
 

@@ -37,8 +37,8 @@ function unlabelledControls(path: string): string[] {
     const tag = openingTag(source, match.index)
     if (/type="hidden"|\shidden[\s/>]/.test(tag)) continue
     const named = /\baria-label(ledby)?=/.test(tag) || /\{\.\.\./.test(tag)
-    // An id only names the control when a <label htmlFor> or a <Field> in the same file points at it.
-    const linked = /\bid=/.test(tag) && /htmlFor=|<Field\b/.test(source)
+    // An id only names the control when a <label htmlFor>, a <Field> or a <SettingRow> (components/Rows.tsx) in the same file points at it.
+    const linked = /\bid=/.test(tag) && /htmlFor=|<Field\b|<SettingRow\b/.test(source)
     if (!named && !linked && !wrappedInLabel(source, match.index)) problems.push(`${path}:${line(source, match.index)} <${match[1]}> has no label`)
   }
   return problems

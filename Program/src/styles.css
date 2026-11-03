@@ -1718,13 +1718,12 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-scroll > .page { overflow: visible; padding-top: 22px; }
 .profile-card { padding-bottom: 16px; }
 .profile-titlebar { display: none; }
-.profile-cover { height: 120px; border-bottom: 1px solid var(--border); background: linear-gradient(120deg, var(--accent-tint), var(--cover-mid) 55%, var(--raised)); }
-.profile-who { display: flex; align-items: flex-end; gap: 16px; margin: -44px 40px 0; }
-.profile-avatar { display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 4px solid var(--canvas); background: var(--accent-tint); color: var(--accent); font-family: var(--read-font); font-size: 2.5rem; flex-shrink: 0; }
-.profile-name { min-width: 0; padding-bottom: 6px; }
+.profile-who { display: flex; align-items: center; gap: 16px; margin: 24px 40px 0; }
+.profile-avatar { display: grid; place-items: center; width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); background: var(--accent-tint); color: var(--accent); font-family: var(--read-font); font-size: 2.5rem; flex-shrink: 0; }
+.profile-name { min-width: 0; }
 .profile-name h1 { font-size: 1.6rem; overflow-wrap: anywhere; }
 .profile-handle { color: var(--faint); font-size: 0.8125rem; }
-.profile-message { flex: none; margin: 0 0 6px auto; }
+.profile-message { flex: none; margin: 0 0 0 auto; }
 .profile-bio { max-width: 680px; margin: 14px 40px 0; font-size: 0.9375rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .profile-facts, .profile-interests { list-style: none; display: flex; flex-wrap: wrap; margin: 12px 40px 0; padding: 0; }
 .profile-facts { gap: 6px 18px; color: var(--muted); font-size: 0.8125rem; }
@@ -1746,9 +1745,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-tabs :focus-visible { outline-offset: -3px; }
 
 /* Bubbles: a phone contact card, centered, with pill tabs. */
-.profile-bubbles .profile-cover { height: 84px; border: 0; background: linear-gradient(180deg, var(--raised), var(--canvas)); }
-.profile-bubbles .profile-who { flex-direction: column; align-items: center; gap: 8px; margin-top: -56px; text-align: center; }
-.profile-bubbles .profile-avatar { width: 112px; height: 112px; }
+.profile-bubbles .profile-who { flex-direction: column; align-items: center; gap: 8px; margin-top: 20px; text-align: center; }
+.profile-bubbles .profile-avatar { width: 96px; height: 96px; }
 .profile-bubbles .profile-name { padding: 0; }
 .profile-bubbles .profile-message { margin: 0; border-radius: 999px; }
 .profile-bubbles .profile-name h1 { font-family: var(--ui-font); font-weight: 500; }
@@ -1762,9 +1760,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 
 /* Community: a chat-server profile card with a banner, and the feed as a flat channel. */
 .profile-community .profile-card { max-width: 720px; margin: 18px 40px 0; padding-bottom: 16px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
-.profile-community .profile-cover { height: 96px; border: 0; background: linear-gradient(90deg, #8a6f42, var(--accent)); }
-.profile-community .profile-who { margin: -40px 16px 0; }
-.profile-community .profile-avatar { width: 88px; height: 88px; border: 6px solid var(--surface); font-family: var(--ui-font); font-weight: 600; font-size: 2rem; }
+.profile-community .profile-who { margin: 16px 16px 0; }
+.profile-community .profile-avatar { width: 72px; height: 72px; font-family: var(--ui-font); font-weight: 600; font-size: 2rem; }
 .profile-community .profile-name h1 { font-family: var(--ui-font); font-size: 1.3rem; font-weight: 600; }
 .profile-community :is(.profile-bio, .profile-facts, .profile-interests) { margin-inline: 16px; }
 .profile-community .profile-bio { padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.875rem; }
@@ -1786,7 +1783,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   color-scheme: var(--app-scheme); font-family: var(--ui-font); }
 .profile-retro .profile-card { margin: 10px 10px 0; padding-bottom: 10px; border: 2px outset #e8e6e1; background: var(--surface); }
 .profile-retro .profile-titlebar { display: block; padding: 4px 8px; background: linear-gradient(90deg, #0a246a, #24508f); color: #ffffff; font-size: 0.8125rem; font-weight: 700; }
-.profile-retro .profile-cover { display: none; }
 .profile-retro .profile-who { align-items: flex-start; gap: 10px; margin: 10px 10px 0; }
 .profile-retro .profile-avatar { width: 72px; height: 72px; border: 2px inset #e8e6e1; border-radius: 0; background: var(--canvas); color: var(--accent); font-family: inherit; font-size: 2rem; }
 .profile-retro .profile-name h1 { font-family: inherit; font-size: 1rem; font-weight: 700; }
@@ -1833,7 +1829,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-novel .post-header time { margin-left: auto; }
 
 @media (max-width: 720px) {
-  .profile-cover { height: 96px; }
+  .profile-novel .profile-cover { height: 96px; }
   .profile-who, .profile-bio, .profile-facts, .profile-interests { margin-inline: 16px; }
   .profile-patch .text-button { min-height: 44px; }
   .profile-facts li.profile-patch.has-reason .text-button { flex-basis: 100%; justify-content: flex-start; }
@@ -1843,9 +1839,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .profile-retro .profile-card, .profile-retro .profile-tabs { margin-inline: 4px; }
   .profile-retro .feed { margin: 4px; padding: 12px; }
   .profile-retro .profile-tabs { padding: 4px 4px 0; }
-  /* The icon alone, so a long name keeps its width; the button is still named "Message". */
-  .profile-message { min-width: 40px; padding-inline: 10px; }
-  .profile-message span { display: none; }
 }
 
 /* What the app is doing for the conversation (ActivityLine.tsx): one line that always keeps its space, so it never moves the messages. */
@@ -3068,3 +3061,64 @@ p.breakup-line { align-items: center; }
 .meta-sep { flex: none; margin: 0 4px; color: var(--faint); }
 /* Phone: the status gives way first, so the time always shows in full (Iris, step 3). */
 @media (max-width: 720px) { .conversation-status .conversation-meta { flex: 0 0 auto; } .conversation-status .status-line { flex: 0 1 auto; min-width: 0; } }
+
+/* v1.3 step 4: the profile opens from the name in the chat; one header, then Posts, Memories and Character. */
+.conversation-title h1 .name-button { max-width: 100%; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.conversation-title h1 .name-button:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.portrait-button { flex: none; padding: 0; border-radius: 50%; cursor: pointer; }
+.chat-retro .portrait-button { border-radius: 3px; }
+.profile-avatar-button { flex: none; padding: 0; border-radius: 50%; cursor: pointer; }
+.profile-avatar-button:hover .profile-avatar { filter: brightness(0.96); }
+.profile-retro .profile-avatar-button { border-radius: 0; }
+.with-card .profile-tabs { position: sticky; top: 0; z-index: 2; margin-top: 8px; }
+/* Step 4a review (Iris): their name in their color, a way back on a phone, one axis for Bubbles. */
+.profile-card.their-look:not(.novel-card) .profile-name h1 { color: var(--their-name); font-family: var(--their-font); font-weight: var(--their-weight); }
+.profile-card { position: relative; }
+.profile-back { display: none; }
+.profile-actions { display: flex; justify-content: center; margin: 14px 24px 0; }
+.profile-actions .profile-message { margin: 0; }
+.profile-feed .profile-actions { justify-content: flex-start; margin-inline: 40px; }
+.profile-bubbles.with-card .profile-scroll > .page { max-width: 760px; margin-inline: auto; }
+@media (max-width: 720px) {
+  .profile-back { display: inline-grid; position: absolute; top: 4px; left: 4px; z-index: 1; min-width: 44px; min-height: 44px; color: var(--muted); }
+  .profile-retro .profile-back { top: 0; left: 0; width: 28px; height: 26px; min-height: 0; color: #ffffff; }
+  .profile-retro .profile-titlebar { padding-left: 30px; }
+  .profile-feed .profile-actions { margin-inline: 16px; }
+  .profile-feed .profile-who, .profile-community .profile-who { padding-left: 32px; }
+}
+/* Step 4b: Character fields are a label and the field; the pen that helps write one sits at the end of its label line. */
+.field > .label-row { display: flex; width: 100%; }
+.label-row > .field-help { margin: 0 0 0 auto; gap: 4px 8px; }
+.label-row > .field-help.open { flex-basis: 100%; margin: 4px 0 0; }
+.field-pen { width: 32px; height: 32px; min-height: 0; color: var(--muted); }
+.field-pen svg { width: 16px; height: 16px; }
+.version-line { margin: 0; color: var(--faint); font-size: 0.8125rem; }
+.version-line > summary { display: flex; gap: 12px; align-items: baseline; cursor: pointer; list-style: none; }
+.version-line > summary::-webkit-details-marker { display: none; }
+.version-line ol { padding-left: 22px; display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.version-line li span { display: block; font-size: 0.875rem; color: var(--text); }
+.version-line li small { color: var(--muted); font-size: 0.8125rem; }
+.version-history { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 720px) { .field-pen { width: 44px; height: 44px; margin: -6px -6px -6px 0; } }
+/* Name and Relationship share a row; Where they live takes the next one whole, never half a row alone (Iris, 4b). */
+.form-grid.character-basics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-grid.character-basics > :last-child { grid-column: 1 / -1; }
+@media (max-width: 720px) { .form-grid.character-basics { grid-template-columns: minmax(0, 1fr); } }
+/* Step 4c: Character's life sections as fold rows; inside, rows and the odd block of detail share one list. */
+.character-folds { margin-top: var(--stack-gap); max-width: 760px; }
+.fold-body > * + * { border-top: 1px solid var(--border); }
+.fold-extra { display: grid; gap: 12px; padding: 12px 16px; min-width: 0; }
+.fold-extra > :is(h2, h3) { font-size: 0.875rem; }
+.fold-about { display: flex; align-items: center; gap: 4px; margin: 0; font-size: 0.875rem; }
+.fold-extra.family-panel { padding-block: 12px 16px; }
+.fold-extra.family-panel .kids-block { margin-bottom: 0; }
+/* The empty announcer under Add a child keeps no gap (it stays in the page so its news is read out). */
+.kids-block > [aria-live]:empty { margin-top: -8px; }
+.fold-extra:empty { display: none; }
+.setting-row select { min-height: 36px; padding-block: 4px; font-size: 0.875rem; }
+/* Below 480px a select takes its own line under its label, so its value never cuts off; switches stay on the right. */
+@media (max-width: 480px) {
+  .setting-row:has(> select) { flex-wrap: wrap; padding-block: 8px 12px; gap: 6px 12px; }
+  .setting-row > select { flex-basis: 100%; width: 100%; max-width: 100%; }
+}
+.character-folds + * { border-top: 0; }

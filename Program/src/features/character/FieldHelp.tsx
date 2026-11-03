@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { PenLine } from 'lucide-react'
 import { api } from '../../api'
 import type { CharacterDefinition } from '../../types'
 import type { DraftField, FieldResult, FieldValue } from './drafting'
 
 interface Props { field: DraftField; label: string; definition: () => CharacterDefinition; current: FieldValue; apply: (value: FieldValue) => void }
 
-/** Ask the text model to rewrite one field in keeping with the rest; the old text can be put back. */
+/** Ask the text model to rewrite one field in keeping with the rest; the old text can be put back. Closed, it is a pen
+ * at the end of the field's label line (the field's `action`); open, its request box takes the line under the label. */
 export function FieldHelp({ field, label, definition, current, apply }: Props) {
   const [open, setOpen] = useState(false)
   const [request, setRequest] = useState('')
@@ -32,8 +33,8 @@ export function FieldHelp({ field, label, definition, current, apply }: Props) {
   if (!open) {
     return (
       <div className="field-help">
-        <button type="button" className="text-button" onClick={() => setOpen(true)}><Sparkles aria-hidden="true" />Help me write {label}</button>
         {previous !== null && <button type="button" className="text-button" onClick={undo}>Put back what was there</button>}
+        <button type="button" className="icon-button field-pen" aria-label={`Help me write ${label}`} title={`Help me write ${label}`} onClick={() => setOpen(true)}><PenLine aria-hidden="true" /></button>
       </div>
     )
   }

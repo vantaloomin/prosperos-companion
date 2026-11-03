@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
-import { Field, Toggle } from '../../components/Fields'
+import { FoldRow, SettingRow, SwitchRow } from '../../components/Rows'
 import { FAMILIES, FONTS, familyLabel, fontLabel, THEIR_LOOK_KEY, type LookView } from '../conversation/theirLook'
 import { useLookStyles, useTheirLook } from '../conversation/useTheirLook'
 import { firstName } from './panelText'
@@ -12,7 +12,9 @@ import { firstName } from './panelText'
 type Change = Partial<{ family: string; font: string; steady: boolean; use_mine: boolean }>
 
 /** Their look in chat (companion/their_look.py): the colour and name font the app picked for them, shown on their name,
- * with a way to pick another, keep it steady or use the user's own colours in their chat. */
+ * with a way to pick another, keep it steady or use the user's own colours in their chat. One fold row on the Character
+ * page; its summary shows the look ("Magenta · rounded"). Only their name, the chat's header and a light accent change,
+ * never message text. */
 export function TheirLook({ name }: { name: string }) {
   const client = useQueryClient()
   const look = useTheirLook()
@@ -23,42 +25,51 @@ export function TheirLook({ name }: { name: string }) {
     catch (failure) { setError(failure instanceof Error ? failure.message : 'That change was not saved.') }
   }
   return (
-    <section className="home-panel their-look-panel" aria-labelledby="their-look-heading">
-      <h2 id="their-look-heading">{firstName(name)}&apos;s look in chat</h2>
-      <p className="subtle">Their own color and a font for their name, picked to suit them. Only their name, the chat&apos;s header and a light accent change, never message text.</p>
-      {look.isPending && <Loading label="Loading their look" />}
-      {look.isError && <ErrorNotice error={look.error} />}
+    <FoldRow summary={`${firstName(name)}'s look in chat`} value={look.data && lookSummary(look.data)}>
+      {look.isPending && <div className="fold-extra"><Loading label="Loading their look" /></div>}
+      {look.isError && <div className="fold-extra"><ErrorNotice error={look.error} /></div>}
       {look.data && <LookBody view={look.data} name={name} save={save} />}
-      {error && <Notice tone="error">{error}</Notice>}
-    </section>
+      {error && <div className="fold-extra"><Notice tone="error">{error}</Notice></div>}
+    </FoldRow>
   )
 }
 
+/** "Magenta · rounded", or Off when their look is off in this world or everywhere. */
+function lookSummary(view: LookView): string {
+  if (view.level === 0 || view.everywhere_off) return 'Off'
+  const family = view.own.family ?? view.look?.family ?? view.picked.family
+  const font = view.own.font ?? view.look?.font ?? view.picked.font
+  return `${capitalised(familyLabel(family))} · ${fontLabel(font).toLowerCase()}`
+}
+
+const ABOUT = 'Their own color and a font for their name, picked to suit them. Only their name, the chat\'s header and a light accent change, never message text.'
+
 function LookBody({ view, name, save }: { view: LookView; name: string; save: (change: Change) => Promise<void> }) {
   const first = firstName(name)
+  const off = <OffNotice view={view} />
   return <>
-    <OffNotice view={view} />
-    {view.level > 0 && !view.everywhere_off && <Preview view={view} name={name} />}
-    <Field label="Their color" hint={pickedHint(view.own.family, first, ' It can change with them over time.')}>
-      {(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={view.own.family ?? ''} onChange={(event) => void save({ family: event.target.value })}>
+    {(view.level === 0 || view.everywhere_off) && <div className="fold-extra">{off}</div>}
+    {view.level > 0 && !view.everywhere_off && <div className="fold-extra"><Preview view={view} name={name} /></div>}
+    <SettingRow label="Their color" tip={`${ABOUT} ${pickedHint(view.own.family, first, ' It can change with them over time.')}`}>
+      {(id) => (
+        <select id={id} value={view.own.family ?? ''} onChange={(event) => void save({ family: event.target.value })}>
           <option value="">Picked for them ({familyLabel(view.picked.family)})</option>
           {FAMILIES.map((item) => <option key={item.id} value={item.id}>{capitalised(item.label)}</option>)}
         </select>
       )}
-    </Field>
-    <Field label="Their name font" hint={pickedHint(view.own.font, first, '')}>
-      {(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={view.own.font ?? ''} onChange={(event) => void save({ font: event.target.value })}>
+    </SettingRow>
+    <SettingRow label="Their name font" tip={pickedHint(view.own.font, first, '')}>
+      {(id) => (
+        <select id={id} value={view.own.font ?? ''} onChange={(event) => void save({ font: event.target.value })}>
           <option value="">Picked for them ({fontLabel(view.picked.font).toLowerCase()})</option>
           {FONTS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>
       )}
-    </Field>
-    <Toggle label="Keep it steady" checked={view.steady} onChange={(checked) => void save({ steady: checked })} hint={steadyHint(view, first)} />
-    <Toggle label="Use my colors here" checked={view.use_mine} onChange={(checked) => void save({ use_mine: checked })}
-      hint="Their chat keeps your colors and fonts. Other companions keep theirs." />
-    <RecentChanges changes={view.changes} />
+    </SettingRow>
+    <SwitchRow label="Keep it steady" checked={view.steady} onChange={(checked) => void save({ steady: checked })} tip={steadyHint(view, first)} />
+    <SwitchRow label="Use my colors here" checked={view.use_mine} onChange={(checked) => void save({ use_mine: checked })}
+      tip="Their chat keeps your colors and fonts. Other companions keep theirs." />
+    {view.changes.length > 0 && <div className="fold-extra"><RecentChanges changes={view.changes} /></div>}
   </>
 }
 
@@ -71,7 +82,7 @@ function OffNotice({ view }: { view: LookView }) {
 const pickedHint = (own: string | null, first: string, more: string) => own ? 'You picked it, so it stays.' : `Picked to suit ${first}.${more}`
 
 function steadyHint(view: LookView, first: string) {
-  if (!view.steady) return 'Their shade moves a little with the seasons, their birthday and a strong mood. Tick to keep it as it is.'
+  if (!view.steady) return 'Their shade moves a little with the seasons, their birthday and a strong mood. Turn this on to keep it as it is.'
   const family = view.own.family ?? view.look?.family ?? view.picked.family
   const font = view.own.font ?? view.look?.font ?? view.picked.font
   return `${first} keeps ${familyLabel(family)} and ${fontLabel(font).toLowerCase()}, whatever the season or their mood.`
