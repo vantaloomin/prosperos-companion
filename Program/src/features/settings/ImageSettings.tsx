@@ -160,7 +160,7 @@ function StyleRow({ saved, save }: { saved: string; save: (style: string) => Pro
       {(id) => <>
         <input id={id} className="style-input" value={style} maxLength={500} autoComplete="off" placeholder="Candid, natural-light photograph"
           onChange={(event) => setStyle(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); commit() } }} />
-        <a className="text-button inline style-more" href={PICTURE_PROMPTS}>More picture wording is in Advanced &gt; Prompts.</a>
+        <span className="subtle style-more">More picture wording is in <a className="text-button inline" href={PICTURE_PROMPTS}>Advanced &gt; Prompts</a>.</span>
       </>}
     </SettingRow>
   )
