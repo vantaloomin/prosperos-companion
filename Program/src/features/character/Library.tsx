@@ -12,6 +12,7 @@ type Books = { books: LibraryBook[] }
 
 /** The reference library: long texts the companion (or everyone in the world) can draw on. On the Character page
  * (`name`, the companion's books and the world's) and in Settings > World (`world`, the world's only). */
+/** `world`: Settings > World > Library, a page of its own whose title and intro Settings shows. */
 export function Library({ name, world = false }: { name?: string; world?: boolean }) {
   const client = useQueryClient()
   const books = useQuery({ queryKey: LIBRARY_KEY, queryFn: () => api<Books>('/library').then((data) => data.books) })
@@ -33,11 +34,8 @@ export function Library({ name, world = false }: { name?: string; world?: boolea
   const shown = (books.data ?? []).filter((book) => !world || book.world)
   const heading = world ? 'world-library-heading' : 'library-heading'
   return (
-    <section className="settings-section form-stack" aria-labelledby={heading}>
-      <div>
-        <h2 id={heading}>Library</h2>
-        <p className="subtle">{libraryIntro(world, name)}</p>
-      </div>
+    <section className={world ? 'form-stack' : 'settings-section form-stack'} aria-labelledby={heading}>
+      {!world && <LibraryHead heading={heading} intro={libraryIntro(false, name)} />}
       <input ref={input} type="file" accept={LIBRARY_TYPES} hidden onChange={(event) => void addFile(event.target.files?.[0])} />
       <div>
         <button type="button" className="button" disabled={busy} aria-describedby={`${heading}-types`} onClick={() => input.current?.click()}>
@@ -173,4 +171,8 @@ export function GetLatest({ online, onResult, label }: { online: OnlineBook; onR
       {online.book_id ? <RefreshCw aria-hidden="true" /> : <BookPlus aria-hidden="true" />}{busy ? 'Downloading…' : text}
     </button>
   )
+}
+
+function LibraryHead({ heading, intro }: { heading: string; intro: string }) {
+  return <div><h2 id={heading}>Library</h2><p className="subtle">{intro}</p></div>
 }

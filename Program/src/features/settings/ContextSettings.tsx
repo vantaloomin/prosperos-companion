@@ -1,9 +1,12 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import type { ArgumentSource, ContextCategory, ContextMapping, ContextOverview, ContextPurpose, ContextServiceInfo, MappingSuggestion, Observation, ToolArgument, ToolProperty } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { InfoTip } from '../../components/InfoTip'
+import { Menu, type MenuEntry, type MenuItem } from '../../components/Menu'
+import { FoldRow, RowGroup, SettingRow, SwitchRow } from '../../components/Rows'
 import { BuiltinCulture } from './BuiltinCulture'
 import { BuiltinPulse } from './BuiltinPulse'
 import { BuiltinWeather } from './BuiltinWeather'
@@ -11,12 +14,15 @@ import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { OptionalStepper } from '../../components/NumberFields'
 import { CATEGORY_LABELS, CATEGORY_ORDER, CONTEXT_KEY, SEARCH_PRESETS, SOURCE_LABELS, argumentKind, canSave, canTry, propertyLabel, purposeLabel, initialMapping, missingArguments, observationSummary, serviceBody, sourcesFor, withAppFilled, withPurpose, withSource, type MappingDraft, type ServiceDraft } from './contextTools'
 import { SectionPending } from '../../components/SectionPending'
+import { countText } from '../../components/numberBounds'
+import { canTurnOn, serviceIsOn, setServiceOn } from './builtinSave'
 
 type Result = { tone: 'info' | 'error'; text: string } | null
 type Overview = ContextOverview
 const failure = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
 
-/** Real weather, news and local events through MCP servers you add (PRD X1–X3). Nothing runs until you turn a lookup on. */
+/** Real weather, news and local events through MCP servers you add (PRD X1–X3). Nothing runs until you turn a lookup on.
+ * Style guide: where you are and links as rows, then the lookup services as fold rows with one Add menu. */
 export function ContextSettings({ name }: { name: string }) {
   const client = useQueryClient()
   const overview = useQuery({ queryKey: CONTEXT_KEY, queryFn: () => api<Overview>('/context') })
@@ -25,83 +31,57 @@ export function ContextSettings({ name }: { name: string }) {
   const refresh = () => client.invalidateQueries({ queryKey: CONTEXT_KEY })
   if (!overview.data) return <SectionPending queries={[overview]} heading="context-heading" title="Real-world lookups" />
   const data = overview.data
-  return (
-    <section className="settings-section form-stack" aria-labelledby="context-heading">
-      <div>
-        <h2 id="context-heading">Real-world lookups</h2>
-        <p className="subtle">
-          {name} can check real weather, news and local events when you ask about them, through MCP servers you add. Lookups send only what you approve below,
-          never your conversation or memories, and results are treated as outside information that can be out of date.
-        </p>
-      </div>
-      <LocationForm data={data} setResult={setResult} />
+  return <>
+    <RowGroup id="location-heading">
+      <PlaceRow data={data} setResult={setResult} />
       <LinkReading data={data} name={name} setResult={setResult} />
-      {data.services.length === 0 && <p className="subtle">No lookup service is set up. {name} answers from what they already know. The built-in weather, local pulse and culture pulse servers need no key or account.</p>}
-      <ol className="backend-list">
-        {data.services.map((service) => <ServiceRow key={service.id} service={service} data={data} name={name} refresh={refresh} setResult={setResult} />)}
-      </ol>
-      <SearchPresets data={data} refresh={refresh} setResult={setResult} />
-      {adding ? <AddService onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
-        : <div className="form-actions wrap">
-          {(['weather', 'pulse', 'culture'] as const).filter((kind) => !data.services.some((service) => service.builtin === kind))
-            .map((kind) => <AddBuiltin key={kind} kind={kind} refresh={refresh} setResult={setResult} />)}
-          <button type="button" className="button" onClick={() => setAdding(true)}>Add a lookup service</button>
-        </div>}
-      {result && <Notice tone={result.tone}>{result.text}</Notice>}
+      <Coordinates data={data} setResult={setResult} />
+    </RowGroup>
+    <section className="row-group" aria-labelledby="context-heading">
+      <div className="row-group-head">
+        <h2 id="context-heading" className="section-title">Lookups<InfoTip id="context-tip" label="Lookups"
+          text={`${name} can check real weather, news and local events when you ask about them, through MCP servers you add. Lookups send only what you approve, never your conversation or memories, and results are treated as outside information that can be out of date.`} /></h2>
+        <AddLookup data={data} refresh={refresh} setResult={setResult} onOther={() => setAdding(true)} />
+      </div>
+      <div className="row-list">
+        {data.services.length === 0
+          ? <p className="setting-row row-empty">No lookup service yet. {name} answers from what they already know. The built-in ones need no key or account.</p>
+          : <ol className="backend-list">{data.services.map((service) => <ServiceRow key={service.id} service={service} data={data} name={name} refresh={refresh} setResult={setResult} />)}</ol>}
+      </div>
+      {adding && <AddService onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />}
     </section>
-  )
-}
-
-/** One-click hosted search services. Adding one connects and lists its tools; nothing is searched until approved. */
-function SearchPresets({ data, refresh, setResult }: { data: Overview; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
-  const [busy, setBusy] = useState(false)
-  const missing = SEARCH_PRESETS.filter((preset) => !data.services.some((service) => service.url === preset.url))
-  if (missing.length === 0) return null
-  const add = async (preset: string, label: string) => {
-    if (busy) return
-    setBusy(true)
-    try {
-      const created = await api<ContextServiceInfo>('/context/services/preset', { preset })
-      const checked = await api<ContextServiceInfo>(`/context/services/${created.id}/check`, {})
-      setResult(checked.check_error ? { tone: 'error', text: `Added ${label}, but the check failed: ${checked.check_error}` } : { tone: 'info', text: `Added ${label}. Review and turn on its web search or link reading below.` })
-      await refresh()
-    } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not added.') }) } finally { setBusy(false) }
-  }
-  return (
-    <div className="form-stack">
-      <p className="subtle">Web search: add a hosted search service that works without a key. Searches send only what you asked to look up.</p>
-      <ul className="preset-list">
-        {missing.map((preset) => (
-          <li key={preset.id}>
-            <button type="button" className="button" aria-disabled={busy} onClick={() => void add(preset.id, preset.name)}>Add {preset.name}</button>
-            <span className="subtle">{preset.note}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
+    {result && <Notice tone={result.tone}>{result.text}</Notice>}
+  </>
 }
 
 const BUILTINS = {
-  weather: { label: 'the built-in weather server', next: 'Review and turn on its weather lookup below.' },
-  pulse: { label: 'the built-in local pulse server', next: 'Turn on headlines or games below.' },
-  culture: { label: 'the built-in culture pulse server', next: "Turn on its switches below." },
+  weather: { label: 'Weather', added: 'the built-in weather server', next: 'Review and turn on its weather lookup below.' },
+  pulse: { label: 'Local events and sports', added: 'the built-in local pulse server', next: 'Turn on headlines or games below.' },
+  culture: { label: 'Movies, shows and trends', added: 'the built-in culture pulse server', next: 'Turn on its switches below.' },
 }
 
-/** A keyless server that ships with the app: added and checked in one step, still off until you approve it. */
-function AddBuiltin({ kind, refresh, setResult }: { kind: keyof typeof BUILTINS; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
+/** One Add menu (Iris): the built-in services not added yet, the keyless hosted searches, and any other MCP server.
+ * Adding connects and lists its tools; nothing is looked up until approved. */
+function AddLookup({ data, refresh, setResult, onOther }: { data: Overview; refresh: () => Promise<unknown>; setResult: (result: Result) => void; onOther: () => void }) {
   const [busy, setBusy] = useState(false)
-  const add = async () => {
+  const add = async (path: string, body: object, label: string, next: string) => {
     if (busy) return
     setBusy(true)
     try {
-      const created = await api<ContextServiceInfo>('/context/services/builtin', { kind })
+      const created = await api<ContextServiceInfo>(path, body)
       const checked = await api<ContextServiceInfo>(`/context/services/${created.id}/check`, {})
-      setResult(checked.check_error ? { tone: 'error', text: `Added, but the check failed: ${checked.check_error}` } : { tone: 'info', text: `Added ${BUILTINS[kind].label}. ${BUILTINS[kind].next}` })
+      setResult(checked.check_error ? { tone: 'error', text: `Added ${label}, but the check failed: ${checked.check_error}` } : { tone: 'info', text: `Added ${label}. ${next}` })
       await refresh()
     } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not added.') }) } finally { setBusy(false) }
   }
-  return <button type="button" className={kind === 'weather' ? 'button primary' : 'button'} aria-disabled={busy} onClick={() => void add()}>Add {BUILTINS[kind].label}</button>
+  const builtins = (['weather', 'pulse', 'culture'] as const).filter((kind) => !data.services.some((service) => service.builtin === kind))
+    .map((kind): MenuItem => ({ label: BUILTINS[kind].label, value: 'built in', disabled: busy,
+      onSelect: () => void add('/context/services/builtin', { kind }, BUILTINS[kind].added, BUILTINS[kind].next) }))
+  const searches = SEARCH_PRESETS.filter((preset) => !data.services.some((service) => service.url === preset.url))
+    .map((preset): MenuItem => ({ label: preset.name, value: 'web search', disabled: busy,
+      onSelect: () => void add('/context/services/preset', { preset: preset.id }, preset.name, 'Review and turn on its web search or link reading below.') }))
+  const items: MenuEntry[] = [...builtins, ...(builtins.length && searches.length ? ['separator' as const] : []), ...searches, 'separator', { label: 'Another MCP server…', onSelect: onOther }]
+  return <Menu label="Add a lookup" icon={Plus} items={items} className="add-menu" />
 }
 
 /** Links pasted in chat are opened on this computer, so the companion can talk about them. */
@@ -113,41 +93,69 @@ function LinkReading({ data, name, setResult }: { data: Overview; name: string; 
       await client.invalidateQueries({ queryKey: CONTEXT_KEY })
     } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not saved.') }) }
   }
-  return <Toggle label="Open links I paste" checked={data.location.read_links} onChange={(value) => void save(value)}
-    hint={`So ${name} can talk about them. This computer opens the page, like your browser would; Reddit and X posts are read through their public embeds. A link to your own computer or home network is never opened.`} />
+  return <SwitchRow label="Open links I paste" checked={data.location.read_links} onChange={(value) => void save(value)}
+    tip={`So ${name} can talk about them. This computer opens the page, like your browser would; Reddit and X posts are read through their public embeds. A link to your own computer or home network is never opened.`} />
 }
 
-function LocationForm({ data, setResult }: { data: Overview; setResult: (result: Result) => void }) {
+/** Saves where you are, keeping what the call leaves out as it was. */
+function useLocation(data: Overview, setResult: (result: Result) => void) {
   const client = useQueryClient()
-  const [place, setPlace] = useState<string | null>(null)
-  const [latitude, setLatitude] = useState<string | null>(null)
-  const [longitude, setLongitude] = useState<string | null>(null)
-  const dirty = place !== null || latitude !== null || longitude !== null
-  const number = (draft: string | null, saved: number | null) => {
-    const text = draft ?? (saved === null ? '' : String(saved))
-    return text.trim() === '' ? null : Number(text)
-  }
-  const save = async (event: FormEvent) => {
-    event.preventDefault()
+  return async (change: Partial<{ user_place: string; user_latitude: number | null; user_longitude: number | null }>, done: string) => {
+    const { user_place, user_latitude, user_longitude } = data.location
     try {
-      await api('/context/location', { user_place: place ?? data.location.user_place, user_latitude: number(latitude, data.location.user_latitude), user_longitude: number(longitude, data.location.user_longitude) }, 'PUT')
-      setPlace(null); setLatitude(null); setLongitude(null)
-      setResult({ tone: 'info', text: 'Location saved.' })
+      await api('/context/location', { user_place, user_latitude, user_longitude, ...change }, 'PUT')
+      setResult({ tone: 'info', text: done })
       await client.invalidateQueries({ queryKey: CONTEXT_KEY })
-    } catch (error) { setResult({ tone: 'error', text: failure(error, 'Location not saved.') }) }
+      return true
+    } catch (error) { setResult({ tone: 'error', text: failure(error, 'Location not saved.') }); return false }
+  }
+}
+
+/** Your city, saved when you leave the box or press Enter. */
+function PlaceRow({ data, setResult }: { data: Overview; setResult: (result: Result) => void }) {
+  const save = useLocation(data, setResult)
+  const [place, setPlace] = useState(data.location.user_place)
+  const commit = () => { if (place.trim() !== data.location.user_place.trim()) void save({ user_place: place.trim() }, 'Location saved.') }
+  return (
+    <SettingRow label="Your city" tip="Where you are, for weather and events near you. It is separate from where your companion lives, and is never detected automatically.">
+      {(id) => <input id={id} value={place} maxLength={120} autoComplete="off" placeholder="Baltimore, MD" onChange={(event) => setPlace(event.target.value)}
+        onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); commit() } }} />}
+    </SettingRow>
+  )
+}
+
+/** Latitude and longitude, only for services that need them, behind one fold row that shows them. */
+function Coordinates({ data, setResult }: { data: Overview; setResult: (result: Result) => void }) {
+  const save = useLocation(data, setResult)
+  const { user_latitude: lat, user_longitude: lon } = data.location
+  const shown = lat === null || lon === null ? 'Not set' : `${lat}, ${lon}`
+  return (
+    <FoldRow summary="Exact coordinates" value={shown}>
+      <CoordinateRow label="Latitude" tip="Decimal degrees, such as 39.29. North is positive. Only for services that need coordinates." saved={lat} save={(value) => save({ user_latitude: value }, 'Location saved.')} />
+      <CoordinateRow label="Longitude" tip="Decimal degrees, such as -76.61. West is negative." saved={lon} save={(value) => save({ user_longitude: value }, 'Location saved.')} />
+    </FoldRow>
+  )
+}
+
+function CoordinateRow({ label, tip, saved, save }: { label: string; tip: string; saved: number | null; save: (value: number | null) => Promise<boolean> }) {
+  const [text, setText] = useState(saved === null ? '' : String(saved))
+  const commit = () => {
+    const value = text.trim() === '' ? null : Number(text)
+    if (value !== saved) void save(value)
   }
   return (
-    <form className="form-stack" onSubmit={save}>
-      <TextInput label="Your city or region" value={place ?? data.location.user_place} maxLength={120} placeholder="Baltimore, MD" onChange={setPlace}
-        hint="Where you are, for weather and events near you. It is separate from where your companion lives, and is never detected automatically." />
-      <div className="form-grid">
-        <TextInput label="Latitude (optional)" value={latitude ?? (data.location.user_latitude === null ? '' : String(data.location.user_latitude))} onChange={setLatitude} hint="Only for services that need coordinates." tip="Decimal degrees, such as 39.29. North is positive." />
-        <TextInput label="Longitude (optional)" value={longitude ?? (data.location.user_longitude === null ? '' : String(data.location.user_longitude))} onChange={setLongitude}
-          hint="Decimal degrees, such as -76.61. West is negative." />
-      </div>
-      {dirty && <div className="form-actions"><button type="submit" className="button primary">Save location</button><button type="button" className="button" onClick={() => { setPlace(null); setLatitude(null); setLongitude(null) }}>Cancel</button></div>}
-    </form>
+    <SettingRow nested label={label} tip={tip}>
+      {(id) => <input id={id} inputMode="decimal" value={text} autoComplete="off" placeholder="Not set" onChange={(event) => setText(event.target.value)}
+        onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); commit() } }} />}
+    </SettingRow>
   )
+}
+
+/** A built-in server's sources in a few words for its row (Iris), and in full behind its "?". */
+const BUILTIN_SHORT = {
+  weather: 'Open-Meteo, NWS backup in the US',
+  pulse: 'Google News, Wikipedia, ESPN and more',
+  culture: 'Google News, iTunes, TVmaze and more',
 }
 
 const BUILTIN_SOURCES = {
@@ -156,18 +164,21 @@ const BUILTIN_SOURCES = {
   culture: 'Ships with the app; asks Google News, iTunes, Apple Music, TVmaze, Steam, Open Library, Google Trends, Wikipedia and Reddit',
 }
 
-function ServiceSummary({ service }: { service: ContextServiceInfo }) {
-  const where = service.builtin ? BUILTIN_SOURCES[service.builtin]
+function serviceWhere(service: ContextServiceInfo) {
+  const where = service.builtin ? BUILTIN_SHORT[service.builtin]
     : service.transport === 'http' ? service.url : (service.command ?? []).join(' ')
   const server = service.server_info ? `${service.server_info.name} · MCP ${service.server_info.protocol}` : ''
-  return <>
-    <div className="backend-title">
-      <strong>{service.name}</strong>
-      <span className="badge">{service.builtin ? 'Built in' : service.transport === 'http' ? 'HTTP' : 'Local program'}</span>
-      {service.mappings.some((mapping) => mapping.enabled && mapping.approved) && <span className="badge">On</span>}
-    </div>
-    <p className="subtle">{[where, service.has_key ? 'key saved' : '', server].filter(Boolean).join(' · ')}</p>
-  </>
+  return [where, service.has_key ? 'key saved' : '', server].filter(Boolean).join(' · ')
+}
+
+/** What kind of service it is, and whether any of its lookups is on. */
+function ServiceChips({ service }: { service: ContextServiceInfo }) {
+  const on = service.mappings.some((mapping) => mapping.enabled && mapping.approved)
+  return <span className="backend-chips">
+    {service.check_error && <span className="badge badge-warn">Needs a look</span>}
+    <span className="badge badge-quiet">{service.builtin ? 'Built in' : service.transport === 'http' ? 'HTTP' : 'Local program'}</span>
+    <span className={on ? 'badge' : 'badge badge-quiet'}>{on ? 'On' : 'Off'}</span>
+  </span>
 }
 
 function ServiceRow({ service, data, name, refresh, setResult }: { service: ContextServiceInfo; data: Overview; name: string; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
@@ -189,9 +200,9 @@ function ServiceRow({ service, data, name, refresh, setResult }: { service: Cont
   }
   return (
     <li className="backend-row">
-      <ServiceSummary service={service} />
+      <FoldRow summary={service.name} sub={serviceWhere(service)} value={<ServiceChips service={service} />}>
       {service.check_error && <Notice tone="error">{service.check_error}</Notice>}
-      {!service.checked_at && <p className="subtle">Check the service to see its tools. Checking connects and lists tools; it looks nothing up.</p>}
+      <ServiceSwitches service={service} data={data} busy={busy} setBusy={setBusy} setResult={setResult} refresh={refresh} check={() => void check()} />
       {service.tools.length > 0 && (service.builtin ? <>
         {service.builtin === 'weather' ? <BuiltinWeather service={service} data={data} name={name} refresh={refresh} onError={(text) => setResult({ tone: 'error', text })} />
           : service.builtin === 'pulse' ? <BuiltinPulse service={service} data={data} name={name} refresh={refresh} onError={(text) => setResult({ tone: 'error', text })} />
@@ -202,11 +213,34 @@ function ServiceRow({ service, data, name, refresh, setResult }: { service: Cont
         </details>
       </> : <Mappings service={service} data={data} name={name} refresh={refresh} setResult={setResult} />)}
       <div className="post-actions">
-        <button type="button" className="text-button" aria-disabled={busy} onClick={() => void check()}>{service.checked_at ? 'Check again' : 'Check'}</button>
         <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void remove()}><Trash2 aria-hidden="true" />Remove</button>
       </div>
+      </FoldRow>
     </li>
   )
+}
+
+interface SwitchesProps { service: ContextServiceInfo; data: Overview; busy: boolean; setBusy: (busy: boolean) => void; setResult: (result: Result) => void; refresh: () => Promise<unknown>; check: () => void }
+
+/** The top of a lookup's fold (Iris): its own On switch, as a picture model has, and the state of its tools with Check beside it. */
+function ServiceSwitches({ service, data, busy, setBusy, setResult, refresh, check }: SwitchesProps) {
+  const on = serviceIsOn(service)
+  const change = async (value: boolean) => {
+    if (busy) return
+    setBusy(true)
+    try { await setServiceOn(service, value, data.categories); await refresh() } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not saved.') }) } finally { setBusy(false) }
+  }
+  const sources = service.builtin ? `${BUILTIN_SOURCES[service.builtin]}. ` : ''
+  const tip = canTurnOn(service) ? `${sources}Turning it on confirms what each lookup below sends; you can switch any of them off on its own.`
+    : `${sources}Check it and set up a lookup below first.`
+  const tools = service.checked_at ? countText(service.tools.length, 'tool found', 'tools found', 'No tools found') : 'Not checked yet'
+  return <>
+    <SwitchRow label="On" checked={on} disabled={!on && !canTurnOn(service)} tip={tip} onChange={(value) => void change(value)} />
+    <SettingRow label="Tools" tip="Checking connects and lists its tools; it looks nothing up.">
+      {() => <span className="row-control"><span className="row-value">{tools}</span>
+        <button type="button" className="text-button" aria-disabled={busy} onClick={check}>{service.checked_at ? 'Check again' : 'Check'}</button></span>}
+    </SettingRow>
+  </>
 }
 
 function Mappings({ service, data, name, refresh, setResult }: { service: ContextServiceInfo; data: Overview; name: string; refresh: () => Promise<unknown>; setResult: (result: Result) => void }) {
