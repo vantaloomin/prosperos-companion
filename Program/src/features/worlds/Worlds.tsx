@@ -116,7 +116,7 @@ function PersonaGroup({ persona, tag, pane, arrived, onPick, onNewWorld }: Perso
           <li key={world.id}>
             <button type="button" className={pane.kind === 'world' && pane.id === world.id ? 'chat-row world-pick current' : 'chat-row world-pick'} aria-current={pane.kind === 'world' && pane.id === world.id ? 'true' : undefined} onClick={() => onPick(world.id)}>
               <span className="portrait" aria-hidden="true"><Globe /></span>
-              <span className="chat-row-text"><strong>{world.name}</strong><span className="chat-row-preview">{companionsLine(world)}</span></span>
+              <span className="chat-row-text"><strong>{world.name}</strong><span className="chat-row-preview">{companionsLine(world)}{world.paused ? ' · Paused' : ''}</span></span>
               {world.active && <Check className="world-here" aria-label="You are here" />}
             </button>
           </li>

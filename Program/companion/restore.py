@@ -102,14 +102,16 @@ def keep_settings(database: Database, previous: Path):
     copy_settings(database.path, previous, KEPT_SETTINGS, database.now())
 
 
-def copy_settings(target: Path, source: Path, tables: tuple[str, ...], timestamp: str):
+def copy_settings(target: Path, source: Path, tables: tuple[str, ...], timestamp: str, own_pause: bool = False):
     """`tables` in the workspace at `target` become those of the one at `source`: a restore keeps the current
-    settings, and switching worlds carries them along (companion/worlds.py). `tables` lists parents first."""
+    settings, and switching worlds carries them along (companion/worlds.py). `tables` lists parents first. With
+    `own_pause`, `target` keeps its own pause: a world paused or running stays so when the user switches into it."""
     connection = sqlite3.connect(target, isolation_level=None)
     try:
         # A plain path: URI filenames in ATTACH need SQLite built with them on, which Windows' is not.
         connection.execute('ATTACH DATABASE ? AS kept', (str(Path(source).resolve()),))
         connection.execute('BEGIN IMMEDIATE')
+        held = connection.execute('SELECT paused_at FROM main.workspace_settings').fetchone() if own_pause else None
         for table in reversed(tables):
             connection.execute(f'DELETE FROM main.{table}')
         for table in tables:
@@ -118,7 +120,9 @@ def copy_settings(target: Path, source: Path, tables: tuple[str, ...], timestamp
                                 if row[1] in ours)
             if columns:
                 connection.execute(f'INSERT INTO main.{table} ({columns}) SELECT {columns} FROM kept.{table}')
-        if connection.execute('SELECT paused_at FROM main.workspace_settings').fetchone()[0] is None:
+        if own_pause:
+            connection.execute('UPDATE main.workspace_settings SET paused_at=?', (held[0] if held else None,))
+        elif connection.execute('SELECT paused_at FROM main.workspace_settings').fetchone()[0] is None:
             connection.execute('UPDATE main.pauses SET ended_at=? WHERE ended_at IS NULL', (timestamp,))
         connection.execute('COMMIT')
     except BaseException:

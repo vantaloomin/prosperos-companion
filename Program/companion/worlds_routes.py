@@ -83,6 +83,17 @@ async def switch_world(request: Request, world_id: str):
     return worlds.switch(request.app.state, world_id)
 
 
+@router.post('/{world_id}/pause')
+def pause_world(request: Request, world_id: str):
+    """Pause any world, the one the user is in or one they left: it skips that time until resumed."""
+    return worlds.set_paused(db(request), world_id, True)
+
+
+@router.post('/{world_id}/resume')
+def resume_world(request: Request, world_id: str):
+    return worlds.set_paused(db(request), world_id, False)
+
+
 @router.post('/personas')
 def create_persona(request: Request, body: NewPersona):
     """A new persona with a world of their own, in the city they picked. It does not switch to them."""

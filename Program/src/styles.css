@@ -2196,8 +2196,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .year-badge { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; font-family: inherit; font-size: 0.75rem; }
 .year-badge svg { width: 0.8rem; height: 0.8rem; }
 /* A world where life stands still: muted rather than the accent, so it reads as waiting, not as news. */
-.paused-badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-family: inherit; font-size: 0.75rem; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
-.paused-badge svg { width: 0.75rem; height: 0.75rem; }
 .paused-note { line-height: 1.45; }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
 .world-rename input { flex: 1; min-width: 0; }

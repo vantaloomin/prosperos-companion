@@ -2251,12 +2251,15 @@ export interface World {
   back_when?: { year: number; name: string; companion_id: string } | null
   /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
   home: WorldHome | null
-  /** Life stands still there (companion/worlds.py `paused`): every world but the one the user is in, and one paused in
-   * Settings > Pause. `paused_since` is when they left it or paused it, null when it can't be told. */
+  /** The user paused it (companion/worlds.py `paused`), in Settings > Pause or from its ⋯ here: it skips that time
+   * until resumed. `paused_since` is when, null when it can't be told. `paused_in_settings` says the same as `paused`. */
   paused?: boolean
   paused_since?: string | null
   paused_in_settings?: boolean
-  /** Going back fills in a few events from the time away (Settings > Life, catch up on return). */
+  /** When the user left it, for a world they are not in; null when it can't be told (left before 1.2.2). Leaving is
+   * not a pause: the world catches up on the time away when they go back. */
+  away_since?: string | null
+  /** Going back fills in the time away (Settings > Life, catch up on return). */
   catches_up?: boolean
 }
 /** One moment the Back when sheet offers (companion/back_when.py `moments`): "When you first met", 2019. `age` is the
