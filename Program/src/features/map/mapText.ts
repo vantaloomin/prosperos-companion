@@ -64,10 +64,23 @@ export function dropByNote(offer: DropByOffer, name: string, work: boolean): str
   return offer.shift_until ? `${name} works here. On shift now until ${timeText(offer.shift_until)}.` : `${name} works here. They're not on shift right now.`
 }
 
+/** Drop by's lines: `state` above the button (on shift until when), `under` it what it found once tried, else why it
+ * is off right now, else at work that it is a short visit (Iris, 2026-11-03). */
+export function dropByLines(offer: DropByOffer, name: string, work: boolean, found: string): { state: string; under: string } {
+  const note = dropByNote(offer, name, work)
+  if (!offer.ok) return { state: '', under: found || note }
+  return { state: note, under: found || (work ? dropByHint(name, true) : '') }
+}
+
+/** The button's words, and while it goes. */
+export function dropByLabel(work: boolean, going: boolean): string {
+  return going ? (work ? 'Heading over…' : 'Knocking…') : 'Drop by'
+}
+
 /** Under Drop by: what going unannounced means, at their home or at their work. */
 export function dropByHint(name: string, work: boolean): string {
   return work ? `${name} keeps working while you're there, so it's a short visit.`
-    : `You go over now without asking. ${name} might not be home; if they are, you'll be there together.`
+    : `You go over without asking. ${name} might not be home; if they are, you'll be there together.`
 }
 
 /** What dropping by found, from POST /life/drop-by: going in opens the chat, anything else is told on the card. */

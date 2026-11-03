@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { byHood, dropByFound, dropByHint, dropByNote, historyLine, mainPin, suggestHint, suggestion, type CityMapData, type MapPlace } from '../../src/features/map/mapText.ts'
+import { byHood, dropByFound, dropByHint, dropByLines, dropByNote, historyLine, mainPin, suggestHint, suggestion, type CityMapData, type MapPlace } from '../../src/features/map/mapText.ts'
 import { drawn, inside, labels, pathOf } from '../../src/features/map/drawn.ts'
 
 const place = (id: string, hood: string, pins: MapPlace['pins'] = []): MapPlace => ({
@@ -14,12 +14,16 @@ test('a place shows its most telling pin', () => {
 })
 
 test('dropping by says what going unannounced means', () => {
-  assert.equal(dropByHint('Sett', false), "You go over now without asking. Sett might not be home; if they are, you'll be there together.")
+  assert.equal(dropByHint('Sett', false), "You go over without asking. Sett might not be home; if they are, you'll be there together.")
   assert.equal(dropByHint('Sett', true), "Sett keeps working while you're there, so it's a short visit.")
   assert.match(dropByNote({ ok: true, note: '', shift_until: '23:00' }, 'Sett', true), /^Sett works here\. On shift now until 11:00\u00a0PM\.$/)
   assert.equal(dropByNote({ ok: false, note: '', shift_until: null }, 'Sett', true), "Sett works here. They're not on shift right now.")
   assert.equal(dropByNote({ ok: false, note: "You're with Sett right now.", shift_until: null }, 'Sett', false), "You're with Sett right now.")
   assert.equal(dropByNote({ ok: true, note: '' }, 'Sett', false), '')
+  // Off: the reason under the disabled button; found: the result in place of the hint.
+  assert.deepEqual(dropByLines({ ok: false, note: '', shift_until: null }, 'Sett', true, ''), { state: '', under: "Sett works here. They're not on shift right now." })
+  assert.deepEqual(dropByLines({ ok: true, note: '' }, 'Sett', false, ''), { state: '', under: '' })
+  assert.deepEqual(dropByLines({ ok: true, note: '' }, 'Sett', false, "Nobody's home."), { state: '', under: "Nobody's home." })
   assert.match(dropByFound({ result: 'nobody', text: '', reason: { why: 'busy', label: 'work', until: '23:00' } }, 'Sett'), /^Nobody's home\. Sett is at work until 11:00\u00a0PM\.$/)
   assert.equal(dropByFound({ result: 'asleep', text: 'No answer. The lights are off; Sett is asleep.' }, 'Sett'), 'No answer. The lights are off; Sett is asleep.')
 })

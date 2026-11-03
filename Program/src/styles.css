@@ -2262,7 +2262,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-community .where-strip { max-width: none; }
 .chat-retro .where-strip { max-width: none; width: calc(100% - 12px); }
 @media (max-width: 720px) { .where-strip, .chat-community .where-strip { width: calc(100% - 20px); } }
-.where-strip-place { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.where-strip-place { color: inherit; text-decoration: underline dotted; text-decoration-color: var(--muted); text-underline-offset: 3px; }
+.where-strip-place:hover, .where-strip-place:focus-visible { text-decoration-style: solid; text-decoration-color: currentColor; }
 .where-strip > svg { flex: none; width: 1rem; height: 1rem; color: var(--accent); }
 .where-strip > span { flex: 1; min-width: 0; }
 .where-strip .text-button { flex: none; }
@@ -2391,6 +2392,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .map-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; } .map-card h2 { font-size: 1.05rem; }
 .map-card h3 { font-size: 0.875rem; margin-bottom: 4px; } .map-card p { margin: 0; }
 .map-history { list-style: none; padding: 0; margin: 0; } .map-history .text-button { text-align: left; }
+.map-card-tools { display: flex; gap: 2px; flex: none; }
+.map-action { display: flex; align-items: center; gap: 6px; } .map-action > .button { flex: 1; justify-content: center; }
 .map-edit { width: 100%; justify-content: center; } .map-edit-form { display: grid; gap: 6px; } .map-edit-form .rename-row { margin-top: 6px; }
 .map-edit-form select, .map-edit-form textarea { width: 100%; } .map-edit-form textarea { field-sizing: content; min-height: 2lh; max-height: 6lh; }
 .map-card > .button { width: 100%; justify-content: center; }
@@ -2431,7 +2434,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 :root[data-motion='reduce'] .sketch-pin.pin-scene .sketch-badge { animation: none; }
 @media (max-width: 720px) {
   .map-bar { padding: 10px 16px; }
-  .map-card > .button, .map-edit-form .button { min-height: 44px; }
+  .map-card > .button, .map-action > .button, .map-edit-form .button { min-height: 44px; }
   .map-card { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 60%; border-radius: 14px 14px 0 0; }
 }
 .show-on-map { padding: 0 2px; font-size: 0.75rem; }

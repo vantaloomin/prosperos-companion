@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type MouseEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { X } from 'lucide-react'
+import { Pencil, X } from 'lucide-react'
+import { InfoTip } from '../../components/InfoTip'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { Companion } from '../../types'
@@ -8,7 +9,7 @@ import { HISTORY_KEY } from '../../companion'
 import { DRAFT_KEY, newDraft, readDraft, writeDraft } from '../conversation/draft'
 import { WHERE_KEY } from '../conversation/whereText'
 import { TOGETHER_KEY } from '../today/outingText'
-import { dropByFound, dropByHint, dropByNote, historyLine, isHome, spotList, suggestHint, suggestion, type DropByResult, type MapHood, type MapPlace } from './mapText'
+import { dropByFound, dropByHint, dropByLabel, dropByLines, historyLine, isHome, spotList, suggestHint, suggestion, type DropByResult, type MapHood, type MapPlace } from './mapText'
 
 interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void }
 
@@ -50,18 +51,30 @@ export function PlaceCard({ inline, place, city, hoods, enclosed, story, compani
     finally { setGoing(false) }
   }
   const visit = { found, going, dropBy: () => void dropBy() }
-  const someone = isHome(place)
   return (
     <aside className={inline ? 'map-card inline' : 'map-card'} aria-label={place.name}>
-      <header>
-        <div><h2>{place.name}</h2><p className="subtle">{[someone ? place.relation : place.kind, place.hood].filter(Boolean).join(' · ')}</p></div>
-        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>
-      </header>
+      <CardHeader place={place} name={name} editable={!editing && (place.id === '~home' || !isHome(place))} onEdit={() => setEditing(true)} onClose={onClose} />
       {editing ? <EditPlace place={place} hoods={hoods} enclosed={enclosed} name={name} onDone={() => setEditing(false)} />
-        : <PlaceFacts place={place} name={name} editable={place.id === '~home' || !someone} onEdit={() => setEditing(true)} />}
+        : <PlaceFacts place={place} />}
       {!editing && <PlaceDetails place={place} name={name} timezone={companion.version.definition.timezone} story={story} goThere={() => void goThere()} suggest={suggest} go={go} visit={visit} />}
       {error && <p className="field-error" role="alert">{error}</p>}
     </aside>
+  )
+}
+
+/** The place's name and kind, with Edit as a quiet pen beside ×, so the card's actions read Drop by, then the
+ * invitation (Iris, 2026-11-03). */
+function CardHeader({ place, name, editable, onEdit, onClose }: { place: MapPlace; name: string; editable: boolean; onEdit: () => void; onClose: () => void }) {
+  const home = place.id === '~home'
+  return (
+    <header>
+      <div><h2>{place.name}</h2><p className="subtle">{[isHome(place) ? place.relation : place.kind, place.hood].filter(Boolean).join(' · ')}</p></div>
+      <div className="map-card-tools">
+        {editable && <button type="button" className="icon-button" aria-label={home ? 'Edit home' : 'Edit inside'}
+          title={home ? `Edit home. Changes here show on ${name}'s Character page too.` : 'Edit inside'} onClick={onEdit}><Pencil aria-hidden="true" /></button>}
+        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>
+      </div>
+    </header>
   )
 }
 
@@ -90,19 +103,16 @@ function NextSteps({ place, name, story, goThere, suggest, visit }: Omit<Details
   if (!home && isHome(place)) return null
   return <>
     {!story && place.drop_by && <DropBy place={place} name={name} visit={visit} />}
-    <PlaceAction story={story} name={name} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} quiet={!story && Boolean(place.drop_by?.ok)} />
+    <PlaceAction story={story} name={name} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} quiet={!story && Boolean(place.drop_by)} />
   </>
 }
 
 /** What the card says about a place or a home: where it is approximate, its description and what is inside. */
-function PlaceFacts({ place, name, editable, onEdit }: { place: MapPlace; name: string; editable: boolean; onEdit: () => void }) {
-  const home = place.id === '~home'
+function PlaceFacts({ place }: { place: MapPlace }) {
   return <>
     {!isHome(place) && <p className="subtle map-approx">Location approximate</p>}
     {place.about && <p>{place.about.charAt(0).toUpperCase() + place.about.slice(1).replace(/[.\s]*$/, '.')}</p>}
     {place.spots.length > 0 && <p className="subtle">Inside: {place.spots.join(', ')}</p>}
-    {home && <p className="subtle">The same home as on {name}'s Character page; changes here show there too.</p>}
-    {editable && <button type="button" className="button map-edit" onClick={onEdit}>{home ? 'Edit home' : 'Edit inside'}</button>}
   </>
 }
 
@@ -198,20 +208,22 @@ function YourHome() {
 }
 
 /** Surprise visits (companion/life/drop_by.py): going over now, unannounced, to their home or to their work while they
- * are on shift, with the line that says whether they work here and when. What it found shows under it. */
+ * are on shift. The state line (on shift until when) sits above; under the button, what it found once tried, else why
+ * it is off right now (shown disabled), else at work that it is a short visit. The rest is in its tip (Iris, 2026-11-03). */
 function DropBy({ place, name, visit }: { place: MapPlace; name: string; visit: Visit }) {
   const offer = place.drop_by
   if (!offer) return null
   const work = place.id !== '~home'
+  const { state, under } = dropByLines(offer, name, work, visit.found)
   return <>
-    {dropByNote(offer, name, work) && <p className="subtle">{dropByNote(offer, name, work)}</p>}
-    {offer.ok && <>
-      <button type="button" className="button primary" disabled={visit.going} onClick={visit.dropBy}>
-        {visit.going ? (work ? 'Heading over…' : 'Knocking…') : work ? 'Drop by' : 'Drop by now'}
+    {state && <p className="subtle">{state}</p>}
+    <div className="map-action">
+      <button type="button" className="button primary" disabled={!offer.ok || visit.going} onClick={visit.dropBy} aria-describedby={under ? 'map-drop-under' : undefined}>
+        {dropByLabel(work, visit.going)}
       </button>
-      <p className="subtle">{dropByHint(name, work)}</p>
-    </>}
-    {visit.found && <p className="map-drop-found" role="status">{visit.found}</p>}
+      <InfoTip id="map-drop-tip" label="Drop by" text={work ? `You go over without asking and see ${name} at work.` : dropByHint(name, false)} />
+    </div>
+    {under && <p id="map-drop-under" className={visit.found ? 'map-drop-found' : 'subtle'} role={visit.found ? 'status' : undefined}>{under}</p>}
   </>
 }
 
@@ -220,8 +232,11 @@ function DropBy({ place, name, visit }: { place: MapPlace; name: string; visit: 
  * (`quiet`), the invitation is the second button. */
 function PlaceAction({ story, name, home, here, goThere, suggest, quiet }: { story: boolean; name: string; home: string | null; here: boolean; goThere: () => void; suggest: () => void; quiet: boolean }) {
   const kind = quiet ? 'button' : 'button primary'
-  if (home !== null) return story ? null : <><button type="button" className={kind} onClick={suggest}>Suggest dinner at {home}'s place</button><p className="subtle">{suggestHint(name)}</p></>
-  if (!story) return <><button type="button" className={kind} onClick={suggest}>Suggest going together</button><p className="subtle">{suggestHint(name)}</p></>
+  if (!story) return <div className="map-action">
+    <button type="button" className={kind} onClick={suggest}>{home !== null ? `Suggest dinner at ${home}'s place` : 'Suggest going together'}</button>
+    <InfoTip id="map-suggest-tip" label="the invitation" text={suggestHint(name)} />
+  </div>
+  if (home !== null) return null
   return here ? null : <button type="button" className="button primary" onClick={goThere}>Go there</button>
 }
 
