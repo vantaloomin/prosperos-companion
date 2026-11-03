@@ -25,9 +25,9 @@ function HomeFields({ world, draft, disabled, onChange }: { world: World; draft:
   return (
     <fieldset className="persona-home">
       <legend>Where you live</legend>
-      <Field label="City" hint="Companions who live in another city are long distance.">
-        {(id, hint) => (
-          <select id={id} aria-describedby={hint} value={draft.city_id} disabled={disabled}
+      <Field label="City" tip="Companions who live in another city are long distance.">
+        {(id, describedBy) => (
+          <select id={id} aria-describedby={describedBy} value={draft.city_id} disabled={disabled}
             onChange={(event) => onChange({ city_id: event.target.value, neighbourhood: '' })}>
             <CityOptions cities={cities} withRegion />
           </select>

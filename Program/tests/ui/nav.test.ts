@@ -2,8 +2,10 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { chatsTarget, inChats, railCurrent } from '../../src/features/nav/navText.ts'
 
-test('Chats holds the list, every chat, the profile tabs, group chats, Secrets and worlds', () => {
-  for (const view of ['chats', 'conversation', 'feed', 'memories', 'character', 'portraits', 'another', 'secrets', 'group/abc', 'worlds']) assert.equal(inChats(view), true, view)
+test('Chats holds the list, every chat, the profile tabs, group chats and Secrets, but not Worlds', () => {
+  for (const view of ['chats', 'conversation', 'feed', 'memories', 'character', 'portraits', 'another', 'secrets', 'group/abc']) assert.equal(inChats(view), true, view)
+  // Worlds opens from the world avatar, so no tab is lit there (Iris).
+  assert.equal(inChats('worlds'), false)
   for (const view of ['today', 'map', 'story', 'dating', 'settings/models']) assert.equal(inChats(view), false, view)
 })
 

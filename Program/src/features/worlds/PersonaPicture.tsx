@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { ImagePlus, Sparkles } from 'lucide-react'
+import { ImagePlus } from 'lucide-react'
 import { api, upload } from '../../api'
 import type { Persona, Worlds } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { InfoTip } from '../../components/InfoTip'
 import { profileCopy } from '../appearance/browserImage'
 
 interface Making { status: 'queued' | 'running' | 'completed' | 'failed' | null; error: string | null; can_make: boolean }
@@ -46,7 +47,7 @@ export function PersonaPicture({ persona, looks, onChange }: { persona: Persona;
   const making = busy === 'making'
   return (
     <fieldset className="persona-picture">
-      <legend>Your picture</legend>
+      <legend><span className="label-row">Your picture<InfoTip id="persona-picture-hint" label="Your picture" text="Pictures of you with a companion, like a dinner out or an evening at home, follow this picture. It is only sent to the image backend making that picture." /></span></legend>
       <div className="own-picture">
         <div className={`persona-picture-frame${making ? ' making' : ''}`} aria-busy={making}>
           {persona.picture
@@ -54,9 +55,6 @@ export function PersonaPicture({ persona, looks, onChange }: { persona: Persona;
             : <div className="persona-picture-empty" aria-hidden="true"><ImagePlus /></div>}
         </div>
         <div className="form-stack">
-          <p className="subtle" id="persona-picture-hint">
-            Pictures of you with a companion, like a dinner out or an evening at home, follow this picture. It is only sent to the image backend making that picture.
-          </p>
           <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(event) => void choose(event)} />
           <PictureActions busy={busy} picture={!!persona.picture} looks={!!looks.trim()} canMake={canMake} onPick={() => input.current?.click()} onMake={() => void make()} onRemove={() => void remove()} />
           <span className="visually-hidden" role="status">{making ? 'Making your picture.' : ''}</span>
@@ -89,14 +87,16 @@ function makeHint(picture: boolean, looks: boolean, canMake: boolean): string {
 function PictureActions({ busy, picture, looks, canMake, onPick, onMake, onRemove }: ActionsProps) {
   return <>
     <div className="persona-picture-actions">
-      <button type="button" className="button" disabled={busy !== null} aria-describedby="persona-picture-hint" onClick={onPick}>
+      <button type="button" className="button" disabled={busy !== null} onClick={onPick}>
         <ImagePlus aria-hidden="true" />{busy === 'adding' ? 'Adding the picture…' : picture ? 'Choose another picture' : 'Choose a picture'}
       </button>
       <button type="button" className="button" disabled={busy !== null || !looks || !canMake} aria-describedby="persona-make-hint" onClick={onMake}>
-        <Sparkles aria-hidden="true" />{busy === 'making' ? 'Making your picture…' : picture ? 'Make a new one' : 'Make one'}
+        <ImagePlus aria-hidden="true" />{busy === 'making' ? 'Making your picture…' : picture ? 'Make a new one' : 'Make one'}
       </button>
       {picture && <button type="button" className="text-button" disabled={busy !== null} onClick={onRemove}>{busy === 'removing' ? 'Removing…' : 'Remove'}</button>}
     </div>
-    <p className="subtle" id="persona-make-hint">{makeHint(picture, looks, canMake)}</p>
+    {canMake
+      ? <p className="subtle" id="persona-make-hint">{makeHint(picture, looks, canMake)}</p>
+      : <p className="subtle" id="persona-make-hint"><a className="text-button inline" href="#settings/images">Set up images</a><span className="visually-hidden"> to make one</span></p>}
   </>
 }
