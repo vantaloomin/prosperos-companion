@@ -25,7 +25,7 @@ import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
-from companion import backup, cast, characters, dating, library, lore, observer, restore, story, world_year
+from companion import backup, cast, characters, dating, library, lore, observer, restore, story, workspace, world_year
 from companion.clock import AppClock, parse, stamp, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
@@ -281,19 +281,49 @@ def held_in(path: Path) -> str | None:
 
 
 def paused(world: dict, active: bool, path: Path) -> dict:
-    """Whether life stands still in a world, and since when. Only the world the user is in runs: the app has one
-    database open, so a world they left waits, and catches up a few events when they go back
-    (companion/life/simulation.py). A world paused in Settings waits even while they are in it, and skips that time.
-    `since` is when they left (worlds from before 1.2.2 never said), or when they paused it; `catches_up` is whether
-    going back fills in a little of the time away (Settings > Life, catch up on return)."""
+    """Whether the user paused a world (Settings > Pause, or its ⋯ on the Worlds page), and since when. A paused
+    world skips that time, even while they are in it. Leaving a world is not a pause: the app has one database open,
+    so a world they left catches up on its time away when they go back (companion/life/simulation.py). `away_since`
+    is when they left (worlds from before 1.2.2 never said); `catches_up` is whether going back fills that time in
+    (Settings > Life, catch up on return)."""
     held = held_in(path)
+    away = None if active else world.get('left_at')
     if held:
-        return {'paused': True, 'paused_since': held, 'paused_in_settings': True, 'catches_up': False}
+        return {'paused': True, 'paused_since': held, 'paused_in_settings': True, 'away_since': away,
+                'catches_up': False}
     # Nobody to catch up on in a world without companions yet.
     catches_up = not active and bool(read_only(path, 'SELECT 1 FROM life_settings, companions WHERE life_settings.id=1 '
                                                      'AND catch_up_on_return=1 LIMIT 1'))
-    return {'paused': not active, 'paused_since': None if active else world.get('left_at'), 'paused_in_settings': False,
+    return {'paused': False, 'paused_since': None, 'paused_in_settings': False, 'away_since': away,
             'catches_up': catches_up}
+
+
+def set_paused(database: Database, world_id: str, on: bool) -> dict:
+    """Pause or resume any world from the Worlds page, the one the user is in or one they left. A world they left is
+    written in place, in its own time (a world in a past year runs its clock behind)."""
+    data = registry(database)
+    world = found(data['worlds'], world_id, 'world')
+    change = workspace.hold if on else workspace.release
+    if world['id'] == data['active']:
+        with database.connect(write=True) as connection:
+            change(connection, database.now())
+        return view(database)
+    path = world_path(database.home, world)
+    require(path.exists(), "That world's folder is missing from the data folder.", 404)
+    year = world_year.stored(path)
+    moment = database.clock.real() - timedelta(days=year['offset_days'] if year else 0)
+    connection = sqlite3.connect(path, timeout=15, isolation_level=None)
+    try:
+        connection.execute('BEGIN IMMEDIATE')
+        change(connection, stamp(moment))
+        connection.execute('COMMIT')
+    except BaseException:
+        if connection.in_transaction:
+            connection.execute('ROLLBACK')
+        raise
+    finally:
+        connection.close()
+    return view(database)
 
 
 def world_view(database: Database, data: dict, world: dict, cities: dict[str, dict] | None = None) -> dict:
@@ -346,7 +376,8 @@ def carry_settings(target: Path, source: Path, timestamp: str):
         before = connection.execute(f"SELECT {', '.join(REVISIONS)} FROM workspace_settings WHERE id=1").fetchone()
     finally:
         connection.close()
-    restore.copy_settings(target, source, SHARED, timestamp)
+    # Each world keeps its own pause: pausing one never pauses the next (tester, 1.3.0).
+    restore.copy_settings(target, source, SHARED, timestamp, own_pause=True)
     connection = sqlite3.connect(target, isolation_level=None)
     try:
         # Lore of a city deleted in another world goes with it (companion/lore.py).
@@ -391,7 +422,7 @@ def switch(state, world_id: str) -> dict:
     mix.load(database)
     carry_settings(target, previous, database.now())
     # The registry orders worlds by real time: a world in a past year would otherwise sort as used long ago. The world
-    # they leave stands still from now (`paused`).
+    # they leave catches up from now when they go back (`paused`).
     now = stamp(database.clock.real())
     found(data['worlds'], data['active'], 'world')['left_at'] = now
     data['active'], world['used_at'] = world['id'], now
