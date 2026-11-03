@@ -4,8 +4,11 @@ import { X } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { Companion } from '../../types'
+import { HISTORY_KEY } from '../../companion'
 import { DRAFT_KEY, newDraft, readDraft, writeDraft } from '../conversation/draft'
-import { historyLine, isHome, spotList, suggestHint, suggestion, type MapHood, type MapPlace } from './mapText'
+import { WHERE_KEY } from '../conversation/whereText'
+import { TOGETHER_KEY } from '../today/outingText'
+import { dropByFound, dropByHint, dropByNote, historyLine, isHome, spotList, suggestHint, suggestion, type DropByResult, type MapHood, type MapPlace } from './mapText'
 
 interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void }
 
@@ -33,6 +36,20 @@ export function PlaceCard({ inline, place, city, hoods, enclosed, story, compani
     go('conversation')
     window.setTimeout(() => document.getElementById('composer-text')?.focus(), 0)  // once the chat has drawn
   }
+  // Surprise visits (companion/life/drop_by.py): in, the chat opens on their first words; else the card says why not.
+  const [found, setFound] = useState('')
+  const [going, setGoing] = useState(false)
+  const dropBy = async () => {
+    setGoing(true); setFound(''); setError('')
+    try {
+      const result = await api<DropByResult>('/life/drop-by', { place: place.id === '~home' ? 'home' : 'work' })
+      for (const key of [WHERE_KEY, HISTORY_KEY, TOGETHER_KEY, ['city-map'], ['chats']]) void client.invalidateQueries({ queryKey: key })
+      if (result.result === 'in' || result.result === 'work') go('conversation')
+      else setFound(dropByFound(result, name))
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'You could not get there.') }
+    finally { setGoing(false) }
+  }
+  const visit = { found, going, dropBy: () => void dropBy() }
   const someone = isHome(place)
   return (
     <aside className={inline ? 'map-card inline' : 'map-card'} aria-label={place.name}>
@@ -42,17 +59,17 @@ export function PlaceCard({ inline, place, city, hoods, enclosed, story, compani
       </header>
       {editing ? <EditPlace place={place} hoods={hoods} enclosed={enclosed} name={name} onDone={() => setEditing(false)} />
         : <PlaceFacts place={place} name={name} editable={place.id === '~home' || !someone} onEdit={() => setEditing(true)} />}
-      {!editing && <PlaceDetails place={place} name={name} timezone={companion.version.definition.timezone} story={story} goThere={() => void goThere()} suggest={suggest} go={go} />}
+      {!editing && <PlaceDetails place={place} name={name} timezone={companion.version.definition.timezone} story={story} goThere={() => void goThere()} suggest={suggest} go={go} visit={visit} />}
       {error && <p className="field-error" role="alert">{error}</p>}
     </aside>
   )
 }
 
-interface DetailsProps { place: MapPlace; name: string; timezone?: string; story: boolean; goThere: () => void; suggest: () => void; go: (view: View) => void }
+interface Visit { found: string; going: boolean; dropBy: () => void }
+interface DetailsProps { place: MapPlace; name: string; timezone?: string; story: boolean; goThere: () => void; suggest: () => void; go: (view: View) => void; visit: Visit }
 
 /** What happened there with them, who is usually there, and what to do next: nothing for someone else's home. */
-function PlaceDetails({ place, name, timezone, story, goThere, suggest, go }: DetailsProps) {
-  const home = place.id === '~home'
+function PlaceDetails({ place, name, timezone, story, goThere, suggest, go, visit }: DetailsProps) {
   return <>
     {place.history.length > 0 && <section>
       <h3>With {name}</h3>
@@ -61,7 +78,19 @@ function PlaceDetails({ place, name, timezone, story, goThere, suggest, go }: De
       </li>)}</ul>
     </section>}
     {place.regulars.length > 0 && <p className="subtle">Regulars: {place.regulars.join(', ')}</p>}
-    {place.id === '~you' ? <YourHome /> : (home || !isHome(place)) && <PlaceAction story={story} name={name} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} />}
+    <NextSteps place={place} name={name} story={story} goThere={goThere} suggest={suggest} visit={visit} />
+  </>
+}
+
+/** What to do next: drop by (theirs or their work), then an invitation or Story mode's Go there; for the user's own
+ * home, where to change it; nothing for someone else's home. */
+function NextSteps({ place, name, story, goThere, suggest, visit }: Omit<DetailsProps, 'timezone' | 'go'>) {
+  const home = place.id === '~home'
+  if (place.id === '~you') return <YourHome />
+  if (!home && isHome(place)) return null
+  return <>
+    {!story && place.drop_by && <DropBy place={place} name={name} visit={visit} />}
+    <PlaceAction story={story} name={name} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} quiet={!story && Boolean(place.drop_by?.ok)} />
   </>
 }
 
@@ -168,11 +197,31 @@ function YourHome() {
   </>
 }
 
+/** Surprise visits (companion/life/drop_by.py): going over now, unannounced, to their home or to their work while they
+ * are on shift, with the line that says whether they work here and when. What it found shows under it. */
+function DropBy({ place, name, visit }: { place: MapPlace; name: string; visit: Visit }) {
+  const offer = place.drop_by
+  if (!offer) return null
+  const work = place.id !== '~home'
+  return <>
+    {dropByNote(offer, name, work) && <p className="subtle">{dropByNote(offer, name, work)}</p>}
+    {offer.ok && <>
+      <button type="button" className="button primary" disabled={visit.going} onClick={visit.dropBy}>
+        {visit.going ? (work ? 'Heading over…' : 'Knocking…') : work ? 'Drop by' : 'Drop by now'}
+      </button>
+      <p className="subtle">{dropByHint(name, work)}</p>
+    </>}
+    {visit.found && <p className="map-drop-found" role="status">{visit.found}</p>}
+  </>
+}
+
 /** With Story mode on, moving the scene there (not offered where the scene already is); else an invitation draft: for
- * their own home (`home` is their name), dinner at their place (they cook). */
-function PlaceAction({ story, name, home, here, goThere, suggest }: { story: boolean; name: string; home: string | null; here: boolean; goThere: () => void; suggest: () => void }) {
-  if (home !== null) return story ? null : <><button type="button" className="button primary" onClick={suggest}>Suggest dinner at {home}'s place</button><p className="subtle">{suggestHint(name)}</p></>
-  if (!story) return <><button type="button" className="button primary" onClick={suggest}>Suggest going together</button><p className="subtle">{suggestHint(name)}</p></>
+ * their own home (`home` is their name), dinner at their place (they cook). Beside Drop by
+ * (`quiet`), the invitation is the second button. */
+function PlaceAction({ story, name, home, here, goThere, suggest, quiet }: { story: boolean; name: string; home: string | null; here: boolean; goThere: () => void; suggest: () => void; quiet: boolean }) {
+  const kind = quiet ? 'button' : 'button primary'
+  if (home !== null) return story ? null : <><button type="button" className={kind} onClick={suggest}>Suggest dinner at {home}'s place</button><p className="subtle">{suggestHint(name)}</p></>
+  if (!story) return <><button type="button" className={kind} onClick={suggest}>Suggest going together</button><p className="subtle">{suggestHint(name)}</p></>
   return here ? null : <button type="button" className="button primary" onClick={goThere}>Go there</button>
 }
 

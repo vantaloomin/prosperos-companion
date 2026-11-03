@@ -1,4 +1,5 @@
 /** The city map (companion/life/citymap.py): types, layout and wording, apart from the drawing for tests. */
+import { timeText } from '../today/outingText.ts'
 
 /** `yours` is where the user lives in this world; `known` the home of another companion or of someone in a circle. */
 export type Pin = 'home' | 'work' | 'usual' | 'recent' | 'scene' | 'yours' | 'known'
@@ -13,6 +14,9 @@ export interface MapPlace {
   relation?: string
   /** Whether the user rewrote what is inside a place. */
   spots_set?: boolean
+  /** Surprise visits (companion/life/drop_by.py), on their home and their work: whether Drop by is on offer now, and
+   * the line beside it ("Sett works here. On shift now until 02:00."). */
+  drop_by?: DropByOffer
 }
 export interface MapHood { id: string; name: string; lat: number; lon: number; next: string[] }
 /** Sea, a river or a lake from the city data, for the drawn map: a sea by the side the city faces, a river or lake by points. */
@@ -48,6 +52,37 @@ export function suggestion(place: Pick<MapPlace, 'name' | 'kind'> & { id?: strin
 /** Under the invite button: what happens after it, so nobody looks for a way to walk there themselves. */
 export function suggestHint(name: string): string {
   return `This puts an invite to ${name} in your chat. If they say yes, it goes on Today. When it's time, you'll be there together. No need to go anywhere.`
+}
+
+/** Whether Drop by is on offer, why not when nothing of theirs can be visited now, and at their work the end of the
+ * shift they are on ("23:00", null off shift). */
+export interface DropByOffer { ok: boolean; note: string; shift_until?: string | null }
+
+/** The line above Drop by: why not ("You're with Sett right now."), or at their work whether they are on shift. */
+export function dropByNote(offer: DropByOffer, name: string, work: boolean): string {
+  if (offer.note || !work) return offer.note
+  return offer.shift_until ? `${name} works here. On shift now until ${timeText(offer.shift_until)}.` : `${name} works here. They're not on shift right now.`
+}
+
+/** Under Drop by: what going unannounced means, at their home or at their work. */
+export function dropByHint(name: string, work: boolean): string {
+  return work ? `${name} keeps working while you're there, so it's a short visit.`
+    : `You go over now without asking. ${name} might not be home; if they are, you'll be there together.`
+}
+
+/** What dropping by found, from POST /life/drop-by: going in opens the chat, anything else is told on the card. */
+export interface DropByResult {
+  result: 'in' | 'work' | 'nobody' | 'asleep' | 'not-now'; text: string
+  reason?: { why: 'busy' | 'out' | 'away' | 'asleep' | 'plans' | 'late' | 'tense'; label?: string; until?: string } | null
+}
+
+/** "Nobody's home. Sett is at work until 11:00 PM.", in the user's own clock style (the server's `text` says 23:00). */
+export function dropByFound(found: DropByResult, name: string): string {
+  const reason = found.reason
+  const until = reason?.until ? timeText(reason.until) : ''
+  if (found.result === 'nobody' && reason?.why === 'busy') return `Nobody's home. ${name} is at ${reason.label ?? 'work'} until ${until}.`
+  if (found.result === 'nobody' && reason?.why === 'out') return `Nobody's home. ${name} is out until about ${until}.`
+  return found.text
 }
 
 /** A home rather than a place in the city: theirs, yours, or someone else's ("~home", "~you", "~circle:…"). */

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { byHood, historyLine, mainPin, suggestHint, suggestion, type CityMapData, type MapPlace } from '../../src/features/map/mapText.ts'
+import { byHood, dropByFound, dropByHint, dropByNote, historyLine, mainPin, suggestHint, suggestion, type CityMapData, type MapPlace } from '../../src/features/map/mapText.ts'
 import { drawn, inside, labels, pathOf } from '../../src/features/map/drawn.ts'
 
 const place = (id: string, hood: string, pins: MapPlace['pins'] = []): MapPlace => ({
@@ -11,6 +11,17 @@ test('a place shows its most telling pin', () => {
   assert.equal(mainPin({ pins: ['recent', 'usual'] }), 'usual')
   assert.equal(mainPin({ pins: ['recent', 'scene'] }), 'scene')
   assert.equal(mainPin({ pins: [] }), 'place')
+})
+
+test('dropping by says what going unannounced means', () => {
+  assert.equal(dropByHint('Sett', false), "You go over now without asking. Sett might not be home; if they are, you'll be there together.")
+  assert.equal(dropByHint('Sett', true), "Sett keeps working while you're there, so it's a short visit.")
+  assert.match(dropByNote({ ok: true, note: '', shift_until: '23:00' }, 'Sett', true), /^Sett works here\. On shift now until 11:00\u00a0PM\.$/)
+  assert.equal(dropByNote({ ok: false, note: '', shift_until: null }, 'Sett', true), "Sett works here. They're not on shift right now.")
+  assert.equal(dropByNote({ ok: false, note: "You're with Sett right now.", shift_until: null }, 'Sett', false), "You're with Sett right now.")
+  assert.equal(dropByNote({ ok: true, note: '' }, 'Sett', false), '')
+  assert.match(dropByFound({ result: 'nobody', text: '', reason: { why: 'busy', label: 'work', until: '23:00' } }, 'Sett'), /^Nobody's home\. Sett is at work until 11:00\u00a0PM\.$/)
+  assert.equal(dropByFound({ result: 'asleep', text: 'No answer. The lights are off; Sett is asleep.' }, 'Sett'), 'No answer. The lights are off; Sett is asleep.')
 })
 
 test('history, suggestions and the list read plainly', () => {
