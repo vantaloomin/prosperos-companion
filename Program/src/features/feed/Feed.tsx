@@ -6,7 +6,7 @@ import { HISTORY_KEY, type View } from '../../companion'
 import type { Companion, FeedPage, FeedPost, FeedSource } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
-import { Toggle } from '../../components/Fields'
+import { firstName } from '../character/panelText'
 import { PostCard, type PostActions } from './PostCard'
 import { ReadBatcher, joinPages, nextReaction } from './feedState'
 import { useSeekNew } from './useSeekNew'
@@ -83,36 +83,36 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
 
   return (
     <section className="page feed">
-      <header className="page-header">
-        <div>
-          <h2>{words.posts_tab}</h2>
-          <p className="subtle">{name}'s {words.posts}, what their friends are up to, and yours<UnreadCount count={unread} linked={newPosts.offer > 0} seek={newPosts.seek} /> Nobody outside the app sees them.</p>
-        </div>
-        <button type="button" className="button" onClick={() => void exportFeed()}><Download aria-hidden="true" />Export</button>
-      </header>
-      <OwnPost onPosted={() => {
-        setError(null)
-        // The name and Friends filters leave the user's posts out: show the new one at the top of Everyone.
-        if (source === 'companion' || source === 'circle') setSource('all')
-        void client.invalidateQueries({ queryKey: ['feed'] })
-      }} onError={setError} />
-      <div className="memory-toolbar">
-        <SourcePicker source={source} name={name} onChange={setSource} />
-        <Toggle label={`Show hidden ${words.posts}`} checked={hidden} onChange={setHidden} />
+      {/* No intro (style guide): the profile header says whose posts these are, and the chips say which are shown. */}
+      <h2 className="visually-hidden">{words.posts_tab}</h2>
+      <div className="feed-top">
+        <OwnPost onPosted={() => {
+          setError(null)
+          // The name and Friends filters leave the user's posts out: show the new one at the top of Everyone.
+          if (source === 'companion' || source === 'circle') setSource('all')
+          void client.invalidateQueries({ queryKey: ['feed'] })
+        }} onError={setError} />
+        <button type="button" className="icon-button" aria-label={`Export ${words.posts}`} title={`Export ${words.posts}`} onClick={() => void exportFeed()}><Download aria-hidden="true" /></button>
+      </div>
+      <div className="feed-chips">
+        <SourcePicker source={source} name={name} hidden={hidden} onChange={setSource} onHidden={setHidden} />
+        <UnreadCount count={unread} linked={newPosts.offer > 0} seek={newPosts.seek} />
       </div>
       {error && <Notice tone="error">{error}</Notice>}
-      <FeedStatus pending={feed.isPending} error={feed.isError ? feed.error : null} retrying={feed.isFetching} retry={() => void feed.refetch()} empty={feed.isSuccess && posts.length === 0} mine={source === 'mine'} name={name} words={words} />
+      <FeedStatus pending={feed.isPending} error={feed.isError ? feed.error : null} retrying={feed.isFetching} retry={() => void feed.refetch()} empty={feed.isSuccess && posts.length === 0} mine={source === 'mine'} words={words} />
       <div className="post-list">{posts.map((post) => <PostCard key={post.id} post={post} name={name} actions={actions} />)}</div>
       {feed.hasNextPage && <button type="button" className="button load-more" disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>Show older {words.posts}</button>}
     </section>
   )
 }
 
-function SourcePicker({ source, name, onChange }: { source: FeedSource; name: string; onChange: (source: FeedSource) => void }) {
-  const choices: [FeedSource, string][] = [['all', 'Everyone'], ['companion', name], ['circle', 'Friends'], ['mine', 'You']]
+/** Whose posts, then Hidden: a chip of its own that shows the posts hidden from the feed, whoever's they are. */
+function SourcePicker({ source, name, hidden, onChange, onHidden }: { source: FeedSource; name: string; hidden: boolean; onChange: (source: FeedSource) => void; onHidden: (hidden: boolean) => void }) {
+  const choices: [FeedSource, string][] = [['all', 'Everyone'], ['companion', firstName(name)], ['circle', 'Friends'], ['mine', 'You']]
   return (
     <div className="vibe-picks" role="group" aria-label="Whose posts">
       {choices.map(([id, label]) => <button key={id} type="button" className="vibe-pick" aria-pressed={source === id} onClick={() => onChange(id)}>{label}</button>)}
+      <button type="button" className="vibe-pick hidden-chip" aria-pressed={hidden} onClick={() => onHidden(!hidden)}>Hidden</button>
     </div>
   )
 }
@@ -140,33 +140,31 @@ function OwnPost({ onPosted, onError }: { onPosted: () => void; onError: (messag
   return (
     <form className={`own-post${open ? ' open' : ''}`} onSubmit={submit} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}>
       <label htmlFor="own-post-text" className="visually-hidden">Share something</label>
-      <textarea id="own-post-text" rows={open ? 3 : 1} maxLength={1000} value={text} placeholder="Share something with everyone"
+      <textarea id="own-post-text" rows={open ? 3 : 1} maxLength={1000} value={text} placeholder="Share something"
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void share() } }} />
       {open && <div className="own-post-foot">
-        <p className="subtle">Your companions and their friends see it, and may like or comment.</p>
         <button type="submit" className="button primary" disabled={busy || !text.trim()}>Post</button>
       </div>}
     </form>
   )
 }
 
-/** ". 1 new." after the description. When the new post sits below posts already seen, the count is a link to it, kept
- * on one line with its full stop. */
+/** "1 new" beside the chips. When the new post sits below posts already seen, the count is a link to it. */
 function UnreadCount({ count, linked, seek }: { count: number; linked: boolean; seek: () => void }) {
-  if (!count) return <>.</>
-  if (!linked) return <>. {count} new.</>
-  return <>. <span className="nowrap"><button type="button" className="inline-link" aria-label="Go to the newest unread post" onClick={seek}>{count} new <span aria-hidden="true">↓</span></button>.</span></>
+  if (!count) return null
+  if (!linked) return <span className="feed-new">{count} new</span>
+  return <button type="button" className="inline-link feed-new" aria-label="Go to the newest unread post" onClick={seek}>{count} new <span aria-hidden="true">↓</span></button>
 }
 
-function FeedStatus({ pending, error, retrying, retry, empty, mine, name, words }: { pending: boolean; error: Error | null; retrying: boolean; retry: () => void; empty: boolean; mine: boolean; name: string; words: EraWords }) {
+function FeedStatus({ pending, error, retrying, retry, empty, mine, words }: { pending: boolean; error: Error | null; retrying: boolean; retry: () => void; empty: boolean; mine: boolean; words: EraWords }) {
   if (error) {
     const again = <button type="button" className="text-button" disabled={retrying} onClick={retry}>{retrying ? 'Trying again…' : 'Try again'}</button>
     return <ErrorNotice error={error} action={again}>The posts could not load. </ErrorNotice>
   }
   if (pending) return <Loading label="Loading the feed" />
-  if (empty && mine) return <p className="subtle">Nothing from you yet. Write something above and everyone will see it.</p>
-  return empty ? <p className="subtle">No {words.posts} yet. When something happens in {name}'s life or their friends', it shows up here.</p> : null
+  if (empty && mine) return <p className="subtle">Nothing from you yet.</p>
+  return empty ? <p className="subtle">No {words.posts} yet.</p> : null
 }
 
 /** Posts on screen are marked read as soon as they are seen, so the header keeps the count the

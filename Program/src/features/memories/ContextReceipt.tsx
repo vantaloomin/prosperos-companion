@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import type { ContextPreview, Memory } from '../../types'
 import { Loading } from '../../components/Feedback'
+import { FoldRow } from '../../components/Rows'
+import { firstName } from '../character/panelText'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { PREVIEW_KEY, budgetShare, receiptRows, type ReceiptRow } from './receiptRows'
 
@@ -12,12 +14,13 @@ export function ContextReceipt({ name, memories }: { name: string; memories: Mem
   const [open, setOpen] = useState(false)
   const preview = useQuery({ queryKey: PREVIEW_KEY, queryFn: () => api<ContextPreview>('/context/preview'), enabled: open, staleTime: 0 })
   return (
-    <details className="context-receipt" onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary>What {name}'s next reply uses</summary>
-      {preview.isPending && open && <Loading label="Working out the next reply's context" />}
-      {preview.isError && <ErrorNotice error={preview.error} />}
-      {preview.isSuccess && <ReceiptBody preview={preview.data} name={name} memories={memories} />}
-    </details>
+    <FoldRow summary={`What ${firstName(name)}'s next reply uses`} onToggle={setOpen}>
+      <div className="fold-extra">
+        {preview.isPending && open && <Loading label="Working out the next reply's context" />}
+        {preview.isError && <ErrorNotice error={preview.error} />}
+        {preview.isSuccess && <ReceiptBody preview={preview.data} name={name} memories={memories} />}
+      </div>
+    </FoldRow>
   )
 }
 

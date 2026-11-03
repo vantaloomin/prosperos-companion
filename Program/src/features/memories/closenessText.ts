@@ -21,6 +21,18 @@ export function basisText(state: Closeness): string {
   return `You have talked on ${plural(state.days_talked, 'day', 'days')}${since}, with ${moments}.`
 }
 
+/** The one line beside the stage name: "8 days talked · 3 moments counted". */
+export function shortBasis(state: Closeness): string {
+  if (state.days_talked === 0) return state.counted_from ? 'Counting from today' : 'Not talked yet'
+  return `${plural(state.days_talked, 'day', 'days')} talked · ${plural(state.counted_moments, 'moment', 'moments')} counted`
+}
+
+/** Whether something other than your shared history set the stage (a hold, a limit, cooling or a stage you set), so
+ * the meter's line says so. */
+export function stageSteered(state: Closeness): boolean {
+  return Boolean(state.held_level || state.cooled_steps || (state.ceiling_level && state.ceiling_level < state.earned_level) || state.set_on || state.starting_level > 1)
+}
+
 /** Why the stage is what it is: a hold wins, then a ceiling and gentle cooling, then history from where it started or was set. */
 export function stageText(state: Closeness, name: string): string {
   if (state.held_level) {
