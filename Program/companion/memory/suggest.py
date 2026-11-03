@@ -163,6 +163,7 @@ def candidate(item, batch) -> tuple[dict, Candidate, dict | None] | None:
         return None
     subject, value = addressed.fields(subject, value, message.get('to') or '', message['text'],
                                       message.get('pronoun') or 'they')
+    value = addressed.voiced(layer, value, message['text'])
     if not owners.belongs(subject, message['text'], message.get('names') or ()):
         return None
     corrected = None
@@ -352,7 +353,7 @@ def strays(connection) -> list[str]:
 def tidy(database) -> int:
     """Remove the strays left by earlier prompts and name the companion where they wrote "the assistant". Returns
     how many went."""
-    addressed.tidy(database, PROMPT_VERSION)
+    addressed.tidy(database)
     with database.connect() as connection:
         found = strays(connection)
     gone = set()
