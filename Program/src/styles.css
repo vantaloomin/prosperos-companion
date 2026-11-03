@@ -1952,7 +1952,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-row-where { display: flex; align-items: flex-start; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.75rem; }
 .chat-row-where > span { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 .chat-row-where > svg { flex: none; width: 0.85rem; height: 0.85rem; margin-top: 1px; color: var(--accent); }
-.side-bubbles .chat-row.current .chat-row-where, .side-bubbles .chat-row.current .chat-row-where > svg { color: var(--on-accent); opacity: .85; }
 .chat-row.unread .chat-row-top strong { font-weight: 700; }
 .chat-row.unread .chat-row-preview { color: var(--text); }
 .chat-row.unread .chat-row-time { color: var(--accent); }
@@ -1984,9 +1983,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* A row's name, time and preview shrink with an ellipsis instead of widening the list past its edge. */
 .side-list ul { grid-template-columns: minmax(0, 1fr); }
 .side-bubbles .side-title { font-family: var(--ui-font); font-weight: 600; }
-.side-bubbles .chat-row.current { background: var(--accent); color: var(--on-accent); }
-.side-bubbles .chat-row.current :is(.chat-row-preview, .chat-row-time) { color: var(--on-accent); opacity: .85; }
-.side-bubbles .chat-row.current .unread-badge { background: var(--on-accent); color: var(--accent); }
+.side-bubbles .chat-row.current { background: var(--accent-tint); }
 /* Community: a rail of round pictures, a pill beside the open chat and a short one beside chats with news. */
 .side-rail { width: 72px; padding: 12px 0; align-items: center; background: var(--canvas); border-right: 1px solid var(--border); }
 .side-rail ul { gap: 8px; }
@@ -3030,3 +3027,13 @@ p.breakup-line { align-items: center; }
 .secrets-page .secrets { margin-top: 0; padding-top: 0; border-top: 0; }
 .secrets-page h1 { margin: 0; font-family: var(--read-font); font-weight: 500; font-size: 1.25rem; }
 @media (max-width: 720px) { .secrets-page { padding: 16px; } }
+/* The chat header keeps one row on a wide screen: the title lines end in an ellipsis instead of wrapping the buttons
+   under them. Below 1100px the style select moves into ⋯ (ChatMenu). */
+@media (min-width: 721px) {
+  .conversation-header { flex-wrap: nowrap; }
+  .conversation-title :is(h1, p) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 1100px) { .conversation-header > .chat-style-switch { display: none; } }
+@media (min-width: 1101px) { .header-menu-panel .style-in-menu { display: none; } }
+.secrets-title { display: flex; align-items: center; gap: 4px; }
+.secrets-title :is(h1, h2) { margin: 0; }

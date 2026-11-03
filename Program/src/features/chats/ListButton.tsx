@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { PanelLeft } from 'lucide-react'
+import { PanelLeft, PanelRight, PanelTop } from 'lucide-react'
+import { useChatStyle } from '../conversation/useChatStyle'
 import { useChats } from './useChats'
 import { useChatListCollapsed } from './layout'
 import { listButtonLabel, othersUnread, type OpenChat } from './chatText'
@@ -14,12 +15,15 @@ export function ListButton({ current = null }: { current?: OpenChat }) {
   const [collapsed, setCollapsed] = useChatListCollapsed()
   const chats = useChats().data?.chats ?? []
   useListKey(collapsed, setCollapsed)
+  // The icon points to where the list is: Retro IM's buddy list sits right, Feed's tray across the top.
+  const style = useChatStyle().style
+  const Icon = style === 'retro' ? PanelRight : style === 'feed' ? PanelTop : PanelLeft
   if (!chats.length) return null
   const waiting = collapsed ? othersUnread(chats, current) : 0
   const label = listButtonLabel(!collapsed, waiting)
   return (
     <button type="button" className="icon-button list-button desktop-only" aria-label={label} title={`${label}  [`} aria-pressed={!collapsed} onClick={() => setCollapsed(!collapsed)}>
-      <PanelLeft aria-hidden="true" />{waiting > 0 && <span className="nav-dot" aria-hidden="true" />}
+      <Icon aria-hidden="true" />{waiting > 0 && <span className="nav-dot" aria-hidden="true" />}
     </button>
   )
 }

@@ -116,7 +116,7 @@ export function ChatMenu({ threadId }: { threadId: string }) {
       <button type="button" className="icon-button" aria-label="More" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /></button>
       {open && <div ref={panel} className="header-menu-panel">
         <ModelSwitch />
-        <label className="phone-only">Chat style<ChatStyleSwitch phone /></label>
+        <label className="style-in-menu">Chat style<ChatStyleSwitch phone /></label>
         <ExportLinks target={{ kind: 'chat', threadId }} onPick={() => setOpen(false)} />
       </div>}
     </span>
