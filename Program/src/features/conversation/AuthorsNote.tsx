@@ -3,6 +3,7 @@ import { FileText } from 'lucide-react'
 import { useNote } from './useNote'
 import { NOTE_LIMIT, NOTE_SWITCH, noteLook, type Look } from './noteState'
 import { ErrorNotice } from '../../components/ErrorNotice'
+import { InfoTip } from '../../components/InfoTip'
 
 const COUNT_FROM = 800
 const PHONE = '(max-width: 720px)'
@@ -12,7 +13,7 @@ const RETRO: Record<Look, string> = { off: '[note]', on: '[note on]', paused: '[
 /** The note button left of the message box (the story's), and the note itself: a tray pulled up over the bottom of
  * the chat on a computer, a sheet from the bottom of the screen on a phone. What is typed saves itself. A chat
  * opens the same tray from its composer's + menu instead (Composer.tsx). */
-export function AuthorsNote({ chat, name, story = false }: { chat: string; name: string; story?: boolean }) {
+export function AuthorsNote({ chat, story = false }: { chat: string; story?: boolean }) {
   const note = useNote(chat)
   const button = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
@@ -24,16 +25,16 @@ export function AuthorsNote({ chat, name, story = false }: { chat: string; name:
       onClick={() => setOpen(!open)}>
       <FileText aria-hidden="true" /><span className="note-retro" aria-hidden="true">{RETRO[look]}</span>
     </button>
-    <NoteTray chat={chat} name={name} story={story} note={note} open={open} onClosed={() => { setOpen(false); button.current?.focus({ preventScroll: true }) }} />
+    <NoteTray chat={chat} story={story} note={note} open={open} onClosed={() => { setOpen(false); button.current?.focus({ preventScroll: true }) }} />
   </>
 }
 
 type NoteControl = ReturnType<typeof useNote>
 
-interface TrayProps { chat: string; name: string; story?: boolean; note: NoteControl; open: boolean; onClosed: () => void }
+interface TrayProps { chat: string; story?: boolean; note: NoteControl; open: boolean; onClosed: () => void }
 
 /** The note's tray, shown while `open`; closing it (Escape, Done, a click outside) calls `onClosed`. */
-export function NoteTray({ chat, name, story = false, note, open, onClosed }: TrayProps) {
+export function NoteTray({ chat, story = false, note, open, onClosed }: TrayProps) {
   const dialog = useRef<HTMLDialogElement>(null)
   const area = useRef<HTMLTextAreaElement>(null)
   const close = () => { dialog.current?.close() }
@@ -65,17 +66,16 @@ export function NoteTray({ chat, name, story = false, note, open, onClosed }: Tr
       <div className="note-body">
         <span className="note-grabber phone-only" aria-hidden="true" />
         <div className="note-head">
-          <strong>Author's note</strong>
+          <span className="note-title"><strong>Author's note</strong><InfoTip id={`note-help-${chat}`} label="Author's note" text={story ? 'This story only. Sent with every narration, never saved as a message or memory.' : 'This chat only. Sent with every reply, never saved as a message or memory.'} /></span>
           <label className="note-switch"><input type="checkbox" role="switch" checked={note.enabled} onChange={(event) => note.change(note.text, event.target.checked, true)} /> {NOTE_SWITCH}</label>
         </div>
         <label className="visually-hidden" htmlFor={`note-text-${chat}`}>Author's note for this chat</label>
         <textarea ref={area} id={`note-text-${chat}`} className={note.enabled ? undefined : 'note-unused'} value={note.text} maxLength={NOTE_LIMIT} rows={4} aria-describedby={`note-help-${chat}`}
-          placeholder={story ? 'Steer the story for every narration. It never shows in the story.' : `Steer the scene for every reply in this chat. ${name} won't see it as a message.`}
+          placeholder={story ? 'Steer every narration in this story' : 'Steer every reply in this chat'}
           onChange={(event) => note.change(event.target.value, note.enabled)} />
         {note.text.length > COUNT_FROM && <span className="note-count subtle" aria-live="polite">{note.text.length} / {NOTE_LIMIT}</span>}
         {note.error instanceof Error && <ErrorNotice error={note.error} />}
         <div className="note-foot">
-          <span id={`note-help-${chat}`} className="subtle">{story ? 'This story only. Sent with every narration, never saved as a message or memory.' : 'This chat only. Sent with every reply, never saved as a message or memory.'}</span>
           <button type="button" className="text-button note-clear" disabled={!note.text} onClick={() => { note.change('', note.enabled, true); area.current?.focus() }}>Clear</button>
         </div>
         <button type="button" className="button primary note-done phone-only" onClick={close}>Done</button>

@@ -1663,6 +1663,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .note-body { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
 .note-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .note-head strong { font-family: var(--display-font, inherit); font-weight: 600; }
+.note-title { display: inline-flex; align-items: center; gap: 4px; }
 .note-switch { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; cursor: pointer; }
 .note-switch input { appearance: none; width: 36px; height: 20px; margin: 0; border-radius: 10px; background: var(--border); position: relative; cursor: pointer; flex-shrink: 0; }
 .note-switch input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff; transition: transform .15s; }
@@ -1673,7 +1674,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .note-count { align-self: flex-end; font-size: 0.8125rem; margin-top: -6px; }
 .note-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.8125rem; }
 .note-foot > span { flex: 1; min-width: 0; }
-.note-foot .text-button { padding: 0; flex-shrink: 0; }
+.note-foot .text-button { padding: 0; flex-shrink: 0; margin-left: auto; }
 .note-done { margin-top: 6px; }
 .note-tray textarea.note-unused { color: var(--muted); }
 @media (max-width: 720px) { .note-foot .note-clear { min-height: 44px; padding: 0 4px; } }
@@ -3065,4 +3066,5 @@ p.breakup-line { align-items: center; }
 .chat-retro .ai-notice-line { text-align: left; font-size: 0.6875rem; margin-bottom: 8px; }
 @media (max-width: 720px) { .composer > .composer-add > .icon-button { margin-bottom: 0; } }
 .meta-sep { flex: none; margin: 0 4px; color: var(--faint); }
-@media (max-width: 720px) { .conversation-status .conversation-meta { flex: 0 1 auto; } .conversation-status .status-line { min-width: 30%; } }
+/* Phone: the status gives way first, so the time always shows in full (Iris, step 3). */
+@media (max-width: 720px) { .conversation-status .conversation-meta { flex: 0 0 auto; } .conversation-status .status-line { flex: 0 1 auto; min-width: 0; } }

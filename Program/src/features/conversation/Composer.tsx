@@ -46,7 +46,7 @@ export function Composer({ name, phoneName, chat, draft, streaming, compact, onS
     <form className={compact ? 'composer compact' : 'composer'} onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) send() }}
       {...pictures.formEvents}>
       <ComposerPictures draft={draft} busy={pictures.busy} error={pictures.error} />
-      <AddMenu key={chat} chat={chat} name={name} pictures={pictures} count={draft.value.pictures?.length ?? 0} onDone={() => { if (!onPhone()) text.current?.focus({ preventScroll: true }) }} />
+      <AddMenu key={chat} chat={chat} pictures={pictures} count={draft.value.pictures?.length ?? 0} onDone={() => { if (!onPhone()) text.current?.focus({ preventScroll: true }) }} />
       <label className="visually-hidden" htmlFor="composer-text">{placeholder}</label>
       <MessageBox text={text} folded={folded}>
         <textarea ref={text} id="composer-text" rows={1} value={draft.value.text} placeholder={placeholder} maxLength={40000} onFocus={() => setFolded(false)}
@@ -128,20 +128,20 @@ function ComposerPictures({ draft, busy, error }: { draft: DraftState; busy: boo
  * The composer's + (style guide: things you add): a picture, the chat's Author's note (with whether it is on), and
  * how to write *actions* and step out of character. The note opens as its tray over the chat.
  */
-function AddMenu({ chat, name, pictures, count, onDone }: { chat: string; name: string; pictures: { enabled: boolean; busy: boolean; add: (files: File[]) => Promise<void> }; count: number; onDone: () => void }) {
+function AddMenu({ chat, pictures, count, onDone }: { chat: string; pictures: { enabled: boolean; busy: boolean; add: (files: File[]) => Promise<void> }; count: number; onDone: () => void }) {
   const picker = useRef<HTMLInputElement>(null)
   const note = useNote(chat)
   const [open, setOpen] = useState<'note' | 'help' | null>(null)
   const items: MenuItem[] = [
     ...(pictures.enabled ? [{ label: 'Send a picture', icon: ImagePlus, disabled: count >= PER_MESSAGE || pictures.busy, onSelect: () => picker.current?.click() }] : []),
     { label: "Author's note", icon: FileText, value: noteValue(note), onSelect: () => setOpen('note') },
-    { label: '*Actions* and ((OOC)) help', icon: Info, onSelect: () => setOpen('help') },
+    { label: 'Writing help', icon: Info, onSelect: () => setOpen('help') },
   ]
   return <>
     {pictures.enabled && <input ref={picker} id="composer-pictures" type="file" accept="image/*" multiple className="visually-hidden" tabIndex={-1} aria-label="Add pictures"
       onChange={(event) => { void pictures.add(Array.from(event.target.files ?? [])); event.target.value = '' }} />}
     <Menu label="Add" icon={Plus} items={items} align="start" up keepFocus className="composer-add" />
-    <NoteTray chat={chat} name={name} note={note} open={open === 'note'} onClosed={() => { setOpen(null); onDone() }} />
+    <NoteTray chat={chat} note={note} open={open === 'note'} onClosed={() => { setOpen(null); onDone() }} />
     {open === 'help' && <ConfirmDialog title="Writing messages" onClose={() => { setOpen(null); onDone() }} actions={<button type="button" className="button primary" onClick={() => { setOpen(null); onDone() }}>Done</button>}>
       <p>Enter sends, Shift+Enter adds a new line.</p>
       <p>Put an action between asterisks, like *waves*, and it shows in italics.</p>

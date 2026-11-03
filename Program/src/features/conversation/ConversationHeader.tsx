@@ -66,13 +66,15 @@ function WideButtons({ call, searching, searchButton, onSearch }: { call: MenuIt
 
 /**
  * One line under the name: what they're up to, their time and the neighbourhood ("just vibing · 2:22 PM their time ·
- * Fells Point"). A phone keeps the status and the time. A side timeline leads, so it is never mistaken for the main one.
+ * Fells Point"). A phone keeps only the status and the time ("just vibing · 9:51 PM"), and the status gives way first so
+ * the time always shows. A side timeline leads, so it is never mistaken for the main one.
  */
 function StatusLine({ companion, timeline, phone }: { companion: Companion; timeline: string | null; phone: boolean }) {
   const { timezone, location } = companion.version.definition
-  const time = useLocalTime(timezone)
+  const time = useLocalTime(timezone, phone)
+  const when = phone ? time : time && `${time} their time`
   const place = phone ? null : location?.split(',')[0]
-  const rest = [timeline, time && `${time} their time`, place].filter(Boolean).join(' · ')
+  const rest = [timeline, when, place].filter(Boolean).join(' · ')
   return (
     <p className="conversation-status">
       <StatusText name={companion.version.name} status={companion.status} />
