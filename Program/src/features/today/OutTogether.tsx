@@ -141,14 +141,14 @@ function TripItem({ trip, name, act }: { trip: Trip; name: string; act: (path: s
   )
   if (trip.home_undo) return (
     <li className="together-item together-undo">
-      <p><strong>{tripTitle(trip, name)}</strong> <span className="subtle">Heading home early.</span></p>
+      <p><strong>{tripTitle(trip, name.split(' ')[0])}</strong> <span className="subtle">Heading home early.</span></p>
       <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/stay`)}><Undo2 aria-hidden="true" />Undo</button>
     </li>
   )
   return (
     <li className="together-item">
       <div className="together-head">
-        <strong>{tripTitle(trip, name)}</strong>
+        <strong>{tripTitle(trip, trip.visit === 'together' ? name.split(' ')[0] : name)}</strong>
         <span className="badge">{trip.state === 'now' ? (trip.visit ? 'Together now' : 'Away now') : OUTING_STATES[trip.state]}</span>
       </div>
       <p className="subtle">{tripMeta(trip, name)}</p>
@@ -158,15 +158,16 @@ function TripItem({ trip, name, act }: { trip: Trip; name: string; act: (path: s
   )
 }
 
-/** "Fri, Oct 16 – Sun, Oct 18 · By plane · Mira spends about $900". */
+/** "Fri, Oct 16 – Sun, Oct 18 · By plane · Mira's share about $900". */
 function tripMeta(trip: Trip, name: string): string {
   const travel = tripTravel(trip)
-  const cost = trip.cost_text ? ` · ${trip.visit ? `${name} spends about` : 'about'} ${trip.cost_text}` : ''
+  const spends = trip.visit === 'together' ? `${name.split(' ')[0]}'s share about` : trip.visit ? `${name} spends about` : 'about'
+  const cost = trip.cost_text ? ` · ${spends} ${trip.cost_text}` : ''
   return `${tripDays(trip)}${travel ? ` · ${travel}` : ''}${cost}`
 }
 
 /** A visit or trip together still to come: Somewhere else (a trip together) and Call it off; under way, a trip
- * together can end early with Head home early. */
+ * together can end early with Head home. */
 function TripActions({ trip, act }: { trip: Trip; act: (path: string) => Promise<void> }) {
   const together = trip.visit === 'together'
   if (trip.visit && trip.state === 'planned') return (
@@ -178,7 +179,7 @@ function TripActions({ trip, act }: { trip: Trip; act: (path: string) => Promise
   if (!together || trip.state !== 'now' || trip.start_date === trip.end_date) return null
   return (
     <div className="together-actions">
-      <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/home`)}><Home aria-hidden="true" />Head home early</button>
+      <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/home`)}><Home aria-hidden="true" />Head home</button>
     </div>
   )
 }

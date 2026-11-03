@@ -89,7 +89,7 @@ export function headingLine(heading: WhereHeading, name: string): StripLine {
 export function visitLine(visit: WhereVisit, name: string): StripLine {
   const tail = ` until ${dayText(visit.end_date)}`
   if (visit.direction === 'to-you') return { lead: `${name} is staying with you`, place: null, tail }
-  if (visit.direction === 'together') return { lead: `Away with ${name} ${visit.prep ?? 'in'} ${visit.city_name}`, place: null, tail }
+  if (visit.direction === 'together') return { lead: `Away with ${name.split(' ')[0]} ${visit.prep ?? 'in'} ${visit.city_name}`, place: null, tail }
   return { lead: `Staying with ${name} in ${visit.city_name}`, place: null, tail }
 }
 

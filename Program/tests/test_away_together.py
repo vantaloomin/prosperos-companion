@@ -116,7 +116,7 @@ def test_their_own_idea_comes_as_news_and_runs_like_a_visit(client, couple, prov
     reconcile(client)
     found = where(client)
     assert found['state'] == 'together' and found['kind'] == 'away'
-    assert found['text'].startswith(f"Away together {trip['away']['prep']} {trip['city_name']} until")
+    assert found['text'] == f"Away {trip['away']['prep']} {trip['city_name']}"
     blocks = agenda(client, start.isoformat())
     assert any(block.get('trip') == trip['id'] for block, _entry in blocks)
     says(provider)
