@@ -18,7 +18,12 @@ export interface Outing {
   early?: boolean; longer_ok?: boolean
   /** An evening out with a child of yours at home: who is watching them that night (companion/life/our_child.py). */
   sitter?: { text: string; cost: number } | null
+  /** Second location (companion/life/onward.py): the place they move on to and when, shown once the move is near;
+   * where they came from once they moved on; `undo_move` just after an automatic move. */
+  next?: OutingNext | null; came_from?: { name: string; activity: string; neighborhood: string } | null; undo_move?: boolean
+  /** When they moved on to where they are now ('21:00'). */ moved_at?: string
 }
+export interface OutingNext { place: OutingPlace; activity: string; at: string; asked: boolean }
 /** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; 'together' for a trip away together (companion/life/away_together.py); '' for a trip of their own. `undo` is true for a visit called off a little while ago, `home_undo` for a trip together just cut short. `away` says how a trip together travels ('plane', 'steamship', 'tram') and its preposition ('in Lisbon', 'on the garden deck'). */
 export interface Trip {
   id: string; start_date: string; end_date: string; city_id: string; city_name: string; kind: 'getaway' | 'family'
@@ -127,7 +132,8 @@ function bigDayPart(place: OutingPlace, done: boolean, name: string): string {
 
 /** When it is, and who picked the place. */
 export function outingWhen(outing: Outing, name: string): string {
-  const when = `${dayText(outing.local_date)}, ${timeText(outing.at_time)}`
+  // After moving on to a second place, when they got there (Iris, 2026-11-03).
+  const when = `${dayText(outing.local_date)}, ${timeText(outing.moved_at ?? outing.at_time)}`
   const moved = outing.asked_date && outing.asked_date !== outing.local_date ? ` (${dayText(outing.asked_date)} didn't work for ${name})` : ''
   return `${when}${moved}`
 }
@@ -140,6 +146,13 @@ export function outingNote(outing: Outing, name: string): string {
   if (outing.state === 'done') return outing.cost_text ? outing.cost_text.replace(/^You paid/, `${name} paid`) : ''
   if (outing.named) return 'You picked the place.'
   return outing.rolls > 0 ? 'You asked for somewhere else.' : ''
+}
+
+/** Moving on to a second place: "Then drinks at The Owl Bar, around 9:00 PM.", or "Came over from Lupa." once there. */
+export function onwardLine(outing: Pick<Outing, 'state' | 'next' | 'came_from'>): string {
+  if (outing.state !== 'now') return ''
+  if (outing.next) return `Then ${(WHAT[outing.next.activity] ?? 'on').toLowerCase()} at ${outing.next.place.name}, around ${timeText(outing.next.at)}.`
+  return outing.came_from ? `Came over from ${outing.came_from.name}.` : ''
 }
 
 /** How meeting up works, so nobody waits for a "Go there" button that never comes: at the time they are simply there

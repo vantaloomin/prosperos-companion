@@ -544,6 +544,7 @@ export interface LifeSettings {
   read_pace: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
+  onward_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
   rough_patches_realism: number
   /** Next steps (companion/life/steps.py): how soon they bring up the next step, 0 only when you do, 1 slow, 2 true to life, 3 fast. */

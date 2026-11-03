@@ -19,10 +19,11 @@ export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereK
 export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string }
 
 /** What the strip says: a lead, the place (linked to the map when it is out in town) and how long. */
-export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string; /** A shorter lead for the phone, when there is one. */ short?: string }
+export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string; /** A shorter lead for the phone, when there is one. */ short?: string
+  /** The place they move on to next (companion/life/onward.py), after ", then ". */ then?: { id: string; name: string } | null }
 /** The strip's one button: Head home (Call it a night at your own wedding), Say goodbye, Not now, or Undo just after
  * one of those. */
-export interface StripAction { action: 'home' | 'undo'; label: string }
+export interface StripAction { action: 'home' | 'undo' | 'back'; label: string }
 /** A call's buttons: Decline and Answer while it rings, End call while it is on, Call back after one you missed. */
 export interface CallAction { action: 'answer' | 'decline' | 'end' | 'call'; label: string }
 
@@ -77,7 +78,9 @@ function outLine(outing: WhereOuting, tail: string): StripLine {
   if (outing.activity === 'wedding') return mapped('Your wedding at ', outing, tail)
   // A big day in their circle (companion/life/big_days.py): "At Leo's wedding at Druid Hill Park".
   if (outing.activity === 'big-day' && outing.place.title) return mapped(`At ${outing.place.title} at `, outing, tail)
-  return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail }
+  // Moving on to a second place soon (companion/life/onward.py): "Together at Lupa until 9:00 PM, then The Owl Bar".
+  const then = outing.next && !outing.next.place.id.startsWith('~') ? { id: outing.next.place.id, name: outing.next.place.name } : null
+  return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail: then ? `${tail}, then ` : tail, then }
 }
 
 /** After a meetup: "Sett is driving home, back around 6:10 PM", the time kept with its words on a phone. */
@@ -157,7 +160,12 @@ function leaveLabel(outing: WhereOuting): string {
 
 /** Stay longer on the strip, beside Head home: under way, and their next hour is free. */
 export function canStayLonger(where: WhereState | undefined): boolean {
-  return where?.outing?.state === 'now' && Boolean(where.outing.longer_ok)
+  return where?.outing?.state === 'now' && Boolean(where.outing.longer_ok) && !where.outing.undo_move
+}
+
+/** Just moved on to a second place by themselves: Undo takes them back for a minute or two (companion/life/onward.py). */
+export function canGoBack(where: WhereState | undefined): boolean {
+  return where?.outing?.state === 'now' && Boolean(where.outing.undo_move)
 }
 
 /** Whether the chat writes in person now: texting habits like bursts stop while they are together. */
@@ -181,4 +189,12 @@ export const TOGETHER_LEVELS = [
   { label: 'Now and then', hint: 'Once in a while they suggest meeting up, ask you over or call. Nobody turns up at your door unannounced.' },
   { label: 'True to life', hint: 'They suggest meeting up, ask you over and call about as often as real friends do (more when they live far away), and someone close who lives nearby sometimes knocks unannounced. Never in your quiet hours.' },
   { label: 'Often', hint: 'They want to see and hear from you a lot: plans most weeks, invitations over, calls, and close companions in your city dropping by more often. Never in your quiet hours.' },
+]
+
+/** The Moving on slider's steps (Settings > Realism, companion/life/onward.py): how often a meetup moves on to a second place nearby. */
+export const ONWARD_LEVELS = [
+  { label: 'Never', hint: 'A meetup ends where it started. Ask in the chat while you are out and they still go on somewhere with you.' },
+  { label: 'Now and then', hint: 'About one meetup in five moves on to a second place nearby when the first one ends.' },
+  { label: 'True to life', hint: 'About two in five move on, more often when the first place closes for the night: dinner, then drinks around the corner.' },
+  { label: 'Often', hint: 'Most meetups move on to a second place, as long as they have the time after.' },
 ]

@@ -37,6 +37,7 @@ from companion.life import (
     mood,
     moving_in,
     network,
+    onward,
     outings,
     parenthood,
     pets,
@@ -662,12 +663,15 @@ def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo
 
 @router.post('/outings/{outing_id}/{action}')
 def change_outing(request: Request, outing_id: str,
-                  action: Literal['cancel', 'elsewhere', 'home', 'undo', 'now', 'longer']):
+                  action: Literal['cancel', 'elsewhere', 'home', 'undo', 'now', 'longer', 'next', 'back']):
     """Call an outing off, have the companion pick somewhere else, meet up now, stay longer, head home early, or undo
-    calling it off or heading home."""
+    calling it off or heading home; before moving on to a second place, have them pick another one, or just after,
+    go back."""
     database = db(request)
     change = {'cancel': outings.cancel, 'elsewhere': outings.elsewhere, 'home': outings.head_home,
-              'undo': outings.undo, 'now': outings.go_now, 'longer': outings.stay_longer}[action]
+              'undo': outings.undo, 'now': outings.go_now, 'longer': outings.stay_longer,
+              # Second location (companion/life/onward.py): another next place, or back to where they were.
+              'next': onward.elsewhere, 'back': onward.stay}[action]
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         changed = change(connection, companion, outing_id, database.clock.now())

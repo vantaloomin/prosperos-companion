@@ -9,7 +9,7 @@ and the chat context says they are texting from the road.
 from datetime import datetime, timedelta
 
 from companion.clock import zone
-from companion.life import outings
+from companion.life import onward, outings
 from companion.world import catalog, generators
 
 WALKABLE_KM = 1.2  # Closer than this, they walk.
@@ -48,6 +48,7 @@ def start_hood(connection, outing: dict, data: dict | None) -> dict | None:
 
 def trip(connection, companion: dict, outing: dict) -> dict | None:
     """{'minutes', 'by'} for their way home from this outing, or None when there is none (at their own place)."""
+    outing = onward.final(outing, companion['version']['timezone'])  # From the second place, when they moved on.
     if outing['place']['kind'] in NO_TRIP:
         return None
     definition = companion['version']['definition']

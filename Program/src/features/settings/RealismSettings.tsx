@@ -13,7 +13,7 @@ import { KITCHEN_LEVELS } from '../character/kitchenText'
 import { WORK_LEVELS } from '../character/workText'
 import { MEDIA_LEVELS } from '../character/mediaText'
 import { HOBBY_LEVELS } from '../character/hobbiesText'
-import { TOGETHER_LEVELS } from '../conversation/whereText'
+import { ONWARD_LEVELS, TOGETHER_LEVELS } from '../conversation/whereText'
 import { ROUGH_PATCH_LEVELS } from '../profile/roughPatchText'
 import { PACE_LEVELS } from '../character/stepsText'
 import { BREAKUPS_HINT } from '../character/breakupText'
@@ -98,6 +98,8 @@ export function PaceSettings({ name }: { name: string }) {
       <div className="row-list">
         <SliderRow label="Getting together" levels={TOGETHER_LEVELS} value={data.together_realism} onChange={(together_realism) => void save({ together_realism })}
           tip="You can always ask them over or out yourself, and say not now when someone knocks." />
+        <SliderRow label="Moving on" levels={ONWARD_LEVELS} value={data.onward_realism} onChange={(onward_realism) => void save({ onward_realism })}
+          tip="You can always keep them where they are with Stay longer, or ask to go on somewhere yourself." />
         <SliderRow label="Their love life" levels={LOVE_LIFE_LEVELS} value={data.love_life} onChange={(love_life) => void save({ love_life })}
           tip="Anyone they start seeing joins the people in their life. You can remove them there, or undo it on Today. Someone in a relationship with you only sees other people in an open relationship, or in secret on Drama." />
         <SliderRow label="Growing families" levels={FAMILY_LEVELS} value={data.growing_families} onChange={(growing_families) => void save({ growing_families })}

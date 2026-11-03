@@ -3335,3 +3335,9 @@ p.breakup-line { align-items: center; }
 /* Rows inside an open detail line up with its fields, not indented again. */
 .sub-fold-body > .setting-row, .sub-fold-body > .fold-row.nested > .fold-summary { padding-left: 0; padding-right: 0; min-height: 40px; }
 .sub-fold-body > .fold-row.nested > .fold-body:not([hidden]) { padding-left: 0; padding-right: 0; }
+
+/* "Back to Cinghiale" just after moving on to a second place: the name truncates, "Back to" stays (Iris, 2026-11-03). */
+.text-button.back-to { min-width: 0; max-width: 100%; flex: 0 1 auto; }
+.where-strip .text-button.back-to { flex: 0 1 auto; }
+.back-to-label { display: inline-flex; min-width: 0; white-space: nowrap; }
+.back-to-place { margin-left: 0.3em; min-width: 0; overflow: hidden; text-overflow: ellipsis; }

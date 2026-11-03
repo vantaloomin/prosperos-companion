@@ -202,6 +202,13 @@ def no_trips(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_onward(monkeypatch):
+    """Meetups moving on to a second place (companion/life/onward.py) are seeded dice; their own tests turn them on."""
+    from companion.life import onward
+    monkeypatch.setattr(onward, 'ACTIVE', False)
+
+
+@pytest.fixture(autouse=True)
 def no_work_life(monkeypatch):
     """Work weeks, late nights and vacation days (companion/life/work.py) would change unrelated tests' days;
     tests/test_work_life.py turns them on."""

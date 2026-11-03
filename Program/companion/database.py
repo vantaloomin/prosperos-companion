@@ -440,6 +440,10 @@ ADDED_COLUMNS = (
     # Settings > Models: look for the Claude Code and Codex accounts on this PC (companion/providers/cli_accounts.py) so
     # a profile can pick one; on unless turned off.
     ('workspace_settings', 'find_cli_accounts', 'INTEGER NOT NULL DEFAULT 1 CHECK (find_cli_accounts IN (0, 1))'),
+    # Second location (companion/life/onward.py): whether and where a meetup moves on to a second place (JSON), and the
+    # Moving on slider (Settings > Realism): 0 never, 1 now and then, 2 true to life, 3 often.
+    ('outings', 'onward', 'TEXT'),
+    ('life_settings', 'onward_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (onward_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

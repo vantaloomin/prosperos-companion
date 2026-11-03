@@ -21,7 +21,7 @@ from datetime import date, datetime, timedelta
 
 from companion.clock import parse, stamp, zone
 from companion.database import encode, identifier, many, optional, settings
-from companion.life import outings, own_plans, pacing, routine, trips, where
+from companion.life import onward, outings, own_plans, pacing, routine, trips, where
 
 ACTIVE = True
 # Knocks and suggestions to meet up (first texts); off in most tests (tests/conftest.py).
@@ -508,6 +508,8 @@ def state(connection, companion: dict, now: datetime) -> dict:
     if weekend:
         return {**weekend, 'outing': None}  # A weekend visit across the distance, under way.
     found = together_now(connection, companion, now)
+    if found:  # Where they are now: the first place, or the second once they moved on (companion/life/onward.py).
+        found = onward.here(found, companion['version']['timezone'], now)
     if found and not found['ended_at']:
         return {'state': 'together', 'kind': kind_of(found), 'text': together_text(found, companion), 'outing': found}
     from companion.life import moving_in
@@ -589,8 +591,11 @@ def view(connection, companion: dict, now: datetime) -> dict:
             found = {**found, 'kind': kind_of(outing), 'text': together_text(outing, companion)}
     if outing:
         timezone = companion['version']['timezone']
+        if 'next' not in outing:
+            outing = onward.here(outing, timezone, now)
         found['outing'] = {**outing, 'state': outings.state(outing, timezone, now),
                            'undo': outings.undoable_home(outing, now),
+                           'undo_move': onward.undoable(outing, timezone, now),
                            'longer_ok': outings.longer_ok(connection, companion, outing, now),
                            'not_now': bool(outing['place'].get('knock')) and now - started(outing, companion)
                            < NOT_NOW_WINDOW}
