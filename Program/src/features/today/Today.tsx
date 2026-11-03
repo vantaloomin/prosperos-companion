@@ -23,6 +23,9 @@ import { Storylines } from './Storylines'
 import { Townsfolk } from './Townsfolk'
 import { OnTheirMind } from './OnTheirMind'
 import { OutTogether, Trips } from './OutTogether'
+import { AwayNowAction, AwayRows } from './AwayTogether'
+import { useAwayTrips } from './useTogether'
+import { awayNowLine, type Trip } from './outingText'
 import { AdminList, FOLD } from './AdminList'
 import { LittleThings } from './LittleThings'
 import { WordGetsAround } from './WordGetsAround'
@@ -37,6 +40,7 @@ const TODAY_KEY = ['today']
 export function Today({ companion, go }: { companion: Companion; go: (view: View) => void }) {
   const client = useQueryClient()
   const today = useQuery({ queryKey: TODAY_KEY, queryFn: () => api<TodayData>('/today') })
+  const away = useAwayTrips()
   const [feedback, setFeedback] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
   const seen = useRef(false)
   const name = companion.version.name
@@ -84,7 +88,8 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
           <button type="button" className="icon-button" aria-label="Secrets" title="Secrets" onClick={() => go('secrets')}><Lock aria-hidden="true" /></button>
         </span>
       </header>
-      <NowCard data={data} name={name} go={go}>
+      <NowCard data={data} name={name} go={go} status={awayNowLine(away.now)}>
+        <AwayNowAction trip={away.now} />
         <Feeling data={data} name={name} />
         {data.mind && <OnTheirMind thoughts={data.mind.thoughts} name={name} />}
       </NowCard>
@@ -118,7 +123,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
         ))}
       </Section>
       <OutTogether name={name} />
-      <Plans data={data} name={name} go={go} />
+      <Plans data={data} name={name} go={go} away={away.coming} />
       <Trips name={name} />
       <Recommendations name={name} />
       <Chapters name={name} />
@@ -214,11 +219,11 @@ function PausedTime({ name, onDone }: { name: string; onDone: (text: string) => 
   )
 }
 
-function Plans({ data, name, go }: { data: TodayData; name: string; go: (view: View) => void }) {
+function Plans({ data, name, go, away }: { data: TodayData; name: string; go: (view: View) => void; away: Trip[] }) {
   const { shared, companion, threads } = data.plans
   const admin = data.plans.admin ?? []
   const stays = data.plans.stays ?? []
-  const groups = [shared, companion, threads, admin, stays].filter((list) => list.length).length
+  const groups = [shared, away, companion, threads, admin, stays].filter((list) => list.length).length
   if (!groups) return null
   // One group needs no heading of its own (Iris): "Coming up" says it, and All errands sits beside that heading.
   const many = groups > 1
@@ -229,6 +234,7 @@ function Plans({ data, name, go }: { data: TodayData; name: string; go: (view: V
       <PlanGroup title="Yours" many={many} count={shared.length}>
         <ul className="plain-list">{shared.map((plan) => <li key={plan.id}><strong>{plan.subject}</strong>: {plan.value} <span className="badge">{plan.status}</span></li>)}</ul>
       </PlanGroup>
+      <PlanGroup title="Away together" many={many} count={away.length}><AwayRows trips={away} name={name} /></PlanGroup>
       <PlanGroup title={`${firstName(name)}'s`} many={many} count={companion.length}>
         <ul className="event-list">{companion.map((event) => <EventItem key={event.id} event={event} />)}</ul>
       </PlanGroup>

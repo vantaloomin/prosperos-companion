@@ -313,7 +313,8 @@ ADDED_COLUMNS = (
     # Long distance (companion/life/long_distance.py): a trip that is a weekend visit with the user, 'to-you' (they come
     # to stay with the user) or 'host' (the user comes to stay with them); the message that asked for it, the memory it
     # left, and when the user called it off.
-    ('trips', 'visit', "TEXT NOT NULL DEFAULT '' CHECK (visit IN ('', 'to-you', 'host'))"),
+    # 'together' (v1.3, companion/life/away_together.py): a trip the two of them take somewhere together.
+    ('trips', 'visit', "TEXT NOT NULL DEFAULT '' CHECK (visit IN ('', 'to-you', 'host', 'together'))"),
     ('trips', 'message_id', 'TEXT'),
     ('trips', 'memory_id', 'TEXT'),
     ('trips', 'cancelled_at', 'TEXT'),
@@ -434,6 +435,8 @@ ADDED_COLUMNS = (
     ('outings', 'longer', 'INTEGER NOT NULL DEFAULT 0'),
     # Still talking as a meetup winds down, it ran on an hour on its own (companion/life/outings.py keep_going): once.
     ('outings', 'auto_longer', 'INTEGER NOT NULL DEFAULT 0'),
+    # A trip away together (companion/life/away_together.py): how they get there and what the place is like (JSON).
+    ('trips', 'away', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -451,6 +454,8 @@ WIDENED_CHECKS = (
     ('relationship_steps', "'friendship', 'parenthood')"),
     # The pair's own child, born or home (companion/life/expecting.py).
     ('circle_children', "'friend', 'ours')"),
+    # Trips away together (companion/life/away_together.py).
+    ('trips', "'host', 'together')"),
 )
 
 

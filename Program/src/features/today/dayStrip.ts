@@ -36,3 +36,12 @@ export function daySegments(slots: DaySlot[], now: string, timeZone: string): { 
 export function labelFits(segment: Pick<Segment, 'label' | 'width'>, width: number): boolean {
   return (segment.width / 100) * width >= segment.label.length * 7 + 14
 }
+
+/** Whether a part's name stays clear of the line at now (`now` in percent), so the line is never drawn through it. */
+export function clearOfNow(segment: Pick<Segment, 'label' | 'left'>, width: number, now: number): boolean {
+  if (!width) return true
+  const start = (segment.left / 100) * width
+  const end = start + segment.label.length * 7 + 14
+  const at = (now / 100) * width
+  return at < start || at > end
+}

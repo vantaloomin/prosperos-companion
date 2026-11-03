@@ -75,14 +75,14 @@ OVERLAND = {'modern': ('car', 80, 0.5), 'interwar': ('train', 55, 1.0), 'victori
             'frontier': ('train', 35, 2.0)}
 OVERSEAS = {'modern': ('plane', 750, 3.0), 'interwar': ('steamship', 30, 6.0), 'victorian': ('steamship', 25, 6.0),
             'frontier': ('steamship', 25, 6.0)}
-DRIVE_KM = 500
+DRIVE_KM = 700
 STAGECOACH = ('stagecoach', 12, 0.5, 250)
 # A place nobody knows, with no location: hours away by style.
 UNKNOWN_HOURS = {'modern': ('plane', 9.0), 'interwar': ('train', 20.0), 'victorian': ('train', 20.0),
                  'frontier': ('stagecoach', 30.0), 'medieval': ('coach', 10.0), 'fantasy': ('coach', 10.0),
                  'steampunk': ('train', 8.0), 'future': ('shuttle', 6.0)}
 # Nights a trip needs by hours of travel each way: a weekend for a short journey, a week for a long one.
-NIGHTS = ((6, 2), (12, 3), (24, 5), (48, 7))
+NIGHTS = ((6, 2), (10, 3), (24, 5), (48, 7))
 # A trip's cost as a share of a month's take-home: the stay by nights, and the fare by the way they travel.
 STAY_SHARE = {2: 0.10, 3: 0.14, 5: 0.22, 7: 0.28}
 FARE_SHARE = {'car': 0.02, 'train': 0.03, 'plane': 0.06, 'steamship': 0.25, 'stagecoach': 0.03, 'coach': 0.03,

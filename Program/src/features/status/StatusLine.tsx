@@ -19,7 +19,9 @@ export function StatusText({ name, status, className = '' }: { name: string; sta
   const Glyph = line.away === 'phone' && magic ? Sparkles : line.away ? GLYPHS[line.away] : null
   return (
     <span className={`status-line${line.away ? ' away' : ''} ${className}`} title={line.text} aria-label={statusLabel(name, status)}>
-      {Glyph && <Glyph aria-hidden="true" />}<span aria-hidden="true">{line.text}</span>
+      {Glyph && <Glyph aria-hidden="true" />}{line.short
+        ? <><span aria-hidden="true" className="desktop-only">{line.text}</span><span aria-hidden="true" className="phone-only">{line.short}</span></>
+        : <span aria-hidden="true">{line.text}</span>}
     </span>
   )
 }
