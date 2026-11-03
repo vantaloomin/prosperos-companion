@@ -52,6 +52,8 @@ ACTIVITIES = {
     'visit-in': (r'(?!x)x', ('home',), '19:00', 3.0, 'visit', 'time together at their place'),
     'visit-yours': (r'(?!x)x', ('your-home',), '19:00', 3.0, 'visit', "time together at the user's place"),
     'dinner-yours': (r'(?!x)x', ('your-home',), '19:00', 3.0, 'visit', "dinner at the user's place"),
+    # Dropping by where they work (companion/life/drop_by.py): only from the map, never by these words.
+    'visit-work': (r'(?!x)x', (), '12:00', 0.5, 'visit', 'a visit at their work'),
     # Meeting their people (companion/life/their_people.py): planned by the app, never by these words.
     'meet-family': (r'(?!x)x', ('family-home',), '18:30', 3.0, 'dinner', 'dinner with their family'),
     'meet-friends': (r'(?!x)x', ('bar', 'nightlife', 'tavern'), '20:00', 3.0, 'drinks', 'drinks with their friends'),
@@ -572,6 +574,8 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
     composes the slot again."""
     result = {}
     for outing in in_force(connection, timeline_id, since):
+        if outing['activity'] == 'visit-work':
+            continue  # Dropping by at work (companion/life/drop_by.py): their shift stays as it is.
         result.setdefault(outing['local_date'], []).append(
             {'id': slot_id(outing), 'at_time': outing['at_time'], 'outing': outing})
         # A wedding runs on past its first block: the later ones are quiet, still time with the user, not free time.
@@ -643,7 +647,8 @@ def planned_doing(outing: dict) -> str:
 
 # Visits (companion/life/together.py), as their day tells them.
 VISIT_DOING = {'visit-in': 'had you over at home', 'visit-yours': 'came over to your place',
-               'dinner-yours': 'came over to your place for dinner', 'knock': 'dropped by your place'}
+               'dinner-yours': 'came over to your place for dinner', 'knock': 'dropped by your place',
+               'visit-work': 'had you drop by at work'}
 
 
 # A visit as an image prompt says it (images/prompts.py), apart from VISIT_DOING, which the chat and the feed read:
@@ -762,7 +767,8 @@ def what(outing: dict) -> str:
     if outing['activity'] in VISIT_DOING:
         area = f" in {place['neighborhood']}" if place.get('neighborhood') else ''
         return {'visit-in': 'time together at your place', 'visit-yours': f"a visit to the user's place{area}",
-                'dinner-yours': f"dinner at the user's place{area} (they are cooking)"}[outing['activity']]
+                'dinner-yours': f"dinner at the user's place{area} (they are cooking)",
+                'visit-work': f"the user dropping by {place['name']} while you work"}[outing['activity']]
     if outing['activity'] == 'hobby':
         hobby = place['hobby']
         return f"{hobby.get('event') or hobby['together']} at {place['name']}"
@@ -855,7 +861,12 @@ def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
     from companion.life import agenda
     place = outing['place']
     area = f" in {place['neighborhood']}" if place.get('neighborhood') else ''
-    if outing['activity'] == 'visit-in':
+    if outing['activity'] == 'visit-work':
+        return work_scene(outing)
+    if outing['activity'] == 'visit-in' and place.get('surprise'):
+        first = (f"Right now the user is over at your place, in person: they dropped by without telling you first, and "
+                 f"can stay until about {outing['until_time']}.")
+    elif outing['activity'] == 'visit-in':
         first = f"Right now the user is over at your place, in person, until about {outing['until_time']}."
     elif place.get('knock'):
         first = (f"Right now you are at the user's place{area}, in person: you dropped by without telling them first, "
@@ -868,6 +879,19 @@ def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
     company = ' '.join(f'{name}, also visiting the user, is here too, in person.' for name in others)
     return '- ' + ' '.join(part for part in (first, company, f'You are {spot}.' if spot else '', weather, IN_PERSON)
                            if part)
+
+
+def work_scene(outing: dict) -> str:
+    """The user dropping by while they work (companion/life/drop_by.py)."""
+    place = outing['place']
+    if place.get('step_out'):
+        how = (f"You stepped outside {place['name']} for a few minutes to see them, and have to be back inside by "
+               f"{outing['until_time']}.")
+    else:
+        how = (f"You are working and keep at it while you talk, until about {outing['until_time']}, when you get back "
+               'to it fully.')
+    return (f"- Right now the user is with you at {place['name']}, in person: they dropped by your work without telling "
+            f'you first. {how} {IN_PERSON}')
 
 
 def planned_line(outing: dict) -> str:
@@ -1066,9 +1090,13 @@ def memory_text(outing: dict, name: str) -> dict:
         subject, said = {'visit-in': (f"Over at {name}'s place", f"You came over to {name}'s place"),
                          'visit-yours': (f'{name} came over', f'{name} came over to your place'),
                          'dinner-yours': (f'{name} came over for dinner', f'{name} came over to your place for dinner'),
+                         'visit-work': (f"Dropped by {name}'s work", f"You dropped by {place['name']} while {name} was "
+                                                                      'working'),
                          }[outing['activity']]
         if place_knock(outing):
             subject, said = f'{name} dropped by', f'{name} dropped by your place'
+        elif place.get('surprise') and outing['activity'] == 'visit-in':
+            subject, said = f"Dropped by {name}'s place", f"You dropped by {name}'s place"
         return {'subject': subject, 'value': f'{said} {on}.'}
     pastime = (place.get('hobby') or {}).get('label') if outing['activity'] == 'hobby' else None
     return {'subject': f"{pastime or ACTIVITIES[outing['activity']][5].capitalize()} together at {place['name']}",
@@ -1259,7 +1287,9 @@ def ending_line(connection, companion: dict, outing: dict, now: datetime) -> str
     """Near the end of a meetup: whether they could stay on, so they say so themselves, or that they have to go.
     Not for times other people set (the day runs as it runs)."""
     end = window(outing, companion['version']['timezone'])[1]
-    if outing['activity'] in FIXED or outing['place'].get('knock') or not now >= end - ENDING:
+    # A knock, or dropping by at work (companion/life/drop_by.py): short, and the scene already says until when.
+    if outing['activity'] in FIXED or outing['place'].get('knock') or outing['activity'] == 'visit-work' or \
+            not now >= end - ENDING:
         return None
     if room_after(connection, companion, outing):
         return (f"- It is nearly {outing['until_time']}, when you meant to head off, but you are free for another hour. "

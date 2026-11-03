@@ -1,11 +1,15 @@
 import { useState, type FormEvent, type MouseEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { X } from 'lucide-react'
+import { Pencil, X } from 'lucide-react'
+import { InfoTip } from '../../components/InfoTip'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { Companion } from '../../types'
+import { HISTORY_KEY } from '../../companion'
 import { DRAFT_KEY, newDraft, readDraft, writeDraft } from '../conversation/draft'
-import { historyLine, isHome, spotList, suggestHint, suggestion, type MapHood, type MapPlace } from './mapText'
+import { WHERE_KEY } from '../conversation/whereText'
+import { TOGETHER_KEY } from '../today/outingText'
+import { dropByFound, dropByHint, dropByLabel, dropByLines, historyLine, isHome, spotList, suggestHint, suggestion, type DropByResult, type MapHood, type MapPlace } from './mapText'
 
 interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void }
 
@@ -33,26 +37,52 @@ export function PlaceCard({ inline, place, city, hoods, enclosed, story, compani
     go('conversation')
     window.setTimeout(() => document.getElementById('composer-text')?.focus(), 0)  // once the chat has drawn
   }
-  const someone = isHome(place)
+  // Surprise visits (companion/life/drop_by.py): in, the chat opens on their first words; else the card says why not.
+  const [found, setFound] = useState('')
+  const [going, setGoing] = useState(false)
+  const dropBy = async () => {
+    setGoing(true); setFound(''); setError('')
+    try {
+      const result = await api<DropByResult>('/life/drop-by', { place: place.id === '~home' ? 'home' : 'work' })
+      for (const key of [WHERE_KEY, HISTORY_KEY, TOGETHER_KEY, ['city-map'], ['chats']]) void client.invalidateQueries({ queryKey: key })
+      if (result.result === 'in' || result.result === 'work') go('conversation')
+      else setFound(dropByFound(result, name))
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'You could not get there.') }
+    finally { setGoing(false) }
+  }
+  const visit = { found, going, dropBy: () => void dropBy() }
   return (
     <aside className={inline ? 'map-card inline' : 'map-card'} aria-label={place.name}>
-      <header>
-        <div><h2>{place.name}</h2><p className="subtle">{[someone ? place.relation : place.kind, place.hood].filter(Boolean).join(' · ')}</p></div>
-        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>
-      </header>
+      <CardHeader place={place} name={name} editable={!editing && (place.id === '~home' || !isHome(place))} onEdit={() => setEditing(true)} onClose={onClose} />
       {editing ? <EditPlace place={place} hoods={hoods} enclosed={enclosed} name={name} onDone={() => setEditing(false)} />
-        : <PlaceFacts place={place} name={name} editable={place.id === '~home' || !someone} onEdit={() => setEditing(true)} />}
-      {!editing && <PlaceDetails place={place} name={name} timezone={companion.version.definition.timezone} story={story} goThere={() => void goThere()} suggest={suggest} go={go} />}
+        : <PlaceFacts place={place} />}
+      {!editing && <PlaceDetails place={place} name={name} timezone={companion.version.definition.timezone} story={story} goThere={() => void goThere()} suggest={suggest} go={go} visit={visit} />}
       {error && <p className="field-error" role="alert">{error}</p>}
     </aside>
   )
 }
 
-interface DetailsProps { place: MapPlace; name: string; timezone?: string; story: boolean; goThere: () => void; suggest: () => void; go: (view: View) => void }
+/** The place's name and kind, with Edit as a quiet pen beside ×, so the card's actions read Drop by, then the
+ * invitation (Iris, 2026-11-03). */
+function CardHeader({ place, name, editable, onEdit, onClose }: { place: MapPlace; name: string; editable: boolean; onEdit: () => void; onClose: () => void }) {
+  const home = place.id === '~home'
+  return (
+    <header>
+      <div><h2>{place.name}</h2><p className="subtle">{[isHome(place) ? place.relation : place.kind, place.hood].filter(Boolean).join(' · ')}</p></div>
+      <div className="map-card-tools">
+        {editable && <button type="button" className="icon-button" aria-label={home ? 'Edit home' : 'Edit inside'}
+          title={home ? `Edit home. Changes here show on ${name}'s Character page too.` : 'Edit inside'} onClick={onEdit}><Pencil aria-hidden="true" /></button>}
+        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>
+      </div>
+    </header>
+  )
+}
+
+interface Visit { found: string; going: boolean; dropBy: () => void }
+interface DetailsProps { place: MapPlace; name: string; timezone?: string; story: boolean; goThere: () => void; suggest: () => void; go: (view: View) => void; visit: Visit }
 
 /** What happened there with them, who is usually there, and what to do next: nothing for someone else's home. */
-function PlaceDetails({ place, name, timezone, story, goThere, suggest, go }: DetailsProps) {
-  const home = place.id === '~home'
+function PlaceDetails({ place, name, timezone, story, goThere, suggest, go, visit }: DetailsProps) {
   return <>
     {place.history.length > 0 && <section>
       <h3>With {name}</h3>
@@ -61,19 +91,28 @@ function PlaceDetails({ place, name, timezone, story, goThere, suggest, go }: De
       </li>)}</ul>
     </section>}
     {place.regulars.length > 0 && <p className="subtle">Regulars: {place.regulars.join(', ')}</p>}
-    {place.id === '~you' ? <YourHome /> : (home || !isHome(place)) && <PlaceAction story={story} name={name} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} />}
+    <NextSteps place={place} name={name} story={story} goThere={goThere} suggest={suggest} visit={visit} />
+  </>
+}
+
+/** What to do next: drop by (theirs or their work), then an invitation or Story mode's Go there; for the user's own
+ * home, where to change it; nothing for someone else's home. */
+function NextSteps({ place, name, story, goThere, suggest, visit }: Omit<DetailsProps, 'timezone' | 'go'>) {
+  const home = place.id === '~home'
+  if (place.id === '~you') return <YourHome />
+  if (!home && isHome(place)) return null
+  return <>
+    {!story && place.drop_by && <DropBy place={place} name={name} visit={visit} />}
+    <PlaceAction story={story} name={name} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} quiet={!story && Boolean(place.drop_by)} />
   </>
 }
 
 /** What the card says about a place or a home: where it is approximate, its description and what is inside. */
-function PlaceFacts({ place, name, editable, onEdit }: { place: MapPlace; name: string; editable: boolean; onEdit: () => void }) {
-  const home = place.id === '~home'
+function PlaceFacts({ place }: { place: MapPlace }) {
   return <>
     {!isHome(place) && <p className="subtle map-approx">Location approximate</p>}
     {place.about && <p>{place.about.charAt(0).toUpperCase() + place.about.slice(1).replace(/[.\s]*$/, '.')}</p>}
     {place.spots.length > 0 && <p className="subtle">Inside: {place.spots.join(', ')}</p>}
-    {home && <p className="subtle">The same home as on {name}'s Character page; changes here show there too.</p>}
-    {editable && <button type="button" className="button map-edit" onClick={onEdit}>{home ? 'Edit home' : 'Edit inside'}</button>}
   </>
 }
 
@@ -168,11 +207,36 @@ function YourHome() {
   </>
 }
 
+/** Surprise visits (companion/life/drop_by.py): going over now, unannounced, to their home or to their work while they
+ * are on shift. The state line (on shift until when) sits above; under the button, what it found once tried, else why
+ * it is off right now (shown disabled), else at work that it is a short visit. The rest is in its tip (Iris, 2026-11-03). */
+function DropBy({ place, name, visit }: { place: MapPlace; name: string; visit: Visit }) {
+  const offer = place.drop_by
+  if (!offer) return null
+  const work = place.id !== '~home'
+  const { state, under } = dropByLines(offer, name, work, visit.found)
+  return <>
+    {state && <p className="subtle">{state}</p>}
+    <div className="map-action">
+      <button type="button" className="button primary" disabled={!offer.ok || visit.going} onClick={visit.dropBy} aria-describedby={under ? 'map-drop-under' : undefined}>
+        {dropByLabel(work, visit.going)}
+      </button>
+      <InfoTip id="map-drop-tip" label="Drop by" text={work ? `You go over without asking and see ${name} at work.` : dropByHint(name, false)} />
+    </div>
+    {under && <p id="map-drop-under" className={visit.found ? 'map-drop-found' : 'map-drop-under'} role={visit.found ? 'status' : undefined}>{under}</p>}
+  </>
+}
+
 /** With Story mode on, moving the scene there (not offered where the scene already is); else an invitation draft: for
- * their own home (`home` is their name), dinner at their place (they cook). */
-function PlaceAction({ story, name, home, here, goThere, suggest }: { story: boolean; name: string; home: string | null; here: boolean; goThere: () => void; suggest: () => void }) {
-  if (home !== null) return story ? null : <><button type="button" className="button primary" onClick={suggest}>Suggest dinner at {home}'s place</button><p className="subtle">{suggestHint(name)}</p></>
-  if (!story) return <><button type="button" className="button primary" onClick={suggest}>Suggest going together</button><p className="subtle">{suggestHint(name)}</p></>
+ * their own home (`home` is their name), dinner at their place (they cook). Beside Drop by
+ * (`quiet`), the invitation is the second button. */
+function PlaceAction({ story, name, home, here, goThere, suggest, quiet }: { story: boolean; name: string; home: string | null; here: boolean; goThere: () => void; suggest: () => void; quiet: boolean }) {
+  const kind = quiet ? 'button' : 'button primary'
+  if (!story) return <div className="map-action">
+    <button type="button" className={kind} onClick={suggest}>{home !== null ? `Suggest dinner at ${home}'s place` : 'Suggest going together'}</button>
+    <InfoTip id="map-suggest-tip" label="the invitation" text={suggestHint(name)} />
+  </div>
+  if (home !== null) return null
   return here ? null : <button type="button" className="button primary" onClick={goThere}>Go there</button>
 }
 

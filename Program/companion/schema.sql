@@ -2997,3 +2997,18 @@ CREATE TABLE IF NOT EXISTS persona_pictures (
   created_at TEXT NOT NULL,
   finished_at TEXT
 );
+
+-- Surprise visits (companion/life/drop_by.py): each time the user dropped by the companion's home or work unannounced
+-- from the map. `result` is what they found; `reason` (JSON) why nobody answered or they were turned away; `outing_id`
+-- the time together it started.
+CREATE TABLE IF NOT EXISTS drop_bys (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL REFERENCES companions(id),
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  place TEXT NOT NULL CHECK (place IN ('home', 'work')),
+  result TEXT NOT NULL CHECK (result IN ('in', 'work', 'nobody', 'asleep', 'not-now')),
+  reason TEXT NOT NULL DEFAULT '{}',
+  outing_id TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS drop_bys_timeline ON drop_bys(timeline_id, created_at);

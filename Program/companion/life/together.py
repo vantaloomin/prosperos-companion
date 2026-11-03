@@ -435,7 +435,8 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         else:
             line = f"- {ENDED.get(outing['activity'], ENDED['out'])} You are apart again, texting."
         result.append((f"together-ended:{outing['id']}", line))
-    return result
+    from companion.life import drop_by
+    return result + drop_by.context_lines(connection, companion, now)  # The user came by and found nobody in.
 
 
 # Split up with a child (companion/life/long_distance.py `for_the_child`): the visit is coming to see them.
@@ -491,7 +492,9 @@ ENDED = {'visit-yours': "You left the user's place a little while ago.", 'dinner
          "You left the user's place after dinner a little while ago.",
          'visit-in': 'The user headed home from your place a little while ago.',
          'dinner-in': 'The user headed home from your place a little while ago.',
-         'out': 'You and the user said goodbye and headed home a little while ago.'}
+         'out': 'You and the user said goodbye and headed home a little while ago.',
+         # Dropping by at work (companion/life/drop_by.py).
+         'visit-work': 'The user left your work a little while ago, and you got back to it.'}
 
 
 # --- The state, in plain words ------------------------------------------------------------------------------------
@@ -544,6 +547,8 @@ def together_text(outing: dict, companion: dict) -> str:
         return 'At your place'
     if place['kind'] == 'home':
         return f"At {companion['version']['definition']['name']}'s place"
+    if outing['activity'] == 'visit-work':  # Dropping by at work (companion/life/drop_by.py).
+        return f"At {place['name']}"
     if outing['activity'] == 'wedding':
         return f"Your wedding at {place['name']}"
     if place.get('big_day') and place.get('title'):  # companion/life/big_days.py
