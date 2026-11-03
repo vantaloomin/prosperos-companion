@@ -16,7 +16,7 @@ export function PromptSettings() {
     <section className="settings-section form-stack" aria-labelledby="prompts-heading">
       <div>
         <h2 id="prompts-heading">Prompts</h2>
-        <p className="subtle">The instructions your models are given. Changes apply to the next request, and Reset to default brings back the shipped wording. Words in double braces, such as {'{{name}}'}, are filled in by the app and must stay. Staying in character, OOC answers and the picture safety check are handled by the app too, so they keep working whatever a prompt says.</p>
+        <p className="subtle">The instructions your models are given. Changes apply to the next request, and Reset to default brings back the shipped wording. Words in double braces, such as {'{{name}}'}, are filled in by the app and must stay. Staying in character, OOC answers and the picture safety check are handled by the app too, so they keep working whatever a prompt says. Pictures holds the pieces every picture prompt is put together from.</p>
       </div>
       {groupPrompts(prompts.data).map(([group, items]) => (
         <div key={group} className="form-stack">
@@ -50,7 +50,7 @@ function PromptEditor({ prompt }: { prompt: EditablePrompt }) {
     <details className="prompt-editor">
       <PromptSummary prompt={prompt} />
       <TextArea label={prompt.label} value={text} onChange={setText} rows={14} maxLength={20000}
-        hint={<>{prompt.description}{prompt.placeholders.length > 0 && <> {placeholderHint(prompt)}</>}</>} />
+        hint={<>{prompt.description}{(prompt.lines || prompt.placeholders.length > 0) && <> {placeholderHint(prompt)}</>}</>} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       <div className="form-actions">
         <button type="button" className="button primary" disabled={busy || !text.trim() || text === prompt.text} onClick={() => void save()}>Save</button>

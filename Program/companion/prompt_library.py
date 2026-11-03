@@ -7,10 +7,17 @@ with the default it replaced, so an update that changes the default can say so w
 their text. Wording is checked before it is saved: every placeholder the default uses must stay,
 and no unknown one may be added, so a typo cannot break replies.
 
+The picture prompts' pieces (the Pictures group) are the words the rule-based prompt builder
+(companion/images/prompts.py) strings together, not a prompt sent whole: a plain line, or a list
+with one "name: words" line per entry. Their defaults are the builder's own constants, so they
+fill exactly as the code did until reworded.
+
 Only the wording is editable. The in-character filter, OOC handling, the NSFW check and every
 reply's validation are code (companion/in_character.py and the callers) and run whatever it says.
 """
 import re
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from importlib import import_module
 
@@ -33,6 +40,18 @@ def constant(module: str, name: str):
     return lambda: from_format(getattr(import_module(module), name))
 
 
+def to_format(text: str) -> str:
+    """Back to a `str.format` template: `{{name}}` → `{name}`, any other brace doubled."""
+    return re.sub(r'\{\{(\w+)\}\}|[{}]', lambda match: '{' + match[1] + '}' if match[1] else match[0] * 2, text)
+
+
+def table(module: str, name: str, skip=()):
+    """A dict constant shown as one "name: words" line per entry (a Pictures list); `skip` leaves out the entries
+    that only copy another one."""
+    return lambda: '\n'.join(f'{key}: {from_format(value)}' for key, value in getattr(import_module(module), name).items()
+                             if key not in skip)
+
+
 def drafting_file(name: str):
     return lambda: (import_module('companion.drafting').PROMPTS / name).read_text(encoding='utf-8')
 
@@ -45,9 +64,15 @@ class Prompt:
     description: str
     default: object  # () -> str
     placeholders: dict[str, str] = field(default_factory=dict)
+    # A list of "name: words" lines (`table`): every name stays, and a line may use any of the placeholders or none.
+    lines: bool = False
+    # A list the user may add their own names to (a mood the app has no line for), not only reword.
+    more: bool = False
 
 
-CHAT, DRAFTING, SIDECAR = 'Chat and life', 'Character drafting', 'Sidecar'
+CHAT, DRAFTING, SIDECAR, PICTURES = 'Chat and life', 'Character drafting', 'Sidecar', 'Pictures'
+IMAGES = 'companion.images.prompts'
+PRONOUN_HELP = {'subject': 'she, he or they', 'possessive': 'her, his or their', 'object': 'her, him or them'}
 PROMPTS = {prompt.name: prompt for prompt in (
     Prompt('chat-character', CHAT, 'Who the companion is',
            'Opens every chat reply and first text, before the character sheet, memories and the day. '
@@ -168,7 +193,32 @@ PROMPTS = {prompt.name: prompt for prompt in (
             'city': 'the home city', 'conversation': 'the recent conversation', 'memories': 'the memories',
             'rules': 'the believable-character prompt', 'emotional': 'the emotional-edges rule',
             'fields': 'the character fields it may change', 'note': "the chat's author's note"}),
+    Prompt('image-negative', PICTURES, 'What pictures leave out',
+           'The negative prompt of every picture a model makes, for the backends that take one. A Booru model adds its '
+           'own quality tags to it.',
+           constant(IMAGES, 'NEGATIVE')),
+    Prompt('image-openings', PICTURES, 'How a picture opens',
+           'Follows the style line at the start of a picture of them. "moment" is a plain photo of what they are doing '
+           '(after "of a fictional everyday moment,"), "selfie" and "view" are photos they send in chat, and "scene" and '
+           '"scene_both" are in-person moments with you, without and with you in the picture. A world set in a past '
+           "decade uses that decade's own.",
+           table(IMAGES, 'OPENINGS'), PRONOUN_HELP, lines=True),
+    Prompt('image-cameras', PICTURES, 'Camera details',
+           'Ends a picture whose style is a photograph, for each kind of shot ("scene" covers both in-person kinds). '
+           'A style that names its own lens or film, or a painted or drawn one, keeps its own. A world set in a past '
+           "decade uses that decade's camera.",
+           table(IMAGES, 'CAMERAS', skip=('scene_both',)), lines=True),
+    Prompt('image-moods', PICTURES, 'Faces for each mood',
+           'How their face looks for the mood of the moment ("Her face shows ..."). A mood not listed is drawn as '
+           '"a <mood> expression"; add a line to give one its own.',
+           table(IMAGES, 'EXPRESSIONS'), lines=True, more=True),
+    Prompt('image-activities', PICTURES, 'What each activity looks like',
+           'What they are doing in a picture of a moment of their day, after "She is". The place and company follow '
+           'on their own. A pastime has its own line from their hobbies.',
+           table(IMAGES, 'PICTURES'), PRONOUN_HELP, lines=True),
 )}
+
+LINE = re.compile(r'^\s*([\w][\w -]*?)\s*:\s?(.*)$')
 
 
 def placeholders(text: str) -> list[str]:
@@ -191,6 +241,49 @@ def override(connection, name: str) -> dict | None:
     return optional(connection, 'SELECT text, default_text FROM prompt_overrides WHERE name=?', (name,))
 
 
+def entries(text: str) -> tuple[dict[str, str], list[str]]:
+    """A list prompt's "name: words" lines as a dict, with the lines that are not one."""
+    found, bad = {}, []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        match = LINE.match(line)
+        if match and match[1] not in found:
+            found[match[1]] = match[2].strip()
+        else:
+            bad.append(line.strip())
+    return found, bad
+
+
+# The connection the picture prompt builder reads its pieces with (`reading`); without one they are the defaults.
+READING: ContextVar = ContextVar('picture_words', default=None)
+
+
+@contextmanager
+def reading(connection):
+    """Picture pieces (`words`, `line`) read with the user's wording while the block runs."""
+    token = READING.set(connection)
+    try:
+        yield
+    finally:
+        READING.reset(token)
+
+
+def line(name: str) -> str:
+    """A plain Pictures piece in use, as written."""
+    return text(READING.get(), name)
+
+
+def words(name: str) -> dict[str, str]:
+    """A Pictures list in use as `str.format` templates: the user's lines, with the default's for any name a newer
+    default added since they saved."""
+    default = entries(PROMPTS[name].default())[0]
+    found = entries(text(READING.get(), name))[0]
+    extra = {key: value for key, value in found.items() if key not in default} if PROMPTS[name].more else {}
+    return {key: to_format(value) for key, value in (default | {key: found.get(key, value) for key, value in
+                                                                default.items()} | extra).items()}
+
+
 def text(connection, name: str, /, **values: str) -> str:
     """The wording in use, the user's when they reworded it, with `values` filled in."""
     row = override(connection, name) if connection is not None else None
@@ -205,7 +298,7 @@ def view(connection, name: str) -> dict:
             'text': row['text'] if row else default, 'default': default, 'customized': row is not None,
             # Saved against an older default: the user's wording stays, with a note that a newer one exists.
             'outdated': bool(row and row['default_text'] is not None and row['default_text'] != default),
-            'placeholders': keys,
+            'placeholders': keys, 'lines': prompt.lines, 'more': prompt.more,
             'placeholder_help': {key: prompt.placeholders.get(key, '') for key in keys}}
 
 
@@ -214,10 +307,27 @@ def views(database) -> list[dict]:
         return [view(connection, name) for name in PROMPTS]
 
 
+def list_problems(default: str, wording: str, more=False) -> str | None:
+    """Why a list's wording cannot be used: a line that is not "name: words", or a name left out or made up."""
+    known, _ = entries(default)
+    found, bad = entries(wording)
+    if bad:
+        return f'Each line is a name, a colon, then its words. This line is not: "{bad[0][:80]}".'
+    if missing := [key for key in known if key not in found]:
+        return f"Keep a line for each name, even with no words after the colon: {', '.join(missing)}."
+    if not more and (unknown := [key for key in found if key not in known]):
+        return f"The app has no use for {', '.join(unknown)}. The names are {', '.join(known)}."
+    return placeholder_problems(default, wording, required=False)
+
+
 def problems(default: str, wording: str) -> str | None:
     """Why the wording would break the prompt, in words the user can act on, or None."""
+    return placeholder_problems(default, wording)
+
+
+def placeholder_problems(default: str, wording: str, required=True) -> str | None:
     allowed = set(placeholders(default))
-    missing = [key for key in sorted(allowed) if '{{' + key + '}}' not in wording]
+    missing = [key for key in sorted(allowed) if required and '{{' + key + '}}' not in wording]
     unknown = [key for key in placeholders(wording) if key not in allowed]
     single = [key for key in sorted(set(SINGLE.findall(wording))) if key in allowed]
     marks = lambda keys: ', '.join('{{' + key + '}}' for key in keys)  # noqa: E731
@@ -234,7 +344,8 @@ def problems(default: str, wording: str) -> str | None:
 def save(database, name: str, wording: str) -> dict:
     require(name)
     default = PROMPTS[name].default()
-    if problem := problems(default, wording):
+    prompt = PROMPTS[name]
+    if problem := (list_problems(default, wording, prompt.more) if prompt.lines else problems(default, wording)):
         raise DomainError(problem, 422, 'prompt_placeholders')
     with database.connect(write=True) as connection:
         if wording == default:

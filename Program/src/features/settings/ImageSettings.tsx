@@ -155,7 +155,7 @@ function StyleRow({ saved, save }: { saved: string; save: (style: string) => Pro
   const [style, setStyle] = useState(saved)
   const commit = () => { if (style.trim() !== saved.trim()) void save(style) }
   return (
-    <SettingRow stacked label="Style" tip="Starts every picture prompt, unless a model above has its own style.">
+    <SettingRow stacked label="Style" tip="Starts every picture prompt, unless a model above has its own style. The rest of the prompt is put together from pieces you can reword in Advanced > Prompts > Pictures.">
       {(id) => <input id={id} className="style-input" value={style} maxLength={500} autoComplete="off" placeholder="Candid, natural-light photograph"
         onChange={(event) => setStyle(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); commit() } }} />}
     </SettingRow>

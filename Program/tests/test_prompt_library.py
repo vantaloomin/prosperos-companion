@@ -88,3 +88,84 @@ def test_other_prompts_use_the_users_wording(client):
         assert prompt_library.text(connection, 'memory-suggestions') == 'List facts as JSON. Reply [] when none.'
         assert prompt_library.text(connection, 'picture-description') == prompt_library.PROMPTS[
             'picture-description'].default()
+
+
+def test_picture_lists_read_back_as_the_builders_own_constants():
+    from companion.images import prompts
+    assert prompt_library.words('image-moods') == prompts.EXPRESSIONS
+    assert prompt_library.words('image-activities') == prompts.PICTURES
+    assert prompt_library.words('image-openings') == prompts.OPENINGS
+    assert prompt_library.words('image-cameras') == {key: value for key, value in prompts.CAMERAS.items()
+                                                     if key != 'scene_both'}
+    assert prompt_library.line('image-negative') == prompts.NEGATIVE
+    assert 'walk: walking outdoors along a path, hands in {{possessive}} pockets' in \
+        prompt_library.PROMPTS['image-activities'].default().splitlines()
+
+
+def picture(connection, mood='tired', activity='walk'):
+    from companion.images import prompts
+    event = {'summary': 'Went for a walk.', 'place': '', 'mood': mood, 'activity': activity}
+    with prompt_library.reading(connection):
+        return prompts.compose('Mira', 'She has short dark hair.', [event], 'Candid, natural-light photograph')
+
+
+def test_reworded_picture_pieces_are_what_the_picture_prompt_says(client):
+    database = client.app.state.database
+    with database.connect() as connection:
+        before = picture(connection)
+    assert 'tired eyes and a weary half-smile' in before and 'hands in her pockets' in before
+    moods = prompt_library.PROMPTS['image-moods'].default().replace(
+        'tired: tired eyes and a weary half-smile', 'tired: heavy eyelids and a crooked yawn')
+    activities = prompt_library.PROMPTS['image-activities'].default().replace(
+        'walk: walking outdoors along a path, hands in {{possessive}} pockets',
+        'walk: strolling by the river, {{possessive}} scarf blowing')
+    cameras = prompt_library.PROMPTS['image-cameras'].default().replace(
+        'moment: Shot at eye level on a phone camera', 'moment: Shot on a 35mm film camera')
+    for name, text in (('image-moods', moods), ('image-activities', activities), ('image-cameras', cameras)):
+        assert client.put(f'/api/prompts/{name}', json={'text': text}).json()['customized']
+    assert client.put('/api/prompts/image-negative', json={'text': 'text, logo'}).json()['customized']
+    with database.connect() as connection:
+        after = picture(connection)
+        with prompt_library.reading(connection):
+            from companion.images import prompts
+            assert prompts.negative() == 'text, logo'
+    assert 'heavy eyelids and a crooked yawn' in after and 'strolling by the river, her scarf blowing' in after
+    assert after.endswith('Shot on a 35mm film camera, natural colours, realistic skin texture, shallow depth of field.')
+    assert 'weary' not in after
+    # Outside a request builder the pieces are the defaults.
+    assert picture(None) == before
+
+
+def test_picture_lists_keep_every_name_and_known_placeholders(client):
+    default = prompt_library.PROMPTS['image-moods'].default()
+    dropped = client.put('/api/prompts/image-moods', json={'text': default.replace('tired: tired eyes and a weary half-smile\n', '')})
+    assert dropped.status_code == 422 and 'tired' in dropped.json()['detail']
+    activities = prompt_library.PROMPTS['image-activities'].default()
+    made_up = client.put('/api/prompts/image-activities', json={'text': activities + '\nskydiving: in free fall'})
+    assert made_up.status_code == 422 and 'skydiving' in made_up.json()['detail']
+    not_a_line = client.put('/api/prompts/image-moods', json={'text': default + '\njust some words'})
+    assert not_a_line.status_code == 422 and 'colon' in not_a_line.json()['detail']
+    typo = client.put('/api/prompts/image-activities', json={'text': prompt_library.PROMPTS['image-activities'].default()
+                      .replace('{{possessive}} pockets', '{{possesive}} pockets')})
+    assert typo.status_code == 422 and '{{possesive}}' in typo.json()['detail']
+    # A line may drop its placeholder, or its words.
+    plain = prompt_library.PROMPTS['image-activities'].default().replace('{{possessive}} pockets', 'the pockets') \
+        .replace('workout: mid-workout, slightly out of breath', 'workout:')
+    assert client.put('/api/prompts/image-activities', json={'text': plain}).status_code == 200
+
+
+def test_a_name_a_newer_default_adds_uses_its_default_words(client, monkeypatch):
+    from companion.images import prompts
+    client.put('/api/prompts/image-moods', json={'text': prompt_library.PROMPTS['image-moods'].default().replace(
+        'happy: a wide, easy smile', 'happy: beaming')})
+    monkeypatch.setattr(prompts, 'EXPRESSIONS', prompts.EXPRESSIONS | {'grumpy': 'a scowl'})
+    with client.app.state.database.connect() as connection, prompt_library.reading(connection):
+        found = prompt_library.words('image-moods')
+    assert found['happy'] == 'beaming' and found['grumpy'] == 'a scowl'
+
+
+def test_a_mood_of_their_own_can_be_added(client):
+    default = prompt_library.PROMPTS['image-moods'].default()
+    assert client.put('/api/prompts/image-moods', json={'text': default + '\ngrumpy: a scowl'}).status_code == 200
+    with client.app.state.database.connect() as connection:
+        assert 'Her face shows a scowl.' in picture(connection, mood='grumpy')
