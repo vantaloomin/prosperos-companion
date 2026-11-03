@@ -98,6 +98,8 @@ test('the Pay box: empty is worked out, 0 is unpaid, and amounts read with separ
   assert.equal(payText(null), '')
   assert.equal(payDraft('$3,1a00'), '3,100')
   assert.equal(payPlaceholder(2412.4), 'About 2,412 a month from their work')
+  assert.equal(payPlaceholder(1_250_000), 'About 1,250,000 a month')
+  assert.equal(payPlaceholder(38, true), 'About 38 a month')
 })
 
 test('with a pay of their own set, the Work hint says nothing about pay', () => {

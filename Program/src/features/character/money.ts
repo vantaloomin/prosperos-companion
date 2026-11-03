@@ -53,9 +53,11 @@ export function readPay(text: string): number | null {
   return digits ? Math.min(Number(digits), 1_000_000_000) : null
 }
 
-/** The empty Pay box's words: what their work pays ("About 2,400 a month from their work"). */
-export function payPlaceholder(monthly: number | undefined): string {
-  return monthly === undefined ? 'Worked out from their work and city' : `About ${payText(monthly)} a month from their work`
+/** The empty Pay box's words: what their work pays ("About 2,400 a month from their work"), shorter beside a money's
+ * name or for a long amount so a phone does not cut it off (Iris). */
+export function payPlaceholder(monthly: number | undefined, suffix = false): string {
+  if (monthly === undefined) return 'Worked out from their work and city'
+  return suffix || monthly >= 100_000 ? `About ${payText(monthly)} a month` : `About ${payText(monthly)} a month from their work`
 }
 
 export function todayIso(now = appDate()): string {

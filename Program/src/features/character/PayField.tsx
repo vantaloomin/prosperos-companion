@@ -38,7 +38,7 @@ export function PayField({ definition, onChange }: { definition: CharacterDefini
         <span className={['affix-input', unit && (worked?.prefix ? 'has-prefix' : 'has-suffix')].filter(Boolean).join(' ')}>
           {worked?.prefix && <span className="affix" aria-hidden="true">{unit}</span>}
           <input id={id} type="text" inputMode="numeric" autoComplete="off" value={draft} aria-describedby={hint}
-            placeholder={payPlaceholder(worked?.monthly)}
+            placeholder={payPlaceholder(worked?.monthly, Boolean(worked && !worked.prefix))}
             onChange={(event) => { const text = payDraft(event.target.value); setDraft(text); setShown(readPay(text)); onChange(readPay(text)) }}
             onBlur={() => setDraft(payText(readPay(draft)))} />
           {worked && !worked.prefix && <span className="affix" aria-hidden="true">{unit}</span>}
