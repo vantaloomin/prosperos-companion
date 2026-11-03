@@ -1,15 +1,19 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { accountLabel, folderExample, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
+import { accountName, accountValue, isUsual, folderExample, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
 
 const usual: CliAccount = { provider: 'claude_code', account_dir: '', commands: ['claude'], sources: [], signed_in: true, email: 'one@example.com' }
 const second: CliAccount = { provider: 'claude_code', account_dir: 'C:\\Users\\Jim\\.claude-account2', commands: ['claude2'], sources: [], signed_in: false, email: '' }
 const folderOnly: CliAccount = { provider: 'codex', account_dir: '/home/jim/.codex-work', commands: [], sources: [], signed_in: false, email: '' }
 
-test('each account is named by its command, else its folder, with the email the CLI reports', () => {
-  assert.equal(accountLabel(usual), 'claude (usual account) · one@example.com')
-  assert.equal(accountLabel(second), 'claude2')
-  assert.equal(accountLabel(folderOnly), '.codex-work')
+test('each account is named by its command, else its folder, with the email the CLI reports or whether it is signed in', () => {
+  assert.equal(accountName(usual), 'claude')
+  assert.ok(isUsual(usual) && !isUsual(second))
+  assert.equal(accountName(second), 'claude2')
+  assert.equal(accountName(folderOnly), '.codex-work')
+  assert.equal(accountValue(usual), 'one@example.com')
+  assert.equal(accountValue(second), 'Not signed in')
+  assert.equal(accountValue({ ...folderOnly, signed_in: true }), 'Signed in')
 })
 
 test('a typed folder matches its account whatever its slashes, case or trailing slash', () => {
@@ -50,4 +54,20 @@ test('the typed folder is plain with nothing to pick, open while it matches none
   const typed = '/somewhere/else'
   assert.equal(folderShown(true, accounts.length, accounts.some(account => sameAccount(account, typed))), 'open')
   assert.equal(folderShown(true, accounts.length, accounts.some(account => sameAccount(account, second.account_dir))), 'closed')
+})
+
+test('profile budgets: presets keep a saved value, and the fold sums them up', async () => {
+  const { contextChoices, timeChoices, replyRange, shortTokens, generationSummary, generationShort } = await import('../../src/features/settings/models/budgets.ts')
+  assert.equal(shortTokens(16000), '16K')
+  assert.equal(shortTokens(1000000), '1M')
+  assert.deepEqual(contextChoices(16000).map(choice => choice.label), ['4K', '8K', '16K', '32K', '64K', '128K', '200K', '1M'])
+  assert.ok(contextChoices(16000, 16384).some(choice => choice.label === '16,384 (reported)'))
+  assert.equal(contextChoices(16000, 16384).length, 9)
+  assert.deepEqual(timeChoices(180).map(choice => choice.label), ['1 min', '2 min', '3 min', '5 min', '10 min'])
+  assert.ok(timeChoices(45).some(choice => choice.label === '45 s'))
+  assert.deepEqual(replyRange(800), { min: 200, max: 8000, step: 100 })
+  assert.equal(replyRange(16000).max, 16000)
+  assert.equal(generationSummary({ context_tokens: 16000, max_output_tokens: 800 } as never), '16K context · 800 reply')
+  assert.equal(generationShort({ context_tokens: 16000, max_output_tokens: 800 } as never), '16K · 800')
+  assert.equal(generationSummary({ context_tokens: 16000, max_output_tokens: 800, reasoning_effort: 'high' } as never), '16K context · 800 reply · High effort')
 })

@@ -4,10 +4,12 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Check, PlugZap } from 'lucide-react'
 import { api } from '../../../api'
 import { Notice } from '../../../components/Feedback'
-import { TextInput } from '../../../components/Fields'
+import { Field, TextInput } from '../../../components/Fields'
 import { CliAccountPicker } from './CliAccountPicker'
 import { folderExample } from './cliAccounts'
 import { GenerationSettings } from './GenerationSettings'
+import { generationShort, generationSummary } from './budgets'
+import { FoldRow, SettingRow } from '../../../components/Rows'
 import { ModelCombobox } from './ModelCombobox'
 import { applyDiscovered, discoveredSettings, profileReady, recallReady, reusableKey, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
 import { shownPath } from '../../../paths'
@@ -89,7 +91,7 @@ export function ProfileEditor({ profile, recall = false, others, onDone }: { pro
   const submit = (event: FormEvent) => { event.preventDefault(); if (form.canSave) void saving.save(form.body) }
   return <form className="model-profile-editor form-stack" onSubmit={submit} aria-label={profile ? `Edit ${profile.name}` : recalls ? 'New recall profile' : 'New model profile'}>
     <ProviderPicker selected={config.provider} choices={recalls ? embeddingProviders : providerOrder} onChange={form.changeProvider} />
-    <TextInput label="Profile name" value={form.name} onChange={form.setName} maxLength={120} placeholder={recalls ? 'Ollama embeddings…' : 'Everyday chat, careful drafting…'} hint={`Leave empty to name it after the provider and ${recalls ? 'embedding ' : ''}model.`} />
+    <TextInput label="Profile name" value={form.name} onChange={form.setName} maxLength={120} placeholder={recalls ? 'Ollama embeddings…' : 'Everyday chat, careful drafting…'} tip={`Leave empty to name it after the provider and ${recalls ? 'embedding ' : ''}model.`} />
     <ConnectionFields config={config} patch={patch} fresh={!profile} keyEntry={{ saved: form.savedKey, reused: form.reused, sharedWith: form.sharedWith, value: form.key, onChange: form.changeKey, share: form.shareKey, onShare: form.setShareKey }} found={form.found} />
     <ModelDiscovery config={config} discovery={discovery} onTest={form.test} patch={patch} />
     {recalls ? <EmbeddingFields config={config} patch={patch} discovery={discovery} /> : <ModelFields config={config} patch={patch} discovery={discovery} />}
@@ -107,13 +109,16 @@ function SaveActions({ ready, recall, keyless, typed, canSave, saving, error, on
   </>
 }
 
+const PROVIDER_TIPS: Partial<Record<Provider, string>> = {
+  claude_code: 'Uses the Claude plan your Claude Code is signed in to. No key is entered here, and the app never sees your password or token. To sign in, run claude once in a terminal.',
+}
+
+/** One select (Iris, 1.3 form): what the provider is sits behind the ? on its label. */
 function ProviderPicker({ selected, choices, onChange }: { selected: Provider; choices: Provider[]; onChange: (provider: Provider) => void }) {
-  return <><fieldset className="provider-picker"><legend>Provider</legend>
-    {choices.map(provider => <button key={provider} type="button" className={`button${selected === provider ? ' selected' : ''}`} aria-pressed={selected === provider} onClick={() => onChange(provider)}>{providers[provider].name}</button>)}
-  </fieldset><p className="subtle">{selected === 'claude_code'
-    ? <>Uses the Claude plan your Claude Code is signed in to. No key is entered here, and the app never sees your password or token. To sign in, run <code>claude</code> once in a terminal.</>
-    : selected === 'codex' ? <>Your installed Codex CLI and its existing login. Sign in with <code>codex login</code> in a terminal.</>
-    : providers[selected].description}</p></>
+  return <Field label="Provider" tip={PROVIDER_TIPS[selected] ?? providers[selected].description}>{(id, describedBy) =>
+    <select id={id} value={selected} aria-describedby={describedBy} onChange={event => onChange(event.target.value as Provider)}>
+      {choices.map(provider => <option key={provider} value={provider}>{providers[provider].name}</option>)}
+    </select>}</Field>
 }
 
 type KeyEntry = { saved: boolean; reused?: string; sharedWith: string[]; value: string; onChange: (value: string) => void; share: boolean; onShare: (value: boolean) => void }
@@ -123,7 +128,7 @@ function ConnectionFields({ config, patch, fresh, keyEntry, found }: { config: P
   if (config.provider === 'codex') return <CodexFields config={config} patch={patch} fresh={fresh} found={found} />
   if (config.provider === 'claude_code') return <ClaudeCodeFields config={config} patch={patch} fresh={fresh} found={found} />
   return <>
-    {(local || config.provider === 'compatible') && <TextInput label="Server address" value={config.base_url} onChange={value => patch({ base_url: value })} maxLength={500} hint={local ? 'An address on this computer. LM Studio and Ollama usually end in /v1.' : 'The API base URL, without /models or /chat/completions.'} />}
+    {(local || config.provider === 'compatible') && <TextInput label="Server address" value={config.base_url} onChange={value => patch({ base_url: value })} maxLength={500} tip={local ? 'An address on this computer. LM Studio and Ollama usually end in /v1.' : 'The API base URL, without /models or /chat/completions.'} />}
     <TokenEntry key={config.provider} {...keyEntry} local={local || config.provider === 'compatible'} />
   </>
 }
@@ -141,9 +146,9 @@ function CliFields({ config, patch, fresh, found }: CliFieldsProps) {
   const fields = CLI_FIELDS[provider]
   return <>
     <CliAccountPicker provider={provider} value={config.cli_account_dir} fresh={fresh} onPick={folder => patch({ cli_account_dir: folder })}>
-      <TextInput label="Account folder (optional)" value={shownPath(config.cli_account_dir ?? '')} onChange={value => patch({ cli_account_dir: value })} maxLength={500} placeholder={folderExample(fields.base)} hint={fields.hint} />
+      <TextInput label="Account folder (optional)" value={shownPath(config.cli_account_dir ?? '')} onChange={value => patch({ cli_account_dir: value })} maxLength={500} placeholder={folderExample(fields.base)} tip={fields.hint} />
     </CliAccountPicker>
-    <TextInput label={`${fields.name} location (optional)`} value={config.cli_path ?? ''} onChange={value => patch({ cli_path: value })} maxLength={500} placeholder={found ? shownPath(found) : undefined} hint={`Leave empty to use the ${fields.name} found on this computer.`} />
+    <TextInput label={`${fields.name} location (optional)`} value={config.cli_path ?? ''} onChange={value => patch({ cli_path: value })} maxLength={500} placeholder={found ? shownPath(found) : undefined} tip={`Leave empty to use the ${fields.name} found on this computer.`} />
   </>
 }
 
@@ -180,8 +185,10 @@ function ModelFields({ config, patch, discovery }: { config: ProfileConfig; patc
   const models = discovery.result?.model_details ?? []
   return <>
     <TextInput label="Model ID" value={config.model} onChange={value => patch(typedModelSettings(value.trim(), config, models))} maxLength={200} placeholder="Pick from the list or type an ID"
-      hint="Test connection lists the models this service offers. Picking one fills in its settings." tip="The exact name the service uses for the model, such as gpt-4o-mini or llama3.1:8b." />
-    <details className="advanced-settings"><summary>Generation settings</summary><GenerationSettings config={config} patch={patch} model={models.find(model => model.id === config.model)} /></details>
+      tip="The exact name the service uses for the model, such as gpt-4o-mini or llama3.1:8b. Test connection lists the models this service offers, and picking one fills in its settings." />
+    <div className="row-list"><FoldRow summary="Generation settings" value={<GenerationValue config={config} />}>
+      <div className="fold-pad"><GenerationSettings config={config} patch={patch} model={models.find(model => model.id === config.model)} /></div>
+    </FoldRow></div>
   </>
 }
 
@@ -191,7 +198,7 @@ function EmbeddingFields({ config, patch, discovery }: { config: ProfileConfig; 
   return <>
     {models.length > 0 && <ModelCombobox models={models} value={models.some(model => model.id === value) ? value : ''} onChange={id => patch({ embedding_model: id })} />}
     <TextInput label="Embedding model" value={value} onChange={text => patch({ embedding_model: text.trim() })} maxLength={200} placeholder="Choose from the list, or type the model's ID"
-      hint="Turns memories into embeddings so recall finds related ones even when the words differ. EmbeddingGemma 2, Qwen3 Embedding 0.6B or nomic-embed-text work well." />
+      tip="Turns memories into embeddings so recall finds related ones even when the words differ. EmbeddingGemma 2, Qwen3 Embedding 0.6B or nomic-embed-text work well." />
   </>
 }
 
@@ -199,19 +206,25 @@ function TokenEntry(entry: KeyEntry & { local: boolean }) {
   const [editing, setEditing] = useState(false)
   if (editing) return <KeyField {...entry} onDone={() => setEditing(false)} />
   // A key another profile saved for this service is used as it is; typing one is only for a different key.
-  if (entry.reused && !entry.saved) return <div className="token-entry"><p>Uses the API key saved with <strong>{entry.reused}</strong>.</p><button type="button" className="button" onClick={() => setEditing(true)}>Use a different key</button></div>
-  return <div className="token-entry"><p><KeyStatus saved={entry.saved} others={entry.sharedWith.join(', ')} /></p><button type="button" className="button" onClick={() => setEditing(true)}>{entry.saved ? 'Replace key' : 'Add API key'}</button>{entry.local && <small>Local servers can leave this empty, and an environment variable such as OPENAI_API_KEY also works.</small>}</div>
-}
-
-function KeyStatus({ saved, others }: { saved: boolean; others: string }) {
-  if (saved && others) return <>Shares its API key with <strong>{others}</strong>.</>
-  return <>{saved ? 'An API key is saved for this profile.' : 'No API key saved for this profile.'}</>
+  const borrowed = !!entry.reused && !entry.saved
+  const others = entry.sharedWith.join(', ')
+  const value = borrowed ? `From ${entry.reused}` : entry.saved ? (others ? `Shared with ${others}` : 'Saved') : 'None saved'
+  const action = borrowed ? 'Use a different key' : entry.saved ? 'Replace key' : 'Add API key'
+  return <div className="row-list key-row"><SettingRow label="API key" tip={entry.local ? 'Local servers can leave this empty, and an environment variable such as OPENAI_API_KEY also works.' : undefined}>
+    {id => <><span className="row-value">{value}</span><button id={id} type="button" className="button" onClick={() => setEditing(true)}>{action}</button></>}
+  </SettingRow></div>
 }
 
 function KeyField({ saved, reused, sharedWith, value, onChange, share, onShare, onDone }: KeyEntry & { onDone: () => void }) {
   const others = sharedWith.join(', ')
-  return <div className="token-entry"><TextInput label="API key" type="password" value={value} onChange={onChange} maxLength={4000} hint="Saved in your system keychain. It is never shown again." />
+  return <div className="token-entry"><TextInput label="API key" type="password" value={value} onChange={onChange} maxLength={4000} tip="Saved in your system keychain. It is never shown again." />
     {/* A replaced key does every job that shared it, so a rotated key keeps recall working; unticked, only this profile changes. */}
     {saved && others && <label className="checkbox-row"><input type="checkbox" checked={share} onChange={(event) => onShare(event.target.checked)} />Also use it for {others}</label>}
     <button type="button" className="text-button" onClick={() => { onChange(''); onShare(true); onDone() }}>{reused && !saved ? `Use the ${reused} key` : 'Cancel key entry'}</button></div>
+}
+
+/** "16K context · 800 reply", or "16K · 800" on a phone (Iris), with the full line as its title. */
+function GenerationValue({ config }: { config: ProfileConfig }) {
+  const full = generationSummary(config)
+  return <span title={full}><span className="wide-only">{full}</span><span className="narrow-only" aria-label={full}>{generationShort(config)}</span></span>
 }

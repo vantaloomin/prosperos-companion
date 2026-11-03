@@ -17,12 +17,13 @@ export const sameAccount = (account: CliAccount, folder: string | undefined) => 
 
 const folderName = (folder: string) => folder.split(/[\\/]/).filter(Boolean).pop() ?? folder
 
-/** The account's button: its command (claude2), else its folder's name, with the email Claude Code reports. */
-export function accountLabel(account: CliAccount): string {
-  const name = account.commands[0] ?? folderName(account.account_dir)
-  const usual = account.account_dir ? '' : ' (usual account)'
-  return `${name}${usual}${account.email ? ` · ${account.email}` : ''}`
-}
+/** The account's row: its command (claude2), else its folder's name. The one with no folder is the usual account. */
+export const accountName = (account: CliAccount): string => account.commands[0] ?? folderName(account.account_dir)
+
+export const isUsual = (account: CliAccount) => !account.account_dir
+
+/** The row's quiet value: the email Claude Code reports, else whether it is signed in. */
+export const accountValue = (account: CliAccount): string => !account.signed_in ? 'Not signed in' : account.email || 'Signed in'
 
 /** How to sign in to an account that is not signed in yet, as a command for this computer's terminal: its own
  * command (claude2) when it has one, else the CLI with the account's folder set. */
