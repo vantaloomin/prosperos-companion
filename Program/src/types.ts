@@ -243,6 +243,10 @@ export interface MoneySetup {
   employment: Employment
   /** What a student studies; empty reads it from who they are. */
   field?: string
+  /** Work of their own, as written, when career is 'own' (the Work picker's "Something else"). */
+  job?: string
+  /** What they take home a month in their city's money; 0 works it out from their work and city. */
+  pay?: number
 }
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }

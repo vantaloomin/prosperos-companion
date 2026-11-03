@@ -22,8 +22,12 @@ export function guessLabel(guess: CareerSummary | null | undefined): string {
   return guess ? `Guess from who they are: ${guess.name} (${guess.pay})` : 'Guess from who they are: no job named'
 }
 
-/** The Work hint: on a guess that found no job, why they earn an everyday wage. */
-export function workHint(guess: CareerSummary | null | undefined): string {
+/** The Work picker's "Something else": work the user writes in (companion/life/money.py OWN). */
+export const OWN_WORK = 'own'
+
+/** The Work hint: on a guess that found no job, why they earn an everyday wage; for work of their own, what it sets. */
+export function workHint(guess: CareerSummary | null | undefined, own = false): string {
+  if (own) return 'Write the work below. Its hours follow a job it names, such as a nurse; otherwise office hours.'
   return guess === null
     ? 'Nothing in “Who they are” names a job, so they earn an everyday wage. Pick one to set it.'
     : 'Sets their pay. Left on the guess, it comes from what “Who they are” says.'

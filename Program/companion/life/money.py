@@ -207,10 +207,36 @@ def career_for(definition: dict, city: dict) -> tuple[dict | None, bool]:
     if intimacy.reads_as_minor(definition):
         # Adult work is only ever an adult's (companion/world/intimacy.py makes the same check).
         offered = catalog.everyday(offered)
-    chosen = (definition.get('money') or {}).get('career') or ''
+    setup = definition.get('money') or {}
+    chosen = setup.get('career') or ''
+    if chosen == OWN and (setup.get('job') or '').strip():
+        like = guess_career({'identity': setup['job']}, offered)
+        return own_career(setup['job'].strip(), city, float(setup.get('pay') or 0), like), False
     if chosen in offered:
         return offered[chosen], False
     return guess_career(definition, offered), True
+
+
+# The Work picker's "Something else": work the user writes in (`job`), paid by `pay` or an ordinary wage.
+OWN = 'own'
+
+
+def own_career(job: str, city: dict, pay: float, like: dict | None = None) -> dict:
+    """Work of their own as a career the rest of the life simulation can read, on the pay tier nearest what it pays.
+    Its hours and the kind of work come from a career its words name ("night nurse at a clinic" works a nurse's
+    shifts), else office hours."""
+    tier = DEFAULT_TIER
+    if pay:
+        monthly = [take_home(city, rank) * (52 / 12 if city['rent_period'] == 'week' else 1) for rank in range(4)]
+        tier = min(range(4), key=lambda rank: abs(monthly[rank] - pay))
+    if like and not pay:
+        tier = PAY_TIERS.get(like['pay'], DEFAULT_TIER)
+    like = like or {}
+    name = job[:1].upper() + job[1:]
+    return {'id': OWN, 'name': name, 'sector': like.get('sector', 'business'), 'schedule': like.get('schedule', 'office'),
+            'employment': like.get('employment'), 'pay': '$' * (tier + 1), 'summary': f'{name}.'[:400],
+            'themes': like.get('themes') or ['work'], 'eras': [city['era']], 'needs': [], 'adult': False,
+            'worked_by': None, 'ages': None, 'years': None, 'own': True}
 
 
 def price(city: dict, ids) -> float | None:
@@ -327,7 +353,8 @@ def build(definition: dict) -> Profile | None:
     tier = PAY_TIERS.get(career['pay'], DEFAULT_TIER) if career else DEFAULT_TIER
     style = setup.get('style') if setup.get('style') in STYLES else 'balanced'
     seed = f"money:{definition.get('name', '')}:{city['id']}"
-    income = take_home(city, tier)
+    # Pay they set is a month's take-home; a city paid by the week gets a week's share of it.
+    income = float(setup.get('pay') or 0) * (12 / 52 if city['rent_period'] == 'week' else 1) or take_home(city, tier)
     hood = home_hood(definition, city, tier, seed)
     unit, rent = housing(hood, tier, income, seed)
     era = era_of(city)
