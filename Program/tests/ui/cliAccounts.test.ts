@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { accountLabel, folderExample, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
+import { accountName, accountValue, folderExample, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
 
 const usual: CliAccount = { provider: 'claude_code', account_dir: '', commands: ['claude'], sources: [], signed_in: true, email: 'one@example.com' }
 const second: CliAccount = { provider: 'claude_code', account_dir: 'C:\\Users\\Jim\\.claude-account2', commands: ['claude2'], sources: [], signed_in: false, email: '' }
 const folderOnly: CliAccount = { provider: 'codex', account_dir: '/home/jim/.codex-work', commands: [], sources: [], signed_in: false, email: '' }
 
-test('each account is named by its command, else its folder, with the email the CLI reports', () => {
-  assert.equal(accountLabel(usual), 'claude (usual account) · one@example.com')
-  assert.equal(accountLabel(second), 'claude2')
-  assert.equal(accountLabel(folderOnly), '.codex-work')
+test('each account is named by its command, else its folder, with the email the CLI reports or whether it is signed in', () => {
+  assert.equal(accountName(usual), 'claude (usual account)')
+  assert.equal(accountName(second), 'claude2')
+  assert.equal(accountName(folderOnly), '.codex-work')
+  assert.equal(accountValue(usual), 'one@example.com')
+  assert.equal(accountValue(second), 'Not signed in')
+  assert.equal(accountValue({ ...folderOnly, signed_in: true }), 'Signed in')
 })
 
 test('a typed folder matches its account whatever its slashes, case or trailing slash', () => {

@@ -1,6 +1,5 @@
 // Per-provider generation controls adapted from prosperos-study src/features/models/GenerationSettings.tsx
 // at bbcbde4: no LM Studio native protocol and no context safety margin.
-import { useId } from 'react'
 import { Field } from '../../../components/Fields'
 import { bounded } from '../../../components/numberBounds'
 import type { DiscoveredModel } from './discovery'
@@ -38,10 +37,10 @@ export function GenerationSettings(props: Props) {
   return <div className="form-stack">
     <BudgetControls {...props} />
     <ThinkingControls {...props} />
-    {config.provider === 'openai' && <Choice label="Response verbosity" value={config.response_verbosity} options={['low', 'medium', 'high']} onChange={value => patch({ response_verbosity: value as ProfileConfig['response_verbosity'] })} hint="How much the model tends to say. The longest reply still caps it." />}
+    {config.provider === 'openai' && <Choice label="Response verbosity" value={config.response_verbosity} options={['low', 'medium', 'high']} onChange={value => patch({ response_verbosity: value as ProfileConfig['response_verbosity'] })} tip="How much the model tends to say. The longest reply still caps it." />}
     <SamplingControls {...props} />
-    <NumberInput label="Shared inference slot (optional)" type="text" value={config.resource_group ?? ''} onChange={value => patch({ resource_group: value })} hint="Profiles with the same name take turns on one slot. Leave blank and all local profiles share one; use different names only for separate hardware." />
-    <NumberInput label="Time limit (seconds)" value={config.timeout_seconds} min={10} max={1800} onChange={value => patch({ timeout_seconds: Number(value) })} hint="How long to wait for a reply before giving up. Slow local models may need more." />
+    <NumberInput label="Shared inference slot (optional)" type="text" value={config.resource_group ?? ''} onChange={value => patch({ resource_group: value })} tip="Profiles with the same name take turns on one slot. Leave blank and all local profiles share one; use different names only for separate hardware." />
+    <NumberInput label="Time limit (seconds)" value={config.timeout_seconds} min={10} max={1800} onChange={value => patch({ timeout_seconds: Number(value) })} tip="How long to wait for a reply before giving up. Slow local models may need more." />
   </div>
 }
 
@@ -49,8 +48,8 @@ function BudgetControls({ config, patch, model }: Props) {
   const cli = config.provider === 'codex' || config.provider === 'claude_code'
   const input = config.context_tokens - config.max_output_tokens
   return <div className="form-grid">
-    <NumberInput label="Context size (tokens)" value={config.context_tokens} min={1024} max={2000000} onChange={value => patch({ context_tokens: Number(value) })} hint={model?.context_tokens ? `The service reports ${model.context_tokens.toLocaleString()} tokens. This can be lower.` : 'What the model can read at once. Not reported, so set it to the model’s context size.'} />
-    <NumberInput label={cli ? 'Reply budget (tokens)' : 'Longest reply (tokens)'} value={config.max_output_tokens} min={64} max={128000} onChange={value => patch({ max_output_tokens: Number(value) })} hint={cli ? 'Used for planning what fits. The CLI sets its own hard limit.' : 'Includes thinking where the provider counts it.'} />
+    <NumberInput label="Context size (tokens)" value={config.context_tokens} min={1024} max={2000000} onChange={value => patch({ context_tokens: Number(value) })} tip={model?.context_tokens ? `The service reports ${model.context_tokens.toLocaleString()} tokens. This can be lower.` : 'What the model can read at once. Not reported, so set it to the model’s context size.'} />
+    <NumberInput label={cli ? 'Reply budget (tokens)' : 'Longest reply (tokens)'} value={config.max_output_tokens} min={64} max={128000} onChange={value => patch({ max_output_tokens: Number(value) })} tip={cli ? 'Used for planning what fits. The CLI sets its own hard limit.' : 'Includes thinking where the provider counts it.'} />
     <p className="subtle" role="status">{Math.max(0, input).toLocaleString()} tokens left for the character, memories and conversation.</p>
     {input <= 0 && <p role="alert">Raise the context size or lower the longest reply.</p>}
     {!!model?.max_output_tokens && config.max_output_tokens > model.max_output_tokens && <p role="alert">The longest reply is above the reported maximum of {model.max_output_tokens.toLocaleString()} tokens.</p>}
@@ -81,7 +80,7 @@ function EffortControl({ config, patch, model }: Props) {
   const efforts = config.provider === 'google' ? ['minimal', 'low', 'medium', 'high'] : config.provider === 'anthropic' || config.provider === 'claude_code' ? ['low', 'medium', 'high', 'xhigh', 'max'] : ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
   const reported = model?.supported_efforts ?? config.reported_capabilities?.supported_efforts
   const available = reported ? efforts.filter(value => reported.includes(value)) : efforts
-  return <Choice label="Reasoning effort" value={config.reasoning_effort} options={available} onChange={value => patch({ reasoning_effort: value, ...(config.provider === 'google' ? { thinking_mode: null, thinking_budget_tokens: null } : {}) })} capitalised hint={reported ? 'Only the levels this model takes.' : 'This model doesn’t list its levels. If it turns one down, the app switches to the nearest one it takes.'} />
+  return <Choice label="Reasoning effort" value={config.reasoning_effort} options={available} onChange={value => patch({ reasoning_effort: value, ...(config.provider === 'google' ? { thinking_mode: null, thinking_budget_tokens: null } : {}) })} capitalised tip={reported ? 'Only the levels this model takes.' : 'This model doesn’t list its levels. If it turns one down, the app switches to the nearest one it takes.'} />
 }
 
 function ModeControl({ config, patch }: Props) {
@@ -91,7 +90,7 @@ function ModeControl({ config, patch }: Props) {
     thinking_budget_tokens: value === 'budget' ? (provider === 'anthropic' ? 1024 : 512) : null,
     ...((provider === 'google' || value === 'off') ? { reasoning_effort: null } : {}),
   })
-  return <Choice label="Thinking mode" value={config.thinking_mode} options={provider === 'google' ? ['off', 'budget'] : ['off', 'budget', 'adaptive']} onChange={change} hint={provider === 'anthropic' ? 'Adaptive suits models that support it; older thinking models use a budget. Clear temperature and top-k when thinking is on.' : 'Leave at the default when support is unknown.'} />
+  return <Choice label="Thinking mode" value={config.thinking_mode} options={provider === 'google' ? ['off', 'budget'] : ['off', 'budget', 'adaptive']} onChange={change} tip={provider === 'anthropic' ? 'Adaptive suits models that support it; older thinking models use a budget. Clear temperature and top-k when thinking is on.' : 'Leave at the default when support is unknown.'} />
 }
 
 function ThinkingBudget({ config, patch }: Props) {
@@ -99,8 +98,8 @@ function ThinkingBudget({ config, patch }: Props) {
   const reserve = config.response_reserve_tokens ?? 256
   const left = budget >= 0 ? config.max_output_tokens - budget : null
   return <div className="form-grid">
-    <NumberInput label="Thinking budget (tokens)" value={config.thinking_budget_tokens ?? ''} min={config.provider === 'anthropic' ? 1024 : config.provider === 'google' ? -1 : 0} max={128000} onChange={value => patch({ thinking_budget_tokens: value === '' ? null : Number(value) })} hint={config.provider === 'google' ? 'Use -1 for a dynamic budget, or 0 to turn thinking off where supported.' : 'Leave enough of the longest reply for the answer.'} />
-    <NumberInput label="Reply space after thinking (tokens)" value={reserve} min={64} max={128000} onChange={value => patch({ response_reserve_tokens: Number(value) })} hint="The thinking budget plus this must fit the longest reply." />
+    <NumberInput label="Thinking budget (tokens)" value={config.thinking_budget_tokens ?? ''} min={config.provider === 'anthropic' ? 1024 : config.provider === 'google' ? -1 : 0} max={128000} onChange={value => patch({ thinking_budget_tokens: value === '' ? null : Number(value) })} tip={config.provider === 'google' ? 'Use -1 for a dynamic budget, or 0 to turn thinking off where supported.' : 'Leave enough of the longest reply for the answer.'} />
+    <NumberInput label="Reply space after thinking (tokens)" value={reserve} min={64} max={128000} onChange={value => patch({ response_reserve_tokens: Number(value) })} tip="The thinking budget plus this must fit the longest reply." />
     {left !== null && left < reserve && <p role="alert">The thinking budget leaves too little room for a reply.</p>}
   </div>
 }
@@ -108,8 +107,8 @@ function ThinkingBudget({ config, patch }: Props) {
 function CompatibleControls({ config, patch }: Props) {
   const thinking = config.compatible_thinking == null ? null : config.compatible_thinking ? 'on' : 'off'
   return <>
-    <Choice label="Chat-template thinking" value={thinking} options={['off', 'on']} onChange={value => patch({ compatible_thinking: value === null ? null : value === 'on' })} hint="For servers and models that read enable_thinking. The default sends no switch." />
-    <Choice label="Output-limit parameter" value={config.output_token_parameter ?? 'max_tokens'} options={['max_tokens', 'max_completion_tokens']} noDefault onChange={value => patch({ output_token_parameter: (value ?? 'max_tokens') as ProfileConfig['output_token_parameter'] })} hint="Use max_completion_tokens only when the model requires it." />
+    <Choice label="Chat-template thinking" value={thinking} options={['off', 'on']} onChange={value => patch({ compatible_thinking: value === null ? null : value === 'on' })} tip="For servers and models that read enable_thinking. The default sends no switch." />
+    <Choice label="Output-limit parameter" value={config.output_token_parameter ?? 'max_tokens'} options={['max_tokens', 'max_completion_tokens']} noDefault onChange={value => patch({ output_token_parameter: (value ?? 'max_tokens') as ProfileConfig['output_token_parameter'] })} tip="Use max_completion_tokens only when the model requires it." />
   </>
 }
 
@@ -127,8 +126,7 @@ function NumberInput({ label, value, onChange, hint, tip, min, max, step, placeh
   return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <input id={id} type={type} value={value} min={min} max={max} step={step} placeholder={placeholder} autoComplete="off" aria-describedby={describedBy} onChange={event => onChange(type === 'number' ? bounded(event.target.value, min, max) : event.target.value)} onBlur={type === 'number' ? leave : undefined} />}</Field>
 }
 
-function Choice({ label, value, options, onChange, hint, noDefault, capitalised }: { label: string; value?: string | null; options: string[]; onChange: (value: string | null) => void; hint?: string; noDefault?: boolean; capitalised?: boolean }) {
-  const id = useId()
+function Choice({ label, value, options, onChange, tip, noDefault, capitalised }: { label: string; value?: string | null; options: string[]; onChange: (value: string | null) => void; tip?: string; noDefault?: boolean; capitalised?: boolean }) {
   const shown = (option: string) => capitalised ? option.charAt(0).toUpperCase() + option.slice(1) : option
-  return <div className="field"><label htmlFor={id}>{label}</label><select id={id} value={value ?? ''} aria-describedby={hint ? `${id}-hint` : undefined} onChange={event => onChange(event.target.value || null)}>{!noDefault && <option value="">Service default</option>}{value && !options.includes(value) && <option value={value}>{shown(value)} · saved, not reported</option>}{options.map(option => <option key={option} value={option}>{shown(option)}</option>)}</select>{hint && <small id={`${id}-hint`}>{hint}</small>}</div>
+  return <Field label={label} tip={tip}>{(id, describedBy) => <select id={id} value={value ?? ''} aria-describedby={describedBy} onChange={event => onChange(event.target.value || null)}>{!noDefault && <option value="">Service default</option>}{value && !options.includes(value) && <option value={value}>{shown(value)} · saved, not reported</option>}{options.map(option => <option key={option} value={option}>{shown(option)}</option>)}</select>}</Field>
 }
