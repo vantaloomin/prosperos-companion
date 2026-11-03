@@ -1,6 +1,6 @@
 import { createContext, useContext, useId, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronRight, Minus, Plus } from 'lucide-react'
-import { InfoTip } from './InfoTip'
+import { InfoTip, StepTip } from './InfoTip'
 
 /**
  * The style guide's building blocks for settings and lists (Iris, "Prospero's Companion Style Guide"): a label and
@@ -116,7 +116,7 @@ interface SliderRowProps {
 }
 
 /** A stepped slider as one row (style guide: Realism): its name with the open step's word under it, the slider on the
- * right. The step's longer explanation is the slider's description, and shows on hovering the word. */
+ * right. The step's longer explanation is the slider's description, and shows on hovering, clicking or tapping the word. */
 export function SliderRow({ label, levels, value, fallback = 2, onChange, tip, nested, disabled: own }: SliderRowProps) {
   const id = useId()
   const parentOff = useContext(ParentOff)
@@ -127,7 +127,7 @@ export function SliderRow({ label, levels, value, fallback = 2, onChange, tip, n
     <div className={classes}>
       <span className="slider-row-text">
         <span className="setting-row-label"><label htmlFor={id}>{label}</label>{tip && <InfoTip id={`${id}-tip`} label={label} text={tip} />}</span>
-        <span className="row-value" title={level.hint} aria-hidden="true">{level.label}</span>
+        <StepTip id={`${id}-step`} label={label} word={level.label} text={level.hint} />
       </span>
       <span id={`${id}-hint`} className="visually-hidden">{level.hint}</span>
       <input id={id} className="step-slider" type="range" min={0} max={levels.length - 1} step={1} value={value} aria-valuetext={level.label}
