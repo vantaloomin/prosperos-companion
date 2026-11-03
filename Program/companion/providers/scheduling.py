@@ -41,6 +41,12 @@ def work_scope(work):
         CURRENT_WORK.reset(token)
 
 
+def account_suffix(config) -> str:
+    """A Claude Code or Codex profile's own account folder (cli_account_dir), so each account queues on its own."""
+    folder = (config.get('cli_account_dir') or '').strip()
+    return f':{folder}' if folder else ''
+
+
 def resource_for(config):
     parts = urlsplit(config.get('base_url', ''))
     if config.get('resource_group'):
@@ -48,9 +54,10 @@ def resource_for(config):
     if config.get('provider') in {'local', 'kobold'} or is_loopback(parts.hostname):
         return 'local-inference', 1
     if config.get('provider') == 'codex':
-        return 'codex-cli', 1
+        return 'codex-cli' + account_suffix(config), 1
     if config.get('provider') == 'claude_code':
-        return 'claude-cli', 2
+        # Each Claude account has its own plan limits, so its own two places.
+        return 'claude-cli' + account_suffix(config), 2
     return f'{parts.scheme}://{parts.netloc.lower()}', 2
 
 
@@ -159,7 +166,7 @@ class RequestScheduler:
                 self.waiting.remove(lease)
             if lease in self.active:
                 self.active.remove(lease)
-            if lease.work is CONVERSATION and self.limits[resource] == 1 and resource != 'codex-cli':
+            if lease.work is CONVERSATION and self.limits[resource] == 1 and not resource.startswith('codex-cli'):
                 self.held_until[resource] = time.monotonic() + HOLD_AFTER_REPLY
             self.dispatch()
 

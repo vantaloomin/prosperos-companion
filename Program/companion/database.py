@@ -437,6 +437,9 @@ ADDED_COLUMNS = (
     ('outings', 'auto_longer', 'INTEGER NOT NULL DEFAULT 0'),
     # A trip away together (companion/life/away_together.py): how they get there and what the place is like (JSON).
     ('trips', 'away', 'TEXT'),
+    # Settings > Models: look for the Claude Code and Codex accounts on this PC (companion/providers/cli_accounts.py) so
+    # a profile can pick one; on unless turned off.
+    ('workspace_settings', 'find_cli_accounts', 'INTEGER NOT NULL DEFAULT 1 CHECK (find_cli_accounts IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

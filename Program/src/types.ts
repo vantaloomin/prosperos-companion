@@ -322,6 +322,8 @@ export interface WorkspaceSettings {
   period_words?: boolean
   /** Keep my colours everywhere: no companion's own colours or name font (companion/their_look.py). */
   keep_my_colours?: boolean
+  /** Look for Claude Code and Codex accounts on this PC for profiles to pick (Settings > Models). On unless turned off. */
+  find_cli_accounts?: boolean
   /** The app's colors (Prospero's Study's palettes); Retro IM keeps its own. */
   color_scheme?: ColorScheme
   /** The four colors of the custom scheme, or null before one is made. */

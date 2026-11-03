@@ -5,6 +5,8 @@ import { Check, PlugZap } from 'lucide-react'
 import { api } from '../../../api'
 import { Notice } from '../../../components/Feedback'
 import { TextInput } from '../../../components/Fields'
+import { CliAccountPicker } from './CliAccountPicker'
+import { folderExample } from './cliAccounts'
 import { GenerationSettings } from './GenerationSettings'
 import { ModelCombobox } from './ModelCombobox'
 import { applyDiscovered, discoveredSettings, profileReady, recallReady, reusableKey, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
@@ -59,7 +61,7 @@ function useProfileForm(profile: ModelProfile | undefined, recall: boolean, othe
   const [key, setKey] = useState('')
   const [shareKey, setShareKey] = useState(true)
   const discovery = useDiscovery(profile)
-  const patch: Patch = (change) => { if (change.base_url !== undefined) discovery.reset(); setConfig(current => ({ ...current, ...change })) }
+  const patch: Patch = (change) => { if (change.base_url !== undefined || change.cli_account_dir !== undefined || change.cli_path !== undefined) discovery.reset(); setConfig(current => ({ ...current, ...change })) }
   const changeProvider = (provider: Provider) => { discovery.reset(); setConfig(fresh(provider)); setKey('') }
   const changeKey = (value: string) => { discovery.reset(); setKey(value) }
   const test = () => { void discovery.connect(config, key, result => setConfig(current => isRecall(current) ? current : applyDiscovered(result, current))) }
@@ -88,7 +90,7 @@ export function ProfileEditor({ profile, recall = false, others, onDone }: { pro
   return <form className="model-profile-editor form-stack" onSubmit={submit} aria-label={profile ? `Edit ${profile.name}` : recalls ? 'New recall profile' : 'New model profile'}>
     <ProviderPicker selected={config.provider} choices={recalls ? embeddingProviders : providerOrder} onChange={form.changeProvider} />
     <TextInput label="Profile name" value={form.name} onChange={form.setName} maxLength={120} placeholder={recalls ? 'Ollama embeddings…' : 'Everyday chat, careful drafting…'} hint={`Leave empty to name it after the provider and ${recalls ? 'embedding ' : ''}model.`} />
-    <ConnectionFields config={config} patch={patch} keyEntry={{ saved: form.savedKey, reused: form.reused, sharedWith: form.sharedWith, value: form.key, onChange: form.changeKey, share: form.shareKey, onShare: form.setShareKey }} found={form.found} />
+    <ConnectionFields config={config} patch={patch} fresh={!profile} keyEntry={{ saved: form.savedKey, reused: form.reused, sharedWith: form.sharedWith, value: form.key, onChange: form.changeKey, share: form.shareKey, onShare: form.setShareKey }} found={form.found} />
     <ModelDiscovery config={config} discovery={discovery} onTest={form.test} patch={patch} />
     {recalls ? <EmbeddingFields config={config} patch={patch} discovery={discovery} /> : <ModelFields config={config} patch={patch} discovery={discovery} />}
     <SaveActions ready={form.ready} recall={recalls} keyless={form.keyless} typed={!!form.key.trim()} canSave={form.canSave} saving={saving.saving} error={saving.error} onCancel={() => onDone()} />
@@ -110,21 +112,52 @@ function ProviderPicker({ selected, choices, onChange }: { selected: Provider; c
     {choices.map(provider => <button key={provider} type="button" className={`button${selected === provider ? ' selected' : ''}`} aria-pressed={selected === provider} onClick={() => onChange(provider)}>{providers[provider].name}</button>)}
   </fieldset><p className="subtle">{selected === 'claude_code'
     ? <>Uses the Claude plan your Claude Code is signed in to. No key is entered here, and the app never sees your password or token. To sign in, run <code>claude</code> once in a terminal.</>
+    : selected === 'codex' ? <>Your installed Codex CLI and its existing login. Sign in with <code>codex login</code> in a terminal.</>
     : providers[selected].description}</p></>
 }
 
 type KeyEntry = { saved: boolean; reused?: string; sharedWith: string[]; value: string; onChange: (value: string) => void; share: boolean; onShare: (value: boolean) => void }
 
-function ConnectionFields({ config, patch, keyEntry, found }: { config: ProfileConfig; patch: Patch; keyEntry: KeyEntry; found?: string }) {
+function ConnectionFields({ config, patch, fresh, keyEntry, found }: { config: ProfileConfig; patch: Patch; fresh: boolean; keyEntry: KeyEntry; found?: string }) {
   const local = config.provider === 'local' || config.provider === 'kobold'
-  if (config.provider === 'codex') return <p className="subtle">Uses the Codex CLI’s own login; no key is entered here. Codex runs in an empty temporary folder with its shell, plugins, web search and tools turned off.</p>
-  if (config.provider === 'claude_code') return <>
-    <Notice>Claude follows Anthropic’s usage policy, so it won’t write the adult side of life. Use it for everyday chat and the other non-explicit jobs, and give adult scenes a different profile.</Notice>
-    <TextInput label="Claude Code location (optional)" value={config.cli_path ?? ''} onChange={value => patch({ cli_path: value })} maxLength={500} placeholder={found ? shownPath(found) : undefined} hint="Leave empty to use the Claude Code found on this computer." />
-  </>
+  if (config.provider === 'codex') return <CodexFields config={config} patch={patch} fresh={fresh} found={found} />
+  if (config.provider === 'claude_code') return <ClaudeCodeFields config={config} patch={patch} fresh={fresh} found={found} />
   return <>
     {(local || config.provider === 'compatible') && <TextInput label="Server address" value={config.base_url} onChange={value => patch({ base_url: value })} maxLength={500} hint={local ? 'An address on this computer. LM Studio and Ollama usually end in /v1.' : 'The API base URL, without /models or /chat/completions.'} />}
     <TokenEntry key={config.provider} {...keyEntry} local={local || config.provider === 'compatible'} />
+  </>
+}
+
+type CliFieldsProps = { config: ProfileConfig; patch: Patch; fresh: boolean; found?: string }
+
+const CLI_FIELDS = {
+  claude_code: { base: 'claude', name: 'Claude Code', hint: 'For a second Claude account: a folder of its own that keeps that account\'s sign-in. Test connection says how to sign in to it. Leave empty for the account Claude Code usually uses.' },
+  codex: { base: 'codex', name: 'Codex', hint: 'For a second ChatGPT account: a folder of its own that keeps that account\'s sign-in. Test connection says how to sign in to it. Leave empty for the account Codex usually uses.' },
+} as const
+
+/** Which account and where the CLI is, for Claude Code and Codex. Folders show the home folder as ~ (expanded on save). */
+function CliFields({ config, patch, fresh, found }: CliFieldsProps) {
+  const provider = config.provider === 'codex' ? 'codex' : 'claude_code'
+  const fields = CLI_FIELDS[provider]
+  return <>
+    <CliAccountPicker provider={provider} value={config.cli_account_dir} fresh={fresh} onPick={folder => patch({ cli_account_dir: folder })}>
+      <TextInput label="Account folder (optional)" value={shownPath(config.cli_account_dir ?? '')} onChange={value => patch({ cli_account_dir: value })} maxLength={500} placeholder={folderExample(fields.base)} hint={fields.hint} />
+    </CliAccountPicker>
+    <TextInput label={`${fields.name} location (optional)`} value={config.cli_path ?? ''} onChange={value => patch({ cli_path: value })} maxLength={500} placeholder={found ? shownPath(found) : undefined} hint={`Leave empty to use the ${fields.name} found on this computer.`} />
+  </>
+}
+
+function ClaudeCodeFields(props: CliFieldsProps) {
+  return <>
+    <Notice>Claude follows Anthropic’s usage policy, so it won’t write the adult side of life. Use it for everyday chat and the other non-explicit jobs, and give adult scenes a different profile.</Notice>
+    <CliFields {...props} />
+  </>
+}
+
+function CodexFields(props: CliFieldsProps) {
+  return <>
+    <p className="subtle">Uses the Codex CLI’s own login; no key is entered here. Codex runs in an empty temporary folder with its shell, plugins, web search and tools turned off.</p>
+    <CliFields {...props} />
   </>
 }
 

@@ -246,7 +246,7 @@ def test_the_companion_is_named_never_the_assistant(client, app, connected, prov
     request = next(request for request in provider.requests if 'help a companion app remember' in request['system'])
     assert '"to": "Mira"' in request['messages'][-1]['content']
     [memory] = client.get('/api/memories').json()
-    assert (memory['subject'], memory['value']) == ('Trust in Mira', "didn't feel afraid of Mira as if they were dangerous")
+    assert (memory['subject'], memory['value']) == ('Trust in Mira', "You didn't feel afraid of Mira as if they were dangerous")
 
 
 def test_an_assistant_the_user_talks_about_stays_one(client, app, connected, provider):
@@ -267,6 +267,7 @@ def test_memories_an_earlier_prompt_called_the_assistant_get_the_name(client, ap
     send(client, MEETUP, 'model-0001')
     database = app.state.database
     monkeypatch.setattr(addressed, 'fields', lambda subject, value, *args: (subject, value))
+    monkeypatch.setattr(addressed, 'voiced', lambda layer, value, message: value)
     run(client, app)
     monkeypatch.undo()
     with database.connect(write=True) as connection:
@@ -274,8 +275,8 @@ def test_memories_an_earlier_prompt_called_the_assistant_get_the_name(client, ap
     assert [memory['subject'] for memory in client.get('/api/memories').json()] == ['Trust in assistant']
     suggest.tidy(database)
     [memory] = client.get('/api/memories').json()
-    assert (memory['subject'], memory['value']) == ('Trust in Mira', "didn't feel afraid of Mira as if they were dangerous")
-    assert addressed.tidy(database, suggest.PROMPT_VERSION) == 0
+    assert (memory['subject'], memory['value']) == ('Trust in Mira', "You didn't feel afraid of Mira as if they were dangerous")
+    assert addressed.tidy(database) == 0
 
 
 def test_you_becomes_the_name_in_plain_english():
@@ -305,3 +306,41 @@ def test_the_assistants_it_takes_the_companions_pronouns():
     assert named(text, 'Sett', 'a message', 'he') == "didn't feel afraid of Sett as if he were dangerous, because he is kind"
     assert named(text, 'Ana', 'a message', 'she') == "didn't feel afraid of Ana as if she were dangerous, because she is kind"
     assert named(text, 'Jo', 'a message') == "didn't feel afraid of Jo as if they were dangerous, because they are kind"
+
+
+def test_a_plan_with_two_people_in_it_says_who():
+    from companion.memory.addressed import voiced
+    said = "I'll delete your number and not contact you. I won't text you tomorrow before you text first. I trust you"
+    cases = {('plan', "will delete Sett's number and not contact them"): "You will delete Sett's number and not contact them",
+             ('plan', "won't text tomorrow before Sett texts first"): "You won't text tomorrow before Sett texts first",
+             ('relationship', 'has allowed Sett to give a nickname'): 'You have allowed Sett to give a nickname',
+             ('relationship', 'trusts Sett more than anyone'): 'You trust Sett more than anyone',
+             ('plan', 'dinner with Sett on Friday'): 'dinner with Sett on Friday',
+             ('plan', 'Sett will pick up the user'): 'Sett will pick up the user',
+             ('user_fact', 'will move to Denver'): 'will move to Denver'}
+    assert {key: voiced(*key, said) for key in cases} == cases
+
+
+def test_the_companion_reads_a_voiced_plan_as_the_users():
+    from companion.memory.records import as_told
+    row = {'layer': 'plan', 'origin': 'automatic', 'subject': 'Contacting Sett',
+           'value': "You won't text tomorrow before Sett texts first"}
+    assert as_told(row, 'Sett') == {**row, 'subject': 'Contacting you',
+                                    'value': "The user won't text tomorrow before you text first"}
+    trust = {'layer': 'relationship', 'origin': 'automatic', 'subject': 'Trust in Sett',
+             'value': 'You trust Sett more than anyone'}
+    assert as_told(trust, 'Sett')['value'] == 'The user trusts you more than anyone'
+
+
+def test_them_becomes_the_companions_pronoun_only_when_they_are_the_one_named():
+    from companion.memory.addressed import named
+    assert named("will delete Sett's number and not contact them", 'Sett', 'a message', 'he') == \
+        "will delete Sett's number and not contact him"
+    assert named('Sett said they are moving and their flat is nice', 'Sett', 'a message', 'she') == \
+        'Sett said she is moving and her flat is nice'
+    assert named("will tell Mom about Sett and ask them over", 'Sett', 'a message', 'he') == \
+        "will tell Mom about Sett and ask them over"
+    assert named('will introduce Sett to Jo and see them both', 'Sett', 'a message', 'he') == \
+        'will introduce Sett to Jo and see them both'
+    assert named("will delete Sett's number and not contact them", 'Sett', 'a message') == \
+        "will delete Sett's number and not contact them"
