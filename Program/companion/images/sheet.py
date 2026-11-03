@@ -128,8 +128,10 @@ CLOSE_UP = 'Face close-up'
 
 
 def depicts_companion(inputs: dict) -> bool:
-    """Whether a picture shows the companion: a view of what they see does not, nor a meme of something else."""
-    return inputs.get('framing') != 'view' and not (inputs.get('meme') or {}).get('subject')
+    """Whether a picture shows the companion: a view of what they see does not, nor a meme of something else, nor a
+    picture of a pet or an errand's things (`pictured` false, companion/images/prompts.py)."""
+    return inputs.get('framing') not in ('view', 'things') and not (inputs.get('meme') or {}).get('subject') \
+        and inputs.get('pictured', True) is not False
 
 
 def companion_of_version(connection, version_id: str | None) -> str | None:

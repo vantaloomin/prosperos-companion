@@ -28,7 +28,7 @@ from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import decades, looks, newcomers, ships
 
-PROMPT_VERSION = 8
+PROMPT_VERSION = 9
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
 
@@ -154,6 +154,10 @@ def plural_verb(verb: str) -> str:
 SHEET_AGE = re.compile(r' in (?:his|her|their) (?:early|mid|late) [a-z]+ies\b')
 
 
+# A sheet that leaves the person to the In photos line ("He has tan skin ...", looks.picture) follows it.
+HAS = re.compile(r'(?:She|He) has |They have ')
+
+
 def one_age(sheet: str, look: str) -> str:
     return SHEET_AGE.sub('', sheet, count=1) if sheet and look and looks.LOOKS_AGE.search(look) else sheet
 
@@ -243,6 +247,7 @@ CAMERAS = {'moment': 'Shot at eye level on a phone camera, natural colours, real
            'scene': 'Shot at eye level from a few steps away, natural colours, realistic skin texture, the place in sharp '
                     'focus around them.'}
 CAMERAS['scene_both'] = CAMERAS['scene']
+CAMERAS['things'] = 'Phone-camera look, natural colours, sharp focus on the things themselves.'
 
 
 # A style that is not a photograph, though it may say the word ("non-photorealistic", "photo-bashed concept art").
@@ -312,7 +317,7 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     opening = framings[framing].format(subject=subject.lower(), possessive=possessive, object=OBJECT[who]) \
         if framings[framing] else ''
     parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment, {MOMENT.format(possessive=possessive)}.',
-             sheet, f'{look}.' if look else '', setting, WITH_YOU.sub('', action) if event.get('user') else action,
+             *((f'{look}.', sheet) if look and HAS.match(sheet) else (sheet, f'{look}.' if look else '')), setting, WITH_YOU.sub('', action) if event.get('user') else action,
              alone(event, action, subject, who, framing),
              beside(event, subject, who), event.get('place_look') or '',
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
@@ -449,7 +454,8 @@ def sheet_for(companion, definition, connection=None, day=None, bold_only=False)
     is their looks on that local day (companion/life/grooming.py: haircuts, nails, a tan, bold changes), the latest
     day of their life without one; `bold_only` keeps to the bold changes (the Codex reference sheet)."""
     who = drawn_as(definition)
-    return looks.picture(grooming.sheet(connection, companion['id'], definition, day, bold_only), who), who
+    said = in_photos(definition, who)  # What follows the sheet in every prompt: the sheet leaves out what it says.
+    return looks.picture(grooming.sheet(connection, companion['id'], definition, day, bold_only), who, said), who
 
 
 def in_photos(definition, who=None, dressed=False) -> str:
@@ -465,10 +471,28 @@ def in_photos(definition, who=None, dressed=False) -> str:
                            reverse=True):
             own = re.sub(rf'^{re.escape(form)}\s*[,:;–—-]\s*', '', own)
         own = unnamed(own, definition['name'], who).rstrip('.')
-        own = sceneless(own)
+        own = featureless(sceneless(own), definition)
         return f'{own[:1].upper()}{own[1:]}'
     appearance = definition.get('appearance', '')
-    return visible(without_clothes(appearance) if dressed else appearance, definition['name'], who)
+    return featureless(visible(without_clothes(appearance) if dressed else appearance, definition['name'], who),
+                       definition)
+
+
+def featureless(line: str, definition) -> str:
+    """The line without the clauses about a feature the user set on the looks form, which the sheet says: Sett's
+    form says "vastayan ears on top of his head, covered in pink fur", his In photos line "pointed pink furry ears".
+    Said twice, the ears were in the prompt twice; said only as "pointed ears", they came back elf ears (A/B
+    2026-11-03), so the form's own words, the more exact ones, are the ones kept."""
+    parts = looks.parts_of(looks.written(definition).get('feature') or '')
+    if not parts or not line:
+        return line
+    kept = []
+    for sentence in re.split(r'(?<=[.!?])\s+', line.strip()):
+        clauses = [clause for clause in CLAUSE.split(sentence.rstrip('.!? ')) if clause and
+                   not looks.parts_of(clause) & parts]
+        if clauses:
+            kept.append(', '.join(clauses))
+    return '. '.join(f'{sentence[:1].upper()}{sentence[1:]}' for sentence in kept)
 
 
 # A clause of an In photos line that sets a scene ("Ionian fighting pit with hanging lamps") rather than describing them.
@@ -520,11 +544,15 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
     likeness = current_for_images(connection)
     prompt, period = pet_prompt(connection, post['timeline_id'], events, image_settings), period_of(connection, definition)
+    things = not prompt and len(events) == 1 and errand(events[0])
+    if things:
+        prompt = errand_prompt(definition, first, image_settings['style'], who, ships.aboard(connection, definition),
+                               period)
     shown = '' if prompt or not shared(connection, companion, first) else user_shown(connection)
     if shown:
         first['user'] = shown
     if prompt:
-        # A photo of their pet alone (companion/life/pets.py): nobody in it, so no likeness.
+        # A photo of their pet alone (companion/life/pets.py) or an errand's things: nobody in it, so no likeness.
         likeness = {**likeness, 'lora': None}
     return {'prompt_version': PROMPT_VERSION,
             'prompt': prompt or feed_prompt(definition, first, image_settings,
@@ -538,10 +566,34 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
             'events': [{key: event[key] for key in ('id', 'revision', 'summary', 'caption', 'label', 'mood', 'place')}
                        for event in events],
             'marked_nsfw': bool(marked_nsfw), 'pictured': not prompt, 'period': period, 'with_user': bool(shown),
+            **({'framing': 'things'} if things else {}),
             'name_in_pictures': bool(definition.get('name_in_pictures')), **likeness,
             **children(connection, post['timeline_id'], [event[key] for event in events
                                                           for key in ('summary', 'caption', 'label', 'place')],
                        [(event['moment'].get('outing') or {}).get('id') for event in events])}
+
+
+def errand(event) -> bool:
+    """Whether the moment is an errand or a piece of paperwork (companion/life/admin.py, source 'admin'): resoled boots
+    picked up, a bill paid. Its picture is of the things it was about, not a portrait of them."""
+    return ((event.get('moment') or {}).get('admin') or {}).get('source') == 'admin'
+
+
+def errand_prompt(definition, event, style, who, aboard=False, period=None) -> str:
+    """The things an errand was about, up close, with nobody in the picture: a portrait of Sett smiling at the camera
+    for "picked up the resoled boots" said "the only person in the picture" and how his face looked, and showed no
+    boots. Their looks, the expression and the one-person line belong to pictures of them."""
+    subject, possessive = PRONOUNS[who]
+    done = unnamed(told(event['summary'], who).strip(), definition['name'], who)
+    done = re.split(r'(?<=[.!?])\s+', done)[-1].rstrip('.!? ')  # the entry's own line, when it has one, comes first
+    done = f'{done[:1].lower()}{done[1:]}' if done.startswith(subject) else done
+    style = (style or DEFAULT_STYLE).strip().rstrip('.')
+    parts = [f'{style}, a fictional everyday close-up of the things from {possessive} errand, just after '
+             f'{done}.', 'The things fill the frame, set down on a counter or a table. No people in the picture, '
+             'nobody in focus.', event.get('place_look') or '',
+             ship_light(event.get('hour')) if aboard else light(event.get('hour'), event.get('weather'), event.get('indoor')),
+             (period or {}).get('scene') or '', camera(style, 'things', period)]
+    return looks.seen(' '.join(part for part in parts if part))
 
 
 def shared(connection, companion, event) -> bool:
