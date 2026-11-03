@@ -24,7 +24,7 @@ from companion.errors import DomainError, require
 from companion.imports import lorebooks
 from companion.imports.characters import add_book, book_view
 from companion.models import WorldMapPick
-from companion.world import catalog, custom, mend, naming
+from companion.world import catalog, custom, mend, money_fill, naming
 from companion.world.mend import slug
 from companion.world.schema import PLACE_KINDS, TRANSIT_KINDS
 
@@ -418,7 +418,16 @@ class _Map:
                 'sources': {SOURCE: {'kind': 'user', 'title': text(f'{lore.MAP_TITLE}{self.map_name()}', TEXT),
                                      'license': 'User content', 'retrieved': self.today}},
                 'neighborhoods': self.hoods, 'places': self.places, 'employers': self.employers,
-                'transit': list(self.lines.values())}
+                'transit': list(self.lines.values()), **self.money(country, zone)}
+
+    @staticmethod
+    def money(country: str | None, zone: str | None) -> dict:
+        """The money of the country the map's time zone is in (euros in Lisbon), written into the city file so
+        it can be changed there; dollars, the default, are left out."""
+        found = money_fill.by_country({'country': country, 'timezone': zone})
+        if not found or found[1]['code'] == 'USD':
+            return {}
+        return {'currency': {key: found[1][key] for key in ('code', 'symbol', 'name')}}
 
     def map_name(self) -> str:
         profile = self.value.get('hierarchyProfile') if isinstance(self.value.get('hierarchyProfile'), dict) else {}

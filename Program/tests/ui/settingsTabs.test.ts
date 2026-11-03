@@ -58,11 +58,14 @@ test('Advanced is always listed, last, and search finds it', () => {
 
 test('prompts are grouped in order and their placeholders explained', () => {
   const prompt = (name: string, group: string, placeholders: string[] = [], help: Record<string, string> = {}) =>
-    ({ name, group, label: name, description: '', text: '', default: '', customized: false, outdated: false, placeholders, placeholder_help: help })
+    ({ name, group, label: name, description: '', text: '', default: '', customized: false, outdated: false, placeholders, placeholder_help: help, lines: false, more: false })
   const groups = groupPrompts([prompt('a', 'Chat and life'), prompt('b', 'Character drafting'), prompt('c', 'Chat and life')])
   assert.deepEqual(groups.map(([group, items]) => [group, items.map((item) => item.name)]), [['Chat and life', ['a', 'c']], ['Character drafting', ['b']]])
   assert.equal(placeholderHint(prompt('x', 'g', ['name', 'reason'], { name: "the companion's name" })), "Must keep: {{name}} (the companion's name), {{reason}}.")
   assert.equal(placeholderHint(prompt('x', 'g')), '')
+  const list = { ...prompt('y', 'Pictures', ['possessive'], { possessive: 'her, his or their' }), lines: true }
+  assert.equal(placeholderHint({ ...list, placeholder_help: { possessive: 'their, her or his' } }), 'One line each: name: words. A line can use {{possessive}} (their, her or his).')
+  assert.equal(placeholderHint({ ...prompt('z', 'Pictures'), lines: true }), 'One line each: name: words.')
 })
 
 test('everything that dials realism down is on the Realism tab, and search finds it there', () => {

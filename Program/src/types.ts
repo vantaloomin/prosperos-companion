@@ -243,6 +243,10 @@ export interface MoneySetup {
   employment: Employment
   /** What a student studies; empty reads it from who they are. */
   field?: string
+  /** Work of their own, as written, when career is 'own' (the Work picker's "Something else"). */
+  job?: string
+  /** What they take home a month in their city's money: null works it out from their work and city, 0 is unpaid. */
+  pay?: number | null
 }
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
@@ -2251,12 +2255,15 @@ export interface World {
   back_when?: { year: number; name: string; companion_id: string } | null
   /** Where the persona lives in this world (companion/life/where.py); the app picks it until the user changes it. */
   home: WorldHome | null
-  /** Life stands still there (companion/worlds.py `paused`): every world but the one the user is in, and one paused in
-   * Settings > Pause. `paused_since` is when they left it or paused it, null when it can't be told. */
+  /** The user paused it (companion/worlds.py `paused`), in Settings > Pause or from its ⋯ here: it skips that time
+   * until resumed. `paused_since` is when, null when it can't be told. `paused_in_settings` says the same as `paused`. */
   paused?: boolean
   paused_since?: string | null
   paused_in_settings?: boolean
-  /** Going back fills in a few events from the time away (Settings > Life, catch up on return). */
+  /** When the user left it, for a world they are not in; null when it can't be told (left before 1.2.2). Leaving is
+   * not a pause: the world catches up on the time away when they go back. */
+  away_since?: string | null
+  /** Going back fills in the time away (Settings > Life, catch up on return). */
   catches_up?: boolean
 }
 /** One moment the Back when sheet offers (companion/back_when.py `moments`): "When you first met", 2019. `age` is the
@@ -2331,6 +2338,8 @@ export interface AdminItem {
   moves: number
   deadline: string | null
   cost_text: string
+  /** The cost as the chip shows it: a world's own coin by its symbol ("1 g"), where cost_text says "1 gold". */
+  cost_short?: string
   /** False for another feature's item shown read-only (Looks' haircuts follow their own draw). */
   movable: boolean
   /** A late night's project, shown under its title (companion/life/work.py); empty otherwise. */

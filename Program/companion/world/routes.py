@@ -9,7 +9,7 @@ from companion.characters import current
 from companion.clock import zone
 from companion.errors import require
 from companion.life import money, network
-from companion.models import Input, WorldMapImport
+from companion.models import Input, MoneySetup, WorldMapImport
 from companion.world import catalog, changes, check, custom, draft, era_words, generators, marinara, townsfolk
 from companion.world.draft import fill, polish
 from companion.world.schema import PlaceKind
@@ -236,6 +236,18 @@ def guess_city_career(request: Request, city_id: str, body: CareerGuess):
     """The career “Guess from who they are” picks in this city, or None (an everyday wage)."""
     career, _ = money.career_for(body.model_dump(), city(request, city_id))
     return career
+
+
+class PayAsk(CareerGuess):
+    """A character sheet's words and money setup, for what their work pays before any pay the user set."""
+    money: MoneySetup = Field(default_factory=MoneySetup)
+
+
+@router.post('/cities/{city_id}/pay')
+def worked_out_pay(request: Request, city_id: str, body: PayAsk):
+    """What their work and this city pay a month, for the Pay field's placeholder (None where there is no money)."""
+    city(request, city_id)  # A 404 for a city that does not exist.
+    return money.worked_out_pay({**body.model_dump(), 'home_city': city_id})
 
 
 @router.get('/cities/{city_id}/sources')

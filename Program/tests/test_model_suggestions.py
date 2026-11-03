@@ -344,3 +344,18 @@ def test_them_becomes_the_companions_pronoun_only_when_they_are_the_one_named():
         'will introduce Sett to Jo and see them both'
     assert named("will delete Sett's number and not contact them", 'Sett', 'a message') == \
         "will delete Sett's number and not contact them"
+
+
+def test_a_plan_the_model_finds_takes_its_day_from_the_message(client, app, connected, provider, clock):
+    """Tester on 1.3.0: "give them both a bath this weekend" stayed in Plans long after the weekend."""
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'plan', 'subject': 'Bathing',
+                                     'value': 'give them both a bath'}])
+    send(client, "I'll give them both a bath this weekend, they smell like the garden", 'model-plan-01')
+    run(client, app)
+    [memory] = [item for item in client.get('/api/memories').json() if item['subject'] == 'Bathing']
+    assert memory['applies_from'] is not None and memory['plan_status'] == 'proposed'
+    clock.advance(timedelta(days=10))
+    client.app.state.life.spread_news()
+    [memory] = [item for item in client.get('/api/memories').json() if item['subject'] == 'Bathing']
+    assert memory['plan_status'] == 'completed'

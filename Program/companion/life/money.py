@@ -18,7 +18,7 @@ from functools import cache, lru_cache
 
 from companion.characters import require_current
 from companion.clock import zone
-from companion.world import catalog, decades, intimacy, ships
+from companion.world import catalog, decades, intimacy, money_fill, ships
 from companion.world.source import CatalogWorld
 
 PAY_TIERS = {'$': 0, '$$': 1, '$$$': 2, '$$$$': 3}
@@ -207,10 +207,43 @@ def career_for(definition: dict, city: dict) -> tuple[dict | None, bool]:
     if intimacy.reads_as_minor(definition):
         # Adult work is only ever an adult's (companion/world/intimacy.py makes the same check).
         offered = catalog.everyday(offered)
-    chosen = (definition.get('money') or {}).get('career') or ''
+    setup = definition.get('money') or {}
+    chosen = setup.get('career') or ''
+    if chosen == OWN and (setup.get('job') or '').strip():
+        like = guess_career({'identity': setup['job']}, offered)
+        return own_career(setup['job'].strip(), city, set_pay(setup), like), False
     if chosen in offered:
         return offered[chosen], False
     return guess_career(definition, offered), True
+
+
+# The Work picker's "Something else": work the user writes in (`job`), paid by `pay` or an ordinary wage.
+OWN = 'own'
+
+
+def set_pay(setup: dict) -> float | None:
+    """The month's take-home the user set: None when left to their work and city, 0 when unpaid. The budget cache
+    keys it as text, so 'None' and '' read as left empty."""
+    value = setup.get('pay')
+    return None if value in (None, '', 'None') else max(float(value), 0.0)
+
+
+def own_career(job: str, city: dict, pay: float | None, like: dict | None = None) -> dict:
+    """Work of their own as a career the rest of the life simulation can read, on the pay tier nearest what it pays.
+    Its hours and the kind of work come from a career its words name ("night nurse at a clinic" works a nurse's
+    shifts), else office hours."""
+    tier = DEFAULT_TIER
+    if pay is not None:
+        monthly = [take_home(city, rank) * (52 / 12 if city['rent_period'] == 'week' else 1) for rank in range(4)]
+        tier = min(range(4), key=lambda rank: abs(monthly[rank] - pay))
+    if like and pay is None:
+        tier = PAY_TIERS.get(like['pay'], DEFAULT_TIER)
+    like = like or {}
+    name = job[:1].upper() + job[1:]
+    return {'id': OWN, 'name': name, 'sector': like.get('sector', 'business'), 'schedule': like.get('schedule', 'office'),
+            'employment': like.get('employment'), 'pay': '$' * (tier + 1), 'summary': f'{name}.'[:400],
+            'themes': like.get('themes') or ['work'], 'eras': [city['era']], 'needs': [], 'adult': False,
+            'worked_by': None, 'ages': None, 'years': None, 'own': True}
 
 
 def price(city: dict, ids) -> float | None:
@@ -327,7 +360,9 @@ def build(definition: dict) -> Profile | None:
     tier = PAY_TIERS.get(career['pay'], DEFAULT_TIER) if career else DEFAULT_TIER
     style = setup.get('style') if setup.get('style') in STYLES else 'balanced'
     seed = f"money:{definition.get('name', '')}:{city['id']}"
-    income = take_home(city, tier)
+    # Pay they set is a month's take-home; a city paid by the week gets a week's share of it.
+    pay = set_pay(setup)
+    income = take_home(city, tier) if pay is None else pay * (12 / 52 if city['rent_period'] == 'week' else 1)
     hood = home_hood(definition, city, tier, seed)
     unit, rent = housing(hood, tier, income, seed)
     era = era_of(city)
@@ -464,7 +499,7 @@ def saved_since(found: Profile, since: date, day: date) -> float:
 # Currencies without minor units, and symbols written before the number.
 WHOLE = {'JPY', 'KRW'}
 # Coins counted whole: silver pennies, groschen, silver weights (a part of one rounds up to one).
-COINS = {'penny', 'groschen', 'sw'}
+COINS = {'penny', 'groschen', 'sw'} | money_fill.COIN_CODES
 # Shillings, said in shillings and pence (twelve pence to the shilling): 4s. 1d., 2d.
 SHILLINGS = {'shilling', 's'}
 # Shillings of the pound sterling (London 1895), twenty to the pound.
@@ -485,8 +520,10 @@ def shillings(value: float, symbol: str, pounds: bool = False) -> str:
     return ' '.join(part for part in (f'{whole}s{dot}' if whole else '', f'{pence}d{dot}' if pence else '') if part)
 
 
-def amount(value: float, currency: dict) -> str:
-    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d."""
+def amount(value: float, currency: dict, short: bool = False) -> str:
+    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d. A world's own money
+    (a city pack's gold, one picked for it by world/money_fill.py) is said by name, "28 gold", since "28 g" could be
+    grams; `short` keeps its symbol, for a tight cost chip (Iris, PR #538)."""
     code = currency.get('code')
     if code in SHILLINGS and value > 0:
         return shillings(value, currency['symbol'], code in STERLING)
@@ -503,6 +540,9 @@ def amount(value: float, currency: dict) -> str:
     symbol = currency['symbol']
     if symbol in PREFIXES:
         return f'{symbol}{number}'
+    if not short and code not in money_fill.shipped_codes():
+        name = currency['name']
+        return f'{number} {name[:-1] if number == "1" and name.endswith("s") and not name.endswith("ss") else name}'
     return f'{number} {symbol or currency["name"]}'.strip()
 
 
@@ -679,8 +719,11 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         found = with_home(found, home['costs'], home.get('pay'))
     if not found:
         city = city_for(definition)
-        reason = f"There is no money in {city['name']}." if city else \
-            'Money follows a home city with rents and prices. Pick one in Character.'
+        reason = 'Money follows a home city with rents and prices. Pick one in Character.'
+        if city:  # Only a city with no currency at all (Oz) is without money: others get rents (world/money_fill.py).
+            reason = f"There is no money in {city['name']}." if city['currency']['code'] == 'none' else \
+                f"{city['name']} has no rents to work out a budget from."
+
         return {'available': False, 'reason': reason}
     day = date.fromisoformat(local_date)
     start = cycle_start(found, day)
@@ -780,6 +823,18 @@ def payday_text(view: dict, local_date: str) -> str:
     if view['flush']:
         return f"{head} You have some spending money (about {view['text']['left']})."
     return f"{head} About {view['text']['left']} left to spend until then."
+
+
+def worked_out_pay(definition: dict) -> dict | None:
+    """What their work and city pay a month, before any pay the user set (the Pay field's placeholder), and the
+    money it is in. None where there is no money."""
+    found = profile({**definition, 'money': {**(definition.get('money') or {}), 'pay': None}})
+    if not found:
+        return None
+    monthly = found.income * (52 / 12 if found.period == 'week' else 1)
+    currency = found.city['currency']
+    return {'monthly': round(monthly, 2), 'text': amount(monthly, currency), 'currency': currency,
+            'prefix': currency['symbol'] in PREFIXES}
 
 
 def view(database) -> dict:

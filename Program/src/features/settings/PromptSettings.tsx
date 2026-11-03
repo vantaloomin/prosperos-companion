@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { Notice } from '../../components/Feedback'
@@ -7,20 +7,32 @@ import { groupPrompts, placeholderHint, type EditablePrompt } from './prompts'
 import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['prompts']
+/** Where Settings > Pictures' Style row jumps to: Advanced, at the Pictures group. */
+export const PICTURE_PROMPTS = '#settings/advanced/pictures'
+const PICTURES_HEADING = 'prompts-pictures-heading'
 
 /** Settings > Advanced: the core prompts sent to the user's models, each with its default (companion/prompt_library.py). */
 export function PromptSettings() {
   const prompts = useQuery({ queryKey: KEY, queryFn: () => api<EditablePrompt[]>('/prompts') })
+  const loaded = !!prompts.data
+  useEffect(() => {
+    if (!loaded || window.location.hash !== PICTURE_PROMPTS) return
+    const heading = document.getElementById(PICTURES_HEADING)
+    if (!heading) return
+    heading.setAttribute('tabindex', '-1')
+    heading.scrollIntoView({ block: 'start' })
+    heading.focus({ preventScroll: true })
+  }, [loaded])
   if (!prompts.data) return <SectionPending queries={[prompts]} heading="prompts-heading" title="Prompts" />
   return (
     <section className="settings-section form-stack" aria-labelledby="prompts-heading">
       <div>
         <h2 id="prompts-heading">Prompts</h2>
-        <p className="subtle">The instructions your models are given. Changes apply to the next request, and Reset to default brings back the shipped wording. Words in double braces, such as {'{{name}}'}, are filled in by the app and must stay. Staying in character, OOC answers and the picture safety check are handled by the app too, so they keep working whatever a prompt says.</p>
+        <p className="subtle">The instructions your models are given. Changes apply to the next request, and Reset to default brings back the shipped wording. Words in double braces, such as {'{{name}}'}, are filled in by the app and must stay. Staying in character, OOC answers and the picture safety check are handled by the app too, so they keep working whatever a prompt says. Pictures holds the pieces every picture prompt is put together from.</p>
       </div>
       {groupPrompts(prompts.data).map(([group, items]) => (
         <div key={group} className="form-stack">
-          <h3>{group}</h3>
+          <h3 id={group === 'Pictures' ? PICTURES_HEADING : undefined}>{group}</h3>
           {items.map((prompt) => <PromptEditor key={prompt.name} prompt={prompt} />)}
         </div>
       ))}
@@ -44,13 +56,13 @@ function PromptEditor({ prompt }: { prompt: EditablePrompt }) {
       setResult({ tone: 'error', text: error instanceof Error ? error.message : 'Not saved.' })
     } finally { setBusy(false) }
   }
-  const save = () => run(() => api<EditablePrompt>(`/prompts/${prompt.name}`, { text }, 'PUT'), 'Saved. The next request uses it.')
+  const save = () => run(() => api<EditablePrompt>(`/prompts/${prompt.name}`, { text }, 'PUT'), prompt.group === 'Pictures' ? 'Saved. The next picture uses it.' : 'Saved. The next request uses it.')
   const reset = () => run(() => api<EditablePrompt>(`/prompts/${prompt.name}`, undefined, 'DELETE'), 'Back to the default wording.')
   return (
     <details className="prompt-editor">
       <PromptSummary prompt={prompt} />
       <TextArea label={prompt.label} value={text} onChange={setText} rows={14} maxLength={20000}
-        hint={<>{prompt.description}{prompt.placeholders.length > 0 && <> {placeholderHint(prompt)}</>}</>} />
+        hint={<>{prompt.description}{(prompt.lines || prompt.placeholders.length > 0) && <> {placeholderHint(prompt)}</>}</>} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       <div className="form-actions">
         <button type="button" className="button primary" disabled={busy || !text.trim() || text === prompt.text} onClick={() => void save()}>Save</button>

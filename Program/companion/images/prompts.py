@@ -5,7 +5,9 @@ only what the events already say, plus the character's appearance description.
 """
 import random
 import re
+from functools import wraps
 
+from companion import prompt_library
 from companion.characters import require_current
 from companion.clock import parse, zone
 from companion.database import decode, one
@@ -31,6 +33,21 @@ from companion.world import decades, looks, newcomers, ships
 PROMPT_VERSION = 9
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
+
+
+def negative() -> str:
+    """The negative prompt in use: the user's wording (Settings > Advanced > Prompts > Pictures), else `NEGATIVE`."""
+    return prompt_library.line('image-negative')
+
+
+def own_words(builder):
+    """Runs a request builder with the user's wording of the picture pieces (companion/prompt_library.py, Pictures);
+    the constants here are the defaults."""
+    @wraps(builder)
+    def run(connection, *args, **kwargs):
+        with prompt_library.reading(connection):
+            return builder(connection, *args, **kwargs)
+    return run
 
 
 def place_name(event) -> str:
@@ -263,7 +280,9 @@ def camera(style: str, framing='moment', period: dict | None = None) -> str:
     if 'photo' not in style or NOT_PHOTO.search(style) or \
             any(word in style for word in ('lens', 'mm', 'depth of field', 'shot on', 'film')):
         return ''
-    return ((period or {}).get('cameras') or {}).get(framing) or CAMERAS.get(framing, CAMERAS['moment'])
+    cameras = prompt_library.words('image-cameras')
+    cameras['scene_both'] = cameras['scene']
+    return ((period or {}).get('cameras') or {}).get(framing) or cameras.get(framing, cameras['moment'])
 
 
 def restyle(inputs: dict, own: str | None) -> dict:
@@ -309,15 +328,18 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
                      setting)
     action = doing(event, subject, possessive, who) or unnamed(f"{told(event['summary'], who).strip().rstrip('.')}{where}.",
                                                                name, who)
-    expression = EXPRESSIONS.get((event.get('mood') or '').strip().lower()) or \
+    expression = prompt_library.words('image-moods').get((event.get('mood') or '').strip().lower()) or \
         (f"a {event['mood'].strip().lower()} expression" if event.get('mood') else '')
-    framings = FRAMINGS | ((period or {}).get('framings') or {})
+    openings = prompt_library.words('image-openings')
+    framings = openings | {'moment': ''} | ((period or {}).get('framings') or {})
     if framing == 'scene' and event.get('user'):
         framing = 'scene_both'  # The user is drawn beside them (companion/persona_pictures.py), not as the eyes.
     opening = framings[framing].format(subject=subject.lower(), possessive=possessive, object=OBJECT[who]) \
         if framings[framing] else ''
-    parts = [f'{style}, {opening}.' if opening else f'{style} of a fictional everyday moment, {MOMENT.format(possessive=possessive)}.',
-             *((f'{look}.', sheet) if look and HAS.match(sheet) else (sheet, f'{look}.' if look else '')), setting, WITH_YOU.sub('', action) if event.get('user') else action,
+    plain = openings['moment'].format(possessive=possessive)
+    parts = [f'{style}, {opening}.' if opening else f"{style} of a fictional everyday moment{', ' + plain if plain else ''}.",
+             *((f'{look}.', sheet) if look and HAS.match(sheet) else (sheet, f'{look}.' if look else '')), setting,
+             WITH_YOU.sub('', action) if event.get('user') else action,
              alone(event, action, subject, who, framing),
              beside(event, subject, who), event.get('place_look') or '',
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
@@ -416,8 +438,8 @@ def picture_of(event) -> str | None:
         if hobby.get('name') and hobby.get('picture') == f"absorbed in {hobby['name']} at home":
             # A pastime added by hand used to be pictured at home whatever it was; it follows its own words now.
             return hobbies.custom(hobby['name'])['picture']
-        return hobby.get('picture') or PICTURES['hobby']
-    return PICTURES.get(event.get('activity') or '')
+        return hobby.get('picture') or prompt_library.words('image-activities')['hobby']
+    return prompt_library.words('image-activities').get(event.get('activity') or '') or None
 
 
 def told(summary: str, who: str) -> str:
@@ -528,6 +550,7 @@ def local_hour(stamp_text, timezone) -> int | None:
         return None
 
 
+@own_words
 def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> dict:
     """The frozen inputs of one request (F3, F4)."""
     post = one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
@@ -559,7 +582,7 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
                                             setting(connection, post['timeline_id'], events[0],
                                                     not own_outfit(definition)), who, sheet,
                                             ships.aboard(connection, definition), period),
-            'negative': NEGATIVE, 'style': image_settings['style'], 'aspect': image_settings['aspect'],
+            'negative': negative(), 'style': image_settings['style'], 'aspect': image_settings['aspect'],
             'seed': seed if seed is not None else random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),
             'character_name': definition['name'], 'character_version_id': companion['version']['id'],
@@ -676,6 +699,8 @@ FRAMINGS = {
                   'unposed, with the place all around',
 }
 OBJECT = {'she': 'her', 'he': 'him', 'they': 'them'}
+# The openings as Settings > Advanced > Prompts lists them: a plain moment's own words in place of its empty framing.
+OPENINGS = {'moment': MOMENT, **{key: value for key, value in FRAMINGS.items() if key != 'moment'}}
 
 
 def visit_words(scene_text: dict, neighborhood: str | None) -> dict:
@@ -687,6 +712,7 @@ def visit_words(scene_text: dict, neighborhood: str | None) -> dict:
     return {**scene_text, **outings.photo_words(scene_text['summary'], scene_text['activity'], neighborhood)}
 
 
+@own_words
 def build_moment(connection, moment, image_settings, framing='moment') -> dict:
     """The frozen inputs of a chat photo: the companion's current slot as the simulation composes
     it, before it is an event. The moment's wording goes into `captions`, so classification covers
@@ -729,6 +755,7 @@ def user_shown(connection) -> str:
     return persona_pictures.described(persona) if persona else ''
 
 
+@own_words
 def build_meme(connection, meme, image_settings) -> dict:
     """The frozen inputs of a meme picture. Its captions are drawn over the picture by the interface,
     never asked of the image model, and they are classified with the rest (F6)."""
@@ -759,7 +786,7 @@ def children(connection, timeline_id: str, texts, outing_ids=()) -> dict:
 
 
 def base_inputs(companion, definition, image_settings) -> dict:
-    return {'prompt_version': PROMPT_VERSION, 'negative': NEGATIVE, 'style': image_settings['style'],
+    return {'prompt_version': PROMPT_VERSION, 'negative': negative(), 'style': image_settings['style'],
             'name_in_pictures': bool(definition.get('name_in_pictures')),
             'aspect': image_settings['aspect'], 'seed': random.SystemRandom().randrange(1, 2**31),
             'appearance': definition.get('appearance', ''), 'relationship': definition.get('relationship', ''),

@@ -24,6 +24,7 @@ from companion.life import (
     circle_pets,
     citymap,
     deck,
+    drop_by,
     encounters,
     families,
     family_circle,
@@ -625,6 +626,40 @@ def home_together(request: Request, action: Literal['out', 'home']):
         companion, now = require_current(connection), database.clock.now()
         moving_in.set_out(connection, companion, action == 'out', now)
         return together.view(connection, companion, now)
+
+
+class DropBy(Input):
+    place: Literal['home', 'work']
+
+
+@router.post('/drop-by')
+async def drop_by_now(request: Request, body: DropBy):
+    """The user drops by the companion's home or work unannounced (the map's Drop by buttons,
+    companion/life/drop_by.py): rules decide what they find; going in, the companion's first words are phrased by the
+    model (a fixed line without one) and the time together starts."""
+    from companion.providers.scheduling import BackgroundInterrupted
+    from companion.text_models import CHAT, config_for
+    database = db(request)
+    now = database.clock.now()
+    with database.connect() as connection:
+        companion = require_current(connection)
+        found = drop_by.decide(connection, companion, body.place, now)
+        config = config_for(connection, CHAT)
+    text = None
+    if found['result'] in ('in', 'work'):
+        trigger = drop_by.trigger(companion, found, now)
+        try:
+            text, _wording = await request.app.state.openers.write(companion['id'], trigger, config, now)
+        except BackgroundInterrupted:
+            text = None  # The fixed line, below.
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        again = drop_by.decide(connection, companion, body.place, now)  # Nothing changed while the words were written.
+        result = drop_by.arrive(connection, companion, body.place, found if again['result'] == found['result'] else
+                                again, text if again['result'] == found['result'] else None, now)
+        result['where'] = together.view(connection, companion, now)
+    request.app.state.life.extend_agenda('return')
+    return result
 
 
 @router.post('/calls')
