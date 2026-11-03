@@ -25,11 +25,6 @@ export function chatLabel(chat: Pick<Chat, 'kind' | 'id' | 'name' | 'unread' | '
   return parts.join(', ')
 }
 
-/** "Chats" with the count waiting elsewhere, for the button's accessible name. */
-export function chatsButtonLabel(waiting: number): string {
-  return waiting ? `Chats, ${waiting} unread` : 'Chats'
-}
-
 /**
  * The newest message of theirs the user can see now, to mark the chat read up to. A held reply whose time
  * has not come is not shown yet (companion/life/pacing.py), so it is not read.
@@ -66,4 +61,22 @@ export function isOpen(chat: Pick<Chat, 'kind' | 'id' | 'focus'>, open: OpenChat
 /** Unread messages by kind of chat, for the rail's Chats (companions) and Groups tabs. */
 export function unreadOf(chats: Pick<Chat, 'kind' | 'unread'>[], kind: string): number {
   return chats.reduce((total, chat) => total + (chat.kind === kind ? chat.unread : 0), 0)
+}
+
+/** What New group still needs, shown on its menu item while it can't be used; nothing once it can. */
+export function newGroupNeeds(companions: number): string | undefined {
+  return companions < 2 ? '2+ companions' : undefined
+}
+
+/** The chats whose name holds what was typed in the list's search, ignoring case and accents. */
+export function matching<T extends { name: string }>(chats: T[], query: string): T[] {
+  const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+  const wanted = fold(query.trim())
+  return wanted ? chats.filter((chat) => fold(chat.name).includes(wanted)) : chats
+}
+
+/** The panel button's name: what pressing it does, and whether something new waits in the hidden list. */
+export function listButtonLabel(shown: boolean, waiting: number): string {
+  if (shown) return 'Hide the chat list'
+  return waiting ? `Show the chat list, ${waiting} unread` : 'Show the chat list'
 }

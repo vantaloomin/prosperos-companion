@@ -21,6 +21,7 @@ import { useChats } from './features/chats/useChats'
 import { reach } from './features/notifications/useNotifications'
 import { unreadOf } from './features/chats/chatText'
 import { AppNav } from './features/nav/AppNav'
+import { NewGroupHost } from './features/chats/NewGroupHost'
 import { RAIL_IDS, fromToday } from './features/nav/navText'
 import { useAppColors } from './features/settings/useAppColors'
 import { useShowCityLink } from './features/world/useShowCity'
@@ -42,7 +43,7 @@ const Dating = lazy(() => import('./features/dating/Dating').then((m) => ({ defa
 const Story = lazy(() => import('./features/story/Story').then((m) => ({ default: m.Story })))
 const Sidecar = lazy(() => import('./features/sidecar/Sidecar').then((m) => ({ default: m.Sidecar })))
 const SidecarWindow = lazy(() => import('./features/sidecar/SidecarWindow').then((m) => ({ default: m.SidecarWindow })))
-const Groups = lazy(() => import('./features/groups/Groups').then((m) => ({ default: m.Groups })))
+const SecretsPage = lazy(() => import('./features/groups/SecretsPage').then((m) => ({ default: m.SecretsPage })))
 const GroupChat = lazy(() => import('./features/groups/GroupChat').then((m) => ({ default: m.GroupChat })))
 const Worlds = lazy(() => import('./features/worlds/Worlds').then((m) => ({ default: m.Worlds })))
 const WhoKnowsWho = lazy(() => import('./features/web/WhoKnowsWho').then((m) => ({ default: m.WhoKnowsWho })))
@@ -53,11 +54,13 @@ const Watch = lazy(() => import('./features/watch/Watch').then((m) => ({ default
 
 // Views outside the side rail: the phone's Chats list, worlds, the map and Who knows who opened from Today, and
 // another companion made from the Character page.
-const OTHER_VIEWS = new Set(['chats', 'worlds', 'people', 'map', 'watch', 'another'])
+const OTHER_VIEWS = new Set(['chats', 'secrets', 'worlds', 'people', 'map', 'watch', 'another'])
 const LINKED = ['settings/', 'match/', 'chat/', 'group/', 'map/']
 
 function viewFromHash(): View {
   const id = window.location.hash.slice(1)
+  // The Groups page became part of the Chats list (v1.3), so an old link opens the list.
+  if (id === 'groups') return 'chats'
   return OTHER_VIEWS.has(id) || RAIL_IDS.has(id) || profileTab(id) || LINKED.some((prefix) => id.startsWith(prefix)) ? id as View : 'conversation'
 }
 
@@ -79,7 +82,7 @@ export default function App() {
   useTexts(!!companion.data)
   useChatLink(view, setView)
   const chats = useChats(!!companion.data).data?.chats ?? []
-  // Unread one-to-one chats count on the rail's Chats, group chats on Groups, and both on the phone's Chats.
+  // Unread one-to-one and group chats both count on Chats, on the rail and the phone's tab bar.
   const unread = { companion: unreadOf(chats, 'companion'), group: unreadOf(chats, 'group') }
   useFocusOnViewChange(view)
   // Story mode is opt-in (Settings > Advanced), so its tab shows only once it is on.
@@ -103,6 +106,7 @@ export default function App() {
             : <Suspense fallback={<Loading label="Opening" />}><CurrentView view={shown} companion={companion.data ?? null} go={go} openTab={openTab} /></Suspense>}
       </main>
       {sidecarOpen && <SidecarHost view={view} go={go} />}
+      <NewGroupHost go={go} />
       <AiNotice />
     </div>
   )
@@ -162,13 +166,13 @@ function CurrentView({ view, companion, go, openTab }: CurrentViewProps) {
 
 function inWorkspace(view: View) {
   return view === 'chats' || view === 'worlds' || view === 'watch' || view === 'settings' || view.startsWith('settings/') || view === 'story' || view === 'dating' || view.startsWith('match/')
-    || view === 'groups' || view.startsWith('group/')
+    || view === 'secrets' || view.startsWith('group/')
 }
 
 function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
   const storyOn = useWorkspaceSettings().data?.story_mode
   const page = { chats: <ChatsHome go={go} />, worlds: <Worlds />, watch: <Watch go={go} />, dating: <Dating go={go} />,
-    groups: <Groups go={go} /> }[view as string]
+    secrets: <SecretsPage /> }[view as string]
   if (page) return page
   if (view.startsWith('group/')) return <GroupChat key={view} id={decodeURIComponent(view.slice(6))} go={go} />
   if (view.startsWith('match/')) return <SwitchTo townKey={decodeURIComponent(view.slice(6))} go={go} />

@@ -73,7 +73,7 @@ test('the chat list shows the clock today, the day this year and the year before
 
 test('every chat list, the desktop sidebar and the phone list, uses the short list time', async () => {
   const { readFile } = await import('node:fs/promises')
-  for (const file of ['features/chats/ChatSidebar.tsx', 'features/chats/ChatsPanel.tsx']) {
+  for (const file of ['features/chats/ChatSidebar.tsx', 'features/chats/ChatList.tsx']) {
     const text = await readFile(new URL(`../../src/${file}`, import.meta.url), 'utf8')
     assert.match(text, /<Stamp className="chat-row-time" value=\{chat\.last\.at\} short \/>/, file)
   }

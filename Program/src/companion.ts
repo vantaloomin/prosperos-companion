@@ -16,7 +16,7 @@ export type View = 'conversation' | 'chats' | 'dating' | 'story' | 'today' | 'fe
   /** A companion's chat, opened from a notification: #chat/<their id>. */
   | `chat/${string}`
   /** Group chats (src/features/groups): the list, and one group as #group/<its id>. */
-  | 'groups' | `group/${string}`
+  | 'secrets' | `group/${string}`
   /** Worlds and personas (src/features/worlds). */
   | 'worlds'
   /** Who knows who (src/features/web), opened from Today. */

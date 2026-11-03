@@ -11,9 +11,9 @@ import { Stamp } from '../../components/Stamp'
 import { CrisisNote } from '../../components/Safety'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Composer } from '../conversation/Composer'
-import { ChatMenu, ChatsButton, ChatStyleSwitch } from '../conversation/ConversationHeader'
+import { ChatMenu, ChatStyleSwitch } from '../conversation/ConversationHeader'
 import { ChatSidebar } from '../chats/ChatSidebar'
-import { ChatsPanel } from '../chats/ChatsPanel'
+import { ListButton } from '../chats/ListButton'
 import { useMarkRead } from '../chats/useChats'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useDraft } from '../conversation/useDraft'
@@ -137,7 +137,7 @@ function TryAgain({ shown, onRetry }: { shown: boolean; onRetry: () => void }) {
 
 function GroupError({ error, go }: { error: Error; go: (view: View) => void }) {
   if (error instanceof ApiError && error.status === 404) {
-    return <Notice action={<button type="button" className="text-button" onClick={() => go('groups')}>All groups</button>}>That group chat is gone.</Notice>
+    return <Notice action={<button type="button" className="text-button" onClick={() => go('chats')}>Chats</button>}>That group chat is gone.</Notice>
   }
   return <ErrorNotice error={error} />
 }
@@ -202,26 +202,23 @@ function KeepMoment({ kept, onKeep }: { kept: boolean; onKeep: (kept: boolean) =
 function GroupHeader({ group, go, onChange }: { group: Group; go: (view: View) => void; onChange: Change }) {
   const [renaming, setRenaming] = useState(false)
   const [people, setPeople] = useState(false)
-  const [listing, setListing] = useState(false)
   const peopleButton = useReturnFocus<HTMLButtonElement>(people)
-  const chatsButton = useReturnFocus<HTMLButtonElement>(listing)
   const current = { kind: 'group', id: group.id }
   return <>
     <header className="conversation-header">
-      <button type="button" className="icon-button" aria-label="All groups" onClick={() => go('groups')}><ChevronLeft aria-hidden="true" /></button>
+      <button type="button" className="icon-button chat-back phone-only" aria-label="Chats" onClick={() => go('chats')}><ChevronLeft aria-hidden="true" /></button>
+      <ListButton current={current} />
       <div className="portrait" aria-hidden="true"><UsersRound /></div>
       <div className="conversation-title">
         {renaming ? <Rename group={group} onDone={() => setRenaming(false)} onChange={onChange} />
           : <h1><span className="group-title-text">{group.title}</span> <button type="button" className="icon-button group-rename" aria-label="Rename the group" onClick={() => setRenaming(true)}><Pencil aria-hidden="true" /></button></h1>}
         <p className="subtle">{membersLine(group)}</p>
       </div>
-      <ChatsButton listing={listing} button={chatsButton} onChats={() => setListing(!listing)} current={current} />
       <ChatStyleSwitch />
       <button ref={peopleButton} type="button" className="icon-button" aria-label="People in this group" aria-expanded={people} onClick={() => setPeople(!people)}><UsersRound aria-hidden="true" /></button>
       <ChatMenu threadId={group.id} />
     </header>
     {people && <GroupPeople group={group} go={go} onChange={onChange} onClose={() => setPeople(false)} />}
-    {listing && <ChatsPanel go={go} onClose={() => setListing(false)} current={current} />}
   </>
 }
 
@@ -361,7 +358,7 @@ function DeleteDialog({ group, go, onClose }: { group: Group; go: (view: View) =
   const remove = async () => {
     await api(`/groups/${group.id}`, undefined, 'DELETE')
     await client.invalidateQueries({ queryKey: GROUPS_KEY })
-    go('groups')
+    go('chats')
   }
   return (
     <ConfirmDialog title="Delete this group?" onClose={onClose} actions={<>

@@ -15,7 +15,7 @@ type Change = (request: () => Promise<unknown>) => Promise<void>
 
 /** Secrets: what only some of them know. Group replies come only from what each speaker knows, and a knower's
  * reply is checked while someone it's kept from is there (companion/secrets.py). */
-export function Secrets() {
+export function Secrets({ heading = 2 }: { heading?: 1 | 2 }) {
   const client = useQueryClient()
   const data = useQuery({ queryKey: SECRETS_KEY, queryFn: () => api<SecretsData>('/secrets') })
   const [creating, setCreating] = useState(false)
@@ -27,7 +27,7 @@ export function Secrets() {
   const companions = data.data?.companions ?? []
   return (
     <section className="secrets" aria-labelledby="secrets-heading">
-      <h2 id="secrets-heading">Secrets</h2>
+      {heading === 1 ? <h1 id="secrets-heading">Secrets</h1> : <h2 id="secrets-heading">Secrets</h2>}
       <p className="subtle">Someone only knows a secret if they were told, were there when it came out, or you let them find out. Nobody else ever has it in mind. Secrets in their storylines, descriptions and memories show up here on their own; edit or end any of them.</p>
       {data.isPending && <Loading label="Loading secrets" />}
       {data.isError && <ErrorNotice error={data.error} />}
