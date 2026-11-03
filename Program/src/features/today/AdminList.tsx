@@ -4,7 +4,7 @@ import { CalendarClock, SkipForward, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import type { AdminItem } from '../../types'
 import { Notice } from '../../components/Feedback'
-import { ADMIN_KEY, adminMoved, adminTags, adminWhen, stayUnit } from './adminText'
+import { ADMIN_KEY, adminMoved, adminTags, adminWhen, costWords, stayUnit } from './adminText'
 import { dayText } from './outingText'
 
 /** Lists longer than this show their first few, with the rest a tap away (Iris's review). */
@@ -40,7 +40,7 @@ export function AdminList({ items, done = false, fold = FOLD, inWorkPanel = fals
             <li key={item.id} className={item.status === 'skipped' ? 'admin-item admin-skipped' : 'admin-item'}>
               <div className="admin-head">
                 <strong>{item.title}</strong>
-                {adminTags(item, inWorkPanel).map((tag) => <span key={tag} className="badge">{tag}</span>)}
+                {adminTags(item, inWorkPanel).map((tag) => <AdminTag key={tag} tag={tag} full={costWords(item, tag)} />)}
               </div>
               <div className="admin-when">
                 <p className="subtle">{adminWhen(item)}</p>
@@ -76,4 +76,10 @@ function StayButtons({ item, busy, act }: { item: AdminItem; busy: boolean; act:
 /** Under a skipped stay, when its make-up is (Iris: the child wasn't simply dropped). */
 function MadeUp({ item }: { item: AdminItem }) {
   return item.stay?.made_up ? <p className="subtle">Made up on {dayText(item.stay.made_up)}.</p> : null
+}
+
+/** One chip; an abbreviated one ("1 g") carries its full words ("1 gold") as its title and for screen readers. */
+function AdminTag({ tag, full }: { tag: string; full: string }) {
+  if (!full) return <span className="badge">{tag}</span>
+  return <span className="badge" title={full}><span aria-hidden="true">{tag}</span><span className="visually-hidden">{full}</span></span>
 }

@@ -21,13 +21,24 @@ export function adminMoved(item: AdminItem): string {
   return `${reason} from ${dayText(item.moved_from)}`
 }
 
-/** Booked with someone else, or something they can do any time; and its cost when it has one. */
+/** Booked with someone else, or something they can do any time; and its cost when it has one (costChip). */
 export function adminTags(item: AdminItem, inWorkPanel = false): string[] {
   // Work life's late nights, in Life admin's words for who gives way (Iris): the panel already says it is work.
   if (item.source === 'work' && inWorkPanel) return item.fixed ? ["Won't give way"] : []
   if (item.source === 'work') return [item.fixed ? "Work · won't give way" : 'Work']
   if (item.source === 'family') return item.status === 'skipped' ? ['Skipped'] : []
-  return [item.fixed ? 'Booked' : '', item.cost_text].filter(Boolean)
+  return [item.fixed ? 'Booked' : '', costChip(item)].filter(Boolean)
+}
+
+/** The cost as its chip shows it: a world's own coin is short ("1 g"), spelled out by costWords as the chip's title
+ * and accessible name ("1 gold"), as Iris asked. */
+export function costChip(item: AdminItem): string {
+  return item.cost_short || item.cost_text
+}
+
+/** The chip's full words when the chip abbreviates them, else ''. */
+export function costWords(item: AdminItem, tag: string): string {
+  return tag && tag === costChip(item) && tag !== item.cost_text ? item.cost_text : ''
 }
 
 /** What a stay moves by: 'weekend', 'week' or 'day' (companion/life/stays.py moves it a week on). */

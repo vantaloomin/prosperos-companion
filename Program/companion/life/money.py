@@ -18,7 +18,7 @@ from functools import cache, lru_cache
 
 from companion.characters import require_current
 from companion.clock import zone
-from companion.world import catalog, decades, intimacy, ships
+from companion.world import catalog, decades, intimacy, money_fill, ships
 from companion.world.source import CatalogWorld
 
 PAY_TIERS = {'$': 0, '$$': 1, '$$$': 2, '$$$$': 3}
@@ -464,7 +464,7 @@ def saved_since(found: Profile, since: date, day: date) -> float:
 # Currencies without minor units, and symbols written before the number.
 WHOLE = {'JPY', 'KRW'}
 # Coins counted whole: silver pennies, groschen, silver weights (a part of one rounds up to one).
-COINS = {'penny', 'groschen', 'sw'}
+COINS = {'penny', 'groschen', 'sw'} | money_fill.COIN_CODES
 # Shillings, said in shillings and pence (twelve pence to the shilling): 4s. 1d., 2d.
 SHILLINGS = {'shilling', 's'}
 # Shillings of the pound sterling (London 1895), twenty to the pound.
@@ -485,8 +485,10 @@ def shillings(value: float, symbol: str, pounds: bool = False) -> str:
     return ' '.join(part for part in (f'{whole}s{dot}' if whole else '', f'{pence}d{dot}' if pence else '') if part)
 
 
-def amount(value: float, currency: dict) -> str:
-    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d."""
+def amount(value: float, currency: dict, short: bool = False) -> str:
+    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d. A world's own money
+    (a city pack's gold, one picked for it by world/money_fill.py) is said by name, "28 gold", since "28 g" could be
+    grams; `short` keeps its symbol, for a tight cost chip (Iris, PR #538)."""
     code = currency.get('code')
     if code in SHILLINGS and value > 0:
         return shillings(value, currency['symbol'], code in STERLING)
@@ -503,6 +505,9 @@ def amount(value: float, currency: dict) -> str:
     symbol = currency['symbol']
     if symbol in PREFIXES:
         return f'{symbol}{number}'
+    if not short and code not in money_fill.shipped_codes():
+        name = currency['name']
+        return f'{number} {name[:-1] if number == "1" and name.endswith("s") and not name.endswith("ss") else name}'
     return f'{number} {symbol or currency["name"]}'.strip()
 
 
@@ -679,8 +684,11 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         found = with_home(found, home['costs'], home.get('pay'))
     if not found:
         city = city_for(definition)
-        reason = f"There is no money in {city['name']}." if city else \
-            'Money follows a home city with rents and prices. Pick one in Character.'
+        reason = 'Money follows a home city with rents and prices. Pick one in Character.'
+        if city:  # Only a city with no currency at all (Oz) is without money: others get rents (world/money_fill.py).
+            reason = f"There is no money in {city['name']}." if city['currency']['code'] == 'none' else \
+                f"{city['name']} has no rents to work out a budget from."
+
         return {'available': False, 'reason': reason}
     day = date.fromisoformat(local_date)
     start = cycle_start(found, day)

@@ -212,7 +212,8 @@ def test_users_build_their_own_cities(client):
     outing = client.get('/api/world/cities/port-calloway/generate/outing', params={'seed': 's', 'day': '2026-10-04'})
     assert outing.json()['outing']['place']['id'] == 'corner-cafe' and outing.json()['outing']['weather'] is None
     home = client.get('/api/world/cities/port-calloway/generate/home', params={'seed': 's'}).json()
-    assert home['neighborhood']['id'] == 'old-town' and home['rent'] is None
+    # A city written without rents borrows them from a built-in city (companion/world/money_fill.py).
+    assert home['neighborhood']['id'] == 'old-town' and home['rent'] > 0
     assert client.get('/api/world/resolve', params={'text': 'Calloway'}).json()['match']['city'] == 'port-calloway'
 
     edited = city | {'summary': 'A foggy harbour town.'}
@@ -328,7 +329,8 @@ def test_settings_without_money_or_climate_still_generate():
             'career_hubs': [], 'speeds': {'walk': 4.5, 'horse': 12},
             'careers': [{'id': 'baker-fantasy', 'name': 'Baker', 'sector': 'food', 'schedule': 'early', 'pay': '$',
                          'summary': 'Bakes bread before dawn.', 'themes': ['bread'], 'eras': ['fantasy']}],
-            'neighborhoods': [hood | {'rent': None} for hood in raw['neighborhoods']]}
+            'neighborhoods': [hood | {'rent': None} for hood in raw['neighborhoods']],
+            'currency': {'code': 'none', 'symbol': '', 'name': 'no money'}}
     data = catalog.prepare(raw)
     assert set(catalog.careers_for(data)) == {'baker-fantasy'}
     assert generators.job(data, 'baker-fantasy', seed='x')['employer']['fit'] == 'workplace'
