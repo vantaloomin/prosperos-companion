@@ -1,4 +1,4 @@
-"""Settings > Debug > Townsfolk mix (companion/world/mix.py, companion/townsfolk_mix.py): the shares the townsfolk
+"""Settings > Data > Townsfolk mix (companion/world/mix.py, companion/townsfolk_mix.py): the shares the townsfolk
 rolls use, shown, and a new world made with changed ones."""
 from statistics import mean
 

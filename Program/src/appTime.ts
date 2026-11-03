@@ -2,7 +2,7 @@ import type { DebugTime } from './types'
 
 /**
  * The app's time, which is the PC's real time unless the world runs in a past year (companion/world_year.py),
- * or debug time (Settings > Debug) moved it ahead or made it run faster (companion/debug_time.py). Anything
+ * or debug time (Settings > Data) moved it ahead or made it run faster (companion/debug_time.py). Anything
  * comparing against times the server wrote, such as when a held reply shows or what day it is for the
  * companion, reads it here.
  */

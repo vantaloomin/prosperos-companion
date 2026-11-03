@@ -114,7 +114,7 @@ class AllMatches(Input):
 
 @matches_router.get('')
 def all_matches(request: Request):
-    """Whether every Matchlight like is a match (Settings > Debug)."""
+    """Whether every Matchlight like is a match (Settings > Data)."""
     with request.app.state.database.connect() as connection:
         return {'on': bool(settings(connection)['debug_all_matches'])}
 

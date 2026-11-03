@@ -3,7 +3,7 @@
 The app only talks to a ComfyUI server the user configured. It never starts, stops or restarts
 one, and cancelling removes or interrupts only the prompt this app queued.
 
-Each backend has a model family (Settings > Images; Vanta, 2026-10-13), and each family a built-in
+Each backend has a model family (Settings > Pictures; Vanta, 2026-10-13), and each family a built-in
 workflow (FAMILIES), made from Vanta's own TXT2IMG and reference workflows for it (2026-10-13). Krea 2 is
 the default, on the files ComfyUI's own Krea 2 template uses (`krea2_turbo_fp8_scaled.safetensors`, the
 `qwen3vl_4b_fp8_scaled.safetensors` encoder of type `krea2`, `qwen_image_vae.safetensors`), 8 steps at
@@ -411,7 +411,7 @@ def rejection_text(body: dict) -> str:
     error = body.get('error') if isinstance(body.get('error'), dict) else {}
     if error.get('type') == 'missing_node_type':
         return (f"ComfyUI is missing a node the workflow uses: {error.get('message') or 'unknown node'}. Run the "
-                'compatibility check in Settings > Images to see what to install.')
+                'compatibility check in Settings > Pictures to see what to install.')
     return f"ComfyUI rejected the workflow: {error.get('message') or 'invalid workflow'}. " \
         'Run the compatibility check in Settings.'
 
@@ -425,7 +425,7 @@ def node_rejection(node_id: str, found: dict) -> str:
         if error.get('type') == 'value_not_in_list' and name in MODEL_FOLDERS and isinstance(value, str):
             return (f"ComfyUI does not have {value}, which the workflow's {node} node loads. Put it in ComfyUI's "
                     f"models/{MODEL_FOLDERS[name]} folder and restart ComfyUI, or choose a model it has in "
-                    'Settings > Images.')
+                    'Settings > Pictures.')
         detail = str(error.get('details') or error.get('message') or 'invalid input')
         detail = re.sub(r'\s+not in \[.*', ' is not one it offers', detail, flags=re.DOTALL)[:200]  # not every option
         return f"ComfyUI rejected the workflow's {node} node: {detail}. Run the compatibility check in Settings."
@@ -499,7 +499,7 @@ class ComfyAdapter:
         workflow, name = workflow_for(request.config, reference=request.reference is not None)
         if workflow is None:
             raise AdapterError('incompatible', f"The built-in {FAMILIES[family_of(request.config)].label} workflow cannot "
-                               'follow a reference picture. Add a reference workflow in Settings > Images.')
+                               'follow a reference picture. Add a reference workflow in Settings > Pictures.')
         if name in TEMPLATE_NAMES and any(request.config.get(key) not in (None, '') for key in SAMPLER_INPUTS):
             used = {**default_sampler(family_of(request.config)), **{key: request.config[key] for key in SAMPLER_INPUTS
                                              if request.config.get(key) not in (None, '')}}

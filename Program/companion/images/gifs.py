@@ -1,6 +1,6 @@
 """Reaction GIFs from GIPHY, only with the user's own key (Hit List #50; Vanta, 2026-10-10).
 
-Off until a key is added in Settings > Images ("Reaction GIFs"). Only a short search word from a
+Off until a key is added in Settings > Pictures ("Reaction GIFs"). Only a short search word from a
 fixed list, picked by the meme's mood, is ever sent to GIPHY, never the user's messages, and only
 the G and PG ratings are asked for and kept. The interface shows GIPHY's credit beside each GIF,
 as its terms require, and loads the GIF from GIPHY itself; nothing is stored but the link.

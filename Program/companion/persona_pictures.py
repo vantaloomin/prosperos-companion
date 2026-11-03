@@ -8,7 +8,7 @@ shares it.
 
 A picture of a moment the user is in (an outing or a visit with the companion, their wedding, a big day) shows
 them beside the companion: in words from their looks, and on a backend that takes reference pictures, following
-their picture as a second reference (images/runner.py). Settings > Images can turn that off per world (`show_me`).
+their picture as a second reference (images/runner.py). Settings > Pictures can turn that off per world (`show_me`).
 
 "Make one" is a fixed fill-in template, never written by a model, classified and routed like every other image
 (images/content.py, images/routing.py: NSFW only to a backend that accepts it, prohibited nowhere) and made in the
@@ -131,7 +131,7 @@ def described(persona: dict, age: int | None = None) -> str:
 
 
 def here(connection) -> dict | None:
-    """The persona of the world the user is in, as pictures read them, or None when Settings > Images shows the
+    """The persona of the world the user is in, as pictures read them, or None when Settings > Pictures shows the
     user in no pictures."""
     shown = optional(connection, 'SELECT show_me FROM image_settings WHERE id=1')
     if not shown or not shown['show_me']:

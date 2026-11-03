@@ -272,7 +272,7 @@ export const MONTHS = Array.from({ length: 12 }, (_, index) => new Date(Date.UTC
 const KEY = 'draft-table-work'
 /** Saving a place tells Companion's window, which lists the user's cities, to look again. */
 export const CITIES_CHANNEL = 'companion-cities'
-/** The city Companion's window shows when it next opens Settings > Life & cities (Show in Companion). */
+/** The city Companion's window shows when it next opens Settings > World (Show in Companion). */
 export const SHOW_CITY_KEY = 'companion-show-city'
 
 /** Journey times a neighbour can be, in hours (the city file takes up to 72). */

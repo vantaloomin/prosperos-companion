@@ -11,7 +11,7 @@ type Result = { tone: 'info' | 'error'; text: string } | null
 type Books = { books: LibraryBook[] }
 
 /** The reference library: long texts the companion (or everyone in the world) can draw on. On the Character page
- * (`name`, the companion's books and the world's) and in Settings > Life & cities (`world`, the world's only). */
+ * (`name`, the companion's books and the world's) and in Settings > World (`world`, the world's only). */
 export function Library({ name, world = false }: { name?: string; world?: boolean }) {
   const client = useQueryClient()
   const books = useQuery({ queryKey: LIBRARY_KEY, queryFn: () => api<Books>('/library').then((data) => data.books) })
@@ -54,7 +54,7 @@ export function Library({ name, world = false }: { name?: string; world?: boolea
         <button type="button" className="button" onClick={() => setRemoving(null)}>Cancel</button>
         <button type="button" className="button primary" onClick={() => void change(`/library/books/${removing.id}`, undefined, 'DELETE').then((done) => done && setRemoving(null))}>Remove</button>
       </>}>
-        <p>Its passages leave every reply from now on. {removing.online ? 'Add it again from its city in Settings > Life & cities.' : 'Add the file again to bring them back.'}</p>
+        <p>Its passages leave every reply from now on. {removing.online ? 'Add it again from its city in Settings > World.' : 'Add the file again to bring them back.'}</p>
       </ConfirmDialog>}
     </section>
   )

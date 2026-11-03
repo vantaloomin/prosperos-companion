@@ -169,8 +169,8 @@ def draft_from_world_map(request: Request, value: dict):
     made = marinara.convert(value, request.app.state.database.now()[:10], marinara.DRAFT_TABLE)
     notes = made['notes'][:-1] if made['book'] else made['notes']
     if made['book']:
-        notes.append("Its places' notes are not brought in here. Open the map in Companion under Settings > Life & "
-                     'cities to bring them in as world lore.')
+        notes.append("Its places' notes are not brought in here. Open the map in Companion under Settings > World "
+                     'to bring them in as world lore.')
     city, weather = draft.weather_for(made['city'])
     notes.append(f'Weather set to {weather}; change it on Overview.')
     return {'definition': city, 'notes': notes}

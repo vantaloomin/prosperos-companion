@@ -91,7 +91,7 @@ def choose_for_world(request: Request, body: WorldBackends):
 # What a paired phone may not set on an image backend: an address the PC sends requests (and a saved key) to,
 # a program the PC runs, a workflow the PC hands to ComfyUI, or which machine counts as yours for NSFW.
 PHONE_FIELDS = ('base_url', 'cli_path', 'workflow', 'reference_workflow', 'controlled_machine')
-ON_THE_PC = 'on your PC, in Settings > Images'
+ON_THE_PC = 'on your PC, in Settings > Pictures'
 
 
 def from_phone(request: Request, body: BackendFields, creating=False) -> None:

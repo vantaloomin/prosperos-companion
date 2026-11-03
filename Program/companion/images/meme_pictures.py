@@ -5,7 +5,7 @@ Three sources, all on this computer when a meme is sent:
   credits each one);
 - classic formats (meme_data/formats.json), downloaded from memegen.link the first time memes are
   sent and kept in the data folder, never in the repository. Only the format's name leaves the PC;
-  the captions are drawn by the interface. Settings > Images can turn the download off;
+  the captions are drawn by the interface. Settings > Pictures can turn the download off;
 - the user's own "Meme templates" folder in the data folder. A picture there may have a JSON file of
   the same name beside it: {"about": "...", "moods": [...], "boxes": [{"x", "y", "w", "h"}, ...]},
   boxes as fractions of the picture, top to bottom; without one the text goes top and bottom.

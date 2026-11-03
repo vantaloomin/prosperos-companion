@@ -1,4 +1,4 @@
-/** Words for debug time (Settings > Debug and the banner shown while it is on). */
+/** Words for debug time (Settings > Data and the banner shown while it is on). */
 
 export const SPEED_LABELS: Record<number, string> = {
   1: 'Normal speed',
@@ -21,5 +21,5 @@ export function formatAppTime(iso: string, zone?: string): string {
 export function bannerText(status: { now: string; speed: number; jumping: { to: string; done: number } | null }, zone?: string): string {
   if (status.jumping) return `Debug time: jumping ahead to ${formatAppTime(status.jumping.to, zone)} (${Math.round(status.jumping.done * 100)}%).`
   const speed = status.speed > 1 ? `, running ${status.speed}× fast` : ''
-  return `Debug time: it is ${formatAppTime(status.now, zone)} in the app${speed}. Return to real time in Settings > Debug.`
+  return `Debug time: it is ${formatAppTime(status.now, zone)} in the app${speed}. Return to real time in Settings > Data.`
 }

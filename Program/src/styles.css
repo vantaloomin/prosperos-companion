@@ -484,34 +484,43 @@ a.button { color: inherit; text-decoration: none; }
 :root[data-motion='reduce'] .message-sheet { animation: none; }
 
 .settings > .notice { max-width: 760px; margin-bottom: 16px; }
-.settings-search { max-width: 960px; margin-bottom: 20px; }
-.settings-search .search-field { display: flex; align-items: center; gap: 8px; max-width: 360px; }
+/* Settings (v1.3 design): Find a setting and the eight groups beside the open one, Advanced last under a line; a phone
+ * opens on the list of groups and each group has a way back. */
+.settings-search { margin-bottom: 12px; }
+.settings-search .search-field { display: flex; align-items: center; gap: 8px; }
 .settings-search .search-field svg { width: 16px; height: 16px; color: var(--muted); flex: 0 0 auto; }
 .settings-search input { flex: 1; min-width: 0; }
 .settings-results { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.settings-layout { display: flex; gap: 32px; align-items: flex-start; max-width: 1040px; }
-.settings-nav { display: flex; flex-direction: column; gap: 16px; flex: 0 0 180px; position: sticky; top: 0; align-self: flex-start; }
+.settings-layout { display: flex; gap: 40px; align-items: flex-start; max-width: 1040px; }
+.settings-nav { display: flex; flex-direction: column; flex: 0 0 220px; position: sticky; top: 0; align-self: flex-start; }
 .settings-tabs { display: flex; flex-direction: column; gap: 2px; }
-.advanced-switch { padding: 12px 12px 0; border-top: 1px solid var(--border); font-size: 0.8125rem; }
 .settings-tabs [role='tab'] { text-align: left; padding: 9px 12px; border-radius: 7px; color: var(--muted); font-size: 0.875rem; }
 .settings-tabs [role='tab']:hover { background: var(--raised); color: var(--text); }
 .settings-tabs [role='tab'][aria-selected='true'] { background: var(--accent-tint); color: var(--accent); font-weight: 500; }
-.settings-panel { flex: 1; min-width: 0; }
-.community-link { align-self: flex-start; padding: 0 12px; min-height: 44px; line-height: 1.35; }
-.community-link svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.settings-tabs .settings-tab-apart { margin-top: 9px; position: relative; }
+.settings-tabs .settings-tab-apart::before { content: ''; position: absolute; left: 0; right: 0; top: -6px; border-top: 1px solid var(--border); }
+.settings-panel { flex: 1; min-width: 0; max-width: 760px; display: flex; flex-direction: column; gap: 20px; }
+/* Visually hidden labels stay inside the scrolling page, so the window itself never scrolls. */
+.page.settings { position: relative; }
+.settings-panel > .row-group { margin: 0; }
 .settings-section { padding: 24px 0; border-top: 1px solid var(--border); }
 .settings-panel > .settings-section:first-child, .settings-panel > .notice:first-child + .settings-section { border-top: 0; padding-top: 0; }
+.settings-panel > .row-group + .settings-section, .settings-panel > .settings-section:has(> .row-group-label:first-child) { border-top: 0; padding: 0; }
+.style-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.style-tile { display: grid; justify-items: center; gap: 6px; padding: 12px 4px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 0.8125rem; color: var(--muted); }
+.style-tile:hover { color: var(--text); }
+.style-tile[aria-checked='true'] { border-color: var(--accent); background: var(--accent-tint); color: var(--text); }
+.settings-link-row { color: inherit; text-decoration: none; font-size: 0.875rem; }
+.settings-link-row svg, .settings-group-row svg { width: 16px; height: 16px; color: var(--muted); }
+.settings-group-row { width: 100%; text-align: left; font-size: 0.9375rem; color: var(--text); }
+.settings-group-row + .settings-group-row, .settings-link-row { border-top: 1px solid var(--border); }
+.settings-home .row-list + .row-list { margin-top: 16px; }
+.settings-phone-head { display: flex; align-items: center; gap: 4px; margin: -8px 0 16px -10px; }
+.settings-phone-head h1 { margin: 0; }
 @media (max-width: 720px) {
   .settings-layout { flex-direction: column; gap: 16px; }
-  .settings-nav { flex: 0 0 auto; width: 100%; position: static; gap: 10px; }
   .settings-panel { width: 100%; }
-  .settings-tabs { flex-direction: row; width: 100%; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
-  .advanced-switch { padding: 0; border-top: 0; }
-  /* The link drops to the foot of the page, below the open tab, so the tabs stay first. */
-  .settings-nav { display: contents; }
-  .settings-nav > * { width: 100%; }
-  .settings-nav > .community-link { width: auto; order: 1; padding: 0; }
-  .settings-tabs [role='tab'] { white-space: nowrap; flex: 0 0 auto; }
+  .style-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .settings-section h2 { margin-bottom: 6px; }
 .settings-intro { max-width: 760px; margin: 0 0 20px; }
@@ -1658,7 +1667,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .phone-help summary { cursor: pointer; }
 .phone-help ol { margin: 8px 0 0; padding-left: 1.25rem; display: grid; gap: 6px; }
 
-/* Debug time (Settings > Debug): the banner while it is on, and the tab's controls. */
+/* Debug time (Settings > Data): the banner while it is on, and the tab's controls. */
 .debug-banner { display: flex; flex: none; align-items: center; gap: 10px; max-width: 760px; margin: 12px 24px 0; padding: 9px 13px; border: 1px dashed var(--accent); border-radius: 8px; font-size: 0.875rem; background: var(--surface); }
 .debug-banner > span { flex: 1; min-width: 0; }
 .form-actions.wrap { flex-wrap: wrap; }
@@ -2543,7 +2552,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 @keyframes lightbox-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
 .dating-debug { margin-top: 8px; }
 
-/* Model family (Settings > Images): a short select, full width on a phone (Iris). */
+/* Model family (Settings > Pictures): a short select, full width on a phone (Iris). */
 @media (min-width: 721px) { .family-picker select { max-width: 360px; } }
 .family-picker .family-reference { margin: -8px 0 0; }
 
@@ -3223,3 +3232,24 @@ p.breakup-line { align-items: center; }
   .memories-actions { margin-left: 0; flex-basis: 100%; }
 }
 .setting-row > .stepper { margin: 0; flex-wrap: nowrap; }
+/* Settings, step 8 review: the group's name heads the page on every screen; sections share one serif title; the
+   out-of-character markers are nested rows in their group. */
+.settings-panel > .settings-head { margin: 0 0 -4px; }
+.section-title { display: flex; align-items: center; gap: 4px; margin: 0; }
+.legend-with-tip { display: inline-flex; align-items: center; gap: 4px; }
+.reading-font { align-items: center; }
+.marker-row .setting-row-label { flex-wrap: wrap; font-size: 0.875rem; }
+.marker-fields { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--muted); }
+.setting-row.marker-row .marker-fields input { width: 5.5rem; }
+.marker-row .marker-remove { flex: none; width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; color: var(--muted); }
+.marker-row .marker-remove svg { width: 15px; height: 15px; }
+.marker-problem { flex-basis: 100%; font-size: 0.8125rem; color: var(--danger, #c0504d); }
+.marker-add { gap: 16px; }
+.marker-kinds { display: inline-flex; gap: 16px; }
+.marker-reset { margin-left: auto; }
+.setting-row.disabled .setting-row-label, .setting-row.disabled .marker-fields { color: var(--faint); }
+.custom-palette { padding: 4px 16px 16px; }
+.marker-row .setting-row-label { flex: 1 0 auto; }
+@media (max-width: 480px) { .setting-row.marker-row .marker-fields input { width: 4.25rem; } .marker-fields { gap: 6px; } }
+.motion-narrow { display: none; }
+@media (max-width: 480px) { .motion-wide { display: none; } .motion-narrow { display: block; } }

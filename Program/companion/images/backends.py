@@ -163,7 +163,7 @@ def disclosure(backend: dict) -> str | None:
         text += ' Reference pictures go along when you make profile pictures: the first one goes along with the other two.'
     if backend['kind'] != 'codex' and not is_novelai(backend):
         text += (' Where it can take a reference picture, each picture of your companion also sends their profile '
-                 'picture, so they keep one face (Settings > Images can turn this off).')
+                 'picture, so they keep one face (Settings > Pictures can turn this off).')
     if backend['kind'] == 'codex':
         text += (' With Codex, each picture of your companion also sends their character sheet, and their first '
                  'picture takes two requests: one to draw the sheet (from their profile picture, if they have one), '

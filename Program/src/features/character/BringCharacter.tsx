@@ -37,7 +37,7 @@ async function open(file: File): Promise<Opened> {
 function mapText(city: { name: string | null; book: BroughtBook | null }): string {
   const lore = city.book ? `${city.book.entries} of its places' notes are world lore in "${city.book.name}".` : ''
   if (!city.name) return lore || 'Nothing was imported.'
-  return `${city.name} is now one of your cities, in Settings > Life & cities.${lore ? ` ${lore}` : ''}`
+  return `${city.name} is now one of your cities, in Settings > World.${lore ? ` ${lore}` : ''}`
 }
 
 /** A character card, CHARX, Backyard file, lorebook or world map from another app. The page lists what the file

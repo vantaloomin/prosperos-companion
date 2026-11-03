@@ -1,4 +1,4 @@
-"""ComfyUI custom node packs a built-in workflow needs, installed with one press (Settings > Images).
+"""ComfyUI custom node packs a built-in workflow needs, installed with one press (Settings > Pictures).
 
 Vanta approved this one exception to "Companion never writes into ComfyUI" (2026-10-13). Only a ComfyUI
 server on this computer, and only a pack listed here: its files are fetched from the pinned commit,
