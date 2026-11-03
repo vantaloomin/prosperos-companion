@@ -17,7 +17,7 @@ const DANGER = '#e9b8aa', DANGER_ON_LIGHT = '#a3321f'
 export const PALETTE_KEYS = ['accent', 'background', 'surface', 'text'] as const
 export const defaultPalette: Palette = { accent: '#c5a46d', background: '#191816', surface: '#201f1c', text: '#ede5d6' }
 /** Paper's four colors, for "Start from Paper" when making a light palette of one's own. */
-export const paperPalette: Palette = { accent: '#7f5c1e', background: '#f4f0e8', surface: '#fbf9f4', text: '#26221c' }
+export const paperPalette: Palette = { accent: '#7f5c1e', background: '#f7f4ee', surface: '#fdfbf7', text: '#26221c' }
 export const validHex = (value: unknown): value is string => typeof value === 'string' && /^#[\da-f]{6}$/i.test(value)
 export function validPalette(value: unknown): value is Palette {
   if (!value || typeof value !== 'object') return false
