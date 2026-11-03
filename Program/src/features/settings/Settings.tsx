@@ -8,11 +8,10 @@ import { DataFolder } from './DataFolder'
 import { DebugSettings } from './DebugSettings'
 import { TownsfolkMix } from './TownsfolkMix'
 import { DebugMatches } from './DebugMatches'
-import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
-import { LifeSettings } from './LifeSettings'
 import { RealismPage } from './RealismPage'
-import { REALISM_SUBS, realismSubFor, type RealismSub } from './realismSubs'
+import { SUB_PAGES, subFor, type RealismSub, type WorldSub } from './subPages'
+import { WorldPage } from './WorldPage'
 import { InfoTip } from '../../components/InfoTip'
 import { NotificationSettings } from './NotificationSettings'
 import { PhoneSettings } from './PhoneSettings'
@@ -20,8 +19,6 @@ import { PromptSettings } from './PromptSettings'
 import { usePhone } from '../../components/usePhone'
 import { MemorySettings, RestoredReview } from './WorkspaceSettings'
 import { GeneralSettings } from './GeneralSettings'
-import { Cities } from '../world/Cities'
-import { Library } from '../character/Library'
 import { BuiltinRecall } from './models/BuiltinRecall'
 import { VoiceSettings } from './models/VoiceSettings'
 import { HardwareCheck } from './models/HardwareCheck'
@@ -52,10 +49,10 @@ export function Settings({ companion, tab, onTab, onHome, onCreate }: Props) {
   const small = usePhone()
   const landing = useLanding()
   // Realism keeps some sections on pages of their own; the open one titles the page and is where back goes first.
-  const [sub, setSub] = useState<RealismSub | null>(null)
+  const [sub, setSub] = useState<string | null>(null)
   const openTab = (next: SettingsTab) => { setSub(null); onTab(next) }
   const land = (match: SettingsMatch) => {
-    setSub(realismSubFor(match.section.heading))
+    setSub(subFor(match.tab.id, match.section.heading))
     onTab(match.tab.id)
     landing(match.section.heading)
   }
@@ -77,7 +74,7 @@ export function Settings({ companion, tab, onTab, onHome, onCreate }: Props) {
 
 interface PanelProps {
   companion: Companion | null; current: SettingsTab; small: boolean; onPhone: boolean; next: ReactNode; search: ReactNode
-  sub: RealismSub | null; setSub: (sub: RealismSub | null) => void; onTab: (tab: SettingsTab) => void; onHome?: () => void; onReviewed: () => void
+  sub: string | null; setSub: (sub: string | null) => void; onTab: (tab: SettingsTab) => void; onHome?: () => void; onReviewed: () => void
 }
 
 /** An open group: its title and way back, the groups beside it on a wide window, and its settings. */
@@ -97,16 +94,16 @@ function SettingsPanel({ companion, current, small, onPhone, next, search, sub, 
         </nav>}
         <div className="settings-panel" role="tabpanel" id={`settings-panel-${current}`} aria-labelledby={labelledBy}>
           {!small && head}
-          <TabContent tab={current} companion={companion} realism={{ sub, open: setSub }} />
+          <TabContent tab={current} companion={companion} pages={{ sub, open: setSub }} />
         </div>
       </div>
     </section>
   )
 }
 
-/** The page of its own open within a group, if any (only Realism has them). */
-function openPage(tab: SettingsTab, sub: RealismSub | null) {
-  return tab === 'realism' && sub ? REALISM_SUBS[sub] : null
+/** The page of its own open within a group, if any (Realism and World have them). */
+function openPage(tab: SettingsTab, sub: string | null) {
+  return sub ? SUB_PAGES[tab]?.[sub] ?? null : null
 }
 
 function tabLabel(tab: SettingsTab, hasCompanion: boolean, onPhone: boolean): string {
@@ -166,15 +163,15 @@ function useLanding() {
   }
 }
 
-function TabContent({ tab, companion, realism }: { tab: SettingsTab; companion: Companion | null; realism: { sub: RealismSub | null; open: (sub: RealismSub) => void } }) {
+function TabContent({ tab, companion, pages }: { tab: SettingsTab; companion: Companion | null; pages: { sub: string | null; open: (sub: string) => void } }) {
   const name = companion?.version.name ?? ''
   // Built-in recall reads and runs files on the PC, so a phone does not show it (companion/phone/access.py).
   const remote = !!usePhoneStatus().data?.remote
   const content: Record<SettingsTab, ReactNode> = {
     general: <GeneralSettings />,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
-    world: <><LifeSettings name={name} /><Cities /><Library world /><ContextSettings name={name} /></>,
-    realism: <RealismPage name={name} sub={realism.sub} open={realism.open} />,
+    world: <WorldPage name={name} sub={pages.sub as WorldSub | null} open={pages.open} />,
+    realism: <RealismPage name={name} sub={pages.sub as RealismSub | null} open={pages.open} />,
     memory: <MemorySettings />,
     pictures: <ImageSettings />,
     devices: <><NotificationSettings /><PhoneSettings /></>,

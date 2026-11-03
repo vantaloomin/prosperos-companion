@@ -7,7 +7,7 @@ import { LinkRow } from '../../components/Rows'
 import { HiddenValues } from './HiddenValues'
 import { AdultSideSettings, ClosenessSettings, HomeLifeSettings, LoveSettings, PaceSettings, RealismIntro } from './RealismSettings'
 import { LIFE_KEY } from './useLifeSettings'
-import { REALISM_SUBS, type RealismSub } from './realismSubs'
+import { REALISM_SUBS, type RealismSub } from './subPages'
 
 /**
  * Settings > Realism (style guide): the presets as one segmented control, every slider of their days as a row, and

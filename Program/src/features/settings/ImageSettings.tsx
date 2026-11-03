@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, Lock, Minus, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Lock, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import { useRefetchOnFocus } from '../../paths'
 import { usePhoneStatus } from '../phone/phoneAccess'
@@ -8,7 +8,7 @@ import type { WorkspaceSettings } from '../../types'
 import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageBackendList, ImageFamily, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { InfoTip } from '../../components/InfoTip'
-import { FoldRow, RowGroup, SettingRow, SwitchRow } from '../../components/Rows'
+import { CountStepper, FoldRow, RowGroup, SettingRow, SwitchRow } from '../../components/Rows'
 import { SETTINGS_KEY as WORKSPACE_KEY, useWorkspaceSettings } from '../../companion'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
@@ -112,7 +112,7 @@ function ImageControls({ data, save }: { data: Limits; save: Save }) {
     <RowGroup id="post-pictures-heading">
       <PostPictures data={data} save={save}>
         <SettingRow nested label="Most a day" tip="Automatic pictures for new posts stop here for the day.">
-          {(id, disabled) => <CountStepper id={id} label="Most a day" value={data.daily_limit} min={0} max={24} disabled={disabled} onChange={(value) => void save({ daily_limit: value })} />}
+          {(id, disabled) => <CountStepper id={id} label="Most a day" value={data.daily_limit} min={0} max={24} disabled={disabled} format={(value) => (value === 0 ? 'None' : String(value))} onChange={(value) => void save({ daily_limit: value })} />}
         </SettingRow>
       </PostPictures>
     </RowGroup>
@@ -135,15 +135,6 @@ function PostPictures({ data, save, children }: { data: Limits; save: Save; chil
   return <SwitchRow label="Pictures for new posts" checked={data.automatic_images} disabled={off} onChange={(value) => void save({ automatic_images: value })}
     extra={off ? <button type="button" className="text-button row-link" onClick={() => void turnOn()}>Needs background on</button> : undefined}
     tip="Only covers posts written from now on, never catch-up summaries, and stops at the daily limit.">{children}</SwitchRow>
-}
-
-/** A count with − and +, one step at a time (Iris number-control spec). */
-function CountStepper({ id, label, value, min, max, disabled, onChange }: { id: string; label: string; value: number; min: number; max: number; disabled?: boolean; onChange: (value: number) => void }) {
-  return <span className="stepper count-stepper" id={id} role="group" aria-label={label}>
-    <button type="button" className="icon-button" aria-label="Fewer" disabled={disabled || value <= min} onClick={() => onChange(value - 1)}><Minus aria-hidden="true" /></button>
-    <span className="stepper-value" aria-live="polite">{value === 0 ? 'None' : value}</span>
-    <button type="button" className="icon-button" aria-label="More" disabled={disabled || value >= max} onClick={() => onChange(value + 1)}><Plus aria-hidden="true" /></button>
-  </span>
 }
 
 const SHAPES: { id: Limits['aspect']; label: string }[] = [{ id: 'landscape', label: 'Landscape' }, { id: 'square', label: 'Square' }, { id: 'portrait', label: 'Portrait' }]

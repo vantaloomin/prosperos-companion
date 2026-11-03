@@ -1,5 +1,5 @@
 import { createContext, useContext, useId, useState, type ReactNode } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Minus, Plus } from 'lucide-react'
 import { InfoTip } from './InfoTip'
 
 /**
@@ -144,4 +144,15 @@ export function LinkRow({ label, value, onOpen }: { label: string; value?: React
       <ChevronRight aria-hidden="true" />
     </button>
   )
+}
+
+interface CountStepperProps { id: string; label: string; value: number; min: number; max: number; format?: (value: number) => string; disabled?: boolean; onChange: (value: number) => void }
+
+/** A small count with − and +, one step at a time (Iris number-control spec), for a SettingRow's control. */
+export function CountStepper({ id, label, value, min, max, format = String, disabled, onChange }: CountStepperProps) {
+  return <span className="stepper count-stepper" id={id} role="group" aria-label={label}>
+    <button type="button" className="icon-button" aria-label="Fewer" disabled={disabled || value <= min} onClick={() => onChange(value - 1)}><Minus aria-hidden="true" /></button>
+    <span className="stepper-value" aria-live="polite">{format(value)}</span>
+    <button type="button" className="icon-button" aria-label="More" disabled={disabled || value >= max} onClick={() => onChange(value + 1)}><Plus aria-hidden="true" /></button>
+  </span>
 }
