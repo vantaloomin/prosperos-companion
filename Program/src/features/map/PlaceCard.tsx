@@ -223,7 +223,7 @@ function DropBy({ place, name, visit }: { place: MapPlace; name: string; visit: 
       </button>
       <InfoTip id="map-drop-tip" label="Drop by" text={work ? `You go over without asking and see ${name} at work.` : dropByHint(name, false)} />
     </div>
-    {under && <p id="map-drop-under" className={visit.found ? 'map-drop-found' : 'subtle'} role={visit.found ? 'status' : undefined}>{under}</p>}
+    {under && <p id="map-drop-under" className={visit.found ? 'map-drop-found' : 'map-drop-under'} role={visit.found ? 'status' : undefined}>{under}</p>}
   </>
 }
 
