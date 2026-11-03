@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { daySegments, labelFits, localParts } from '../../src/features/today/dayStrip.ts'
+import { clearOfNow, daySegments, labelFits, localParts } from '../../src/features/today/dayStrip.ts'
 
 const slot = (starts_at: string, ends_at: string, label: string, kind = 'free') => ({ starts_at, ends_at, block: { label, kind } })
 
@@ -19,4 +19,10 @@ test('a part of the strip shows its name only where the whole word fits', () => 
   assert.equal(labelFits({ label: 'Afternoon', width: 16 }, 320), false)
   assert.equal(labelFits({ label: 'Asleep', width: 30 }, 320), true)
   assert.equal(labelFits({ label: 'Asleep', width: 30 }, 0), false)
+})
+
+test('a name in the strip is hidden where the now line would cross it', () => {
+  assert.equal(clearOfNow({ label: 'Asleep', left: 0 }, 600, 3), false)
+  assert.equal(clearOfNow({ label: 'Asleep', left: 0 }, 600, 50), true)
+  assert.equal(clearOfNow({ label: 'Asleep', left: 10 }, 600, 5), true)
 })

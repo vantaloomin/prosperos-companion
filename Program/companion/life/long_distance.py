@@ -444,7 +444,9 @@ def state(connection, companion: dict, now: datetime) -> dict | None:
     until = date.fromisoformat(found['end_date']).strftime('%A')
     if found['visit'] == TOGETHER:
         # Short for the chat header (Iris 2026-11-03): the end date is in the strip.
-        return {'state': 'together', 'kind': 'away', 'text': f'Away {trips.away_where(found)}'}
+        # On a phone header, just the place: the luggage icon says away (Iris).
+        return {'state': 'together', 'kind': 'away', 'text': f'Away {trips.away_where(found)}',
+                'short': found['city_name']}
     if found['visit'] == TO_YOU:
         return {'state': 'together', 'kind': 'staying', 'text': f'Staying with you until {until}'}
     return {'state': 'together', 'kind': 'hosting', 'text': f"You're staying in {found['city_name']} until {until}"}

@@ -2,15 +2,22 @@
 
 export type AwayGlyph = 'moon' | 'briefcase' | 'pin' | 'phone' | 'luggage' | 'home'
 /** Together or apart (companion/life/together.py), or on a call (companion/life/calls.py), in plain words; the text is empty while apart in the same city. */
-export interface StatusWhere { state: 'together' | 'apart' | 'call'; kind: string; text: string }
+/** `short` is the phone's wording when it differs (away together: just the place, "Lisbon"). */
+export interface StatusWhere { state: 'together' | 'apart' | 'call'; kind: string; text: string; short?: string }
 export interface CompanionStatus { text: string; set_by: 'app' | 'you'; away: { text: string; glyph: AwayGlyph } | null; where?: StatusWhere | null }
 
 /** Where they are with you while together ("At your place") or on the phone ("On a call", "Calling you"), the away line while they are asleep, at work or out, else their status. */
-export function shown(status: CompanionStatus | null | undefined): { text: string; away: AwayGlyph | null } | null {
+export function shown(status: CompanionStatus | null | undefined): { text: string; away: AwayGlyph | null; short?: string } | null {
   if (!status) return null
-  if (status.where?.state === 'together' && status.where.text) return { text: status.where.text, away: togetherGlyph(status.where) }
+  if (status.where?.state === 'together' && status.where.text) return togetherLine(status.where)
   if (onThePhone(status.where) && status.where?.text) return { text: status.where.text, away: 'phone' }
   return status.away ? { text: status.away.text, away: status.away.glyph } : status.text ? { text: status.text, away: null } : null
+}
+
+/** Together: where, with the phone's shorter wording when there is one. */
+function togetherLine(where: StatusWhere): { text: string; away: AwayGlyph; short?: string } {
+  const line = { text: where.text, away: togetherGlyph(where) }
+  return where.short ? { ...line, short: where.short } : line
 }
 
 /** A weekend visit across the distance (companion/life/long_distance.py) shows luggage, like the chat strip; home

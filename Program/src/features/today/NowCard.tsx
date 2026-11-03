@@ -8,7 +8,7 @@ import { usePortrait } from '../conversation/portrait'
 import { useEraWords } from '../world/useEraWords'
 import { useChatLook } from '../conversation/useTheirLook'
 import { firstName } from '../character/panelText'
-import { daySegments, labelFits, type DaySlot } from './dayStrip'
+import { clearOfNow, daySegments, labelFits, type DaySlot } from './dayStrip'
 
 const HOURS = ['12 AM', '6 AM', '12 PM', '6 PM', '12 AM']
 
@@ -24,10 +24,13 @@ export function NowCard({ data, name, go, status, children }: { data: TodayData;
   const label = useEraWords().message_button
   const at = (value: string) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone: data.companion_timezone }).format(new Date(value))
   const { label: doing, until } = data.availability
-  // Away together, the trip is what they are doing (companion/life/away_together.py).
-  const line = status ?? (doing ? `${doing}${until ? ` until ${at(until)}` : ''}` : 'Free')
+  const now = doingNow(doing, until, at)
+  // Away together the trip is the status line (companion/life/away_together.py), and the sub line says what is
+  // happening now rather than repeating it (Iris).
+  const line = status ?? (now || 'Free')
   const next = data.routine.next
-  const sub = [`${at(data.now)} their time`, next && `${next.block.label} from ${at(next.starts_at)}`].filter(Boolean).join(' · ')
+  const after = status ? (doing?.startsWith('Away') ? null : now) : next && `${next.block.label} from ${at(next.starts_at)}`
+  const sub = [`${at(data.now)} their time`, after].filter(Boolean).join(' · ')
   return (
     <section ref={card} className={`now-card${look.className}`} style={look.style} data-their-font={look.font} aria-labelledby="now-heading">
       <div className="now-head">
@@ -45,6 +48,11 @@ export function NowCard({ data, name, go, status, children }: { data: TodayData;
   )
 }
 
+/** "Asleep until 7:00 AM", or null when they are free. */
+function doingNow(doing: string | null | undefined, until: string | null | undefined, at: (value: string) => string): string | null {
+  return doing ? `${doing}${until ? ` until ${at(until)}` : ''}` : null
+}
+
 /** Their day, midnight to midnight where they live. Each part names itself to a screen reader and on hover, and shows
  * its name only where the whole word fits (never cut off). */
 function DayStrip({ timezone, now }: { timezone: string; now: string }) {
@@ -59,7 +67,7 @@ function DayStrip({ timezone, now }: { timezone: string; now: string }) {
       <ol ref={strip} className="day-strip" aria-label="Their day, in their time zone">
         {day.segments.map((segment) => (
           <li key={`${segment.label}-${segment.left}`} className={`day-${segment.kind}`} style={{ left: `${segment.left}%`, width: `${segment.width}%` }} title={segment.label}>
-            <span className={labelFits(segment, width) ? 'day-label' : 'visually-hidden'}>{segment.label}</span>
+            <span className={labelFits(segment, width) && clearOfNow(segment, width, day.now) ? 'day-label' : 'visually-hidden'}>{segment.label}</span>
           </li>
         ))}
         <li className="day-now" style={{ left: `${day.now}%` }} aria-label="Now" />
