@@ -121,6 +121,11 @@ NOT_TASTE_STARTS = {'you', 'your', 'it', 'that', 'this', 'these', 'those', 'how'
                     'way', 'enthusiasm', 'commitment', 'effort', 'one', 'them', 'him', 'her', 'us', 'me', 'myself', 'yours', 'reading', 'getting', 'knowing'}
 
 
+# "never had a reason to", "never had the chance", "never had anyone": the sentence is about a feeling, not a thing.
+NOT_TRIED = re.compile(r"\b(?:reason|reasons|chance|chances|time|need|cause|excuse|clue|idea|luck|problem|issue|choice|"
+                       r"opportunity|anyone|anybody|someone|somebody|nobody|much|enough|to)\b", re.IGNORECASE)
+
+
 @dataclass(frozen=True)
 class Fact:
     category: str
@@ -189,13 +194,20 @@ def fact_for(category: str, match, sentence: str, lowercase=False) -> Fact | Non
         return Fact('favorite', groups[0].lower(), thing, sentence) if thing else None
     if category == 'never':
         thing = clean(groups[1])
-        return Fact('never', f'{groups[0].lower()} {thing.lower()}', thing, sentence) if thing else None
+        return Fact('never', f'{groups[0].lower()} {thing.lower()}', thing, sentence) if tried(thing) else None
     if category == 'grew_up':
         return Fact('grew_up', 'hometown', groups[0].rstrip('.'), sentence)
     thing = clean(groups[0])
     if not taste(thing):
         return None
     return Fact(category, thing.lower(), thing, sentence)
+
+
+def tried(thing: str) -> bool:
+    """Something one can have done ("sushi", "the ocean"), not a reason or a chance ("i've never had a reason to
+    try", "never had the chance") or a pronoun."""
+    words = thing.lower().split()
+    return bool(words) and words[0] not in NOT_TASTE_STARTS and len(words) <= 5 and not NOT_TRIED.search(thing)
 
 
 def taste(thing: str) -> bool:
