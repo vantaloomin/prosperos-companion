@@ -4,6 +4,7 @@ import { api } from '../../api'
 import type { FamilyView, Journey, KidsView, OurChild, OursView } from '../../types'
 import { Field, Toggle } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
+import { FoldRow, SettingRow } from '../../components/Rows'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { WhyItWent } from '../today/WhyItWent'
 import { firstName } from './panelText'
@@ -25,14 +26,28 @@ export function Family({ name }: { name: string }) {
   if (error) return <ErrorNotice error={error} />
   if (!(view || theirs || own || removed || canAdd)) return null
   return (
-    <section id="family" className="home-panel steps-panel family-panel" aria-labelledby="family-heading">
-      <h2 id="family-heading">Family</h2>
+    <FoldRow summary="Family" value={familyValue(view, theirs)}>
+      <div id="family" className="fold-extra family-panel">
       {theirs ? <Kids view={theirs} name={name} removed={removed} setRemoved={setRemoved} />
         : <NoKidsYet name={name} canAdd={canAdd} removed={removed} setRemoved={setRemoved} />}
       {own && <OurChildren view={own} family={view} name={name} howItWent={(child) => <Arrival child={child} journey={view?.journey} name={name} />} />}
+      </div>
       <Together view={view} own={own} name={name} headed={Boolean(theirs || own)} />
-    </section>
+    </FoldRow>
   )
+}
+
+const WANTS: Record<FamilyView['wants'], [string, string]> = {
+  yes: ['wants kids', 'wants more'], someday: ['wants kids someday', 'wants more someday'], no: ["doesn't want kids", "doesn't want more"],
+}
+
+/** "Wants kids someday", or "2 kids · wants more someday" when they have some. */
+function familyValue(view: FamilyView | null, theirs: KidsView | null): string | undefined {
+  const count = theirs?.kids?.length ?? 0
+  const kids = count ? `${count} ${count === 1 ? 'kid' : 'kids'}` : ''
+  const wants = view ? WANTS[view.wants]?.[count ? 1 : 0] : ''
+  const text = [kids, wants].filter(Boolean).join(' · ')
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : undefined
 }
 
 /** With none of their own: undo for the last one taken out, and a way to add one by hand. */
@@ -45,7 +60,7 @@ function NoKidsYet({ name, canAdd, removed, setRemoved }: { name: string; canAdd
 
 /** What they want and a family together; while you two are split up, one line saying it comes back. */
 function Together({ view, own, name, headed }: { view: FamilyView | null; own: OursView | null; name: string; headed: boolean }) {
-  if (own?.custody?.split) return <p className="subtle">{splitLine(own.custody, name)}</p>
+  if (own?.custody?.split) return <div className="fold-extra"><p className="subtle">{splitLine(own.custody, name)}</p></div>
   return view && <Wishes view={view} name={name} headed={headed} folded={Boolean(own)} />
 }
 
@@ -86,11 +101,13 @@ function Wishes({ view, name, headed, folded }: { view: FamilyView; name: string
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'That was not saved.') }
   }
   return <>
-    {headed && <h3 className="family-subheading">{view.romance ? 'A family together' : 'More children'}</h3>}
+    {headed && <div className="fold-extra"><h3 className="family-subheading">{view.romance ? 'A family together' : 'More children'}</h3></div>}
     <WantsField view={view} name={name} save={(change) => void save(change)} />
-    {view.romance && view.routes && <TogetherFields view={view} name={name} save={(change) => void save(change)} />}
-    {view.journey && !(folded && view.journey.status === 'home') && <OnTheWay journey={view.journey} name={name} save={(change) => void save(change)} />}
-    {error && <Notice tone="error">{error}</Notice>}
+    <div className="fold-extra">
+      {view.romance && view.routes && <TogetherFields view={view} name={name} save={(change) => void save(change)} />}
+      {view.journey && !(folded && view.journey.status === 'home') && <OnTheWay journey={view.journey} name={name} save={(change) => void save(change)} />}
+      {error && <Notice tone="error">{error}</Notice>}
+    </div>
   </>
 }
 
@@ -99,15 +116,15 @@ function WantsField({ view, name, save }: { view: FamilyView; name: string; save
   const set = view.wants_how === 'set'
   const label = view.wants_options.find((item) => item.key === view.wants)?.label ?? ''
   return <>
-    <Field label="Wants children" hint={wantsHint(view, name)}>
-      {(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={set ? view.wants : 'auto'} onChange={(event) => save({ wants: event.target.value })}>
+    <SettingRow label="Wants children" tip={wantsHint(view, name)}>
+      {(id) => (
+        <select id={id} value={set ? view.wants : 'auto'} onChange={(event) => save({ wants: event.target.value })}>
           <option value="auto">{appPick(set ? 'what fits them' : label)}</option>
           {view.wants_options.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
         </select>
       )}
-    </Field>
-    {view.wants_consequence_id && !set && <WhyItWent id={view.wants_consequence_id} />}
+    </SettingRow>
+    {view.wants_consequence_id && !set && <div className="fold-extra"><WhyItWent id={view.wants_consequence_id} /></div>}
   </>
 }
 

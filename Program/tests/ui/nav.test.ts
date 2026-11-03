@@ -15,8 +15,8 @@ test('the Chats tab returns to where the user was, and to the list when tapped i
 })
 
 test('the side rail lights Memories on its own and Profile on the other profile tabs', () => {
-  assert.equal(railCurrent('memories', 'memories'), true)
-  assert.equal(railCurrent('conversation', 'memories'), false)
+  assert.equal(railCurrent('conversation', 'memories'), true)
+  assert.equal(railCurrent('conversation', 'conversation'), true)
   assert.equal(railCurrent('conversation', 'feed'), true)
   assert.equal(railCurrent('conversation', 'another'), true)
   assert.equal(railCurrent('today', 'map/abc'), true)

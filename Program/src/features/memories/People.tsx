@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Field, TextArea, TextInput } from '../../components/Fields'
 import { MemoryCard, type MemoryActions } from './MemoryCard'
 import { PEOPLE_KEY, groupPeople, personLine } from './memoryGroups'
+import { InfoTip } from '../../components/InfoTip'
 
 type Run = <T>(action: () => Promise<T>, done: string) => Promise<T | null>
 
@@ -18,15 +19,15 @@ export function People({ name, all, sources, actions, run }: { name: string; all
   return (
     <section className="memory-group people" aria-labelledby="people-heading">
       <div className="people-header">
-        <h2 id="people-heading">People in your life</h2>
+        <h3 id="people-heading">People in your life</h3>
+        <InfoTip id="people-about" label="People in your life" text={`Who you've mentioned and what you said about them. ${name} has never met them, only knows what you told them, and may now and then ask how they are. With automatic memory on, people you mention by name or as “my sister”, “my boss” are added here.`} />
         {!adding && <button type="button" className="text-button" onClick={() => setAdding(true)}><UserPlus aria-hidden="true" />Add someone</button>}
       </div>
-      <p className="subtle">Who you've mentioned and what you said about them. {name} has never met them, only knows what you told them, and may now and then ask how they are.</p>
       {adding && <PersonForm submit="Add" onCancel={() => setAdding(false)} onSave={async (body) => {
         const saved = await run(() => api<Person>('/people', body), `${name} will remember ${body.name || `your ${body.relation}`}.`)
         if (saved) setAdding(false)
       }} />}
-      {groups.length === 0 && !adding && <p className="subtle">No one yet. With automatic memory on, people you mention by name or as “my sister”, “my boss” are added here.</p>}
+      {groups.length === 0 && !adding && <p className="subtle">No one yet.</p>}
       {groups.length > 0 && <ul className="person-list">
         {groups.map(({ person, current }) => <PersonCard key={person.id} person={person} memories={current} name={name} all={all} sources={sources} actions={actions} run={run} />)}
       </ul>}
