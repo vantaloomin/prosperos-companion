@@ -1,0 +1,765 @@
+{
+ "about": "Typical months for each climate zone a destination names, northern hemisphere; south of the equator the months run half a year on (companion/world/destinations.py).",
+ "zones": {
+  "mediterranean": {
+   "months": [
+    {
+     "high_f": 57,
+     "low_f": 44,
+     "rain_days": 9,
+     "note": "Mild and green, with rainy spells."
+    },
+    {
+     "high_f": 59,
+     "low_f": 45,
+     "rain_days": 8,
+     "note": "Mild, almond blossom."
+    },
+    {
+     "high_f": 63,
+     "low_f": 48,
+     "rain_days": 7,
+     "note": "Spring sun between showers."
+    },
+    {
+     "high_f": 67,
+     "low_f": 51,
+     "rain_days": 7,
+     "note": "Warm days, cool evenings."
+    },
+    {
+     "high_f": 74,
+     "low_f": 57,
+     "rain_days": 5,
+     "note": "Warm and sunny; the sea is still cool."
+    },
+    {
+     "high_f": 82,
+     "low_f": 64,
+     "rain_days": 2,
+     "note": "Hot and dry."
+    },
+    {
+     "high_f": 88,
+     "low_f": 68,
+     "rain_days": 1,
+     "note": "Hot, dry and bright."
+    },
+    {
+     "high_f": 88,
+     "low_f": 69,
+     "rain_days": 1,
+     "note": "Hot; the sea is at its warmest."
+    },
+    {
+     "high_f": 82,
+     "low_f": 64,
+     "rain_days": 3,
+     "note": "Warm, the best month for swimming."
+    },
+    {
+     "high_f": 73,
+     "low_f": 57,
+     "rain_days": 6,
+     "note": "Warm days, the first rains."
+    },
+    {
+     "high_f": 64,
+     "low_f": 50,
+     "rain_days": 8,
+     "note": "Mild and changeable."
+    },
+    {
+     "high_f": 58,
+     "low_f": 46,
+     "rain_days": 9,
+     "note": "Mild, damp and quiet."
+    }
+   ]
+  },
+  "oceanic": {
+   "months": [
+    {
+     "high_f": 45,
+     "low_f": 36,
+     "rain_days": 13,
+     "note": "Cool, grey and damp."
+    },
+    {
+     "high_f": 46,
+     "low_f": 36,
+     "rain_days": 11,
+     "note": "Cool and wet; a chance of frost."
+    },
+    {
+     "high_f": 51,
+     "low_f": 39,
+     "rain_days": 11,
+     "note": "Daffodils and showers."
+    },
+    {
+     "high_f": 56,
+     "low_f": 42,
+     "rain_days": 10,
+     "note": "Bright spells and April showers."
+    },
+    {
+     "high_f": 62,
+     "low_f": 47,
+     "rain_days": 10,
+     "note": "Mild and fresh; long evenings."
+    },
+    {
+     "high_f": 68,
+     "low_f": 52,
+     "rain_days": 9,
+     "note": "Pleasant and green."
+    },
+    {
+     "high_f": 72,
+     "low_f": 56,
+     "rain_days": 8,
+     "note": "Warm, the sunniest month."
+    },
+    {
+     "high_f": 71,
+     "low_f": 56,
+     "rain_days": 9,
+     "note": "Warm, the odd heavy shower."
+    },
+    {
+     "high_f": 66,
+     "low_f": 51,
+     "rain_days": 9,
+     "note": "Mild and settled."
+    },
+    {
+     "high_f": 59,
+     "low_f": 46,
+     "rain_days": 12,
+     "note": "Cool, windy and wet."
+    },
+    {
+     "high_f": 51,
+     "low_f": 41,
+     "rain_days": 13,
+     "note": "Chilly, wet and dark early."
+    },
+    {
+     "high_f": 46,
+     "low_f": 37,
+     "rain_days": 13,
+     "note": "Cold, damp and festive."
+    }
+   ]
+  },
+  "continental": {
+   "months": [
+    {
+     "high_f": 33,
+     "low_f": 20,
+     "rain_days": 9,
+     "note": "Cold, with snow on the ground."
+    },
+    {
+     "high_f": 37,
+     "low_f": 22,
+     "rain_days": 8,
+     "note": "Cold and snowy."
+    },
+    {
+     "high_f": 47,
+     "low_f": 30,
+     "rain_days": 9,
+     "note": "Thawing; raw winds."
+    },
+    {
+     "high_f": 59,
+     "low_f": 40,
+     "rain_days": 10,
+     "note": "Cool spring days."
+    },
+    {
+     "high_f": 70,
+     "low_f": 50,
+     "rain_days": 11,
+     "note": "Warm and blooming."
+    },
+    {
+     "high_f": 79,
+     "low_f": 59,
+     "rain_days": 11,
+     "note": "Warm with thunderstorms."
+    },
+    {
+     "high_f": 84,
+     "low_f": 64,
+     "rain_days": 10,
+     "note": "Hot and humid."
+    },
+    {
+     "high_f": 82,
+     "low_f": 63,
+     "rain_days": 9,
+     "note": "Hot, with storms."
+    },
+    {
+     "high_f": 74,
+     "low_f": 55,
+     "rain_days": 8,
+     "note": "Warm days, crisp nights."
+    },
+    {
+     "high_f": 62,
+     "low_f": 43,
+     "rain_days": 8,
+     "note": "Crisp; autumn colour."
+    },
+    {
+     "high_f": 48,
+     "low_f": 33,
+     "rain_days": 9,
+     "note": "Cold and grey."
+    },
+    {
+     "high_f": 37,
+     "low_f": 24,
+     "rain_days": 9,
+     "note": "Cold; the first snow."
+    }
+   ]
+  },
+  "humid-subtropical": {
+   "months": [
+    {
+     "high_f": 55,
+     "low_f": 37,
+     "rain_days": 9,
+     "note": "Cool and mostly sunny."
+    },
+    {
+     "high_f": 59,
+     "low_f": 40,
+     "rain_days": 9,
+     "note": "Cool, early blossom."
+    },
+    {
+     "high_f": 66,
+     "low_f": 46,
+     "rain_days": 10,
+     "note": "Mild and pleasant."
+    },
+    {
+     "high_f": 74,
+     "low_f": 54,
+     "rain_days": 9,
+     "note": "Warm and green."
+    },
+    {
+     "high_f": 81,
+     "low_f": 63,
+     "rain_days": 10,
+     "note": "Warm and humid."
+    },
+    {
+     "high_f": 87,
+     "low_f": 70,
+     "rain_days": 12,
+     "note": "Hot and sticky."
+    },
+    {
+     "high_f": 90,
+     "low_f": 74,
+     "rain_days": 13,
+     "note": "Hot and humid with storms."
+    },
+    {
+     "high_f": 89,
+     "low_f": 73,
+     "rain_days": 12,
+     "note": "Hot, humid and stormy."
+    },
+    {
+     "high_f": 84,
+     "low_f": 67,
+     "rain_days": 9,
+     "note": "Hot; a chance of a tropical storm."
+    },
+    {
+     "high_f": 75,
+     "low_f": 56,
+     "rain_days": 7,
+     "note": "Warm and dry."
+    },
+    {
+     "high_f": 65,
+     "low_f": 46,
+     "rain_days": 8,
+     "note": "Mild and clear."
+    },
+    {
+     "high_f": 57,
+     "low_f": 39,
+     "rain_days": 9,
+     "note": "Cool and calm."
+    }
+   ]
+  },
+  "tropical": {
+   "months": [
+    {
+     "high_f": 84,
+     "low_f": 72,
+     "rain_days": 6,
+     "note": "Warm, dry and breezy."
+    },
+    {
+     "high_f": 84,
+     "low_f": 72,
+     "rain_days": 5,
+     "note": "Warm, dry and sunny."
+    },
+    {
+     "high_f": 85,
+     "low_f": 73,
+     "rain_days": 5,
+     "note": "Hot and sunny."
+    },
+    {
+     "high_f": 86,
+     "low_f": 74,
+     "rain_days": 7,
+     "note": "Hot; the air gets heavier."
+    },
+    {
+     "high_f": 88,
+     "low_f": 76,
+     "rain_days": 11,
+     "note": "Hot, humid and showery."
+    },
+    {
+     "high_f": 88,
+     "low_f": 77,
+     "rain_days": 14,
+     "note": "Hot with afternoon downpours."
+    },
+    {
+     "high_f": 88,
+     "low_f": 77,
+     "rain_days": 15,
+     "note": "Hot, humid and rainy."
+    },
+    {
+     "high_f": 89,
+     "low_f": 77,
+     "rain_days": 15,
+     "note": "Hot with daily storms."
+    },
+    {
+     "high_f": 88,
+     "low_f": 76,
+     "rain_days": 15,
+     "note": "Hot and wet; storm season."
+    },
+    {
+     "high_f": 87,
+     "low_f": 75,
+     "rain_days": 13,
+     "note": "Humid, with storms."
+    },
+    {
+     "high_f": 85,
+     "low_f": 74,
+     "rain_days": 9,
+     "note": "Warm; the rains easing."
+    },
+    {
+     "high_f": 84,
+     "low_f": 72,
+     "rain_days": 7,
+     "note": "Warm and pleasant."
+    }
+   ]
+  },
+  "desert": {
+   "months": [
+    {
+     "high_f": 66,
+     "low_f": 42,
+     "rain_days": 2,
+     "note": "Sunny days, cold nights."
+    },
+    {
+     "high_f": 70,
+     "low_f": 45,
+     "rain_days": 2,
+     "note": "Sunny and mild."
+    },
+    {
+     "high_f": 77,
+     "low_f": 51,
+     "rain_days": 2,
+     "note": "Warm days, cool nights."
+    },
+    {
+     "high_f": 85,
+     "low_f": 58,
+     "rain_days": 1,
+     "note": "Hot afternoons."
+    },
+    {
+     "high_f": 94,
+     "low_f": 66,
+     "rain_days": 1,
+     "note": "Very hot and dry."
+    },
+    {
+     "high_f": 103,
+     "low_f": 74,
+     "rain_days": 0,
+     "note": "Scorching."
+    },
+    {
+     "high_f": 106,
+     "low_f": 80,
+     "rain_days": 2,
+     "note": "Scorching, with dust."
+    },
+    {
+     "high_f": 104,
+     "low_f": 79,
+     "rain_days": 2,
+     "note": "Scorching."
+    },
+    {
+     "high_f": 98,
+     "low_f": 72,
+     "rain_days": 1,
+     "note": "Very hot."
+    },
+    {
+     "high_f": 87,
+     "low_f": 61,
+     "rain_days": 1,
+     "note": "Hot days, mild nights."
+    },
+    {
+     "high_f": 75,
+     "low_f": 50,
+     "rain_days": 1,
+     "note": "Warm and clear."
+    },
+    {
+     "high_f": 66,
+     "low_f": 43,
+     "rain_days": 2,
+     "note": "Mild days, cold nights."
+    }
+   ]
+  },
+  "alpine": {
+   "months": [
+    {
+     "high_f": 31,
+     "low_f": 14,
+     "rain_days": 10,
+     "note": "Deep snow; ski season."
+    },
+    {
+     "high_f": 34,
+     "low_f": 15,
+     "rain_days": 9,
+     "note": "Snowy and bright."
+    },
+    {
+     "high_f": 41,
+     "low_f": 21,
+     "rain_days": 10,
+     "note": "Spring skiing."
+    },
+    {
+     "high_f": 48,
+     "low_f": 28,
+     "rain_days": 11,
+     "note": "Melting snow; muddy trails."
+    },
+    {
+     "high_f": 57,
+     "low_f": 36,
+     "rain_days": 13,
+     "note": "Meadows waking up."
+    },
+    {
+     "high_f": 64,
+     "low_f": 42,
+     "rain_days": 13,
+     "note": "Wildflowers and thunderstorms."
+    },
+    {
+     "high_f": 70,
+     "low_f": 46,
+     "rain_days": 12,
+     "note": "Warm days, cold nights."
+    },
+    {
+     "high_f": 68,
+     "low_f": 45,
+     "rain_days": 12,
+     "note": "Hiking season."
+    },
+    {
+     "high_f": 61,
+     "low_f": 39,
+     "rain_days": 9,
+     "note": "Golden larches; clear air."
+    },
+    {
+     "high_f": 52,
+     "low_f": 32,
+     "rain_days": 8,
+     "note": "Crisp; the first snow up high."
+    },
+    {
+     "high_f": 40,
+     "low_f": 24,
+     "rain_days": 10,
+     "note": "Grey and snowy."
+    },
+    {
+     "high_f": 32,
+     "low_f": 16,
+     "rain_days": 10,
+     "note": "Snowy and festive."
+    }
+   ]
+  },
+  "nordic": {
+   "months": [
+    {
+     "high_f": 32,
+     "low_f": 23,
+     "rain_days": 12,
+     "note": "Short days, snow and dark."
+    },
+    {
+     "high_f": 32,
+     "low_f": 22,
+     "rain_days": 10,
+     "note": "Cold and snowy."
+    },
+    {
+     "high_f": 38,
+     "low_f": 26,
+     "rain_days": 10,
+     "note": "Light returning; still cold."
+    },
+    {
+     "high_f": 48,
+     "low_f": 33,
+     "rain_days": 9,
+     "note": "Cool; snow melting."
+    },
+    {
+     "high_f": 59,
+     "low_f": 42,
+     "rain_days": 9,
+     "note": "Fresh and light."
+    },
+    {
+     "high_f": 66,
+     "low_f": 50,
+     "rain_days": 9,
+     "note": "Mild; light till late."
+    },
+    {
+     "high_f": 70,
+     "low_f": 54,
+     "rain_days": 10,
+     "note": "The warmest month; midnight sun."
+    },
+    {
+     "high_f": 67,
+     "low_f": 52,
+     "rain_days": 11,
+     "note": "Mild and long-lit."
+    },
+    {
+     "high_f": 58,
+     "low_f": 45,
+     "rain_days": 12,
+     "note": "Cool; autumn colours."
+    },
+    {
+     "high_f": 47,
+     "low_f": 37,
+     "rain_days": 13,
+     "note": "Cold and wet."
+    },
+    {
+     "high_f": 39,
+     "low_f": 31,
+     "rain_days": 13,
+     "note": "Dark and wet."
+    },
+    {
+     "high_f": 34,
+     "low_f": 26,
+     "rain_days": 13,
+     "note": "Dark, cold and festive."
+    }
+   ]
+  },
+  "highland": {
+   "months": [
+    {
+     "high_f": 72,
+     "low_f": 45,
+     "rain_days": 3,
+     "note": "Sunny days, chilly nights."
+    },
+    {
+     "high_f": 75,
+     "low_f": 47,
+     "rain_days": 3,
+     "note": "Sunny and dry."
+    },
+    {
+     "high_f": 78,
+     "low_f": 50,
+     "rain_days": 4,
+     "note": "Warm and dry."
+    },
+    {
+     "high_f": 80,
+     "low_f": 53,
+     "rain_days": 7,
+     "note": "Warm; a few showers."
+    },
+    {
+     "high_f": 79,
+     "low_f": 55,
+     "rain_days": 13,
+     "note": "Afternoon rain begins."
+    },
+    {
+     "high_f": 75,
+     "low_f": 55,
+     "rain_days": 19,
+     "note": "Afternoon storms."
+    },
+    {
+     "high_f": 73,
+     "low_f": 54,
+     "rain_days": 22,
+     "note": "Daily afternoon rain."
+    },
+    {
+     "high_f": 73,
+     "low_f": 54,
+     "rain_days": 21,
+     "note": "Rainy afternoons."
+    },
+    {
+     "high_f": 72,
+     "low_f": 54,
+     "rain_days": 18,
+     "note": "Showers easing."
+    },
+    {
+     "high_f": 72,
+     "low_f": 51,
+     "rain_days": 10,
+     "note": "Clear and mild."
+    },
+    {
+     "high_f": 73,
+     "low_f": 48,
+     "rain_days": 4,
+     "note": "Dry and bright."
+    },
+    {
+     "high_f": 72,
+     "low_f": 46,
+     "rain_days": 3,
+     "note": "Dry with chilly nights."
+    }
+   ]
+  },
+  "subtropical-dry": {
+   "months": [
+    {
+     "high_f": 70,
+     "low_f": 59,
+     "rain_days": 5,
+     "note": "Spring-like all winter."
+    },
+    {
+     "high_f": 70,
+     "low_f": 59,
+     "rain_days": 4,
+     "note": "Mild and sunny."
+    },
+    {
+     "high_f": 72,
+     "low_f": 60,
+     "rain_days": 4,
+     "note": "Mild and sunny."
+    },
+    {
+     "high_f": 73,
+     "low_f": 61,
+     "rain_days": 3,
+     "note": "Warm and breezy."
+    },
+    {
+     "high_f": 75,
+     "low_f": 63,
+     "rain_days": 1,
+     "note": "Warm and dry."
+    },
+    {
+     "high_f": 78,
+     "low_f": 66,
+     "rain_days": 0,
+     "note": "Warm and dry."
+    },
+    {
+     "high_f": 82,
+     "low_f": 69,
+     "rain_days": 0,
+     "note": "Hot and dry."
+    },
+    {
+     "high_f": 83,
+     "low_f": 70,
+     "rain_days": 0,
+     "note": "Hot and dry."
+    },
+    {
+     "high_f": 82,
+     "low_f": 70,
+     "rain_days": 1,
+     "note": "Warm; the sea at its best."
+    },
+    {
+     "high_f": 79,
+     "low_f": 67,
+     "rain_days": 3,
+     "note": "Warm."
+    },
+    {
+     "high_f": 75,
+     "low_f": 64,
+     "rain_days": 5,
+     "note": "Mild; a little rain."
+    },
+    {
+     "high_f": 72,
+     "low_f": 61,
+     "rain_days": 6,
+     "note": "Mild and pleasant."
+    }
+   ]
+  }
+ }
+}
