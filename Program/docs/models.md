@@ -66,7 +66,30 @@ connection runs `claude auth status`, keeps only whether it is signed in and whe
 and lists the model aliases (`sonnet`, `opus`, `haiku`, `fable`), since the CLI has no model list; any full
 model name can be typed instead. If the CLI is not signed in, it says to run `claude` once in a terminal.
 Claude follows Anthropic's usage policy, so the profile help says to keep adult scenes on another profile.
-Two requests run at once; no usage is shown on the card.
+Two requests run at once per account; no usage is shown on the card.
+
+**More than one account.** A Claude Code profile's optional *Claude account folder* runs the CLI with
+`CLAUDE_CONFIG_DIR` set to that folder, where Claude Code keeps that account's sign-in, so two plans can each
+have a profile (and each job can use either). With a folder set, `CLAUDE_CODE_OAUTH_TOKEN` is left out, since it
+would win over the folder's account. Codex profiles take the same two optional settings: a Codex location and a
+*ChatGPT account folder*, run as `CODEX_HOME`, used for replies, Test connection, the model list and the plan's
+usage. The user signs in once in a terminal with the variable set; when the folder's account is not signed in,
+Test connection gives the exact command. Test connection names the Claude account's email when
+`claude auth status` reports one, and each account queues on its own. Codex pictures (Settings > Images) still use
+the usual Codex account.
+
+**Accounts found on this PC.** A Claude Code or Codex profile lists the accounts on this computer to pick from
+(`GET /api/models/cli-accounts`, `companion/providers/cli_accounts.py`, ported from Prospero's Dungeon), so a
+`claude2` command needs no typed folder. Wrapper scripts on PATH named like the CLI (`claude2.cmd`,
+`claude-work.ps1`, `codex2`), and functions and aliases with such names in the PowerShell profiles and shell
+start-up files, are read as text, never run, and only the folder they set as `CLAUDE_CONFIG_DIR` or `CODEX_HOME`
+is kept. Folders in the home folder named like the CLI's own (`.claude-account2`, `.codex-work`) are matched by
+name alone: nothing inside them is opened or looked for, since that is where the CLI keeps its sign-in, and one
+that no command sets is listed only when its CLI says it is signed in. Whether each account is signed in (and
+Claude's email) comes from `claude auth status` or `codex login status`. A new profile starts on the usual account
+when it is signed in, else on the first signed-in one. "Look for accounts on this computer" (on unless turned off,
+`workspace_settings.find_cli_accounts`) stops the scan; a typed folder still works. A profile runs the CLI itself
+with the folder set, never the wrapper, so its own flags stay in place.
 
 Not copied from the Study: the LM Studio native protocol and its verified background interruption
 (local servers use the OpenAI-compatible API, and background work here yields between streamed

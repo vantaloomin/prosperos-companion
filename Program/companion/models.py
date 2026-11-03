@@ -421,6 +421,8 @@ class SettingsUpdate(Input):
     period_words: bool | None = None
     # Keep my colours everywhere (companion/their_look.py): no companion's own colours or name font anywhere.
     keep_my_colours: bool | None = None
+    # Look for Claude Code and Codex accounts on this PC (companion/providers/cli_accounts.py, Settings > Models).
+    find_cli_accounts: bool | None = None
     color_scheme: Literal['ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom'] | None = None
     custom_palette: Palette | None = None
     # 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.

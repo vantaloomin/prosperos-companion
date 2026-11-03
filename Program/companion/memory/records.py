@@ -12,6 +12,7 @@ from companion.database import bump_memory_revision, identifier, many, one, opti
 from companion.errors import require
 from companion.lineage import declined, related, scope, within
 from companion.memory import vectors
+from companion.memory.addressed import VOICED, YOU_FORMS, base_form, subject, third_person
 from companion.memory.extraction import single_valued, subject_key
 
 OPEN_PLANS = ('proposed', 'agreed', 'postponed')
@@ -386,23 +387,40 @@ def as_told(row: dict, name: str) -> dict:
     name ("Mira came over to your place", companion/life/outings.py). Told to the companion it turns round: "You came
     over to the user's place". Only the parts that name them: older memories were written the companion's way already,
     and "Your wedding" is theirs both ways."""
-    if not name or row.get('layer') != 'shared_experience' or row.get('origin') != 'automatic' or \
-            'the user' in row['value']:
+    if not name or row.get('origin') != 'automatic' or 'the user' in row['value']:
+        return row
+    # A plan or a moment of the two of them found in the user's words says "You ..." for the user
+    # (memory/addressed.voiced): "You won't text before Sett does" is "The user won't text before you do".
+    voiced = row.get('layer') in VOICED and row['value'].startswith('You ')
+    if row.get('layer') != 'shared_experience' and not voiced:
         return row
     named = re.compile(rf'\b{re.escape(name)}\b')
-    return {**row, **{key: turned(row[key], name) for key in ('subject', 'value') if named.search(row[key])}}
+    return {**row, **{key: turned(row[key], name) for key in ('subject', 'value')
+                      if named.search(row[key]) or (key == 'value' and voiced)}}
 
 
 TURNS = ((r"\byour\b", "the user's"), (r'\byou\b', 'the user'))
 
 
 def turned(text: str, name: str) -> str:
-    """'Mira came over to your place' to Mira: 'You came over to the user's place'."""
+    """'Mira came over to your place' to Mira: 'You came over to the user's place'; 'You trust Mira' to Mira: 'The
+    user trusts you'."""
+    text = re.sub(r"^you\s+([\w']+)", lambda match: f'the user {third_person(match[1])}', text, flags=re.IGNORECASE)
     for said, told in TURNS:
         text = re.sub(said, told, text, flags=re.IGNORECASE)
     text = re.sub(rf"\b{re.escape(name)}'s\b", 'your', text)
+    text = re.sub(rf"\b{re.escape(name)}\s+([\w']+)", lambda match: f'you {you_form(match[1])}'
+                  if subject(text, match.start()) else f'you {match[1]}', text)
     text = re.sub(rf'\b{re.escape(name)}\b', 'you', text)
     return text[:1].upper() + text[1:]
+
+
+def you_form(word: str) -> str:
+    """The verb after a subject "you": "Sett texts first" -> "you text first", "Sett is" -> "you are"."""
+    low = word.casefold()
+    if low in YOU_FORMS or (low.endswith('s') and not low.endswith(('ss', 'us', "'s"))):
+        return base_form(word)
+    return word
 
 
 def blocked_messages(connection, companion_id) -> set[str]:

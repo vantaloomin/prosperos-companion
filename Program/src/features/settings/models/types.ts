@@ -28,8 +28,10 @@ export interface ProfileConfig {
   /** Text profiles write; recall profiles only make embeddings for semantic recall. */
   purpose?: 'text' | 'recall'
   embedding_model?: string
-  /** Where the Claude Code CLI is installed, when it is not on PATH. */
+  /** Where the Claude Code or Codex CLI is installed, when it is not on PATH. */
   cli_path?: string
+  /** The folder that keeps this profile's own account (CLAUDE_CONFIG_DIR or CODEX_HOME); empty uses the usual one. */
+  cli_account_dir?: string
 }
 export interface ModelProfile { id: string; name: string; revision: number; config: ProfileConfig; provider_name: string; has_saved_key: boolean; key_shared_with?: string[]; ready: boolean; recall_ready?: boolean; updated_at?: string }
 export interface ModelJob { key: string; name: string; detail: string }
