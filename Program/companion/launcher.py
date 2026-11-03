@@ -42,7 +42,7 @@ def start_failure(label: str, error: OSError) -> str:
         return f"{label} couldn't start: nothing is at that location any more. It may have moved or been uninstalled."
     if error.errno in NOT_A_PROGRAM or getattr(error, 'winerror', None) in NOT_A_PROGRAM:
         return f"{label} couldn't start: that file isn't a program. Choose the {label} program itself."
-    return f"{label} couldn't start. The details are in the log (Settings > Debug)."
+    return f"{label} couldn't start. The details are in the log (Settings > Data)."
 
 
 def comfy_install(path: Path) -> bool:

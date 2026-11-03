@@ -61,7 +61,7 @@ function PicturePart({ picture, picks, change }: { picture: NonNullable<Characte
 }
 
 function CityPart({ found, picks, change }: PartProps<MapFile>) {
-  const hint = found.already ? `This map already came in as ${found.already}, so the city can't come in twice.` : `A new city in Settings > Life & cities, with ${mapCounts(found)}.`
+  const hint = found.already ? `This map already came in as ${found.already}, so the city can't come in twice.` : `A new city in Settings > World, with ${mapCounts(found)}.`
   return <li><Check checked={picks.main && !found.already} disabled={!!found.already} onChange={(main) => change({ main })} label={`The city, ${found.city.name}`} hint={hint} /></li>
 }
 

@@ -157,7 +157,7 @@ export function PaceSettings({ name }: { name: string }) {
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.media_realism} label={media.label}
           onChange={(media_realism) => void save({ media_realism })} />}
       </Field>
-      <Field label={`Memes and GIFs: ${memes.label}`} hint={memes.hint} tip="Memes need no image backend. Reaction GIFs need your own GIPHY key, in Settings > Images.">
+      <Field label={`Memes and GIFs: ${memes.label}`} hint={memes.hint} tip="Memes need no image backend. Reaction GIFs need your own GIPHY key, in Settings > Pictures.">
         {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.memes_realism} label={memes.label}
           onChange={(memes_realism) => void save({ memes_realism })} />}
       </Field>

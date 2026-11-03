@@ -10,10 +10,10 @@ import { InfoTip } from './InfoTip'
  */
 
 /** Rows in one bordered list, with an optional short label above it. */
-export function RowGroup({ label, children, className }: { label?: string; children: ReactNode; className?: string }) {
+export function RowGroup({ id: given, label, children, className }: { id?: string; label?: string; children: ReactNode; className?: string }) {
   const id = useId()
   return (
-    <section className={className ? `row-group ${className}` : 'row-group'} aria-labelledby={label ? id : undefined}>
+    <section id={given} className={className ? `row-group ${className}` : 'row-group'} aria-labelledby={label ? id : undefined}>
       {label && <h3 id={id} className="row-group-label">{label}</h3>}
       <div className="row-list">{children}</div>
     </section>

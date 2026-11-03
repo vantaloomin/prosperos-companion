@@ -97,7 +97,7 @@ export default function App() {
       <a className="skip-link" href="#main">Skip to content</a>
       <AppNav view={shown} go={go} storyOn={storyOn} datingInstalled={datingInstalled} datingApp={datingApp} unread={unread} watching={watching} />
       <main id="main" className="app-main" tabIndex={-1}>
-        <DebugBanner onOpen={() => go('settings/debug')} />
+        <DebugBanner onOpen={() => go('settings/data')} />
         <ReadyNotice openModels={() => go('settings/models')} />
         <WatchBanner inChat={inChat(shown)} onOpen={() => go('watch')} />
         {companion.isPending ? <Loading label="Opening your companion" />
@@ -175,7 +175,7 @@ function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
   if (page) return page
   if (view.startsWith('group/')) return <GroupChat key={view} id={decodeURIComponent(view.slice(6))} go={go} />
   if (view.startsWith('match/')) return <SwitchTo townKey={decodeURIComponent(view.slice(6))} go={go} />
-  if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} onCreate={() => go('character')} />
+  if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} onHome={() => go('settings')} onCreate={() => go('character')} />
   return storyOn ? <Story go={go} />
     : <Notice action={<button type="button" className="text-button" onClick={() => go('settings/advanced')}>Open Settings</button>}>Story mode is off. Turn it on in Settings &gt; Advanced.</Notice>
 }

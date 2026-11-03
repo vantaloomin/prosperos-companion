@@ -245,7 +245,7 @@ def person(connection, key: str, town: str) -> tuple[dict, dict]:
 
 def swipe(database, key: str, like: bool) -> dict:
     """Pass or like someone in the deck. A like is a match only if their rules like the user back (or always, with
-    Settings > Debug > 100% Matchlight matches). The answer comes at once: the screen says when a like was not
+    Settings > Data > 100% Matchlight matches). The answer comes at once: the screen says when a like was not
     returned, and after a dry spell (DRY_SPELL) the deck puts someone who would say yes next."""
     with database.connect(write=True) as connection:
         require(not observer.watching(connection), PAUSED, 409)

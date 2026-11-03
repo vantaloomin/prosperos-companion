@@ -73,7 +73,7 @@ def test_a_shared_moment_shows_you_beside_them_following_both_pictures(client, c
     done = ok(client.get(f"/api/images/jobs/{job['id']}"))
     assert done['identity_method'] == 'text description and their profile picture, and your picture'
 
-    # Off in Settings > Images: the moment is theirs alone again.
+    # Off in Settings > Pictures: the moment is theirs alone again.
     ok(client.put('/api/images/settings', json={'show_me': False}))
     generate(client, shared_post(client, clock, key='event-0002'))
     drain(client)

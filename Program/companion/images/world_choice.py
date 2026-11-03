@@ -2,7 +2,7 @@
 
 Backends belong to the user and follow them from world to world (companion/worlds.py); which of them a world uses
 is the world's own, kept in its database. A world uses every enabled backend in the user's order until the user
-picks some for it in Settings > Images; then only those, still in that order. A backend added while in such a world
+picks some for it in Settings > Pictures; then only those, still in that order. A backend added while in such a world
 joins its picks. If none of its picks is enabled any more, the world uses the usual order again, so pictures still
 come rather than stopping without a word.
 """

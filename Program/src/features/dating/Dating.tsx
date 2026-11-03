@@ -58,7 +58,7 @@ export function Dating({ go }: { go: (view: View) => void }) {
       <header className="page-header"><div>
         <h1 id="dating-heading">{data.words.title}</h1>
         <p className="subtle">Meet people around town. Someone you match with can become a companion. {data.words.unseen}</p>
-        {data.all_matches && <p className="subtle dating-debug">Debug: everyone you like matches back. Turn off in <a className="text-button inline" href="#settings/debug" onClick={(event) => { event.preventDefault(); go('settings/debug') }}>Settings &gt; Debug</a>.</p>}
+        {data.all_matches && <p className="subtle dating-debug">Debug: everyone you like matches back. Turn off in <a className="text-button inline" href="#settings/data" onClick={(event) => { event.preventDefault(); go('settings/data') }}>Settings &gt; Data</a>.</p>}
       </div></header>
       {error && <Notice tone="error">{error}</Notice>}
       <WhileWatching data={data} run={run} />

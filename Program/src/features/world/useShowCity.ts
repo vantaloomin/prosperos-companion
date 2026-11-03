@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { CITIES_CHANNEL, SHOW_CITY_KEY } from '../draft/draftText'
 import { reducedMotion } from '../../motion'
 
-/** A city's card in Settings > Life & cities scrolls into view and lights up for a moment. */
+/** A city's card in Settings > World scrolls into view and lights up for a moment. */
 export function jumpToCity(id: string): boolean {
   const card = document.getElementById(`city-${id}`)
   if (!card) return false
@@ -22,13 +22,13 @@ function waiting(): string | null {
   try { return localStorage.getItem(SHOW_CITY_KEY) } catch { return null }
 }
 
-/** Show in Companion on the Draft Table: Companion's window turns to Settings > Life & cities (App.tsx). */
-export function useShowCityLink(go: (view: 'settings/life') => void) {
+/** Show in Companion on the Draft Table: Companion's window turns to Settings > World (App.tsx). */
+export function useShowCityLink(go: (view: 'settings/world') => void) {
   useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') return
     const channel = new BroadcastChannel(CITIES_CHANNEL)
     channel.addEventListener('message', (event: MessageEvent<unknown>) => {
-      if (typeof event.data === 'object' && event.data && 'show' in event.data) go('settings/life')
+      if (typeof event.data === 'object' && event.data && 'show' in event.data) go('settings/world')
     })
     return () => channel.close()
   }, [go])

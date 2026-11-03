@@ -79,7 +79,7 @@ async function waitFor(path: string): Promise<Making | null> {
 interface ActionsProps { busy: Busy; picture: boolean; looks: boolean; canMake: boolean; onPick: () => void; onMake: () => void; onRemove: () => void }
 
 function makeHint(picture: boolean, looks: boolean, canMake: boolean): string {
-  if (!canMake) return 'To make one, add an image backend in Settings > Images.'
+  if (!canMake) return 'To make one, add an image backend in Settings > Pictures.'
   if (!looks) return 'Say how you look above to make one.'
   return picture ? 'Make a new one draws you from How you look and replaces this picture.' : 'Make one draws you from How you look, with this world\'s image backends.'
 }
@@ -97,6 +97,6 @@ function PictureActions({ busy, picture, looks, canMake, onPick, onMake, onRemov
     </div>
     {canMake
       ? <p className="subtle" id="persona-make-hint">{makeHint(picture, looks, canMake)}</p>
-      : <p className="subtle" id="persona-make-hint"><a className="text-button inline" href="#settings/images">Set up images</a><span className="visually-hidden"> to make one</span></p>}
+      : <p className="subtle" id="persona-make-hint"><a className="text-button inline" href="#settings/pictures">Set up images</a><span className="visually-hidden"> to make one</span></p>}
   </>
 }

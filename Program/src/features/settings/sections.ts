@@ -1,6 +1,9 @@
 /** Settings is split into tabs; this lists them, what each holds, and the words a search finds them by. */
 
-export type SettingsTab = 'general' | 'models' | 'life' | 'realism' | 'memory' | 'lookups' | 'images' | 'notifications' | 'phone' | 'data' | 'debug' | 'advanced'
+export type SettingsTab = 'general' | 'models' | 'realism' | 'world' | 'memory' | 'pictures' | 'devices' | 'data' | 'advanced'
+
+/** Tabs from before 1.3 (twelve, now eight and Advanced): an old link or bookmark opens the tab that holds them now. */
+const MOVED: Record<string, SettingsTab> = { life: 'world', lookups: 'world', images: 'pictures', notifications: 'devices', phone: 'devices', debug: 'data' }
 
 export interface SettingsSection {
   /** The id of the section's heading, used to land on it from a search result. */
@@ -16,7 +19,7 @@ export interface SettingsTabInfo {
   withoutCompanion?: boolean
   /** Hidden on a paired phone: the Companion only allows it from the PC (companion/phone/access.py). */
   pcOnly?: boolean
-  /** Listed only while "Show advanced settings" is on. */
+  /** Listed last, under a line, for power users. */
   advanced?: boolean
   sections: SettingsSection[]
 }
@@ -30,8 +33,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
       { heading: 'background-heading', title: 'Background activity', keywords: 'background running open simulation' },
       { heading: 'updates-heading', title: 'Updates', keywords: 'update updates upgrade check for updates new version latest release download github about' },
     ],
-  },
-  {
+  },  {
     id: 'models', label: 'Models', withoutCompanion: true, sections: [
       { heading: 'hardware-heading', title: 'This computer', keywords: 'hardware graphics card gpu vram memory ram nvidia fit warning slow local' },
       { heading: 'models-heading', title: 'Models', keywords: 'model connection provider api key openai anthropic openrouter google local kobold codex profile chat life memory drafting recall temperature' },
@@ -40,15 +42,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
       { heading: 'recall-heading', title: 'Built-in recall', keywords: 'recall embedding embeddings semantic llama.cpp llama-server gguf gemma embeddinggemma qwen local memory search' },
       { heading: 'voice-heading', title: 'Voice notes', keywords: 'voice voices voice notes audio speech tts text to speech kokoro sherpa openai elevenlabs google accent preview' },
     ],
-  },
-  {
-    id: 'life', label: 'Life & cities', sections: [
-      { heading: 'life-heading', title: 'Life', keywords: 'life events pace themes days routine catch up' },
-      { heading: 'cities-heading', title: 'Cities', keywords: 'city cities places home world pack' },
-      { heading: 'world-library-heading', title: 'Library', keywords: 'library book books novel script transcript wiki tiddlywiki epub reference passages lore neokosmos' },
-    ],
-  },
-  {
+  },  {
     // Every setting that dials real life down or off, in one place (Vanta, 2026-10-10).
     id: 'realism', label: 'Realism', sections: [
       { heading: 'presets-heading', title: 'Start from', keywords: 'realism realistic preset presets template templates difficulty easy life real life drama pull the strings control everything mode' },
@@ -59,39 +53,31 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
       { heading: 'adult-side-heading', title: 'Adult side of life', keywords: 'realism realistic adult adults nsfw 18 sex sexual sexuality orientation gay straight bisexual kink kinks fetish deviancy adventurous drive intimacy intimate bedroom' },
       { heading: 'hidden-values-heading', title: 'Hidden values', keywords: 'realism realistic hidden values show reveal mood moods feeling feelings news word gets around odds dice why it went secret secrets slip on their mind thoughts home numbers meters housework' },
     ],
+  },  {
+    id: 'world', label: 'World', sections: [
+      { heading: 'life-heading', title: 'Life', keywords: 'life events pace themes days routine catch up' },
+      { heading: 'cities-heading', title: 'Cities', keywords: 'city cities places home world pack' },
+      { heading: 'world-library-heading', title: 'Library', keywords: 'library book books novel script transcript wiki tiddlywiki epub reference passages lore neokosmos' },
+      { heading: 'context-heading', title: 'Real-world lookups', keywords: 'weather search web links urls mcp tools news current' },
+    ],
   },
   {
     id: 'memory', label: 'Memory', sections: [
       { heading: 'memory-heading', title: 'Memory', keywords: 'memory remember automatic sensitive suggestions timelines privacy' },
     ],
-  },
-  {
-    id: 'lookups', label: 'Real-world lookups', sections: [
-      { heading: 'context-heading', title: 'Real-world lookups', keywords: 'weather search web links urls mcp tools news current' },
-    ],
-  },
-  {
-    id: 'images', label: 'Images', sections: [
+  },  {
+    id: 'pictures', label: 'Pictures', sections: [
       { heading: 'images-heading', title: 'Images', keywords: 'image pictures photos comfyui krea codex nsfw backend' },
     ],
-  },
-  {
-    id: 'notifications', label: 'Notifications', sections: [
+  },  {
+    id: 'devices', label: 'Devices', sections: [
       { heading: 'notifications-heading', title: 'Notifications', keywords: 'notifications alerts desktop quiet hours' },
-    ],
-  },
-  {
-    id: 'phone', label: 'Phone access', sections: [
       { heading: 'phone-heading', title: 'Phone access', keywords: 'phone mobile tailscale network remote away pair qr code device home screen install wifi wi-fi lan local network' },
     ],
   },
   {
-    id: 'data', label: 'Backups', pcOnly: true, sections: [
+    id: 'data', label: 'Data', pcOnly: true, sections: [
       { heading: 'backup-heading', title: 'Backups', keywords: 'backup restore data export archive' },
-    ],
-  },
-  {
-    id: 'debug', label: 'Debug', pcOnly: true, sections: [
       { heading: 'debug-heading', title: 'Debug time', keywords: 'debug test testing time travel jump skip ahead days fast forward speed accelerate spoof date clock' },
       { heading: 'model-calls-heading', title: 'Record model calls', keywords: 'log logs logging record recording full conversation conversations chats requests responses raw sent strange reply support troubleshoot' },
       { heading: 'townsfolk-mix-heading', title: 'Townsfolk mix', keywords: 'townsfolk mix ratio ratios shares population generation generate new world reseed gender women men nonbinary height build weight beard facial hair orientation sexuality gay lesbian bisexual straight adult side adventurous drive sliders' },
@@ -103,29 +89,27 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
       { heading: 'story-mode-heading', title: 'Story mode', keywords: 'story mode narrator roleplay role play travel townsfolk meet people dating experimental' },
       { heading: 'prompts-heading', title: 'Prompts', keywords: 'advanced prompt prompts system instructions wording chat character in character first texts check-ins life phrasing memory suggestions pictures describe drafting help me write quick start power user' },
     ],
-  },
-]
+  },]
 
-export function availableTabs(hasCompanion: boolean, onPhone = false, advanced = false): SettingsTabInfo[] {
-  return SETTINGS_TABS.filter((tab) => (hasCompanion || tab.withoutCompanion) && !(onPhone && tab.pcOnly) && (advanced || !tab.advanced))
+export function availableTabs(hasCompanion: boolean, onPhone = false): SettingsTabInfo[] {
+  return SETTINGS_TABS.filter((tab) => (hasCompanion || tab.withoutCompanion) && !(onPhone && tab.pcOnly))
 }
 
-/** The tab to show for a deep link: the one asked for when it is available, else the first one. */
-export function pickTab(requested: string | undefined, hasCompanion: boolean, onPhone = false, advanced = false): SettingsTab {
-  const tabs = availableTabs(hasCompanion, onPhone, advanced)
-  return (tabs.find((tab) => tab.id === requested) ?? tabs[0]).id
+/** The tab to show for a deep link: the one asked for (or the one an old tab moved into) when it is available, else
+ * the first one. */
+export function pickTab(requested: string | undefined, hasCompanion: boolean, onPhone = false): SettingsTab {
+  const tabs = availableTabs(hasCompanion, onPhone)
+  const wanted = requested && (MOVED[requested] ?? requested)
+  return (tabs.find((tab) => tab.id === wanted) ?? tabs[0]).id
 }
 
 export interface SettingsMatch { tab: SettingsTabInfo; section: SettingsSection }
 
-/**
- * Sections whose title, tab or keywords contain every word of the query. Advanced sections are found
- * even while hidden; picking one turns "Show advanced settings" on.
- */
+/** Sections whose title, tab or keywords contain every word of the query. */
 export function searchSettings(query: string, hasCompanion: boolean, onPhone = false): SettingsMatch[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   if (!words.length) return []
-  return availableTabs(hasCompanion, onPhone, true).flatMap((tab) => tab.sections
+  return availableTabs(hasCompanion, onPhone).flatMap((tab) => tab.sections
     .filter((section) => {
       const text = `${section.title} ${tab.label} ${section.keywords}`.toLowerCase()
       return words.every((word) => text.includes(word))

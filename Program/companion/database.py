@@ -221,9 +221,9 @@ ADDED_COLUMNS = (
     # The adult side of life (companion/world/intimacy.py): off unless the user turns it on in Settings > Realism.
     ('workspace_settings', 'adult_side', 'INTEGER NOT NULL DEFAULT 0 CHECK (adult_side IN (0, 1))'),
     ('workspace_settings', 'show_adult_side', 'INTEGER NOT NULL DEFAULT 0 CHECK (show_adult_side IN (0, 1))'),
-    # Record model calls (companion/model_calls.py): off unless the user turns it on in Settings > Debug.
+    # Record model calls (companion/model_calls.py): off unless the user turns it on in Settings > Data.
     ('workspace_settings', 'record_model_calls', 'INTEGER NOT NULL DEFAULT 0 CHECK (record_model_calls IN (0, 1))'),
-    # 100% Matchlight matches (Settings > Debug): every like is liked back. Off unless the user turns it on.
+    # 100% Matchlight matches (Settings > Data): every like is liked back. Off unless the user turns it on.
     ('workspace_settings', 'debug_all_matches', 'INTEGER NOT NULL DEFAULT 0 CHECK (debug_all_matches IN (0, 1))'),
     # Everyday events became automatic ("the world exists outside of User", Vanta 2026-10-08); a workspace
     # from before that is switched on once (see initialize), and turning it off afterwards sticks.
@@ -379,7 +379,7 @@ ADDED_COLUMNS = (
     ('chat_photos', 'meme_source', "TEXT NOT NULL DEFAULT ''"),
     ('chat_photos', 'meme_picture', 'TEXT'),
     ('chat_photos', 'gif', 'TEXT'),
-    # Whether classic meme formats are downloaded from memegen.link the first time memes are sent (Settings > Images).
+    # Whether classic meme formats are downloaded from memegen.link the first time memes are sent (Settings > Pictures).
     ('image_settings', 'meme_formats', 'INTEGER NOT NULL DEFAULT 1 CHECK (meme_formats IN (0, 1))'),
     # Memes and GIFs (Settings > Realism > Their days): 0 never, 1 now and then, 2 true to life, 3 often.
     ('life_settings', 'memes_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (memes_realism BETWEEN 0 AND 3)'),
@@ -412,7 +412,7 @@ ADDED_COLUMNS = (
     # 3 lively.
     ('life_settings', 'politics_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (politics_realism BETWEEN 0 AND 3)'),
     # Whether pictures of the companion follow their profile picture on a backend that takes a reference
-    # (companion/images/runner.py, Settings > Images): on unless turned off, per world.
+    # (companion/images/runner.py, Settings > Pictures): on unless turned off, per world.
     ('image_settings', 'follow_profile_picture',
      'INTEGER NOT NULL DEFAULT 1 CHECK (follow_profile_picture IN (0, 1))'),
     # Another version of a full reply sent after a holding text (Another reply on it, companion/reply_versions.py):
@@ -427,7 +427,7 @@ ADDED_COLUMNS = (
     # pictures of moments they share with a companion show them too.
     ('persona', 'looks', "TEXT NOT NULL DEFAULT ''"),
     ('persona', 'picture', "TEXT NOT NULL DEFAULT ''"),
-    # Whether pictures of moments the user shares with a companion show the user too (Settings > Images), per world.
+    # Whether pictures of moments the user shares with a companion show the user too (Settings > Pictures), per world.
     ('image_settings', 'show_me', 'INTEGER NOT NULL DEFAULT 1 CHECK (show_me IN (0, 1))'),
     # Meeting up early and staying longer (companion/life/outings.py): the time it was planned for before Go now, and
     # how many times the user stayed on an hour.

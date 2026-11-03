@@ -199,7 +199,7 @@ def profile_picture(database, connection, companion: dict) -> bytes | None:
 
 def profile_reference(database, version_id: str | None) -> bytes | None:
     """The picture a picture of the companion follows: their face close-up when one made since the profile picture was
-    kept, else the profile picture; None when the world has that switched off (Settings > Images) or they have no
+    kept, else the profile picture; None when the world has that switched off (Settings > Pictures) or they have no
     profile picture."""
     from companion.images.jobs import image_settings  # jobs builds on the image modules that import this one
     with database.connect() as connection:

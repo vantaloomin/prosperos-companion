@@ -1,4 +1,4 @@
-"""The town's mix (Settings > Debug > Townsfolk mix): the shares the townsfolk rolls use for how people look and who
+"""The town's mix (Settings > Data > Townsfolk mix): the shares the townsfolk rolls use for how people look and who
 they are drawn to, shown to the user and, for advanced users, changed for a new world.
 
 Each world keeps its own mix (table `townsfolk_mix`; no row is the built-in one) and a new world starts from the

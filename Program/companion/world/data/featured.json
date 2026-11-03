@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
  "release": "0.16",
- "title": "Featured in v0.16 · Such Stuff as Dreams",
+ "title": "Featured",
  "note": "A generation ship to call home, and three favorites back on the ground.",
  "cities": ["long-meridian", "baltimore", "grandport", "osaka"],
  "new_cities": ["long-meridian"]

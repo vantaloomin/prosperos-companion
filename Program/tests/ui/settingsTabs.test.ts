@@ -1,18 +1,25 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { SETTINGS_TABS, availableTabs, pickTab, searchSettings } from '../../src/features/settings/sections.ts'
-import { readAdvanced, writeAdvanced } from '../../src/features/settings/advanced.ts'
 import { groupPrompts, placeholderHint } from '../../src/features/settings/prompts.ts'
 import { setupSteps } from '../../src/features/conversation/setup.ts'
 import type { Companion, LifeSettings, WorkspaceSettings } from '../../src/types.ts'
 
 test('a deep link opens its tab, and an unknown or unavailable one opens the first', () => {
-  assert.equal(pickTab('images', true), 'images')
+  assert.equal(pickTab('pictures', true), 'pictures')
+  // Tabs from before 1.3 open the group that holds them now.
+  assert.equal(pickTab('images', true), 'pictures')
+  assert.equal(pickTab('life', true), 'world')
+  assert.equal(pickTab('lookups', true), 'world')
+  assert.equal(pickTab('phone', true), 'devices')
+  assert.equal(pickTab('debug', true), 'data')
+  assert.equal(pickTab('debug', true, true), 'general')
+  assert.deepEqual(availableTabs(true).map((tab) => tab.id), ['general', 'models', 'realism', 'world', 'memory', 'pictures', 'devices', 'data', 'advanced'])
   assert.equal(pickTab(undefined, true), 'general')
   assert.equal(pickTab('nonsense', true), 'general')
   // Before a companion exists only the model settings can be changed.
   assert.equal(pickTab('images', false), 'models')
-  assert.deepEqual(availableTabs(false).map((tab) => tab.id), ['models'])
+  assert.deepEqual(availableTabs(false).map((tab) => tab.id), ['models', 'advanced'])
 })
 
 test('search finds sections by title, tab name or keyword, needing every word', () => {
@@ -41,30 +48,12 @@ test('the setup checklist sends you straight to the Models tab', () => {
   assert.equal(setupSteps(companion, null).find((step) => step.id === 'connection')?.view, 'settings/models')
 })
 
-test('the Advanced tab shows only with the switch on, and search still finds it', () => {
-  assert.ok(!availableTabs(true).some((tab) => tab.id === 'advanced'))
-  assert.equal(availableTabs(true, false, true).at(-1)?.id, 'advanced')
-  // Drafting prompts were editable before a companion existed, so Advanced is too.
-  assert.deepEqual(availableTabs(false, false, true).map((tab) => tab.id), ['models', 'advanced'])
-  assert.equal(pickTab('advanced', true), 'general')
-  assert.equal(pickTab('advanced', true, false, true), 'advanced')
+test('Advanced is always listed, last, and search finds it', () => {
+  assert.equal(availableTabs(true).at(-1)?.id, 'advanced')
+  assert.equal(pickTab('advanced', true), 'advanced')
   const found = searchSettings('prompt', true)
   assert.deepEqual(found.map((match) => match.section.heading), ['prompts-heading'])
   assert.ok(found[0].tab.advanced)
-})
-
-test('the advanced switch is remembered by the browser and off by default', () => {
-  const values = new Map<string, string>()
-  const store = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value) }, removeItem: (key: string) => { values.delete(key) } }
-  assert.equal(readAdvanced(store), false)
-  writeAdvanced(store, true)
-  assert.equal(readAdvanced(store), true)
-  writeAdvanced(store, false)
-  assert.equal(readAdvanced(store), false)
-  assert.equal(readAdvanced(undefined), false)
-  const broken = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') }, removeItem: () => { throw new Error('blocked') } }
-  assert.equal(readAdvanced(broken), false)
-  writeAdvanced(broken, true)
 })
 
 test('prompts are grouped in order and their placeholders explained', () => {
@@ -78,7 +67,7 @@ test('prompts are grouped in order and their placeholders explained', () => {
 
 test('everything that dials realism down is on the Realism tab, and search finds it there', () => {
   const tab = (query: string) => searchSettings(query, true).map((match) => match.tab.id)
-  assert.equal(availableTabs(true).findIndex((item) => item.id === 'realism'), availableTabs(true).findIndex((item) => item.id === 'life') + 1)
+  assert.equal(availableTabs(true).findIndex((item) => item.id === 'realism'), availableTabs(true).findIndex((item) => item.id === 'models') + 1)
   // Drama is each world's own (companion/life/world_drama.py), set on Realism in that world.
   const drama = searchSettings('drama', true).map((match) => match.section.heading)
   assert.ok(drama.includes('pace-heading') && !drama.includes('world-life-heading'))

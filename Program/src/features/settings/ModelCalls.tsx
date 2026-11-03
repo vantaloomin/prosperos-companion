@@ -13,7 +13,7 @@ function size(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-/** Settings > Debug: write every model request and response down in full, to find out why a reply came out
+/** Settings > Data: write every model request and response down in full, to find out why a reply came out
  * strange (companion/model_calls.py). Off by default; the files hold the chats word for word. PC only. */
 export function ModelCalls() {
   const client = useQueryClient()
