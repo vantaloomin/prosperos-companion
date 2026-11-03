@@ -13,6 +13,7 @@ from companion.errors import DomainError, require
 from companion.life import (
     agenda,
     ages,
+    away_together,
     big_days,
     big_turns,
     breakups,
@@ -637,10 +638,13 @@ def change_call(request: Request, call_id: str, action: Literal['answer', 'decli
 
 
 @router.post('/trips/{trip_id}/{action}')
-def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo']):
-    """Call off a weekend visit with the user that has not started (companion/life/long_distance.py), or undo that."""
+def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo', 'elsewhere', 'home', 'stay']):
+    """Call off a weekend visit or a trip together that has not started (companion/life/long_distance.py), or undo
+    that; send a trip together somewhere else, or head home from one early and undo that
+    (companion/life/away_together.py)."""
     database = db(request)
-    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo}[action]
+    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo, 'elsewhere': away_together.elsewhere,
+              'home': away_together.head_home, 'stay': away_together.stay_on}[action]
     with database.connect(write=True) as connection:
         changed = change(connection, require_current(connection), trip_id, database.clock.now())
     request.app.state.life.extend_agenda('return')

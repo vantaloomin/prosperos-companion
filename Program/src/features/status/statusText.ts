@@ -17,7 +17,7 @@ export function shown(status: CompanionStatus | null | undefined): { text: strin
  * together (companion/life/moving_in.py) the house, and together somewhere out the pin. */
 function togetherGlyph(where: StatusWhere): AwayGlyph {
   if (where.kind === 'home') return 'home'
-  return where.kind === 'staying' || where.kind === 'hosting' ? 'luggage' : 'pin'
+  return where.kind === 'staying' || where.kind === 'hosting' || where.kind === 'away' ? 'luggage' : 'pin'
 }
 
 /** The glyph beside where they are on the chat list: a phone on a call, luggage on a weekend visit, the house at home
