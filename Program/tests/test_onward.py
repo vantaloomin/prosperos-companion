@@ -88,7 +88,7 @@ def test_a_date_moves_on_to_a_second_place(client, mira, provider, clock, always
     assert (outing['until_time'], outing['next'], outing['activity']) == ('21:00', None, 'dinner')
     saved = stored(client, outing['id'])
     stop = saved['onward']
-    assert stop['activity'] in ('drinks', 'walk') and stop['at'] == '21:00' and saved['until_time'] > '21:00'
+    assert stop['activity'] == 'drinks' and stop['at'] == '21:00' and saved['until_time'] > '21:00'
     assert saved['cost'] >= outing['cost']
     clock.advance(timedelta(hours=7, minutes=30))  # 19:30.
     reconcile(client)
@@ -102,7 +102,7 @@ def test_a_date_moves_on_to_a_second_place(client, mira, provider, clock, always
     clock.advance(timedelta(minutes=16))  # 21:01: moved on.
     [there] = listing(client)
     assert there['place']['id'] == stop['place']['id'] and there['came_from']['name'] == outing['place']['name']
-    assert there['state'] == 'now' and there['undo_move']
+    assert there['state'] == 'now' and there['undo_move'] and there['moved_at'] == '21:00'
     where = client.get('/api/life/where').json()
     assert where['text'] == f"Together at {stop['place']['name']}"
     text = preview(client)
@@ -186,3 +186,9 @@ def test_asking_while_out_moves_on_instead_of_booking_another_day(client, mira, 
     assert now['at'] == '19:30' and now['asked']
     [there] = listing(client)
     assert there['place']['id'] == now['place']['id'] and not there['undo_move']
+
+
+def test_a_walk_after_dark_only_on_a_warm_evening():
+    assert onward.options('dinner', '21:00', date(2026, 10, 5)) == ('drinks',)
+    assert onward.options('dinner', '21:00', date(2026, 7, 5)) == ('drinks', 'walk')
+    assert onward.options('walk', '15:00', date(2026, 1, 5)) == ('coffee', 'lunch-out')

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Bike, Bus, Car, DoorOpen, EyeOff, Footprints, Home, Hourglass, Luggage, Navigation, Ship, TrainFront, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import { appNow } from '../../appTime.ts'
+import { BackTo } from '../today/OutTogether'
 import { TOGETHER_KEY } from '../today/outingText'
 import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
@@ -81,7 +82,7 @@ function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLi
 
 /** Stay longer; or, just after they moved on to a second place by themselves, Undo to go back (companion/life/onward.py). */
 function StayOrBack({ where, act }: { where: WhereState; act: (verb: 'back' | 'longer') => Promise<void> }) {
-  if (canGoBack(where)) return <button type="button" className="text-button" onClick={() => void act('back')}><Undo2 aria-hidden="true" />Undo</button>
+  if (canGoBack(where)) return <button type="button" className="text-button back-to" aria-label={`Back to ${where.outing?.came_from?.name ?? 'where you were'}`} onClick={() => void act('back')}><Undo2 aria-hidden="true" /><BackTo name={where.outing?.came_from?.name ?? 'where you were'} /></button>
   return <button type="button" className="text-button" onClick={() => void act('longer')}><Hourglass aria-hidden="true" />Stay longer</button>
 }
 

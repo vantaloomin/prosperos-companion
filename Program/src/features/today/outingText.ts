@@ -21,6 +21,7 @@ export interface Outing {
   /** Second location (companion/life/onward.py): the place they move on to and when, shown once the move is near;
    * where they came from once they moved on; `undo_move` just after an automatic move. */
   next?: OutingNext | null; came_from?: { name: string; activity: string; neighborhood: string } | null; undo_move?: boolean
+  /** When they moved on to where they are now ('21:00'). */ moved_at?: string
 }
 export interface OutingNext { place: OutingPlace; activity: string; at: string; asked: boolean }
 /** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; 'together' for a trip away together (companion/life/away_together.py); '' for a trip of their own. `undo` is true for a visit called off a little while ago, `home_undo` for a trip together just cut short. `away` says how a trip together travels ('plane', 'steamship', 'tram') and its preposition ('in Lisbon', 'on the garden deck'). */
@@ -131,7 +132,8 @@ function bigDayPart(place: OutingPlace, done: boolean, name: string): string {
 
 /** When it is, and who picked the place. */
 export function outingWhen(outing: Outing, name: string): string {
-  const when = `${dayText(outing.local_date)}, ${timeText(outing.at_time)}`
+  // After moving on to a second place, when they got there (Iris, 2026-11-03).
+  const when = `${dayText(outing.local_date)}, ${timeText(outing.moved_at ?? outing.at_time)}`
   const moved = outing.asked_date && outing.asked_date !== outing.local_date ? ` (${dayText(outing.asked_date)} didn't work for ${name})` : ''
   return `${when}${moved}`
 }

@@ -51,6 +51,7 @@ HOURS = {'dinner': 1.5, 'lunch-out': 1.0, 'coffee': 1.0, 'drinks': 1.5, 'show': 
          'market': 1.0}
 SAME, CLOSE, ELSEWHERE = 3.0, 2.0, 1.0  # As companion/life/next_place.py.
 NEAR_KM = 1.5
+WARM = ('spring', 'summer')  # Seasons for a walk after dark.
 SHOWN = timedelta(minutes=20)  # How long before the move the strip, Today and the companion know of it.
 JUST = timedelta(minutes=30)  # How long after the move the scene says where they came from.
 UNDO = timedelta(minutes=2)  # How long the move can be taken back.
@@ -111,7 +112,7 @@ def here(outing: dict, timezone: str, now: datetime) -> dict:
     if moved(outing, timezone, now):
         return {**outing, 'place': stop['place'], 'activity': stop['activity'], 'next': None,
                 'came_from': {'name': outing['place']['name'], 'activity': outing['activity'],
-                              'neighborhood': outing['place'].get('neighborhood', '')}}
+                              'neighborhood': outing['place'].get('neighborhood', '')}, 'moved_at': stop['at']}
     soon = not cut_off(outing, timezone) and now >= move_time(outing, timezone) - SHOWN
     return {**outing, 'until_time': stop['at'], 'came_from': None,
             'next': {key: stop[key] for key in ('place', 'activity', 'at')} | {'asked': bool(stop.get('asked'))}
@@ -159,8 +160,13 @@ def qualifies(outing: dict) -> bool:
         'home', 'your-home', 'family-home')
 
 
-def options(activity: str, at: str) -> tuple[str, ...]:
-    return (EVENING if composer.day_part(at) in ('evening', 'late') else DAYTIME).get(activity, ('coffee', 'walk'))
+def options(activity: str, at: str, day: date | None = None) -> tuple[str, ...]:
+    """What could come next; of an evening a walk only on a warm one (late spring and summer)."""
+    evening = composer.day_part(at) in ('evening', 'late')
+    found = (EVENING if evening else DAYTIME).get(activity, ('coffee', 'walk'))
+    if evening and day and generators.SEASONS[day.month] not in WARM:
+        found = tuple(name for name in found if name != 'walk') or ('drinks',)
+    return found
 
 
 def item_of(data: dict, place_id: str) -> dict | None:
@@ -245,7 +251,7 @@ def stop(connection, companion: dict, outing: dict, data: dict, at: str, *, acti
     else:
         found = [(name, nearby(data, outing, name, [item for item in fitting(data, name, day, at, outing)
                                                     if item['id'] != avoid]))
-                 for name in ((activity,) if activity else options(outing['activity'], at))]
+                 for name in ((activity,) if activity else options(outing['activity'], at, day))]
         found = [(name, items) for name, items in found if items]
         if not found:
             return None

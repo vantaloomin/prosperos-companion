@@ -55,7 +55,7 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       {bigDayLine(outing, firstName(name)) && <p className="subtle">{bigDayLine(outing, firstName(name))}</p>}
       {note && <p className="subtle">{note}</p>}
       <MeetLine outing={outing} />
-      {onwardLine(outing) && <p className="subtle together-next">{onwardLine(outing)}</p>}
+      <NextLine outing={outing} act={act} />
       <SitterLine outing={outing} />
       {outing.state === 'planned' && <Planned outing={outing} name={name} act={act} />}
       {outing.state === 'now' && <Now outing={outing} act={act} />}
@@ -82,12 +82,23 @@ function Now({ outing, act }: { outing: Outing; act: (path: string) => Promise<v
   return (
     <div className="together-actions">
       {/* Moving on to a second place (companion/life/onward.py): another one before, back just after. */}
-      {outing.next && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/next`)}><MapPin aria-hidden="true" />Somewhere else</button>}
-      {outing.undo_move && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/back`)}><Undo2 aria-hidden="true" />Undo</button>}
+      {outing.undo_move && outing.came_from && <button type="button" className="text-button back-to" aria-label={`Back to ${outing.came_from.name}`} onClick={() => void act(`/life/outings/${outing.id}/back`)}><Undo2 aria-hidden="true" /><BackTo name={outing.came_from.name} /></button>}
       {outing.longer_ok && !outing.undo_move && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/longer`)}><Hourglass aria-hidden="true" />Stay longer</button>}
       <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/home`)}>{long ? <><Moon aria-hidden="true" />Call it a night</> : <><Home aria-hidden="true" />Head home</>}</button>
     </div>
   )
+}
+
+/** Moving on to a second place: where next, with Somewhere else? at the end of the line it changes, or where they came from. */
+function NextLine({ outing, act }: { outing: Outing; act: (path: string) => Promise<void> }) {
+  const line = onwardLine(outing)
+  if (!line) return null
+  return <p className="subtle together-next">{line}{outing.next && <> <button type="button" className="text-button inline" onClick={() => void act(`/life/outings/${outing.id}/next`)}>Somewhere else?</button></>}</p>
+}
+
+/** "Back to Cinghiale": the place name gives way first on a narrow screen, "Back to" never does (Iris, 2026-11-03). */
+export function BackTo({ name }: { name: string }) {
+  return <span className="back-to-label">Back to <span className="back-to-place">{name}</span></span>
 }
 
 /** Go now when they are free before the time, call it off or somewhere else; the wedding is changed on its card on the Character page (companion/life/wedding.py),
