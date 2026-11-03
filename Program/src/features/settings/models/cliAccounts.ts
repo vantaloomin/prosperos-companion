@@ -17,11 +17,10 @@ export const sameAccount = (account: CliAccount, folder: string | undefined) => 
 
 const folderName = (folder: string) => folder.split(/[\\/]/).filter(Boolean).pop() ?? folder
 
-/** The account's row: its command (claude2), else its folder's name, and "(usual account)" for the one with no folder. */
-export function accountName(account: CliAccount): string {
-  const name = account.commands[0] ?? folderName(account.account_dir)
-  return account.account_dir ? name : `${name} (usual account)`
-}
+/** The account's row: its command (claude2), else its folder's name. The one with no folder is the usual account. */
+export const accountName = (account: CliAccount): string => account.commands[0] ?? folderName(account.account_dir)
+
+export const isUsual = (account: CliAccount) => !account.account_dir
 
 /** The row's quiet value: the email Claude Code reports, else whether it is signed in. */
 export const accountValue = (account: CliAccount): string => !account.signed_in ? 'Not signed in' : account.email || 'Signed in'

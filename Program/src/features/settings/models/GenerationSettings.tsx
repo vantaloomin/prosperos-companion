@@ -1,6 +1,7 @@
 // Per-provider generation controls adapted from prosperos-study src/features/models/GenerationSettings.tsx
 // at bbcbde4: no LM Studio native protocol and no context safety margin.
 import { Field } from '../../../components/Fields'
+import { contextChoices, replyRange, timeChoices } from './budgets'
 import { bounded } from '../../../components/numberBounds'
 import type { DiscoveredModel } from './discovery'
 import type { ProfileConfig } from './types'
@@ -40,16 +41,18 @@ export function GenerationSettings(props: Props) {
     {config.provider === 'openai' && <Choice label="Response verbosity" value={config.response_verbosity} options={['low', 'medium', 'high']} onChange={value => patch({ response_verbosity: value as ProfileConfig['response_verbosity'] })} tip="How much the model tends to say. The longest reply still caps it." />}
     <SamplingControls {...props} />
     <NumberInput label="Shared inference slot (optional)" type="text" value={config.resource_group ?? ''} onChange={value => patch({ resource_group: value })} tip="Profiles with the same name take turns on one slot. Leave blank and all local profiles share one; use different names only for separate hardware." />
-    <NumberInput label="Time limit (seconds)" value={config.timeout_seconds} min={10} max={1800} onChange={value => patch({ timeout_seconds: Number(value) })} tip="How long to wait for a reply before giving up. Slow local models may need more." />
+    <PresetSelect label="Time limit" value={config.timeout_seconds} choices={timeChoices(config.timeout_seconds)} onChange={value => patch({ timeout_seconds: value })} tip="How long to wait for a reply before giving up. Slow local models may need more." />
   </div>
 }
+
+const contextTip = (reported?: number | null) => reported ? `The service reports ${reported.toLocaleString()} tokens. This can be lower.` : 'What the model can read at once. Not reported, so set it to the model’s context size.'
 
 function BudgetControls({ config, patch, model }: Props) {
   const cli = config.provider === 'codex' || config.provider === 'claude_code'
   const input = config.context_tokens - config.max_output_tokens
   return <div className="form-grid">
-    <NumberInput label="Context size (tokens)" value={config.context_tokens} min={1024} max={2000000} onChange={value => patch({ context_tokens: Number(value) })} tip={model?.context_tokens ? `The service reports ${model.context_tokens.toLocaleString()} tokens. This can be lower.` : 'What the model can read at once. Not reported, so set it to the model’s context size.'} />
-    <NumberInput label={cli ? 'Reply budget (tokens)' : 'Longest reply (tokens)'} value={config.max_output_tokens} min={64} max={128000} onChange={value => patch({ max_output_tokens: Number(value) })} tip={cli ? 'Used for planning what fits. The CLI sets its own hard limit.' : 'Includes thinking where the provider counts it.'} />
+    <PresetSelect label="Context size" value={config.context_tokens} choices={contextChoices(config.context_tokens, model?.context_tokens)} onChange={value => patch({ context_tokens: value })} tip={contextTip(model?.context_tokens)} />
+    <ReplySlider label={cli ? 'Reply budget' : 'Longest reply'} value={config.max_output_tokens} onChange={value => patch({ max_output_tokens: value })} tip={cli ? 'Used for planning what fits. The CLI sets its own hard limit.' : 'Includes thinking where the provider counts it.'} />
     <p className="subtle" role="status">{Math.max(0, input).toLocaleString()} tokens left for the character, memories and conversation.</p>
     {input <= 0 && <p role="alert">Raise the context size or lower the longest reply.</p>}
     {!!model?.max_output_tokens && config.max_output_tokens > model.max_output_tokens && <p role="alert">The longest reply is above the reported maximum of {model.max_output_tokens.toLocaleString()} tokens.</p>}
@@ -130,3 +133,19 @@ function Choice({ label, value, options, onChange, tip, noDefault, capitalised }
   const shown = (option: string) => capitalised ? option.charAt(0).toUpperCase() + option.slice(1) : option
   return <Field label={label} tip={tip}>{(id, describedBy) => <select id={id} value={value ?? ''} aria-describedby={describedBy} onChange={event => onChange(event.target.value || null)}>{!noDefault && <option value="">Service default</option>}{value && !options.includes(value) && <option value={value}>{shown(value)} · saved, not reported</option>}{options.map(option => <option key={option} value={option}>{shown(option)}</option>)}</select>}</Field>
 }
+
+/** A bounded number as a select of presets (Iris: bounded numbers get bounded controls). */
+function PresetSelect({ label, value, choices, onChange, tip }: { label: string; value: number; choices: { value: number; label: string }[]; onChange: (value: number) => void; tip?: string }) {
+  return <Field label={label} tip={tip}>{(id, describedBy) => <select id={id} value={value} aria-describedby={describedBy} onChange={event => onChange(Number(event.target.value))}>
+    {choices.map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+  </select>}</Field>
+}
+
+function ReplySlider({ label, value, onChange, tip }: { label: string; value: number; onChange: (value: number) => void; tip?: string }) {
+  const range = replyRange(value)
+  return <Field label={label} tip={tip}>{(id, describedBy) => <span className="range-field">
+    <input id={id} type="range" min={range.min} max={range.max} step={range.step} value={value} aria-describedby={describedBy} aria-valuetext={`${value.toLocaleString()} tokens`} onChange={event => onChange(Number(event.target.value))} />
+    <output htmlFor={id}>{value.toLocaleString()} tokens</output>
+  </span>}</Field>
+}
+

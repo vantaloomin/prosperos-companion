@@ -11,7 +11,7 @@ import { Notice } from '../../../components/Feedback'
 import { FoldRow, RowGroup, SwitchRow } from '../../../components/Rows'
 import { shownPath } from '../../../paths'
 import type { WorkspaceSettings } from '../../../types'
-import { type FolderShown, WINDOWS, accountName, accountValue, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from './cliAccounts'
+import { type FolderShown, WINDOWS, accountName, accountValue, isUsual, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from './cliAccounts'
 import type { Provider } from './types'
 
 const KEY = ['cli-accounts']
@@ -75,9 +75,9 @@ function AccountList({ provider, accounts, chosen, busy, onPick, onLook, childre
     </div>
     {accounts.length
       ? <div className="row-list" role="radiogroup" aria-labelledby={`${id}-label`}>
-        {accounts.map(account => <label key={account.account_dir || 'usual'} className="setting-row radio-row" title={account.account_dir ? shownPath(account.account_dir) : undefined}>
+        {accounts.map(account => <label key={account.account_dir || 'usual'} className="setting-row radio-row" title={[account.account_dir && shownPath(account.account_dir), account.email].filter(Boolean).join(' · ') || undefined}>
           <input type="radio" name={`${id}-account`} checked={account === chosen} onChange={() => onPick(account.account_dir)} />
-          <span className="setting-row-label">{accountName(account)}</span>
+          <span className="setting-row-label">{accountName(account)}{isUsual(account) && <><span className="wide-only">(usual account)</span><span className="narrow-only">(usual)</span></>}</span>
           <span className="row-value">{accountValue(account)}</span>
         </label>)}
         {children}

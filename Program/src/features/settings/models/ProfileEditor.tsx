@@ -8,6 +8,8 @@ import { Field, TextInput } from '../../../components/Fields'
 import { CliAccountPicker } from './CliAccountPicker'
 import { folderExample } from './cliAccounts'
 import { GenerationSettings } from './GenerationSettings'
+import { generationSummary } from './budgets'
+import { FoldRow, SettingRow } from '../../../components/Rows'
 import { ModelCombobox } from './ModelCombobox'
 import { applyDiscovered, discoveredSettings, profileReady, recallReady, reusableKey, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
 import { shownPath } from '../../../paths'
@@ -184,7 +186,9 @@ function ModelFields({ config, patch, discovery }: { config: ProfileConfig; patc
   return <>
     <TextInput label="Model ID" value={config.model} onChange={value => patch(typedModelSettings(value.trim(), config, models))} maxLength={200} placeholder="Pick from the list or type an ID"
       tip="The exact name the service uses for the model, such as gpt-4o-mini or llama3.1:8b. Test connection lists the models this service offers, and picking one fills in its settings." />
-    <details className="advanced-settings"><summary>Generation settings</summary><GenerationSettings config={config} patch={patch} model={models.find(model => model.id === config.model)} /></details>
+    <div className="row-list"><FoldRow summary="Generation settings" value={generationSummary(config)}>
+      <div className="fold-pad"><GenerationSettings config={config} patch={patch} model={models.find(model => model.id === config.model)} /></div>
+    </FoldRow></div>
   </>
 }
 
@@ -202,13 +206,13 @@ function TokenEntry(entry: KeyEntry & { local: boolean }) {
   const [editing, setEditing] = useState(false)
   if (editing) return <KeyField {...entry} onDone={() => setEditing(false)} />
   // A key another profile saved for this service is used as it is; typing one is only for a different key.
-  if (entry.reused && !entry.saved) return <div className="token-entry"><p>Uses the API key saved with <strong>{entry.reused}</strong>.</p><button type="button" className="button" onClick={() => setEditing(true)}>Use a different key</button></div>
-  return <div className="token-entry"><p><KeyStatus saved={entry.saved} others={entry.sharedWith.join(', ')} /></p><button type="button" className="button" onClick={() => setEditing(true)}>{entry.saved ? 'Replace key' : 'Add API key'}</button>{entry.local && <small>Local servers can leave this empty, and an environment variable such as OPENAI_API_KEY also works.</small>}</div>
-}
-
-function KeyStatus({ saved, others }: { saved: boolean; others: string }) {
-  if (saved && others) return <>Shares its API key with <strong>{others}</strong>.</>
-  return <>{saved ? 'An API key is saved for this profile.' : 'No API key saved for this profile.'}</>
+  const borrowed = !!entry.reused && !entry.saved
+  const others = entry.sharedWith.join(', ')
+  const value = borrowed ? `From ${entry.reused}` : entry.saved ? (others ? `Shared with ${others}` : 'Saved') : 'None saved'
+  const action = borrowed ? 'Use a different key' : entry.saved ? 'Replace key' : 'Add API key'
+  return <div className="row-list key-row"><SettingRow label="API key" tip={entry.local ? 'Local servers can leave this empty, and an environment variable such as OPENAI_API_KEY also works.' : undefined}>
+    {id => <><span className="row-value">{value}</span><button id={id} type="button" className="button" onClick={() => setEditing(true)}>{action}</button></>}
+  </SettingRow></div>
 }
 
 function KeyField({ saved, reused, sharedWith, value, onChange, share, onShare, onDone }: KeyEntry & { onDone: () => void }) {

@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { accountName, accountValue, folderExample, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
+import { accountName, accountValue, isUsual, folderExample, folderShown, sameAccount, signInStep, startingAccount, type CliAccount } from '../../src/features/settings/models/cliAccounts.ts'
 
 const usual: CliAccount = { provider: 'claude_code', account_dir: '', commands: ['claude'], sources: [], signed_in: true, email: 'one@example.com' }
 const second: CliAccount = { provider: 'claude_code', account_dir: 'C:\\Users\\Jim\\.claude-account2', commands: ['claude2'], sources: [], signed_in: false, email: '' }
 const folderOnly: CliAccount = { provider: 'codex', account_dir: '/home/jim/.codex-work', commands: [], sources: [], signed_in: false, email: '' }
 
 test('each account is named by its command, else its folder, with the email the CLI reports or whether it is signed in', () => {
-  assert.equal(accountName(usual), 'claude (usual account)')
+  assert.equal(accountName(usual), 'claude')
+  assert.ok(isUsual(usual) && !isUsual(second))
   assert.equal(accountName(second), 'claude2')
   assert.equal(accountName(folderOnly), '.codex-work')
   assert.equal(accountValue(usual), 'one@example.com')
@@ -53,4 +54,19 @@ test('the typed folder is plain with nothing to pick, open while it matches none
   const typed = '/somewhere/else'
   assert.equal(folderShown(true, accounts.length, accounts.some(account => sameAccount(account, typed))), 'open')
   assert.equal(folderShown(true, accounts.length, accounts.some(account => sameAccount(account, second.account_dir))), 'closed')
+})
+
+test('profile budgets: presets keep a saved value, and the fold sums them up', async () => {
+  const { contextChoices, timeChoices, replyRange, shortTokens, generationSummary } = await import('../../src/features/settings/models/budgets.ts')
+  assert.equal(shortTokens(16000), '16K')
+  assert.equal(shortTokens(1000000), '1M')
+  assert.ok(contextChoices(16000).some(choice => choice.value === 16000))
+  assert.ok(contextChoices(16384, 262144).some(choice => choice.label.includes('reported')))
+  assert.equal(contextChoices(16384).length, 8)
+  assert.deepEqual(timeChoices(180).map(choice => choice.label), ['1 min', '2 min', '3 min', '5 min', '10 min'])
+  assert.ok(timeChoices(45).some(choice => choice.label === '45 s'))
+  assert.deepEqual(replyRange(800), { min: 200, max: 8000, step: 100 })
+  assert.equal(replyRange(16000).max, 16000)
+  assert.equal(generationSummary({ context_tokens: 16000, max_output_tokens: 800 } as never), '16K context · 800 reply')
+  assert.equal(generationSummary({ context_tokens: 16000, max_output_tokens: 800, reasoning_effort: 'high' } as never), '16K context · 800 reply · High effort')
 })
