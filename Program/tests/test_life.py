@@ -335,6 +335,10 @@ def test_today_routine_reports_the_current_block(client, companion, clock):
     assert view['default_schedule'] is True
     assert view['current']['block']['key'] == 'morning'
     assert view['next']['block']['key'] == 'afternoon'
+    # Their whole day where they live, midnight to midnight, for Today's day strip.
+    keys = [slot['block']['key'] for slot in view['today']]
+    assert 'morning' in keys and 'afternoon' in keys
+    assert all(slot['ends_at'] > '2026-10-05T23:00:00' and slot['starts_at'] < '2026-10-06T23:00:00' for slot in view['today'])
 
 
 def test_schedule_validation(client, companion):

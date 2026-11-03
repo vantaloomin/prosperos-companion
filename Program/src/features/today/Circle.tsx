@@ -26,6 +26,7 @@ import { useLifeSettings } from '../settings/useLifeSettings'
 import { KindFields } from '../kinds/KindFields'
 import { useKindChoices } from '../kinds/useKindChoices'
 import { kindSummary } from '../kinds/kindText'
+import { firstName } from '../character/panelText'
 
 const CIRCLE_KEY = ['circle']
 const DIARY_PAGE = 20
@@ -55,7 +56,7 @@ export function Circle({ name }: { name: string }) {
   }
   return (
     <section className="today-section" aria-labelledby="circle-heading">
-      <h2 id="circle-heading">People in {name}'s life</h2>
+      <h2 id="circle-heading">People in {firstName(name)}'s life</h2>
       <p className="subtle">Fictional people in {name}'s world. They are never you, and nothing about them is treated as a fact about you.</p>
       <Toggle label="Show people you removed" checked={removed} onChange={setRemoved} />
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>

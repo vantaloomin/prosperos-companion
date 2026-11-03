@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BookHeart, Check, Map as MapIcon, Network, Newspaper, Play, RotateCcw, X } from 'lucide-react'
+import { BookHeart, Check, Lock, Map as MapIcon, Network, Newspaper, Play, RotateCcw, X } from 'lucide-react'
 import { api } from '../../api'
 import { SETTINGS_KEY, type View } from '../../companion'
 import type { Companion, LifeEvent, PauseRecord, ScrapbookListing, Today as TodayData } from '../../types'
@@ -10,6 +10,9 @@ import { Circle } from './Circle'
 import { CorrectEvent, type EventCorrection } from './CorrectEvent'
 import { EventItem } from './EventItem'
 import { MoneyPanel } from './MoneyPanel'
+import { NowCard } from './NowCard'
+import { RowGroup } from '../../components/Rows'
+import { InfoTip } from '../../components/InfoTip'
 import { OurFamily } from './OurFamily'
 import { Paper } from './Paper'
 import { TalkOfTheTown } from './TalkOfTheTown'
@@ -24,9 +27,10 @@ import { AdminList, FOLD } from './AdminList'
 import { LittleThings } from './LittleThings'
 import { WordGetsAround } from './WordGetsAround'
 import { headerOccasions } from './storyText'
-import { bodyText, changesEmpty, moodText, pauseToFill } from './todayText'
+import { bodyText, moodText, pauseToFill } from './todayText'
 import { SCRAPBOOKS_KEY, featuredCard } from '../year/yearText'
 import { askForNew } from '../feed/feedState'
+import { firstName } from '../character/panelText'
 
 const TODAY_KEY = ['today']
 
@@ -71,19 +75,19 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
   const data = today.data
   return (
     <section className="page today">
-      <header className="page-header">
-        <div>
-          <h1>{name}'s day</h1>
-          <p className="subtle">Message {name} any time. When they are busy or asleep, they answer when they can.</p>
-          <Feeling data={data} name={name} />
-          {data.mind && <OnTheirMind thoughts={data.mind.thoughts} name={name} />}
-        </div>
-        <div className="today-actions">
-          {data.feed_unread > 0 && <button type="button" className="button" onClick={() => { askForNew(); go('feed') }}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
-          <button type="button" className="button" onClick={() => go('map')}><MapIcon aria-hidden="true" />Map</button>
-          <button type="button" className="button" onClick={() => go('people')}><Network aria-hidden="true" />Who knows who</button>
-        </div>
+      <header className="today-head">
+        <h1>Today</h1>
+        {data.feed_unread > 0 && <button type="button" className="button" onClick={() => { askForNew(); go('feed') }}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
+        <span className="today-tools">
+          <button type="button" className="icon-button" aria-label="Map" title="Map" onClick={() => go('map')}><MapIcon aria-hidden="true" /></button>
+          <button type="button" className="icon-button" aria-label="Who knows who" title="Who knows who" onClick={() => go('people')}><Network aria-hidden="true" /></button>
+          <button type="button" className="icon-button" aria-label="Secrets" title="Secrets" onClick={() => go('secrets')}><Lock aria-hidden="true" /></button>
+        </span>
       </header>
+      <NowCard data={data} name={name} go={go}>
+        <Feeling data={data} name={name} />
+        {data.mind && <OnTheirMind thoughts={data.mind.thoughts} name={name} />}
+      </NowCard>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       <StateNotices data={data} name={name} onResume={resume} />
       <YearReady name={name} go={go} />
@@ -106,7 +110,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
           ))}
         </Section>
       )}
-      <Section id="changes" title={data.last_seen_at ? 'Since you were last here' : 'Recently'} empty={changesEmpty(name, data.review.length)}>
+      <Section id="changes" title={data.last_seen_at ? 'Since you were last here' : 'Recently'}>
         {data.changes.map((event) => (
           <EventItem key={event.id} event={event}>
             {event.status === 'committed' && <CorrectEvent event={event} onSave={(correction) => correct(event, correction)} />}
@@ -122,9 +126,8 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <Storylines name={name} />
       <LittleThings moments={data.moments} dreams={data.dreams} name={name} />
       <Reactions name={name} />
-      <Routine data={data} name={name} go={go} />
       <OurFamily family={data.family} />
-      <MoneyPanel name={name} go={() => go('character')} />
+      <RowGroup className="today-folds"><MoneyPanel name={name} go={() => go('character')} /></RowGroup>
       <Circle name={name} />
       <Paper />
       <TalkOfTheTown name={name} />
@@ -150,12 +153,14 @@ function useOccasions(data: TodayData, name: string) {
   return (data.occasions ?? []).filter((item) => !(card && item.kind === 'anniversary'))
 }
 
-function Section({ id, title, hint, empty, children }: { id: string; title: string; hint?: string; empty?: string; children: ReactNode[] }) {
+/** A list of events under a heading; an empty one is left out (style guide: empty sections hidden). The hint sits
+ * behind an InfoTip. */
+function Section({ id, title, hint, children }: { id: string; title: string; hint?: string; children: ReactNode[] }) {
+  if (!children.length) return null
   return (
     <section className="today-section" aria-labelledby={`${id}-heading`}>
-      <h2 id={`${id}-heading`}>{title}</h2>
-      {hint && <p className="subtle">{hint}</p>}
-      {children.length ? <ul className="event-list">{children}</ul> : empty && <p className="subtle">{empty}</p>}
+      <div className="today-section-title"><h2 id={`${id}-heading`}>{title}</h2>{hint && <InfoTip id={`${id}-about`} label={title} text={hint} />}</div>
+      <ul className="event-list">{children}</ul>
     </section>
   )
 }
@@ -213,40 +218,34 @@ function Plans({ data, name, go }: { data: TodayData; name: string; go: (view: V
   const { shared, companion, threads } = data.plans
   const admin = data.plans.admin ?? []
   const stays = data.plans.stays ?? []
-  if (![shared, companion, threads, admin, stays].some((list) => list.length)) return null
+  const groups = [shared, companion, threads, admin, stays].filter((list) => list.length).length
+  if (!groups) return null
+  // One group needs no heading of its own (Iris): "Coming up" says it, and All errands sits beside that heading.
+  const many = groups > 1
+  const allErrands = admin.length > 0 && <button type="button" className="text-button today-more" onClick={() => go('character')}>All errands</button>
   return (
     <section className="today-section" aria-labelledby="plans-heading">
-      <h2 id="plans-heading">Plans</h2>
-      {shared.length > 0 && <>
-        <h3>Yours</h3>
+      <div className="today-section-title"><h2 id="plans-heading">Coming up</h2>{!many && allErrands}</div>
+      <PlanGroup title="Yours" many={many} count={shared.length}>
         <ul className="plain-list">{shared.map((plan) => <li key={plan.id}><strong>{plan.subject}</strong>: {plan.value} <span className="badge">{plan.status}</span></li>)}</ul>
-      </>}
-      {companion.length > 0 && <><h3>{name}'s</h3><ul className="event-list">{companion.map((event) => <EventItem key={event.id} event={event} />)}</ul></>}
-      {stays.length > 0 && <>
-        <h3>Stays with the other parent</h3>
-        <AdminList items={stays} />
-      </>}
-      {admin.length > 0 && <>
-        <h3>Errands and appointments</h3>
-        <AdminList items={admin.slice(0, FOLD)} fold={null} />
-        <button type="button" className="text-button" onClick={() => go('character')}>All in {name}'s life admin</button>
-      </>}
-      {threads.length > 0 && <><h3>Still unresolved</h3><ul className="event-list">{threads.map((event) => <EventItem key={event.id} event={event} />)}</ul></>}
+      </PlanGroup>
+      <PlanGroup title={`${firstName(name)}'s`} many={many} count={companion.length}>
+        <ul className="event-list">{companion.map((event) => <EventItem key={event.id} event={event} />)}</ul>
+      </PlanGroup>
+      <PlanGroup title="Stays with the other parent" many={many} count={stays.length}><AdminList items={stays} /></PlanGroup>
+      <PlanGroup title="Errands and appointments" many={many} count={admin.length} extra={allErrands}><AdminList items={admin.slice(0, FOLD)} fold={null} /></PlanGroup>
+      <PlanGroup title="Still unresolved" many={many} count={threads.length}>
+        <ul className="event-list">{threads.map((event) => <EventItem key={event.id} event={event} />)}</ul>
+      </PlanGroup>
     </section>
   )
 }
 
-function Routine({ data, name, go }: { data: TodayData; name: string; go: (view: View) => void }) {
-  const { current, next, default_schedule } = data.routine
-  const at = (value: string) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone: data.companion_timezone }).format(new Date(value))
-  return (
-    <section className="today-section" aria-labelledby="routine-heading">
-      <h2 id="routine-heading">Routine</h2>
-      <ul className="plain-list">
-        {current && <li>Now: {current.block.label}, until {at(current.ends_at)} their time</li>}
-        {next && <li>Next: {next.block.label}, from {at(next.starts_at)} their time</li>}
-      </ul>
-      {default_schedule && <p className="subtle">{name} is following a gentle default day. <button type="button" className="text-button inline" onClick={() => go('character')}>Describe their routine</button></p>}
-    </section>
-  )
+/** One group under Coming up, with its own heading only while there is more than one group. */
+function PlanGroup({ title, many, count, extra, children }: { title: string; many: boolean; count: number; extra?: ReactNode; children: ReactNode }) {
+  if (!count) return null
+  return <>
+    {many && <div className="today-group-title"><h3>{title}</h3>{extra}</div>}
+    {children}
+  </>
 }
