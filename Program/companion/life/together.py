@@ -273,7 +273,9 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     now = parse(message['created_at'])
     if ended_by_words(connection, companion, message, now):
         return True
-    from companion.life import long_distance
+    from companion.life import away_together, long_distance
+    if away_together.note(connection, message, companion, timestamp):
+        return True  # A trip away together, booked or turned down.
     if long_distance.note(connection, message, companion, timestamp):
         return True  # A weekend visit across the distance, or anything about visiting while one is under way.
     kind = asked(message['text'])
@@ -367,13 +369,14 @@ ASKED = {'visit-yours': 'you to come over to their place now', 'dinner-yours': '
          'call': 'to talk on the phone now',  # On a call (companion/life/calls.py).
          # Long distance (companion/life/long_distance.py) and going out (outings.py) from another city.
          'weekend-to-you': 'you to come and stay with them for a weekend',
-         'weekend-host': 'to come and stay with you for a weekend', 'out': 'to meet up and go out together'}
+         'weekend-host': 'to come and stay with you for a weekend', 'out': 'to meet up and go out together',
+         'trip': 'to go away together on a trip'}  # Away together (companion/life/away_together.py).
 
 
 # Asked while things are tense, and they would rather not, for now (companion/life/rough_patches.py `turned_down`).
 TENSE_ASKED = {'out': 'to get together and go out', 'dinner-in': 'to come over to your place for dinner',
                'visit-in': 'to come over to your place', 'visit-yours': 'you to come over to their place',
-               'dinner-yours': 'you to come over to theirs for dinner'}
+               'dinner-yours': 'you to come over to theirs for dinner', 'trip': 'to go away together on a trip'}
 TENSE_LINE = ('- The user asked {asked}. Things are still tense between you, and you would rather not, for now: say so '
               'in your own words, a little cool and brief. Do not make another plan or suggest another time yet, and do '
               'not lecture. You are apart, texting.')
@@ -410,6 +413,9 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
             reason = decode(row['reason'])
             if reason['why'] == 'tense':
                 result.append((f"together-ask:{row['id']}", TENSE_LINE.format(asked=TENSE_ASKED[row['kind']])))
+                continue
+            if row['kind'] == 'trip':
+                result.append((f"together-ask:{row['id']}", trip_line(reason)))
                 continue
             if reason['why'] == 'child':
                 result.append((f"together-ask:{row['id']}", child_line(connection, row['kind'], reason)))
@@ -450,6 +456,31 @@ def child_line(connection, kind: str, reason: dict) -> str:
     return CHILD_LINE.format(asked=ASKED[kind], names=steps.names_text(reason['names']),
                              who=CHILD_WHO[reason['lives']].format(city=reason['city'] or 'their city'),
                              saturday=f'{saturday:%A %B} {saturday.day}')
+
+
+# A trip away together they can't take (companion/life/away_together.py `note`): why, and what to offer instead.
+TRIP_REASONS = {
+    'too-far': ("{place} is too far to get to and back in the time you could take off", 'somewhere closer'),
+    'no-time': ("you have no time off coming up for a trip that long", 'a long weekend somewhere closer'),
+    'weekends': ("you have no free weekend for it in the next few months", 'another time'),
+    'money': ("you can't afford {place} any time soon; you pay your own way", 'somewhere cheaper'),
+    'elsewhere': ("{place} is out of reach: there is no way to get there from your world", 'somewhere you can go'),
+    'aboard': ("{place} is out of reach: you live aboard ship, and the ship goes nowhere near it",
+               'somewhere aboard'),
+    'not-yet': ("{place} is no place for a holiday in your day: nobody goes there for one yet", 'somewhere people go'),
+    'nowhere': ("there is nowhere you could both get to for a trip", 'a day out instead'),
+    'apart': ("you are not together any more, so going away together is off", ''),
+    'too-soon': ("it is too soon: you don't know each other well enough yet to go away together", 'a date first')}
+TRIP_LINE = ('- The user asked {asked}{where}. You can\'t: {reason}. Say so kindly in your own words, in character'
+             '{instead}. Nothing is booked. You are apart, texting.')
+
+
+def trip_line(reason: dict) -> str:
+    place = reason.get('place') or 'there'
+    why, instead = TRIP_REASONS.get('aboard' if reason.get('aboard') else reason['why'], TRIP_REASONS['weekends'])
+    return TRIP_LINE.format(asked=ASKED['trip'], where=f' ({place})' if reason.get('place') else '',
+                            reason=why.format(place=place), instead=f', and suggest {instead} if you like' if instead
+                            else '')
 
 
 FAR_REASONS = {'money': "you can't afford the trip this pay period",

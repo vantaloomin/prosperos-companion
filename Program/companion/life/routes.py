@@ -13,6 +13,7 @@ from companion.errors import DomainError, require
 from companion.life import (
     agenda,
     ages,
+    away_together,
     big_days,
     big_turns,
     breakups,
@@ -226,11 +227,13 @@ def read_routine(request: Request):
     with database.connect() as connection:
         companion = require_current(connection)
         position = simulation.cursor(connection, companion['active_timeline_id'])
-    version = companion['version']
-    schedule, default = routine.blocks(version['definition'])
+        version = companion['version']
+        schedule, default = routine.blocks(version['definition'])
+        # A day away together is one block (companion/life/away_together.py).
+        day = away_together.day_slots(connection, companion, today_slots(schedule, version['timezone'], now))
     now_slot, next_slot = routine.current_and_next(schedule, version['timezone'], now)
     return {'timezone': version['timezone'], 'default_schedule': default,
-            'blocks': [block.view() for block in schedule], 'today': today_slots(schedule, version['timezone'], now),
+            'blocks': [block.view() for block in schedule], 'today': day,
             'current': now_slot.view() if now_slot else None, 'next': next_slot.view() if next_slot else None,
             'simulated_through': position['simulated_through'], 'now': stamp(now),
             'clock_behind': now < parse(position['simulated_through'])}
@@ -644,10 +647,13 @@ def change_call(request: Request, call_id: str, action: Literal['answer', 'decli
 
 
 @router.post('/trips/{trip_id}/{action}')
-def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo']):
-    """Call off a weekend visit with the user that has not started (companion/life/long_distance.py), or undo that."""
+def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo', 'elsewhere', 'home', 'stay']):
+    """Call off a weekend visit or a trip together that has not started (companion/life/long_distance.py), or undo
+    that; send a trip together somewhere else, or head home from one early and undo that
+    (companion/life/away_together.py)."""
     database = db(request)
-    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo}[action]
+    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo, 'elsewhere': away_together.elsewhere,
+              'home': away_together.head_home, 'stay': away_together.stay_on}[action]
     with database.connect(write=True) as connection:
         changed = change(connection, require_current(connection), trip_id, database.clock.now())
     request.app.state.life.extend_agenda('return')

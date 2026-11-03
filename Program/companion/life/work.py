@@ -539,7 +539,53 @@ def vacation_days(connection, companion: dict, year: int, found: dict | None = N
     plan = vacation_plan(f'vacation:{timeline_id}:{found["career"]}', year, int(rule.get('vacation') or 0),
                          workdays(definition), tuple(rule.get('vacation_month') or ()), closed, found['started_on'])
     hunting = hunt_span(found)
-    return [day for day in plan if not hunting or not hunting[0] <= day <= hunting[1]]
+    plan = [day for day in plan if not hunting or not hunting[0] <= day <= hunting[1]]
+    return moved(plan, away_days(connection, companion, year, closed))
+
+
+def away_days(connection, companion: dict, year: int, closed: frozenset[str]) -> list[tuple[str, list[str]]]:
+    """(day it was booked, the workdays it covers) for each trip away together that year (companion/life/
+    away_together.py), oldest booking first: those workdays are vacation days."""
+    rows = many(connection, "SELECT start_date, end_date, created_at FROM trips WHERE timeline_id=? AND "
+                "visit='together' AND status='planned' AND end_date>=? AND start_date<=? ORDER BY created_at",
+                (companion['active_timeline_id'], f'{year}-01-01', f'{year}-12-31'))
+    days = workdays(companion['version']['definition'])
+    result = []
+    for row in rows:
+        day, covered = date.fromisoformat(row['start_date']), []
+        while day.isoformat() <= row['end_date']:
+            if day.year == year and day.weekday() in days and day.isoformat() not in closed:
+                covered.append(day.isoformat())
+            day += timedelta(days=1)
+        result.append((row['created_at'][:10], covered))
+    return result
+
+
+def moved(plan: list[str], trips: list[tuple[str, list[str]]]) -> list[str]:
+    """The year's vacation days with trips away together taking theirs: each trip's workdays become vacation, and as
+    many planned days after it was booked (the next ones first, so the summer week moves to the trip) are given up."""
+    result, taken = list(plan), set()
+    for booked, covered in trips:
+        extra = [day for day in covered if day not in result and day not in taken]
+        taken.update(covered)
+        for day in [day for day in result if day > booked and day not in taken][:len(extra)]:
+            result.remove(day)
+    return sorted(set(result) | taken)
+
+
+def spare_vacation(connection, companion: dict, year: int, today: date) -> int:
+    """Vacation days a trip away together could still take that year: those not planned at all, and planned ones
+    still to come that no trip has (a trip moves them). Without work life, as many as it needs."""
+    found = state(connection, companion['active_timeline_id']) if ACTIVE else None
+    if not found or not level(connection):
+        return 365
+    city = outings.city_data(connection, companion['version']['definition'])
+    closed = frozenset(item['date'] for item in generators.holidays(city, date(year, 1, 1), date(year, 12, 31))
+                       if item['kind'] == 'public') if city else frozenset()
+    current = vacation_days(connection, companion, year, found)
+    trips = {day for _booked, covered in away_days(connection, companion, year, closed) for day in covered}
+    allowance = int(rules(city).get('vacation') or 0)
+    return max(0, allowance - len(current)) + sum(1 for day in current if day > today.isoformat() and day not in trips)
 
 
 def hunt_span(found: dict) -> tuple[str, str] | None:

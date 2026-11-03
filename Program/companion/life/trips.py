@@ -267,8 +267,9 @@ def plan_ahead(connection, companion: dict, world, now: datetime) -> int:
         return 0
     timeline_id = companion['active_timeline_id']
     today = now.astimezone(zone(companion['version']['timezone'])).date()
-    from companion.life import long_distance
+    from companion.life import away_together, long_distance
     far = long_distance.settle_moves(connection, companion, today)
+    away_together.settle_planned(connection, companion, today)
     rows = many(connection, "SELECT start_date FROM trips WHERE timeline_id=? AND status='planned'", (timeline_id,))
     written = 0
     for saturday in saturdays(today):
@@ -277,8 +278,9 @@ def plan_ahead(connection, companion: dict, world, now: datetime) -> int:
                     (timeline_id, (saturday + timedelta(days=2)).isoformat(),
                      (saturday - timedelta(days=2)).isoformat())):
             continue
-        # Living apart, a weekend visit with the user comes before a trip of their own.
-        visit = far and long_distance.decide(connection, companion, home, far, saturday)
+        # A trip away together, or living apart a weekend visit with the user, comes before a trip of their own.
+        visit = away_together.decide(connection, companion, home, saturday, now) or \
+            (far and long_distance.decide(connection, companion, home, far, saturday))
         if visit:
             insert(connection, companion, visit, now)
             rows.append(visit)
@@ -298,17 +300,20 @@ def insert(connection, companion: dict, trip: dict, now: datetime) -> str:
     trip_id = identifier()
     connection.execute(
         'INSERT OR IGNORE INTO trips (id, companion_id, timeline_id, start_date, end_date, city_id, city_name, kind, '
-        'company, landmark, sunny, cost, visit, message_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '
-        '?, ?)',
+        'company, landmark, sunny, cost, visit, message_id, away, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '
+        '?, ?, ?, ?, ?)',
         (trip_id, companion['id'], companion['active_timeline_id'], trip['start_date'], trip['end_date'],
          trip['city_id'], trip['city_name'], trip['kind'], encode(trip['company']), encode(trip['landmark']),
-         int(trip['sunny']), trip['cost'], trip.get('visit', ''), trip.get('message_id'), now.isoformat()))
+         int(trip['sunny']), trip['cost'], trip.get('visit', ''), trip.get('message_id'),
+         encode(trip['away']) if trip.get('away') else None, now.isoformat()))
     return trip_id
 
 
 def view(row: dict) -> dict:
+    away = row.get('away')
     return {**row, 'company': decode(row['company']) if row['company'] else None,
-            'landmark': decode(row['landmark']) if row['landmark'] else None, 'sunny': bool(row['sunny'])}
+            'landmark': decode(row['landmark']) if row['landmark'] else None, 'sunny': bool(row['sunny']),
+            'away': (decode(away) if isinstance(away, str) else away) or None}
 
 
 def planned(connection, timeline_id: str, since: str) -> list[dict]:
@@ -360,10 +365,17 @@ def block(view: dict, trip: dict) -> dict:
     """A waking block on a trip day: out and about in the other city. On a weekend visit it is time with the user,
     so replies are not held (companion/life/pacing.py)."""
     if trip.get('visit'):
-        return {**view, 'kind': 'social', 'label': f"With you in {trip['city_name']}", 'trip': trip['id'],
+        label = f"Away with you {away_where(trip)}" if trip['visit'] == 'together' else \
+            f"With you in {trip['city_name']}"
+        return {**view, 'kind': 'social', 'label': label, 'trip': trip['id'],
                 'holiday': None, 'sick_day': False, 'with_user': True}
     return {**view, 'kind': 'social', 'label': f"Away in {trip['city_name']}", 'trip': trip['id'],
             'holiday': None, 'sick_day': False}
+
+
+def away_where(trip: dict) -> str:
+    """'in Lisbon', 'on the Amalfi Coast' for a trip away together (companion/life/away_together.py)."""
+    return f"{(trip.get('away') or {}).get('prep') or 'in'} {trip['city_name']}"
 
 
 def outing_name(name: str) -> str:
@@ -374,6 +386,9 @@ def outing_name(name: str) -> str:
 def travel_by(trip: dict, definition: dict, world) -> str:
     """How they travel on a trip: by shuttle to or from a ship or station, else the neighbour listing's own word, or
     '' for the usual wording (companion/world/ships.py)."""
+    if trip.get('visit') == 'together':
+        by = ((trip.get('away') or {}).get('by') or '')
+        return '' if by in ('tram', 'lift') else by
     find = getattr(world, 'find', None)
     if trip.get('visit') or not find:
         return ''
@@ -403,7 +418,8 @@ def entry(trip: dict, slot_view: dict, definition: dict, world, seed: str, ends:
               'weather': (getattr(world, 'weather', None) or (lambda *_args: None))(
                   trip['city_id'], date.fromisoformat(slot_view['local_date']))}
     if ends == 'first':
-        summary = {'to-you': f'{name} set off to see you in {city}.', 'host': f'{name} welcomed you to {city}.'}.get(
+        summary = {'to-you': f'{name} set off to see you in {city}.', 'host': f'{name} welcomed you to {city}.',
+                   'together': f'{name} and you set off for {city} together.'}.get(
             trip.get('visit'), f'{name} set off for {city}{company}.')
         post = f'Off to {city}!' if trip.get('visit') != 'host' else 'Best kind of weekend.'
         if by:
@@ -412,8 +428,9 @@ def entry(trip: dict, slot_view: dict, definition: dict, world, seed: str, ends:
                 'mood': 'excited'}
     if ends == 'last':
         summary = {'to-you': f'{name} said goodbye to you and headed home from {city}.',
-                   'host': f'{name} saw you off home from {city}.'}.get(trip.get('visit'),
-                                                                        f'{name} headed home from {city}{company}.')
+                   'host': f'{name} saw you off home from {city}.',
+                   'together': f'{name} and you headed home from {city} together.'}.get(
+            trip.get('visit'), f'{name} headed home from {city}{company}.')
         post = 'Home again.' if trip.get('visit') != 'host' else 'Already miss it.'
         if by:
             summary, post = travel_line('last', by, {'name': name, 'city': city, 'company': company}, post)
@@ -503,6 +520,7 @@ def purchases(connection, timeline_id: str, start: date, day: date) -> list[dict
     rows = many(connection, "SELECT * FROM trips WHERE timeline_id=? AND status='planned' AND start_date>=? AND "
                 'start_date<=?', (timeline_id, start.isoformat(), day.isoformat()))
     found = [{'text': "spent a bit extra having you to stay" if row['visit'] == 'host' else
+              f"paid their share of the trip to {row['city_name']} with you" if row['visit'] == 'together' else
               f"paid for the trip to {row['city_name']}", 'date': row['start_date'], 'spend': '', 'cost': row['cost'],
               'for': 'trip'} for row in rows if row['cost'] > 0]
     for row in rows:
@@ -520,9 +538,15 @@ def away_status(connection, block: dict, seed: str) -> dict | None:
     if not row or row['visit'] == 'host':
         return None  # Home, with the user staying over.
     city, back = row['city_name'], date.fromisoformat(row['end_date'])
-    # A ship or station is reached by shuttle (companion/world/ships.py).
-    flown = '🚀' if ships.enclosed(ships.known_cities(connection).get(row['city_id'])) else '✈️'
-    lines = (f'in {city} {flown}', f'away in {city} till {back:%A}', f'{city} mode, back {back:%A}')
+    # A ship or station is reached by shuttle (companion/world/ships.py), and so are its getaways.
+    from companion.world import destinations
+    place = destinations.city(row['city_id']) if destinations.is_stand_in(row['city_id']) else \
+        ships.known_cities(connection).get(row['city_id'])
+    flown = '🚀' if ships.enclosed(place) else '✈️'
+    if row['visit'] == 'together':
+        lines = (f'away with my favourite person {flown}', f'{city} with you, back {back:%A}', f'{city}, together')
+    else:
+        lines = (f'in {city} {flown}', f'away in {city} till {back:%A}', f'{city} mode, back {back:%A}')
     return {'text': generators.pick(seed, 'trip-away', list(lines)), 'glyph': 'pin'}
 
 
@@ -537,8 +561,8 @@ def postcard_due(connection, companion: dict, now: datetime) -> list:
     today = local.date().isoformat()
     result = []
     for trip in planned(connection, companion['active_timeline_id'], today):
-        if not trip['start_date'] <= today <= trip['end_date'] or not trip['landmark']:
-            continue
+        if not trip['start_date'] <= today <= trip['end_date'] or not trip['landmark'] or trip['visit']:
+            continue  # No postcard from a trip with the user: they are there too.
         sight_name, city = trip['landmark']['name'], trip['city_name']
         outing = bool(OUTING_NAME.search(sight_name))
         template = generators.pick(f"postcard:{trip['id']}", 'postcard', list(OUTING_POSTCARDS if outing else POSTCARDS)
@@ -608,7 +632,7 @@ def picture_postcards(database) -> None:
 
 def listing(connection, companion: dict, now: datetime) -> list[dict]:
     """Trips from the last two weeks on, with their state and postcard message, for Today."""
-    from companion.life import long_distance
+    from companion.life import away_together, long_distance
     today = now.astimezone(zone(companion['version']['timezone'])).date()
     rows = many(connection, 'SELECT * FROM trips WHERE timeline_id=? AND end_date>=? ORDER BY start_date',
                 (companion['active_timeline_id'], (today - timedelta(days=14)).isoformat()))
@@ -625,5 +649,6 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
         found_cost = money.profile(companion['version']['definition'])
         cost_text = money.amount(row['cost'], found_cost.city['currency']) if found_cost and row['cost'] else ''
         result.append({**row, 'state': found, 'postcard_message_id': card['message_id'] if card else None,
-                       'cost_text': cost_text, 'undo': long_distance.undoable(row, today, now)})
+                       'cost_text': cost_text, 'undo': long_distance.undoable(row, today, now),
+                       'home_undo': row['visit'] == 'together' and away_together.home_undoable(row, now)})
     return result

@@ -19,12 +19,13 @@ export interface Outing {
   /** An evening out with a child of yours at home: who is watching them that night (companion/life/our_child.py). */
   sitter?: { text: string; cost: number } | null
 }
-/** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; '' for a trip of their own. `undo` is true for a visit called off a little while ago. */
+/** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; 'together' for a trip away together (companion/life/away_together.py); '' for a trip of their own. `undo` is true for a visit called off a little while ago, `home_undo` for a trip together just cut short. `away` says how a trip together travels ('plane', 'steamship', 'tram') and its preposition ('in Lisbon', 'on the garden deck'). */
 export interface Trip {
   id: string; start_date: string; end_date: string; city_id: string; city_name: string; kind: 'getaway' | 'family'
   company: { id: string; name: string; role: string } | null; landmark: { name: string; summary: string } | null
   sunny: boolean; cost_text: string; state: OutingState; postcard_message_id: string | null
-  visit: '' | 'to-you' | 'host'; undo: boolean
+  visit: '' | 'to-you' | 'host' | 'together'; undo: boolean; home_undo?: boolean
+  away?: { prep: string; by: string; hours: number } | null
 }
 export interface Together { outings: Outing[]; trips: Trip[] }
 
@@ -161,14 +162,37 @@ export function tripDays(trip: Pick<Trip, 'start_date' | 'end_date'>): string {
   return `${dayText(trip.start_date)} – ${dayText(trip.end_date)}`
 }
 
-/** "A weekend in New York with Dana", "Visiting Mom in Chicago"; a visit, "Mira comes to stay with you", "You stay with Mira in Chicago". */
+/** "A weekend in New York with Dana", "Visiting Mom in Chicago"; a visit, "Mira comes to stay with you", "You stay with Mira in Chicago"; away together, "Away in Lisbon with Mira". */
 export function tripTitle(trip: Trip, name = ''): string {
-  if (trip.visit === 'to-you') return `${name} comes to stay with you`
-  if (trip.visit === 'host') return `You stay with ${name} in ${trip.city_name}`
+  if (trip.visit) return visitTitle(trip, name)
   const nights = (Date.parse(trip.end_date) - Date.parse(trip.start_date)) / 86_400_000
   const length = nights >= 2 ? 'A long weekend' : 'A weekend'
   if (trip.kind === 'family' && trip.company) return `Visiting ${trip.company.name} in ${trip.city_name}`
   return `${length} in ${trip.city_name}${trip.company ? ` with ${trip.company.name}` : ''}`
+}
+
+function visitTitle(trip: Trip, name: string): string {
+  if (trip.visit === 'to-you') return `${name} comes to stay with you`
+  if (trip.visit === 'host') return `You stay with ${name} in ${trip.city_name}`
+  return `Away ${trip.away?.prep ?? 'in'} ${trip.city_name} with ${name || 'them'}`
+}
+
+/** How a trip together gets there, when it is worth saying: "By plane", "By steamship"; nothing for a tram or lift ride on a ship. */
+export function tripTravel(trip: Trip): string {
+  const by = trip.visit === 'together' ? trip.away?.by : ''
+  return by && by !== 'tram' && by !== 'lift' ? `By ${by}` : ''
+}
+
+/** A trip away together under way, for the Now card: "Away in Lisbon until Thu". */
+export function awayNowLine(trip: Trip | null): string | undefined {
+  if (!trip) return undefined
+  return `Away ${trip.away?.prep ?? 'in'} ${trip.city_name} until ${dayText(trip.end_date).split(',')[0]}`
+}
+
+/** Trips away together: the one under way (the Now card) and those still to come or just called off (Coming up). */
+export function awayTrips(trips: Trip[]): { now: Trip | null; coming: Trip[] } {
+  const together = shown(trips).filter((trip) => trip.visit === 'together')
+  return { now: together.find((trip) => trip.state === 'now') ?? null, coming: together.filter((trip) => trip.state === 'planned' || trip.state === 'cancelled') }
 }
 
 /** What Today lists: everything but what was called off, unless it can still be undone. */

@@ -5,12 +5,12 @@ import { MODERN_WORDS, say, type EraWords } from '../world/eraWords.ts'
 export const WHERE_KEY = ['where']
 
 /** Out somewhere, at their place, at yours, or a knock at your door; apart in the same city, or long distance; on a call, or ringing you; a weekend visit across the distance, them staying with you or you with them. */
-export type WhereKind = 'apart' | 'heading-home' | 'long-distance' | 'out' | 'theirs' | 'yours' | 'knock' | 'call' | 'ringing' | 'staying' | 'hosting' | 'home'
+export type WhereKind = 'apart' | 'heading-home' | 'long-distance' | 'out' | 'theirs' | 'yours' | 'knock' | 'call' | 'ringing' | 'staying' | 'hosting' | 'away' | 'home'
 export interface WhereOuting extends Outing { not_now: boolean }
 /** A call (companion/life/calls.py): on, ringing, or one that just ended or went unanswered. `direction` is who called: 'you' or 'them'. */
 export interface WhereCall { id: string; direction: 'you' | 'them'; status: 'ringing' | 'on' | 'missed' | 'declined' | 'ended'; started_at: string | null; until_at: string | null; ended_at: string | null }
-/** A weekend visit under way (companion/life/long_distance.py): 'to-you' when they came to stay with you, 'host' when you went to stay with them. `leave_at` is when the visit ends on its last day. */
-export interface WhereVisit { id: string; direction: 'to-you' | 'host'; city_name: string; start_date: string; end_date: string; leave_at: string }
+/** A weekend visit under way (companion/life/long_distance.py): 'to-you' when they came to stay with you, 'host' when you went to stay with them, 'together' away together (companion/life/away_together.py; `prep` "in", "on" or "at" the place). `leave_at` is when the visit ends on its last day. */
+export interface WhereVisit { id: string; direction: 'to-you' | 'host' | 'together'; city_name: string; start_date: string; end_date: string; leave_at: string; prep?: string }
 /** Living together (companion/life/moving_in.py): both home of an evening, or you out for a while (`until`). */
 export interface WhereHome { status: 'home' | 'out'; until?: string; they_home?: boolean }
 /** On their way home after a meetup (companion/life/heading_home.py): how ('walk', 'car', 'bus', ...), in words ("driving home"), and when they are back ('18:10'). */
@@ -85,10 +85,11 @@ export function headingLine(heading: WhereHeading, name: string): StripLine {
   return { lead: `${name} is ${heading.words}`, place: null, tail: `, back\u00a0around\u00a0${timeText(heading.back)}` }
 }
 
-/** A weekend visit: who is staying with whom, and until when ("until Sun, Oct 18"). */
+/** A weekend visit: who is staying with whom, and until when ("until Sun, Oct 18"); away together, "Away with Mira in Lisbon until Mon, Oct 19". */
 export function visitLine(visit: WhereVisit, name: string): StripLine {
   const tail = ` until ${dayText(visit.end_date)}`
   if (visit.direction === 'to-you') return { lead: `${name} is staying with you`, place: null, tail }
+  if (visit.direction === 'together') return { lead: `Away with ${name.split(' ')[0]} ${visit.prep ?? 'in'} ${visit.city_name}`, place: null, tail }
   return { lead: `Staying with ${name} in ${visit.city_name}`, place: null, tail }
 }
 
