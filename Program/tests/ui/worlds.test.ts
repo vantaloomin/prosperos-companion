@@ -57,10 +57,10 @@ test('a world the user left is away, not paused; a paused one says since when, i
   const oct30 = new Date(2026, 9, 30, 9).toISOString()
   assert.equal(pausedNote({ active: true, paused: false }, now), null)
   assert.equal(pausedNote({ active: false, paused: false, away_since: oct30, catches_up: true }, now),
-    'Last here Oct 30 · catches up when you go back')
+    'Last here Oct 30 · highlights fill in when you go back')
   assert.equal(pausedNote({ active: false, paused: false, away_since: oct30, catches_up: false }, now),
     'Last here Oct 30 · picks up where it left off')
-  assert.equal(pausedNote({ active: false, paused: false, away_since: null, catches_up: true }, now), 'Catches up when you go back')
+  assert.equal(pausedNote({ active: false, paused: false, away_since: null, catches_up: true }, now), 'Highlights fill in when you go back')
   assert.equal(pausedNote({ active: false, paused: false, away_since: null, catches_up: false }, now), null)
   assert.equal(pausedNote({ active: true, paused: true, paused_since: new Date(2026, 9, 31, 9, 5).toISOString() }, now),
     'Paused since 9:05 AM. Time here is skipped until you resume.')

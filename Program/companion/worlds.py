@@ -283,7 +283,7 @@ def held_in(path: Path) -> str | None:
 def paused(world: dict, active: bool, path: Path) -> dict:
     """Whether the user paused a world (Settings > Pause, or its ⋯ on the Worlds page), and since when. A paused
     world skips that time, even while they are in it. Leaving a world is not a pause: the app has one database open,
-    so a world they left catches up on its time away when they go back (companion/life/simulation.py). `away_since`
+    so a world they left fills in highlights of its time away when they go back (companion/life/simulation.py). `away_since`
     is when they left (worlds from before 1.2.2 never said); `catches_up` is whether going back fills that time in
     (Settings > Life, catch up on return)."""
     held = held_in(path)

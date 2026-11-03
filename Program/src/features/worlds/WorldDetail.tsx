@@ -25,7 +25,8 @@ export function WorldDetail({ world, persona, data, run, store, onSwitch, onCopy
   const [renaming, setRenaming] = useState(false)
   const head = useRef<HTMLDivElement>(null)
   // Saving or cancelling a rename puts focus back on ⋯, where Rename was (Iris).
-  const doneRenaming = () => { setRenaming(false); requestAnimationFrame(() => head.current?.querySelector<HTMLButtonElement>('.menu-anchor > button')?.focus()) }
+  const toMenu = () => requestAnimationFrame(() => head.current?.querySelector<HTMLButtonElement>('.menu-anchor > button')?.focus())
+  const doneRenaming = () => { setRenaming(false); toMenu() }
   const [asking, setAsking] = useState<Asking>('')
   const pause = usePause(world, run, store)
   const items = useWorldItems({ world, persona, onPause: pause, onRename: () => setRenaming(true), onCopy, onDelete: setAsking })
@@ -37,7 +38,7 @@ export function WorldDetail({ world, persona, data, run, store, onSwitch, onCopy
         <Menu label="World actions" icon={MoreHorizontal} items={items} />
       </div>
       <WorldLines world={world} />
-      {world.paused && <Notice action={<button type="button" className="text-button" onClick={() => void pause(false)}><Play aria-hidden="true" />Resume</button>}>{pausedNote(world, new Date())}</Notice>}
+      {world.paused && <Notice action={<button type="button" className="text-button" onClick={() => void pause(false).then(toMenu)}><Play aria-hidden="true" />Resume</button>}>{pausedNote(world, new Date())}</Notice>}
       {world.active ? <ActiveWorld world={world} run={run} /> : <div className="form-actions"><span className="label-row">
         <button type="button" className="button primary" onClick={onSwitch}>{goLabel(persona)}</button>
         <InfoTip id={`go-there-${world.id}`} label={goLabel(persona)} text={`You are ${personaRef(persona)} there. Who you are is set from inside the world.`} />
@@ -97,7 +98,6 @@ function WorldTitle({ world }: { world: World }) {
     <h2 id="world-detail-heading" className="world-detail-name">
       {world.name}
       {badge && <span className="badge year-badge" title={badge.label}><History aria-hidden="true" /><span className="visually-hidden">{badge.label}</span><span aria-hidden="true">{badge.text}</span></span>}
-      {world.paused && <span className="badge paused-badge"><Pause aria-hidden="true" />Paused</span>}
     </h2>
   )
 }

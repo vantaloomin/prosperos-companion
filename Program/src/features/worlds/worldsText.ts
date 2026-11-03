@@ -101,8 +101,8 @@ export function pausedNote(world: Standing, now: Date): string | null {
     return `Paused${since}. Time ${world.active ? 'here' : 'there'} is skipped until you resume.`
   }
   if (world.active) return null
-  const going = world.catches_up ? 'catches up when you go back' : 'picks up where it left off'
-  if (!world.away_since) return world.catches_up ? 'Catches up when you go back' : null
+  const going = world.catches_up ? 'highlights fill in when you go back' : 'picks up where it left off'
+  if (!world.away_since) return world.catches_up ? 'Highlights fill in when you go back' : null
   return `Last here ${pausedWhen(world.away_since, now)} · ${going}`
 }
 
