@@ -868,7 +868,9 @@ def circle(data: dict, *, seed: str, size: int = 6, home: str | None = None, age
         retry = 0
         while person['name']['full'] in used and retry < 5:
             retry += 1
+            # The same pronouns, so the new name still fits the job their side was given (fits_side).
             person['name'] = name(data if related else others, seed=f'{member_seed}:{retry}',
+                                  pronouns=person['name']['pronouns'].split('/')[0],
                                   family=family if related else None, group=person['name']['group'], age=person['age'])
         used.add(person['name']['full'])
         people.append(person)

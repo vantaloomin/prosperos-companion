@@ -9,7 +9,7 @@ from conftest import life_reply, reconcile, set_life
 from companion.clock import parse, stamp, zone
 from companion.database import decode
 from companion.life import agenda, body, circle, composer
-from companion.world import catalog
+from companion.world import catalog, generators
 from companion.world.source import CatalogWorld
 
 EVENING_OUT = [{'key': 'day', 'label': 'Day', 'kind': 'leisure', 'start': '09:00', 'end': '17:00'},
@@ -507,3 +507,15 @@ def test_in_london_today_a_mother_is_mum_and_in_baltimore_mom(client):
     assert circle.voice(catalog.city('london-1895')) == 'older' and circle.voice(None) == ''
     assert circle.said('mom', {'home_city': 'london'}) == 'mum' and circle.said('mom', {'home_city': 'baltimore'}) == 'mom'
     assert circle.era_word('stepmom', 'british') == 'stepmum' and circle.era_word('mom', True) == 'mother'
+
+
+@pytest.mark.parametrize('seed', ['s66', 's86'])
+def test_a_renamed_circle_member_keeps_the_side_of_their_job(seed):
+    """Someone drawn a name already in the circle gets a new one with the same pronouns, so a bank clerk in 1895
+    never comes back with a woman's name."""
+    data = catalog.city('london-1895')
+    careers = catalog.careers_for(data)
+    for person in generators.circle(data, seed=seed, size=12, age=29)['people']:
+        side = {'she/her': 'women', 'he/him': 'men'}.get(person['name']['pronouns'])
+        worked_by = (careers.get((person['job'] or {}).get('career', {}).get('id')) or {}).get('worked_by')
+        assert not side or worked_by in (None, side), (person['name']['full'], person['role'])
