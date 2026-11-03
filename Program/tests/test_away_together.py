@@ -72,7 +72,7 @@ def test_a_ship_goes_to_its_own_decks_and_not_to_italy(client, monkeypatch, prov
     says(provider)
     send(client, 'take me to Italy?', 'client-away-5')
     assert not together_trips(client)
-    assert 'there is no Italy in your world' in notes(provider)
+    assert 'Italy is out of reach: you live aboard ship' in notes(provider)
     says(provider)
     send(client, 'we need a weekend away, just us', 'client-away-6')
     [trip] = together_trips(client)

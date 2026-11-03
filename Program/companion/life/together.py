@@ -464,7 +464,9 @@ TRIP_REASONS = {
     'no-time': ("you have no time off coming up for a trip that long", 'a long weekend somewhere closer'),
     'weekends': ("you have no free weekend for it in the next few months", 'another time'),
     'money': ("you can't afford {place} any time soon; you pay your own way", 'somewhere cheaper'),
-    'elsewhere': ("there is no {place} in your world: nobody you know has heard of it", 'somewhere you can go'),
+    'elsewhere': ("{place} is out of reach: there is no way to get there from your world", 'somewhere you can go'),
+    'aboard': ("{place} is out of reach: you live aboard ship, and the ship goes nowhere near it",
+               'somewhere aboard'),
     'not-yet': ("{place} is no place for a holiday in your day: nobody goes there for one yet", 'somewhere people go'),
     'nowhere': ("there is nowhere you could both get to for a trip", 'a day out instead'),
     'apart': ("you are not together any more, so going away together is off", ''),
@@ -475,7 +477,7 @@ TRIP_LINE = ('- The user asked {asked}{where}. You can\'t: {reason}. Say so kind
 
 def trip_line(reason: dict) -> str:
     place = reason.get('place') or 'there'
-    why, instead = TRIP_REASONS.get(reason['why'], TRIP_REASONS['weekends'])
+    why, instead = TRIP_REASONS.get('aboard' if reason.get('aboard') else reason['why'], TRIP_REASONS['weekends'])
     return TRIP_LINE.format(asked=ASKED['trip'], where=f' ({place})' if reason.get('place') else '',
                             reason=why.format(place=place), instead=f', and suggest {instead} if you like' if instead
                             else '')

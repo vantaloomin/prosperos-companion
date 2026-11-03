@@ -377,7 +377,9 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
         trip, why = book(connection, companion, home, option, first, now, year, message['id'], seed)
         if trip:
             return True
-    reason = {'why': why, 'place': option['name'] if option else ask['place']}
+    # A real place out of reach aboard ship is said so (together.TRIP_REASONS 'aboard').
+    reason = {'why': why, 'place': option['name'] if option else ask['place'],
+              'aboard': why == 'elsewhere' and ships.enclosed(home)}
     return together.record(connection, companion, message, 'trip', reason, timestamp)
 
 
