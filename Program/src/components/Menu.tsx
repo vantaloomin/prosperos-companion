@@ -46,7 +46,8 @@ export function Menu({ label, icon: Icon, items, align = 'end', up, footer, clas
     if (!active || active === document.body || panel.current?.contains(active)) button.current?.focus()
   }
   const onKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') { event.stopPropagation(); close() } else moveFocus(event, panel.current)
+    if (event.key === 'Escape') { event.stopPropagation(); close() } else if (event.key === 'Tab') setOpen(false)
+    else moveFocus(event, panel.current)
   }
   const classes = ['menu-pop', align, up && 'up'].filter(Boolean).join(' ')
   return (
@@ -55,7 +56,7 @@ export function Menu({ label, icon: Icon, items, align = 'end', up, footer, clas
         <Icon aria-hidden="true" />{dot && <span className="nav-dot" aria-hidden="true" />}
       </button>
       {open && <div ref={panel} className={classes} role="menu" aria-label={label} onClick={(event) => { if ((event.target as HTMLElement).closest('button')) close() }}>
-        {items.map((entry, index) => entry === 'separator' ? <hr key={`sep-${index}`} className="menu-sep" /> : <MenuButton key={entry.label} item={entry} />)}
+        {items.map((entry, index) => entry === 'separator' ? <hr key={`sep-${index}`} className="menu-sep" /> : <MenuButton key={index} item={entry} />)}
         {footer}
       </div>}
     </span>

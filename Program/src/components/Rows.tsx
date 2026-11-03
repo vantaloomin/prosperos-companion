@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react'
+import { createContext, useContext, useId, useState, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { InfoTip } from './InfoTip'
 
@@ -29,19 +29,24 @@ interface SettingRowProps {
   disabled?: boolean
   /** A quiet extra before the control, such as the link that turns a disabled row on. */
   extra?: ReactNode
-  /** The control, given the id its label points at. */
-  children: (id: string) => ReactNode
+  /** The control, given the id its label points at, and whether the row is off (its own or its parent's). */
+  children: (id: string, disabled: boolean) => ReactNode
 }
 
+/** Whether the switch a nested row sits under is off, so the row switches off with it. */
+const ParentOff = createContext(false)
+
 /** One setting: the label on the left, its control on the right, one 48px line. */
-export function SettingRow({ label, tip, nested, disabled, extra, children }: SettingRowProps) {
+export function SettingRow({ label, tip, nested, disabled: own, extra, children }: SettingRowProps) {
   const id = useId()
+  const parentOff = useContext(ParentOff)
+  const disabled = own || (nested && parentOff)
   const classes = ['setting-row', nested && 'nested', disabled && 'disabled'].filter(Boolean).join(' ')
   return (
     <div className={classes}>
       <span className="setting-row-label"><label htmlFor={id}>{label}</label>{tip && <InfoTip id={`${id}-tip`} label={label} text={tip} />}</span>
       {extra}
-      {children(id)}
+      {children(id, !!disabled)}
     </div>
   )
 }
@@ -62,10 +67,11 @@ interface SwitchRowProps extends Omit<SettingRowProps, 'children'> {
 
 /** A setting row with a switch, and the rows that depend on it nested under it. */
 export function SwitchRow({ checked, onChange, children, ...row }: SwitchRowProps) {
+  const parentOff = useContext(ParentOff) && !!row.nested
   return (
     <>
-      <SettingRow {...row}>{(id) => <Switch id={id} checked={checked} onChange={onChange} disabled={row.disabled} />}</SettingRow>
-      {children}
+      <SettingRow {...row}>{(id, disabled) => <Switch id={id} checked={checked} onChange={onChange} disabled={disabled} />}</SettingRow>
+      {children && <ParentOff.Provider value={!checked || !!row.disabled || parentOff}>{children}</ParentOff.Provider>}
     </>
   )
 }
