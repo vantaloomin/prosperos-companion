@@ -7,6 +7,7 @@ import { Loading } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { TextArea, TextInput } from '../../components/Fields'
+import { InfoTip } from '../../components/InfoTip'
 import { SECRETS_KEY } from './groupState'
 import { canForget, formFrom, formBody, howText, keptLine, slipText, type SecretForm as Form } from './secretText'
 
@@ -15,7 +16,7 @@ type Change = (request: () => Promise<unknown>) => Promise<void>
 
 /** Secrets: what only some of them know. Group replies come only from what each speaker knows, and a knower's
  * reply is checked while someone it's kept from is there (companion/secrets.py). */
-export function Secrets() {
+export function Secrets({ heading = 2 }: { heading?: 1 | 2 }) {
   const client = useQueryClient()
   const data = useQuery({ queryKey: SECRETS_KEY, queryFn: () => api<SecretsData>('/secrets') })
   const [creating, setCreating] = useState(false)
@@ -27,8 +28,7 @@ export function Secrets() {
   const companions = data.data?.companions ?? []
   return (
     <section className="secrets" aria-labelledby="secrets-heading">
-      <h2 id="secrets-heading">Secrets</h2>
-      <p className="subtle">Someone only knows a secret if they were told, were there when it came out, or you let them find out. Nobody else ever has it in mind. Secrets in their storylines, descriptions and memories show up here on their own; edit or end any of them.</p>
+      <SecretsTitle heading={heading} slips={data.data?.slips} />
       {data.isPending && <Loading label="Loading secrets" />}
       {data.isError && <ErrorNotice error={data.error} />}
       {data.isSuccess && <SecretList data={data.data} onChange={change} />}
@@ -41,9 +41,15 @@ export function Secrets() {
   )
 }
 
+/** The title, with the rule for who knows what behind its "?". */
+function SecretsTitle({ heading, slips }: { heading: 1 | 2; slips?: boolean }) {
+  const Heading = heading === 1 ? 'h1' : 'h2'
+  return <span className="secrets-title"><Heading id="secrets-heading">Secrets</Heading>
+    {slips !== undefined && <InfoTip id="secrets-rule" label="Secrets" text={`Someone only knows a secret if they were told, were there when it came out, or you let them find out. ${slipText(slips)}`} />}</span>
+}
+
 function SecretList({ data, onChange }: { data: SecretsData; onChange: Change }) {
   return <>
-    <p className="subtle">{slipText(data.slips)}</p>
     {data.secrets.length
       ? <ul>{data.secrets.map((secret) => <SecretRow key={secret.id} secret={secret} companions={data.companions} onChange={onChange} />)}</ul>
       : <p className="subtle">No secrets yet.</p>}

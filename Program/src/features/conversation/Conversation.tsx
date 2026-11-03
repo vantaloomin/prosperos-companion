@@ -36,8 +36,8 @@ import { WhereStrip } from './WhereStrip'
 import { ApartStrip } from './ApartStrip'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, notTexting } from './whereText'
-import { ChatsPanel } from '../chats/ChatsPanel'
 import { ChatSidebar } from '../chats/ChatSidebar'
+import { openNewGroup } from '../chats/newGroupStore'
 import { readThrough } from '../chats/chatText'
 import { useMarkRead } from '../chats/useChats'
 import { takeArrival } from '../worlds/arrival'
@@ -304,16 +304,14 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 }
 
 function ConversationTop({ companion, go, onJump, timeline, stage, photoId }: { companion: Companion; go: (view: View) => void; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null; stage: boolean; photoId: string | null }) {
-  const [open, setOpen] = useState<'chats' | 'search' | 'timelines' | null>(null)
-  const chatsButton = useReturnFocus<HTMLButtonElement>(open === 'chats')
+  const [open, setOpen] = useState<'search' | 'timelines' | null>(null)
   const searchButton = useReturnFocus<HTMLButtonElement>(open === 'search')
   const timelinesButton = useReturnFocus<HTMLButtonElement>(open === 'timelines')
   const pick = async (result: SearchResult) => { if (await onJump(result)) setOpen(null) }
-  const toggle = (panel: 'chats' | 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
+  const toggle = (panel: 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
   return <>
-    <ConversationHeader companion={companion} listing={open === 'chats'} chatsButton={chatsButton} onChats={() => toggle('chats')} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
-      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} onGroups={() => go('groups')} onBack={() => go('chats')} />
-    {open === 'chats' && <ChatsPanel go={go} onClose={() => setOpen(null)} />}
+    <ConversationHeader companion={companion} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
+      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} onGroups={() => openNewGroup([companion.id])} onBack={() => go('chats')} />
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
     {stage && <NovelStage name={companion.version.name} photoId={photoId} />}

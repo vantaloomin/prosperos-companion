@@ -8,6 +8,7 @@ import { WIDTHS, clampWidth } from './chatText'
 const COLLAPSED = 'companion.chatList.collapsed'
 const WIDTH = 'companion.chatList.width'
 const listeners = new Set<() => void>()
+const NARROW = 1100
 
 function read(key: string): string | null {
   try { return localStorage.getItem(key) } catch { return null }
@@ -28,7 +29,8 @@ function subscribe(listener: () => void) {
 }
 
 export function useChatListCollapsed(): [boolean, (collapsed: boolean) => void] {
-  const collapsed = useSyncExternalStore(subscribe, () => value(COLLAPSED) === '1', () => false)
+  // Until the user chooses, a narrow window starts with the list hidden so the chat keeps its width.
+  const collapsed = useSyncExternalStore(subscribe, () => { const stored = value(COLLAPSED); return stored === null ? window.innerWidth < NARROW : stored === '1' }, () => false)
   return [collapsed, (next) => write(COLLAPSED, next ? '1' : '0')]
 }
 

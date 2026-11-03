@@ -1,15 +1,14 @@
 import { useRef, useState, type RefObject } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Ellipsis, GitBranch, Lightbulb, MessagesSquare, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
+import { ChevronLeft, Ellipsis, GitBranch, Lightbulb, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
 import { api } from '../../api'
 import type { ChatStyle, Companion } from '../../types'
 import { CHAT_STYLES } from './chatStyles'
 import { useChatStyle } from './useChatStyle'
 import { usePortrait } from './portrait'
 import { useLocalTime } from './clock'
-import { useChats } from '../chats/useChats'
 import { StatusText } from '../status/StatusLine'
-import { badge, chatsButtonLabel, othersUnread, type OpenChat } from '../chats/chatText'
+import { ListButton } from '../chats/ListButton'
 import { useFitOnScreen } from '../../components/fitOnScreen'
 import { useSidecarOpen, useSidecarWaiting } from '../sidecar/store'
 import { toggleSidecar } from '../sidecar/toggle'
@@ -21,9 +20,9 @@ import { WHERE_KEY, canCall, type WhereState } from './whereText'
 import { MIX, useModelSwitch } from '../settings/models/useModelSwitch'
 import { useWorlds } from '../worlds/useWorlds'
 
-type Props = { companion: Companion; listing: boolean; chatsButton: RefObject<HTMLButtonElement | null>; onChats: () => void; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void; onGroups?: () => void; onBack?: () => void }
+type Props = { companion: Companion; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void; onGroups?: () => void; onBack?: () => void }
 
-export function ConversationHeader({ companion, listing, chatsButton, onChats, searching, searchButton, onSearch, timeline, browsing, timelinesButton, onTimelines, onGroups, onBack }: Props) {
+export function ConversationHeader({ companion, searching, searchButton, onSearch, timeline, browsing, timelinesButton, onTimelines, onGroups, onBack }: Props) {
   const { name, timezone, location } = { ...companion.version.definition, name: companion.version.name }
   const time = useLocalTime(timezone)
   const portrait = usePortrait()
@@ -31,7 +30,7 @@ export function ConversationHeader({ companion, listing, chatsButton, onChats, s
     <header className="conversation-header">
       {/* On a phone the way back to the Chats list, as every messaging app has; the side list or Chats button does it on a wide screen. */}
       {onBack && <button type="button" className="icon-button chat-back phone-only" aria-label="Chats" onClick={onBack}><ChevronLeft aria-hidden="true" /></button>}
-      <ChatsButton listing={listing} button={chatsButton} onChats={onChats} />
+      <ListButton />
       {portrait ? <img className="portrait" src={portrait} alt="" aria-hidden="true" /> : <div className="portrait" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>}
       <div className="conversation-title">
         <h1>{name}</h1>
@@ -43,7 +42,7 @@ export function ConversationHeader({ companion, listing, chatsButton, onChats, s
       <ChatStyleSwitch />
       <span className="header-break phone-only" aria-hidden="true" />
       <CallButton name={name} />
-      {onGroups && <button type="button" className="icon-button" aria-label="Group chats: start a new group" title="Group chats" onClick={onGroups}><UsersRound aria-hidden="true" /></button>}
+      {onGroups && <button type="button" className="icon-button" aria-label={`Start a group with ${name}`} title={`Start a group with ${name}`} onClick={onGroups}><UsersRound aria-hidden="true" /></button>}
       <button ref={timelinesButton} type="button" className="icon-button" aria-label="Timelines" aria-expanded={browsing} onClick={onTimelines}><GitBranch aria-hidden="true" /></button>
       <button ref={searchButton} type="button" className="icon-button" aria-label="Search messages" aria-expanded={searching} onClick={onSearch}><Search aria-hidden="true" /></button>
       <SidecarButton />
@@ -67,18 +66,6 @@ function CallButton({ name }: { name: string }) {
     void client.invalidateQueries({ queryKey: ['chats'] })
   }
   return <button type="button" className="icon-button" aria-label={label} title={label} onClick={() => void call()}>{magic ? <Sparkles aria-hidden="true" /> : <Phone aria-hidden="true" />}</button>
-}
-
-/** The way to the other chats, with how many messages wait there; shown once there is more than one chat. */
-export function ChatsButton({ listing, button, onChats, current = null }: { listing: boolean; button: RefObject<HTMLButtonElement | null>; onChats: () => void; current?: OpenChat }) {
-  const chats = useChats().data?.chats ?? []
-  if (chats.length < 2) return null
-  const waiting = othersUnread(chats, current)
-  return (
-    <button ref={button} type="button" className="icon-button chats-button" aria-label={chatsButtonLabel(waiting)} aria-expanded={listing} onClick={onChats}>
-      <MessagesSquare aria-hidden="true" />{waiting > 0 && <span className="unread-badge" aria-hidden="true">{badge(waiting)}</span>}
-    </button>
-  )
 }
 
 /** On a phone the sidecar has no rail button, so it opens from here as a sheet. The side rail keeps its own. */
@@ -129,7 +116,7 @@ export function ChatMenu({ threadId }: { threadId: string }) {
       <button type="button" className="icon-button" aria-label="More" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /></button>
       {open && <div ref={panel} className="header-menu-panel">
         <ModelSwitch />
-        <label className="phone-only">Chat style<ChatStyleSwitch phone /></label>
+        <label className="style-in-menu">Chat style<ChatStyleSwitch phone /></label>
         <ExportLinks target={{ kind: 'chat', threadId }} onPick={() => setOpen(false)} />
       </div>}
     </span>

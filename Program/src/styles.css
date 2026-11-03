@@ -1952,7 +1952,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-row-where { display: flex; align-items: flex-start; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.75rem; }
 .chat-row-where > span { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 .chat-row-where > svg { flex: none; width: 0.85rem; height: 0.85rem; margin-top: 1px; color: var(--accent); }
-.side-bubbles .chat-row.current .chat-row-where, .side-bubbles .chat-row.current .chat-row-where > svg { color: var(--on-accent); opacity: .85; }
 .chat-row.unread .chat-row-top strong { font-weight: 700; }
 .chat-row.unread .chat-row-preview { color: var(--text); }
 .chat-row.unread .chat-row-time { color: var(--accent); }
@@ -1984,9 +1983,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* A row's name, time and preview shrink with an ellipsis instead of widening the list past its edge. */
 .side-list ul { grid-template-columns: minmax(0, 1fr); }
 .side-bubbles .side-title { font-family: var(--ui-font); font-weight: 600; }
-.side-bubbles .chat-row.current { background: var(--accent); color: var(--on-accent); }
-.side-bubbles .chat-row.current :is(.chat-row-preview, .chat-row-time) { color: var(--on-accent); opacity: .85; }
-.side-bubbles .chat-row.current .unread-badge { background: var(--on-accent); color: var(--accent); }
+.side-bubbles .chat-row.current { background: var(--accent-tint); }
 /* Community: a rail of round pictures, a pill beside the open chat and a short one beside chats with news. */
 .side-rail { width: 72px; padding: 12px 0; align-items: center; background: var(--canvas); border-right: 1px solid var(--border); }
 .side-rail ul { gap: 8px; }
@@ -2996,8 +2993,7 @@ p.breakup-line { align-items: center; }
 .menu-anchor { position: relative; display: inline-flex; }
 .menu-anchor > .icon-button { position: relative; }
 .menu-anchor > .icon-button[aria-expanded='true'] { background: var(--raised); color: var(--text); }
-.menu-anchor .nav-dot { position: absolute; top: 4px; right: 4px; }
-.menu-pop { position: absolute; z-index: 40; top: calc(100% + 4px); right: 0; min-width: 220px; max-width: min(320px, calc(100vw - 16px)); display: grid; padding: 4px;
+.menu-pop { position: absolute; z-index: 40; top: calc(100% + 4px); right: 0; min-width: 240px; max-width: min(340px, calc(100vw - 16px)); display: grid; padding: 4px;
   background: var(--app-surface); color: var(--app-text); border: 1px solid var(--app-border); border-radius: 12px; box-shadow: 0 8px 24px -8px var(--app-shadow); transform: translateX(var(--fit-shift, 0px)); }
 .menu-pop.start { left: 0; right: auto; }
 .menu-pop.up { top: auto; bottom: calc(100% + 4px); }
@@ -3005,7 +3001,39 @@ p.breakup-line { align-items: center; }
 .menu-item svg { width: 16px; height: 16px; flex: none; color: var(--app-muted); }
 .menu-item:hover:not(:disabled), .menu-item:focus-visible { background: var(--app-raised); }
 .menu-item:disabled { color: var(--app-faint); opacity: 1; }
-.menu-label { flex: 1; min-width: 0; }
+.menu-label { flex: 1; min-width: 0; white-space: nowrap; }
 .menu-value { margin-left: 12px; color: var(--app-faint); font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .menu-sep { border: 0; border-top: 1px solid var(--app-border); margin: 4px; }
 .menu-caption { padding: 8px 12px 4px; font-size: 0.75rem; color: var(--app-faint); }
+/* v1.3 chat list (src/features/chats): always beside the chat on a wide screen, with search and a + menu; the panel
+   button at the top left of the chat hides it, with a dot for something new while hidden. */
+.list-button { position: relative; flex-shrink: 0; }
+.list-button[aria-pressed='true'] { color: var(--text); }
+.list-button .nav-dot, .menu-anchor .nav-dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--canvas); }
+.chat-search { display: flex; align-items: center; gap: 8px; margin: 0 4px 8px; padding: 0 12px; height: 36px; border-radius: 8px; background: var(--raised); color: var(--faint); }
+.chat-search svg { width: 16px; height: 16px; flex: none; }
+.chat-search input { flex: 1; min-width: 0; border: 0; background: none; padding: 0; height: 100%; outline: none; font-size: 0.875rem; color: var(--text); }
+.chat-search:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.chats-home .chat-search { margin: 8px 8px; }
+.side-head .menu-anchor { flex-shrink: 0; }
+.side-rail > .menu-anchor { margin: auto auto 0; padding-top: 8px; }
+.side-tray { overflow: visible; position: relative; z-index: 5; }
+.side-tray ul { overflow-x: auto; min-width: 0; }
+.side-tray > .menu-anchor { margin-left: auto; align-self: center; }
+.buddy-tools { display: inline-flex; align-items: center; gap: 2px; }
+.buddy-tools .icon-button { width: 22px; height: 22px; color: #ffffff; border-radius: 2px; }
+.buddy-tools .icon-button svg { width: 16px; height: 16px; }
+.secrets-page { width: 100%; max-width: 720px; margin: 0 auto; padding: 24px 28px 40px; }
+.secrets-page .secrets { margin-top: 0; padding-top: 0; border-top: 0; }
+.secrets-page h1 { margin: 0; font-family: var(--read-font); font-weight: 500; font-size: 1.25rem; }
+@media (max-width: 720px) { .secrets-page { padding: 16px; } }
+/* The chat header keeps one row on a wide screen: the title lines end in an ellipsis instead of wrapping the buttons
+   under them. Below 1100px the style select moves into ⋯ (ChatMenu). */
+@media (min-width: 721px) {
+  .conversation-header { flex-wrap: nowrap; }
+  .conversation-title :is(h1, p) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 1100px) { .conversation-header > .chat-style-switch { display: none; } }
+@media (min-width: 1101px) { .header-menu-panel .style-in-menu { display: none; } }
+.secrets-title { display: flex; align-items: center; gap: 4px; }
+.secrets-title :is(h1, h2) { margin: 0; }
