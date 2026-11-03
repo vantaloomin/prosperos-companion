@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { awayNowLine, awayTrips, meetLine, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
+import { awayNowLine, awayTrips, meetLine, onwardLine, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
 
 const outing: Outing = {
   id: 'o1', local_date: '2026-10-08', at_time: '19:00', until_time: '21:00', activity: 'dinner', asked_date: null,
@@ -73,4 +73,11 @@ test('a trip away together under way is the Now line, and coming-up trips are li
   const found = awayTrips([base, { ...base, id: 'b', state: 'planned' }, { ...base, id: 'c', visit: '' }, { ...base, id: 'd', state: 'cancelled' }])
   assert.equal(found.now?.id, 'a')
   assert.deepEqual(found.coming.map((trip) => trip.id), ['b'])
+})
+
+test('moving on: Today says where next, then where they came from', () => {
+  const place = { id: 'the-owl-bar', name: 'The Owl Bar', kind: 'bar', neighborhood: 'Mount Vernon', summary: '', cost: '$$', cuisine: '', city: 'Baltimore' }
+  assert.match(onwardLine({ state: 'now', next: { place, activity: 'drinks', at: '21:00', asked: false }, came_from: null }), /^Then drinks at The Owl Bar, around 9:00/)
+  assert.equal(onwardLine({ state: 'now', next: null, came_from: { name: 'Lupa', activity: 'dinner', neighborhood: '' } }), 'Came over from Lupa.')
+  assert.equal(onwardLine({ state: 'planned', next: null, came_from: null }), '')
 })

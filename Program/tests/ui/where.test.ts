@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canStayLonger, homeLine, inPerson, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
+import { canGoBack, canStayLonger, homeLine, inPerson, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
 import { shown } from '../../src/features/status/statusText.ts'
 
 const outing: WhereOuting = {
@@ -106,4 +106,17 @@ test('on the way home after a meetup, with the time kept to its words', () => {
   const line = stripLine({ state: 'apart', kind: 'heading-home', text: 'On the subway home', outing: null, heading: { outing_id: 'o', place: 'Park', by: 'subway', words: 'on the subway home', back: '17:10' } }, 'Sett')
   assert.equal(line?.lead, 'Sett is on the subway home')
   assert.match(line?.tail ?? '', /^, back\u00a0around\u00a05:10\u00a0PM$/)
+})
+
+test('moving on to a second place: the strip names it, and Undo replaces Stay longer just after', () => {
+  const next = { place: { ...outing.place, id: 'the-owl-bar', name: 'The Owl Bar', kind: 'bar' }, activity: 'drinks', at: '21:00', asked: false }
+  const soon: WhereState = { ...out, outing: { ...outing, next, longer_ok: true } }
+  const line = stripLine(soon, 'Mira')
+  assert.equal(line?.place?.name, 'Ouzo Bay')
+  assert.match(line?.tail ?? '', /^ until 9:00.*, then $/)
+  assert.deepEqual(line?.then, { id: 'the-owl-bar', name: 'The Owl Bar' })
+  assert.ok(canStayLonger(soon) && !canGoBack(soon))
+  const moved: WhereState = { ...out, outing: { ...outing, place: next.place, longer_ok: true, undo_move: true } }
+  assert.equal(stripLine(moved, 'Mira')?.then, null)
+  assert.ok(canGoBack(moved) && !canStayLonger(moved))
 })
