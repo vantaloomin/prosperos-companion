@@ -29,6 +29,8 @@ interface SettingRowProps {
   disabled?: boolean
   /** A quiet extra before the control, such as the link that turns a disabled row on. */
   extra?: ReactNode
+  /** Label on top and the control full width under it, for free text that would be cut off beside the label. */
+  stacked?: boolean
   /** The control, given the id its label points at, and whether the row is off (its own or its parent's). */
   children: (id: string, disabled: boolean) => ReactNode
 }
@@ -37,11 +39,11 @@ interface SettingRowProps {
 const ParentOff = createContext(false)
 
 /** One setting: the label on the left, its control on the right, one 48px line. */
-export function SettingRow({ label, tip, nested, disabled: own, extra, children }: SettingRowProps) {
+export function SettingRow({ label, tip, nested, disabled: own, extra, stacked, children }: SettingRowProps) {
   const id = useId()
   const parentOff = useContext(ParentOff)
   const disabled = own || (nested && parentOff)
-  const classes = ['setting-row', nested && 'nested', disabled && 'disabled'].filter(Boolean).join(' ')
+  const classes = ['setting-row', nested && 'nested', disabled && 'disabled', stacked && 'stacked'].filter(Boolean).join(' ')
   return (
     <div className={classes}>
       <span className="setting-row-label"><label htmlFor={id}>{label}</label>{tip && <InfoTip id={`${id}-tip`} label={label} text={tip} />}</span>

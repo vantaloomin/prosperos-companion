@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api } from '../../api'
 import type { ImageBackend, WorldImageBackends } from '../../types'
-import { Toggle } from '../../components/Fields'
+import { RowGroup, SettingRow, SwitchRow } from '../../components/Rows'
 import { useWorlds } from '../worlds/useWorlds'
 
 type Result = { tone: 'info' | 'error'; text: string } | null
@@ -20,17 +20,17 @@ export function WorldImagePick({ list, world, refresh, setResult }: { list: Imag
   }
   const on = list.filter((backend) => backend.enabled)
   return (
-    <div className="world-image-divider"><fieldset className="plain-fieldset world-image-pick">
-      <legend id="world-image-legend">Pictures in {name}</legend>
-      <select aria-labelledby="world-image-legend" aria-describedby="world-image-hint" aria-disabled={busy} value={world.own ? 'own' : 'all'}
-        onChange={(event) => void save(event.target.value === 'own' ? (on.length ? on : list).map((backend) => backend.id) : null)}>
-        <option value="all">All of them, in the order above</option>
-        <option value="own">Only the ones I pick</option>
-      </select>
-      <small id="world-image-hint" className="subtle">{world.own ? 'Only the ones switched on below, in the order above. Your other worlds keep their own.' : 'Pick some for this world alone, say an anime model here and photographs elsewhere.'}</small>
+    <RowGroup id="world-image-heading">
+      <SettingRow label={`Pictures in ${name}`} tip={world.own ? 'Only the ones switched on below, in the order above. Your other worlds keep their own.' : 'Pick some for this world alone, say an anime model here and photographs elsewhere.'}>
+        {(id) => <select id={id} aria-disabled={busy} value={world.own ? 'own' : 'all'}
+          onChange={(event) => void save(event.target.value === 'own' ? (on.length ? on : list).map((backend) => backend.id) : null)}>
+          <option value="all">All of them, in order</option>
+          <option value="own">Only the ones I pick</option>
+        </select>}
+      </SettingRow>
       {world.own && <Picks list={list} picked={world.picked} save={save} />}
-      {world.falls_back && <p className="subtle">None of the backends picked here is on, so {name} uses all of them for now.</p>}
-    </fieldset></div>
+      {world.falls_back && <p className="setting-row row-note subtle">None of the models picked here is on, so {name} uses all of them for now.</p>}
+    </RowGroup>
   )
 }
 
@@ -43,9 +43,9 @@ function useShownFor(list: ImageBackend[], world: WorldImageBackends) {
 }
 
 function Picks({ list, picked, save }: { list: ImageBackend[]; picked: string[]; save: (ids: string[]) => Promise<void> }) {
-  return <div className="world-image-list">
-    {list.map((backend) => <Toggle key={backend.id} label={`Use ${backend.label}`} checked={picked.includes(backend.id)}
+  return <>
+    {list.map((backend) => <SwitchRow key={backend.id} nested label={`Use ${backend.label}`} checked={picked.includes(backend.id)}
       onChange={(value) => void save(value ? [...picked, backend.id] : picked.filter((id) => id !== backend.id))}
-      hint={backend.enabled ? undefined : 'Switched off above, so not used anywhere until it is on again.'} />)}
-  </div>
+      tip={backend.enabled ? undefined : 'Switched off above, so not used anywhere until it is on again.'} />)}
+  </>
 }
