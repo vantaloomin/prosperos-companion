@@ -7,7 +7,8 @@ import type { Companion, DeleteResult, History, Memory, Message } from '../../ty
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { useReturnFocus } from '../../components/returnFocus'
-import { Toggle } from '../../components/Fields'
+import { RowGroup, Switch } from '../../components/Rows'
+import { InfoTip } from '../../components/InfoTip'
 import { MemoryCard, type MemoryActions } from './MemoryCard'
 import { RememberForm, type NewMemory } from './RememberForm'
 import { ContextReceipt } from './ContextReceipt'
@@ -99,39 +100,54 @@ export function Memories({ companion, go }: { companion: Companion; go: (view: V
 
   return (
     <section className="page">
-      <header className="page-header">
-        <div>
-          <h1>Memories</h1>
-          <p className="subtle">What {name} remembers and where it came from. Corrections and changes apply from the next reply.</p>
-        </div>
-        <div className="today-actions">
-          <button type="button" className="button" onClick={() => go('year')}><BookHeart aria-hidden="true" />Our year so far</button>
-          {!adding && <button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Remember something</button>}
-        </div>
-      </header>
+      {/* How close you are leads; then the memories, with their two actions beside the heading (style guide: Memories). */}
+      <Closeness name={name} memories={all} run={run} />
+      <div className="memories-head">
+        <h2 id="memories-heading">Memories</h2>
+        <InfoTip id="memories-about" label="Memories" text={`What ${name} remembers and where it came from. Corrections and changes apply from the next reply.`} />
+        <span className="memories-actions">
+          <button type="button" className="button" onClick={() => go('year')}><BookHeart aria-hidden="true" />Our year</button>
+          {!adding && <button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Remember</button>}
+        </span>
+      </div>
       {adding && <RememberForm name={name} request={request} onSave={remember} onCancel={() => setAdding(false)} />}
       <Suggestions name={name} run={run} />
       <MergeProposals run={run} />
-      <Closeness name={name} memories={all} run={run} />
-      <ContextReceipt name={name} memories={all} />
-      <LookedUp name={name} />
-      <div className="memory-toolbar"><Toggle label="Show earlier values" checked={history} onChange={setHistory} /></div>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {memories.isPending && <Loading label="Loading memories" />}
       {memories.isError && <ErrorNotice error={memories.error} />}
-      {empty && <p className="subtle empty-memories">Nothing is remembered yet. Use Remember something, or Remember this on one of your messages. Facts you state directly are saved after each reply, unless you turn automatic memory off in Settings.</p>}
+      {empty && <p className="subtle empty-memories">Nothing remembered yet.</p>}
       {groups.filter((group) => group.layer === 'user_fact').map(renderGroup)}
       {memories.isSuccess && <People name={name} all={all} sources={sources} actions={actions} run={run} />}
       {groups.filter((group) => group.layer !== 'user_fact').map(renderGroup)}
+      <MemoriesFoot name={name} all={all} history={history} setHistory={setHistory} />
     </section>
   )
+}
+
+/** Earlier values, quietly at the foot of the list and only once there is something to look back on; then what the
+ * next reply uses and the lookups, as fold rows. */
+function MemoriesFoot({ name, all, history, setHistory }: { name: string; all: Memory[]; history: boolean; setHistory: (on: boolean) => void }) {
+  return <>
+    {(all.length > 0 || history) && <span className="memory-history"><Switch id="memory-history" checked={history} onChange={setHistory} /><label htmlFor="memory-history">Show earlier values</label></span>}
+    <RowGroup className="memories-folds">
+      <ContextReceipt name={name} memories={all} />
+      <LookedUp name={name} />
+    </RowGroup>
+  </>
+}
+
+/** The layer's name, with its hint behind an InfoTip. */
+function LayerTitle({ group, name }: { group: MemoryGroup; name: string }) {
+  const title = layerTitle(group.layer, name)
+  const hint = LAYERS.find((item) => item.id === group.layer)?.hint
+  return <div className="memory-group-title"><h3 id={`layer-${group.layer}`}>{title}</h3>{hint && <InfoTip id={`layer-${group.layer}-about`} label={title} text={hint} />}</div>
 }
 
 function LayerSection({ group, name, all, sources, actions, corrected }: { group: MemoryGroup; name: string; all: Memory[]; sources: Map<string, Message>; actions: MemoryActions; corrected: string | null }) {
   return (
     <section className="memory-group" aria-labelledby={`layer-${group.layer}`}>
-      <h2 id={`layer-${group.layer}`}>{layerTitle(group.layer, name)}</h2>
-      <p className="subtle">{LAYERS.find((item) => item.id === group.layer)?.hint}</p>
+      <LayerTitle group={group} name={name} />
       <ul className="memory-list">
         {group.current.map((memory) => <MemoryCard key={memory.id} memory={memory} all={all} sources={sources} actions={actions} focusOnMount={memory.id === corrected} />)}
       </ul>

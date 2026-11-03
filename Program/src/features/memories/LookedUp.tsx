@@ -4,13 +4,16 @@ import { Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import type { Observation } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { FoldRow } from '../../components/Rows'
+import { InfoTip } from '../../components/InfoTip'
 import { observationSummary, sentArguments } from '../settings/contextTools'
 import { dayAndClock, exactTime } from '../../when'
 import { appDate } from '../../appTime'
 
 const OBSERVATIONS_KEY = ['context-observations']
 
-/** Real-world lookups, kept apart from memories: what was sent, where, when, and whether it is still current (PRD X2). */
+/** Real-world lookups, kept apart from memories: what was sent, where, when, and whether it is still current (PRD X2).
+ * A fold row at the foot of Memories, loaded when opened. */
 export function LookedUp({ name }: { name: string }) {
   const client = useQueryClient()
   const [open, setOpen] = useState(false)
@@ -22,10 +25,9 @@ export function LookedUp({ name }: { name: string }) {
   }
   const items = observations.data?.observations ?? []
   return (
-    <details className="context-receipt" onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary>Real-world lookups</summary>
-      <div className="receipt-body">
-        <p className="subtle">Weather, news and events looked up for {name}'s replies. They are outside information, not memories, and are never saved as facts about you.</p>
+    <FoldRow summary="Looked up for replies" onToggle={setOpen}>
+      <div className="fold-extra receipt-body">
+        <p className="fold-about">Weather, news and events <InfoTip id="lookups-about" label="Looked up for replies" text={`Weather, news and events looked up for ${name}'s replies. They are outside information, not memories, and are never saved as facts about you.`} /></p>
         {error && <Notice tone="error">{error}</Notice>}
         {observations.isSuccess && items.length === 0 && <p className="subtle">Nothing has been looked up. Lookups are set up in Settings.</p>}
         <ul className="lookup-list">
@@ -56,6 +58,6 @@ export function LookedUp({ name }: { name: string }) {
         </ul>
         {items.length > 0 && <div className="form-actions"><button type="button" className="button" onClick={() => void act(() => api('/context/observations/clear', {}))}>Delete all lookups</button></div>}
       </div>
-    </details>
+    </FoldRow>
   )
 }

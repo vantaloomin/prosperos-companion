@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { basisText, milestoneText, stageText } from '../../src/features/memories/closenessText.ts'
+import { basisText, milestoneText, shortBasis, stageSteered, stageText } from '../../src/features/memories/closenessText.ts'
 import type { Closeness } from '../../src/types.ts'
 
 const stages = ['Just met', 'Getting to know each other', 'Friends', 'Close friends', 'Like old friends']
@@ -41,4 +41,12 @@ test('a milestone says when and why', () => {
 test('a long shared moment stays inside the picker on a phone instead of widening the page', () => {
   const css = readFileSync(new URL('../../src/styles.css', import.meta.url), 'utf8')
   assert.match(css, /\.closeness-pick \.field, \.closeness-pick select \{ max-width: 100%; \}/)
+})
+
+test('the line beside the stage name is short, and the meter says when something steers the stage', () => {
+  assert.equal(shortBasis({ ...base, days_talked: 8, counted_moments: 3 }), '8 days talked · 3 moments counted')
+  assert.equal(shortBasis({ ...base, days_talked: 1, counted_moments: 1 }), '1 day talked · 1 moment counted')
+  assert.equal(shortBasis({ ...base, days_talked: 0, counted_from: null }), 'Not talked yet')
+  assert.equal(stageSteered({ ...base, held_level: null, cooled_steps: 0, ceiling_level: null, set_on: null, starting_level: 1 }), false)
+  assert.equal(stageSteered({ ...base, held_level: 2 }), true)
 })
