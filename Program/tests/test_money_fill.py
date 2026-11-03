@@ -31,7 +31,7 @@ def test_a_world_with_its_own_coin_but_no_rents_gets_rents_in_that_coin():
     assert all(hood['rent'] for hood in data['neighborhoods'])
     low, mid, dear = (hood['rent']['one_bedroom'] for hood in data['neighborhoods'])
     assert low[0] < mid[0] < dear[0]
-    assert any("follow Ellerbrück's, in gold" in note for note in data['import_notes'])
+    assert 'import_notes' not in data  # picked quietly
     # Prices both towns have (a bath, a meal) set the rate: Thornmere's coin buys about a sixth of a groschen.
     ellerbruck = next(city for city in money_fill.builtins() if city['id'] == 'ellerbruck')
     mid_there = next(hood['rent'] for hood in ellerbruck['neighborhoods'] if hood['rent_tier'] == 'mid')
@@ -44,7 +44,6 @@ def test_rents_a_world_gives_are_kept():
     data = catalog.prepare(city, mend=True)
     assert data['neighborhoods'][0]['rent'] == {'studio': [5, 6], 'one_bedroom': [7, 8], 'two_bedroom': [9, 10]}
     assert data['neighborhoods'][1].get('rent') is None
-    assert not any('No rents' in note for note in data.get('import_notes', []))
 
 
 def test_a_priced_rent_sets_what_a_place_costs():

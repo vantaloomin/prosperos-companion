@@ -193,6 +193,7 @@ def mids(city: dict) -> dict[str, float]:
 
 
 def rents(data: dict) -> list[str]:
+    """Each neighbourhood's rent, borrowed by tier from the donor city in this city's money and period."""
     other = donor(data)
     if not other:
         return []
@@ -208,7 +209,9 @@ def rents(data: dict) -> list[str]:
     for hood in data['neighborhoods']:
         found = tiers.get(hood.get('rent_tier', 'mid')) or nearest(tiers, hood.get('rent_tier', 'mid'))
         hood['rent'] = {unit: scaled(found[unit], scale) for unit in ('studio', 'one_bedroom', 'two_bedroom')}
-    return [f'No rents were given, so they follow {other["name"]}\'s, in {data["currency"]["name"]}.']
+    # Picked quietly, as the app picks for its world: a note on every save of a city written without rents (a ship
+    # from the template, an imported map) would only be noise. The city file's own rents win when written.
+    return []
 
 
 def typical(tiers: dict) -> float:
