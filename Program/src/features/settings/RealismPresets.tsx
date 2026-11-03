@@ -10,7 +10,7 @@ import { REALISM_PRESETS, matchPreset, nearestPreset, type RealismPreset } from 
 import { LIFE_KEY, type SaveResult } from './useLifeSettings'
 
 /** Wolfenstein-style starting points (src/features/settings/presetChoices.ts); a tap applies one, and any change after is your own mix. */
-export function RealismPresets({ heading, title, intro }: { heading: string; title: string; intro?: string }) {
+export function RealismPresets({ heading, title, intro, compact }: { heading: string; title: string; intro?: string; compact?: boolean }) {
   const client = useQueryClient()
   const workspace = useWorkspaceSettings()
   const life = useQuery({ queryKey: LIFE_KEY, queryFn: () => api<LifeSettings>('/life/settings') })
@@ -32,6 +32,7 @@ export function RealismPresets({ heading, title, intro }: { heading: string; tit
     setApplying(null)
   }
   const picked = applying ?? current?.id
+  if (compact) return <CompactPresets heading={heading} title={title} picked={picked} mix={picked ? null : nearestPreset(life.data, workspace.data).short} apply={apply} result={result} />
   return (
     <section className="settings-section form-stack" aria-labelledby={heading}>
       <div>
@@ -49,6 +50,32 @@ export function RealismPresets({ heading, title, intro }: { heading: string; tit
       </fieldset>
       {!picked && <p className="subtle">Your own mix, based on {nearestPreset(life.data, workspace.data).label}.</p>}
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
+    </section>
+  )
+}
+
+interface CompactProps { heading: string; title: string; picked?: string | null; mix: string | null; apply: (preset: RealismPreset) => Promise<void>; result: SaveResult }
+
+/** Settings > Realism (style guide): the presets as one segmented control. Picking one moves the sliders below, which
+ * shows what it does; each preset's description is its tooltip and is read with it. */
+function CompactPresets({ heading, title, picked, mix, apply, result }: CompactProps) {
+  const name = useId()
+  return (
+    <section className="realism-start" aria-labelledby={heading}>
+      <div className="realism-start-row">
+        <h2 id={heading} className="setting-row-label">{title}</h2>
+        <div className="segmented realism-segmented" role="radiogroup" aria-labelledby={heading}>
+          {REALISM_PRESETS.map((preset) => (
+            <label key={preset.id} title={preset.description}>
+              <input type="radio" className="visually-hidden" name={name} value={preset.id} checked={picked === preset.id} aria-describedby={`${name}-${preset.id}`} onChange={() => void apply(preset)} />
+              <span>{preset.short}</span>
+              <span id={`${name}-${preset.id}`} className="visually-hidden">{preset.label}. {preset.description}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+      {mix && <p className="subtle realism-mix">Your own mix, closest to {mix}.</p>}
+      {result?.tone === 'error' && <Notice tone="error">{result.text}</Notice>}
     </section>
   )
 }

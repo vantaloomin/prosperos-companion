@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import type { Companion } from '../../types'
 import { StoryModeSetting } from './StoryModeSetting'
-import { HiddenValues } from './HiddenValues'
 import { ModelCalls } from './ModelCalls'
 import { Backups } from './Backups'
 import { DataFolder } from './DataFolder'
@@ -12,7 +11,9 @@ import { DebugMatches } from './DebugMatches'
 import { ContextSettings } from './ContextSettings'
 import { ImageSettings } from './ImageSettings'
 import { LifeSettings } from './LifeSettings'
-import { AdultSideSettings, ClosenessSettings, HomeLifeSettings, LoveSettings, PaceSettings, RealismIntro } from './RealismSettings'
+import { RealismPage } from './RealismPage'
+import { REALISM_SUBS, realismSubFor, type RealismSub } from './realismSubs'
+import { InfoTip } from '../../components/InfoTip'
 import { NotificationSettings } from './NotificationSettings'
 import { PhoneSettings } from './PhoneSettings'
 import { PromptSettings } from './PromptSettings'
@@ -50,7 +51,14 @@ export function Settings({ companion, tab, onTab, onHome, onCreate }: Props) {
   const onPhone = !!usePhoneStatus().data?.remote
   const small = usePhone()
   const landing = useLanding()
-  const land = (match: SettingsMatch) => { onTab(match.tab.id); landing(match.section.heading) }
+  // Realism keeps some sections on pages of their own; the open one titles the page and is where back goes first.
+  const [sub, setSub] = useState<RealismSub | null>(null)
+  const openTab = (next: SettingsTab) => { setSub(null); onTab(next) }
+  const land = (match: SettingsMatch) => {
+    setSub(realismSubFor(match.section.heading))
+    onTab(match.tab.id)
+    landing(match.section.heading)
+  }
   const search = <SettingsSearch hasCompanion={!!companion} onPhone={onPhone} onPick={land} />
   const next = !companion && onCreate ? <NextStep onCreate={onCreate} /> : null
   if (small && !tab) {
@@ -58,38 +66,70 @@ export function Settings({ companion, tab, onTab, onHome, onCreate }: Props) {
       <section className="page settings settings-home">
         <header className="page-header"><h1>Settings</h1></header>
         {next}{search}
-        <SettingsList hasCompanion={!!companion} onPhone={onPhone} onTab={onTab} />
+        <SettingsList hasCompanion={!!companion} onPhone={onPhone} onTab={openTab} />
       </section>
     )
   }
   const current = pickTab(tab, !!companion, onPhone)
+  return <SettingsPanel {...{ companion, current, small, onPhone, next, search, sub, setSub, onHome }} onTab={openTab}
+    onReviewed={() => { onTab('memory'); landing('memory-heading') }} />
+}
+
+interface PanelProps {
+  companion: Companion | null; current: SettingsTab; small: boolean; onPhone: boolean; next: ReactNode; search: ReactNode
+  sub: RealismSub | null; setSub: (sub: RealismSub | null) => void; onTab: (tab: SettingsTab) => void; onHome?: () => void; onReviewed: () => void
+}
+
+/** An open group: its title and way back, the groups beside it on a wide window, and its settings. */
+function SettingsPanel({ companion, current, small, onPhone, next, search, sub, setSub, onTab, onHome, onReviewed }: PanelProps) {
+  const page = openPage(current, sub)
+  const head = <PanelHead small={small} label={tabLabel(current, !!companion, onPhone)} page={page} onBack={page ? () => setSub(null) : onHome} />
+  const labelledBy = small ? (page?.heading ?? 'settings-tab-phone') : `settings-tab-${current}`
   return (
     <section className="page settings">
-      <SettingsHead small={small} label={tabLabel(current, !!companion, onPhone)} onHome={onHome} />
+      {small && head}
       {next}
-      {companion && <RestoredReview onDone={() => { onTab('memory'); landing('memory-heading') }} />}
+      {companion && <RestoredReview onDone={onReviewed} />}
       <div className="settings-layout">
         {!small && <nav className="settings-nav" aria-label="Settings groups">
           {search}
           <SettingsTabs current={current} hasCompanion={!!companion} onPhone={onPhone} onTab={onTab} />
         </nav>}
-        <div className="settings-panel" role="tabpanel" id={`settings-panel-${current}`} aria-labelledby={small ? 'settings-tab-phone' : `settings-tab-${current}`}>
-          {!small && <h1 className="settings-head">{tabLabel(current, !!companion, onPhone)}</h1>}
-          <TabContent tab={current} companion={companion} />
+        <div className="settings-panel" role="tabpanel" id={`settings-panel-${current}`} aria-labelledby={labelledBy}>
+          {!small && head}
+          <TabContent tab={current} companion={companion} realism={{ sub, open: setSub }} />
         </div>
       </div>
     </section>
   )
 }
 
+/** The page of its own open within a group, if any (only Realism has them). */
+function openPage(tab: SettingsTab, sub: RealismSub | null) {
+  return tab === 'realism' && sub ? REALISM_SUBS[sub] : null
+}
+
 function tabLabel(tab: SettingsTab, hasCompanion: boolean, onPhone: boolean): string {
   return availableTabs(hasCompanion, onPhone).find((item) => item.id === tab)?.label ?? 'Settings'
 }
 
-/** The open group's name as the page heading, with the way back to all of them on a phone. */
-function SettingsHead({ small, label, onHome }: { small: boolean; label: string; onHome?: () => void }) {
-  if (!small) return null
-  return <header className="settings-phone-head"><button type="button" className="icon-button" aria-label="All settings" onClick={onHome}><ChevronLeft aria-hidden="true" /></button><h1 id="settings-tab-phone">{label}</h1></header>
+interface PanelHeadProps { small: boolean; label: string; page: { title: string; tip: string; heading: string } | null; onBack?: () => void }
+
+/**
+ * One title and one way back per level (Iris): the open group's name, or the open page's within it with its "?".
+ * On a phone the header's back goes up one level; on a wide window the groups are beside it, and a page has a small
+ * link back to its group above the title.
+ */
+function PanelHead({ small, label, page, onBack }: PanelHeadProps) {
+  const title = <h1 id={page ? page.heading : small ? 'settings-tab-phone' : undefined} className={small ? undefined : 'settings-head'}>
+    {page?.title ?? label}{page && <InfoTip id={`${page.heading}-tip`} label={page.title} text={page.tip} />}
+  </h1>
+  if (small) {
+    return <header className="settings-phone-head">
+      <button type="button" className="icon-button" aria-label={page ? `Back to ${label}` : 'All settings'} onClick={onBack}><ChevronLeft aria-hidden="true" /></button>{title}
+    </header>
+  }
+  return page ? <div className="settings-subhead"><button type="button" className="text-button settings-back" onClick={onBack}><ChevronLeft aria-hidden="true" />{label}</button>{title}</div> : title
 }
 
 /** A phone's Settings: every group as a row that opens it, Advanced last under a line. */
@@ -126,7 +166,7 @@ function useLanding() {
   }
 }
 
-function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion | null }) {
+function TabContent({ tab, companion, realism }: { tab: SettingsTab; companion: Companion | null; realism: { sub: RealismSub | null; open: (sub: RealismSub) => void } }) {
   const name = companion?.version.name ?? ''
   // Built-in recall reads and runs files on the PC, so a phone does not show it (companion/phone/access.py).
   const remote = !!usePhoneStatus().data?.remote
@@ -134,7 +174,7 @@ function TabContent({ tab, companion }: { tab: SettingsTab; companion: Companion
     general: <GeneralSettings />,
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
     world: <><LifeSettings name={name} /><Cities /><Library world /><ContextSettings name={name} /></>,
-    realism: <><RealismIntro /><PaceSettings name={name} /><LoveSettings /><HomeLifeSettings /><ClosenessSettings name={name} /><AdultSideSettings /><HiddenValues name="" /></>,
+    realism: <RealismPage name={name} sub={realism.sub} open={realism.open} />,
     memory: <MemorySettings />,
     pictures: <ImageSettings />,
     devices: <><NotificationSettings /><PhoneSettings /></>,

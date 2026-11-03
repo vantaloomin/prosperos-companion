@@ -1,10 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Plus, RotateCcw, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, RotateCcw, X } from 'lucide-react'
 import { api } from '../../api'
 import type { Closeness as ClosenessState, Memory } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { Field, Toggle } from '../../components/Fields'
+import { Field } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { CLOSENESS_KEY, OPENNESS, basisText, milestoneText, shortBasis, stageSteered, stageText } from './closenessText'
 import { FoldRow, RowGroup, SettingRow, SwitchRow } from '../../components/Rows'
@@ -42,7 +42,10 @@ export function Closeness({ name, memories, run }: { name: string; memories: Mem
       <Meter state={state} />
       <p className="closeness-description">{OPENNESS[state.level - 1]}</p>
       {stageSteered(state) && <p className="row-sub">{stageText(state, name)}</p>}
-      {adjusting && <Adjust name={name} state={state} change={change} />}
+      {adjusting && <ClosenessRows id="closeness-adjust" name={name} state={state} change={change}>
+        <NicknameRow name={name} state={state} change={change} />
+        <StartOverRow name={name} state={state} change={change} />
+      </ClosenessRows>}
       {state.history.length > 0 && (
         <details className="closeness-history">
           <summary>When it changed</summary>
@@ -67,12 +70,15 @@ function Meter({ state }: { state: ClosenessState }) {
   )
 }
 
+interface ClosenessRowsProps { id?: string; name: string; state: ClosenessState; change: Change; path?: string; children?: ReactNode }
+
 /**
- * Adjust, as rows: the stage with a step back and a step closer, Never closer than, Hold at this stage, cooling, the
- * nickname and Start over. Settings > Realism keeps the longer StageControls for any companion.
+ * Closeness as rows: the stage with a step back and a step closer, Never closer than, Hold at this stage and cooling.
+ * Memories > Adjust adds the nickname and Start over; Settings > Realism shows the same rows for any companion (`path`
+ * names which), so the two can't drift apart (Iris).
  */
-function Adjust({ name, state, change }: { name: string; state: ClosenessState; change: Change }) {
-  const put = (body: object) => () => api<ClosenessState>('/closeness', body, 'PUT')
+export function ClosenessRows({ id, name, state, change, path = '/closeness', children }: ClosenessRowsProps) {
+  const put = (body: object) => () => api<ClosenessState>(path, body, 'PUT')
   const setTo = (level: number) => void change(put({ set_level: level }), `${name} is at ${state.stages[level - 1]} now, and it grows from there.`)
   const cap = (value: string) => {
     const level = value ? Number(value) : null
@@ -83,7 +89,7 @@ function Adjust({ name, state, change }: { name: string; state: ClosenessState; 
   const cool = (on: boolean) => void change(put({ cooling: on }), on ? 'Long silences now cool things a little.' : 'Time apart no longer lowers closeness.')
   const stage = state.held_level ?? state.grown_level
   return (
-    <div id="closeness-adjust" className="row-list closeness-rows">
+    <div id={id} className="row-list closeness-rows">
       <SettingRow label="Stage" tip="It keeps growing from the stage you pick, unless you hold it.">
         {(id) => <span className="stepper" id={id} role="group" aria-label="Stage">
           <button type="button" className="icon-button" aria-label="One step back" disabled={stage <= 1} onClick={() => setTo(stage - 1)}><ChevronLeft aria-hidden="true" /></button>
@@ -102,8 +108,7 @@ function Adjust({ name, state, change }: { name: string; state: ClosenessState; 
       <SwitchRow label="Hold at this stage" checked={state.held_level !== null} onChange={hold} tip="Stays put, higher or lower, until you let it grow again." />
       <SwitchRow label="Long silences cool things" checked={state.cooling} onChange={cool}
         tip={`After 3 weeks without talking, ${name} is a step less familiar, after 2 months two steps, never below ${state.stages[1]}. Every 2 days you talk again bring a step back.`} />
-      <NicknameRow name={name} state={state} change={change} />
-      <StartOverRow name={name} state={state} change={change} />
+      {children}
     </div>
   )
 }
@@ -146,55 +151,6 @@ function StartOverRow({ name, state, change }: { name: string; state: ClosenessS
 }
 
 export type Change = (action: () => Promise<ClosenessState>, done: string) => Promise<void>
-
-/**
- * Where closeness stands and how far it may go: Set it to, Never closer than, steps, Keep it at and gentle cooling.
- * Memories shows these for the open companion; Settings > Realism for any companion (`path` names which).
- */
-export function StageControls({ name, state, change, path = '/closeness' }: { name: string; state: ClosenessState; change: Change; path?: string }) {
-  const put = (body: object) => () => api<ClosenessState>(path, body, 'PUT')
-  const hold = (value: string) => {
-    const level = value ? Number(value) : null
-    void change(put({ held_level: level }),
-      level ? `${name} stays at ${state.stages[level - 1]} until you change it.` : 'Closeness grows from your shared history again.')
-  }
-  const setTo = (level: number) => void change(put({ set_level: level }), `${name} is at ${state.stages[level - 1]} now, and it grows from there.`)
-  const cap = (value: string) => {
-    const level = value ? Number(value) : null
-    void change(put({ ceiling_level: level }),
-      level ? `${name} won't get closer than ${state.stages[level - 1]}.` : 'Closeness can grow all the way again.')
-  }
-  const cool = (on: boolean) => void change(put({ cooling: on }),
-    on ? 'Long silences now cool things a little.' : 'Time apart no longer lowers closeness.')
-  return (
-    <>
-      <Field label="Set it to" hint="It keeps growing from the stage you pick.">{(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value="" onChange={(event) => { if (event.target.value) setTo(Number(event.target.value)) }}>
-          <option value="">Choose a stage</option>
-          {state.stages.map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
-        </select>
-      )}</Field>
-      <Field label="Never closer than" hint="Grows as usual up to this stage, then stops. Good for a slow burn.">{(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={state.ceiling_level ?? ''} onChange={(event) => cap(event.target.value)}>
-          <option value="">No limit</option>
-          {state.stages.map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
-        </select>
-      )}</Field>
-      <div className="closeness-steps" role="group" aria-label="Move closeness">
-        <button type="button" className="button" disabled={state.grown_level <= 1} onClick={() => setTo(state.grown_level - 1)}><ChevronDown aria-hidden="true" />One step back</button>
-        <button type="button" className="button" disabled={state.grown_level >= state.stages.length} onClick={() => setTo(state.grown_level + 1)}><ChevronUp aria-hidden="true" />One step closer</button>
-      </div>
-      <Field label="Keep it at" hint="Stays put, higher or lower, until you let it grow again.">{(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={state.held_level ?? ''} onChange={(event) => hold(event.target.value)}>
-          <option value="">Keeps growing</option>
-          {state.stages.map((stage, index) => <option key={stage} value={index + 1}>Keep at {stage}</option>)}
-        </select>
-      )}</Field>
-      <Toggle label="Let long silences cool things a little" checked={state.cooling} onChange={cool}
-        hint={`Off unless you turn it on. After 3 weeks without talking, ${name} is a step less familiar, after 2 months two steps, never below ${state.stages[1]}. Every 2 days you talk again bring a step back.`} />
-    </>
-  )
-}
 
 function RunningJokes({ name, state, memories, change }: { name: string; state: ClosenessState; memories: Memory[]; change: Change }) {
   const [picked, setPicked] = useState('')
