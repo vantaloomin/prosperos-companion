@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { Field } from './Fields'
-import { bounded, presetOptions } from './numberBounds'
+import { presetOptions } from './numberBounds'
 
 interface Common { label: string; value: number; onChange: (value: number) => void; hint?: ReactNode; format: (value: number) => string }
 interface Ranged extends Common { min: number; max: number }
@@ -71,18 +71,12 @@ export function SliderField({ label, value, min, max, onChange, hint, format }: 
   )}</Field>
 }
 
-/** Technical tuning: a slider showing the usual range beside a box for an exact value, kept in range on leaving it. */
-export function SliderNumber({ label, value, min, max, step, onChange, hint }: Omit<Ranged, 'format'> & { step: number }) {
-  const [text, setText] = useState<string | null>(null)
-  const leave = () => {
-    if (text !== null && text.trim() !== '' && Number.isFinite(Number(text))) onChange(Number(bounded(text, min, max, true)))
-    setText(null)
-  }
-  return <Field label={label} hint={hint}>{(id, describedBy) => (
+/** Technical tuning (Iris): a slider with its value as text beside it, never a free box; arrow keys give exact steps. */
+export function SliderNumber({ label, value, min, max, step, onChange, tip }: Omit<Ranged, 'format' | 'hint'> & { step: number; tip?: string }) {
+  return <Field label={label} tip={tip}>{(id, describedBy) => (
     <div className="slider-number">
-      <input type="range" min={min} max={max} step={step} value={value} aria-label={label} onChange={(event) => onChange(Number(event.target.value))} />
-      <input id={id} type="number" inputMode="decimal" min={min} max={max} step={step} value={text ?? String(value)} aria-describedby={describedBy}
-        onChange={(event) => setText(bounded(event.target.value, min, max))} onBlur={leave} />
+      <input id={id} type="range" min={min} max={max} step={step} value={value} aria-describedby={describedBy} onChange={(event) => onChange(Number(event.target.value))} />
+      <output htmlFor={id} className="slider-value">{value}</output>
     </div>
   )}</Field>
 }

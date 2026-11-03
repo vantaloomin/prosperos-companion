@@ -3033,7 +3033,7 @@ p.breakup-line { align-items: center; }
 .switch:disabled { opacity: .45; cursor: default; }
 .switch[aria-checked='true']::after { transform: translateX(16px); }
 .fold-summary { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 4px 16px; text-align: left; border-radius: 12px; }
-.fold-row.open .fold-summary { border-radius: 12px 12px 0 0; }
+.fold-row.open > .fold-summary { border-radius: 12px 12px 0 0; }
 .row-list .fold-summary, .row-list .fold-row.open .fold-summary { border-radius: 0; }
 .row-list > :first-child .fold-summary, .row-list > .fold-row:first-child > .fold-summary { border-radius: 11px 11px 0 0; }
 .row-list > .fold-row:last-child:not(.open) > .fold-summary { border-radius: 0 0 11px 11px; }
@@ -3041,7 +3041,7 @@ p.breakup-line { align-items: center; }
 .fold-summary:hover { background: var(--raised); }
 .fold-text { flex: 1; min-width: 0; font-size: 0.875rem; }
 .fold-chevron { width: 16px; height: 16px; color: var(--faint); flex: none; transition: transform 150ms ease-out; }
-.fold-row.open .fold-chevron { transform: rotate(180deg); }
+.fold-row.open > .fold-summary .fold-chevron { transform: rotate(180deg); }
 .fold-row:not(.open) .fold-text .row-sub { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .fold-body { border-top: 1px solid var(--border); }
 .fold-body > .setting-row + .setting-row { border-top: 1px solid var(--border); }
@@ -3320,3 +3320,15 @@ p.breakup-line { align-items: center; }
   .setting-row > .row-link { order: 3; flex-basis: 100%; text-align: left; padding: 0 0 6px; justify-content: flex-start; }
 }
 .row-control { display: inline-flex; align-items: center; gap: 12px; }
+/* A fold inside an open fold (a picture model's details, Iris): indented like a nested row, its body inset under it. */
+.fold-row.nested > .fold-summary { padding-left: 40px; min-height: 44px; border-radius: 0; }
+.fold-row.nested > .fold-body:not([hidden]) { border-top: 1px solid var(--border); padding: 12px 16px 12px 40px; }
+.fold-row.nested > .fold-body .sub-fold-body { gap: 12px; }
+.fold-row.nested .workflow-editor { margin-bottom: 0; }
+.slider-number:has(> .slider-value) { grid-template-columns: 1fr 3.5rem; }
+.slider-value { font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+.form-actions > .refresh-list { width: 32px; height: 32px; }
+@media (max-width: 480px) { .wide-only { display: none; } }
+/* Rows inside an open detail line up with its fields, not indented again. */
+.sub-fold-body > .setting-row, .sub-fold-body > .fold-row.nested > .fold-summary { padding-left: 0; padding-right: 0; min-height: 40px; }
+.sub-fold-body > .fold-row.nested > .fold-body:not([hidden]) { padding-left: 0; padding-right: 0; }

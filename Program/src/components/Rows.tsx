@@ -78,16 +78,17 @@ export function SwitchRow({ checked, onChange, children, ...row }: SwitchRowProp
   )
 }
 
-interface FoldRowProps { summary: ReactNode; sub?: ReactNode; value?: ReactNode; open?: boolean; onToggle?: (open: boolean) => void; children: ReactNode }
+interface FoldRowProps { summary: ReactNode; sub?: ReactNode; value?: ReactNode; open?: boolean; onToggle?: (open: boolean) => void; nested?: boolean; children: ReactNode }
 
-/** A summary line that opens to its detail, such as lookups or money. Closed until asked, unless `open` says otherwise. */
-export function FoldRow({ summary, sub, value, open, onToggle, children }: FoldRowProps) {
+/** A summary line that opens to its detail, such as lookups or money. Closed until asked, unless `open` says otherwise.
+ * `nested`: a fold inside another fold, indented like a nested row (a picture model's details). */
+export function FoldRow({ summary, sub, value, open, onToggle, nested, children }: FoldRowProps) {
   const id = useId()
   const [own, setOwn] = useState(false)
   const shown = open ?? own
   const toggle = () => { setOwn(!shown); onToggle?.(!shown) }
   return (
-    <div className={shown ? 'fold-row open' : 'fold-row'}>
+    <div className={['fold-row', shown && 'open', nested && 'nested'].filter(Boolean).join(' ')}>
       <button type="button" className="fold-summary" aria-expanded={shown} aria-controls={id} onClick={toggle}>
         <span className="fold-text"><span>{summary}</span>{sub && <span className="row-sub">{sub}</span>}</span>
         {value && <span className="row-value">{value}</span>}
