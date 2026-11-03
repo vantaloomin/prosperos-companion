@@ -3,6 +3,7 @@ import { api } from '../../api'
 import type { KindChoices, Persona, PersonaGender, World, Worlds } from '../../types'
 import { Field, TextArea, TextInput } from '../../components/Fields'
 import { Notice } from '../../components/Feedback'
+import { InfoTip } from '../../components/InfoTip'
 import { GENDERS, ageHint, ageText, personaAges } from './worldsText'
 import { KindFields } from '../kinds/KindFields'
 import { lifeAge, longLived, pickedLifespan } from '../kinds/kindText'
@@ -30,8 +31,8 @@ function validDraft(draft: Draft, age: number | null, isNew: boolean, long: bool
 }
 
 const TEXT = {
-  existing: { id: 'persona-heading', heading: 'Who you are here', button: 'Save', busy: 'Saving…', intro: 'Your companions in this persona\'s worlds know you by this.' },
-  new: { id: 'new-persona-heading', heading: 'A new persona', button: 'Make this persona', busy: 'Making their world…', intro: 'Who will you be? They get a world of their own with new people in it, and you make the first companion there.' },
+  existing: { id: 'persona-heading', heading: 'You here', button: 'Save', busy: 'Saving…', intro: 'Your companions in this persona\'s worlds know you by this.' },
+  new: { id: 'new-persona-heading', heading: 'New persona', button: 'Make this persona', busy: 'Making their world…', intro: 'Who will you be? They get a world of their own with new people in it, and you make the first companion there.' },
 }
 
 /** A new persona, with their world in `city`, or the changes to one; a new one's form closes once it is made. */
@@ -78,25 +79,27 @@ export function PersonaForm({ persona, world, cityId, onSaved, onCancel, kinds }
   }
   return (
     <form className="settings-section form-stack persona-form" aria-labelledby={headingId} onSubmit={(event) => { event.preventDefault(); if (valid) void save() }}>
-      <div>
+      <div className="persona-form-title">
         <h2 id={headingId}>{text.heading}</h2>
-        <p className="subtle">{text.intro} Leave anything but the name blank to keep it to yourself.</p>
+        <InfoTip id={`${headingId}-about`} label={text.heading} text={`${text.intro} Leave anything but the name blank to keep it to yourself.`} />
       </div>
-      <TextInput label="Name" value={draft.name} maxLength={80} required={!persona} onChange={(name) => set({ name })} />
+      <div className="persona-grid">
+      <TextInput label="Name" value={draft.name} maxLength={80} required={!persona} placeholder="Your name" onChange={(name) => set({ name })} />
       <Field label="Gender">{(id, describedBy) => (
         <select id={id} aria-describedby={describedBy} value={draft.gender} onChange={(event) => set({ gender: event.target.value as PersonaGender })}>
           {GENDERS.map(([value, label]) => <option key={value || 'none'} value={value}>{label}</option>)}
         </select>
       )}</Field>
-      {choices && <PersonaKind found={found} choices={choices} draft={draft} age={age} span={span} set={set} />}
       <AgeField value={draft.age} age={age} long={long} onChange={(value) => set({ age: value })} />
+      {choices && <PersonaKind found={found} choices={choices} draft={draft} age={age} span={span} set={set} />}
       <TextInput label="Birthday" value={draft.birthday} placeholder="MM-DD" maxLength={5} onChange={(birthday) => set({ birthday })}
-        hint="Month and day, like 04-23. Companions remember it and wish you a happy birthday." />
+        tip="Month and day, like 04-23. Companions remember it and wish you a happy birthday." />
+      </div>
       <TextArea label="About you" value={draft.about} rows={3} maxLength={2000} onChange={(about) => set({ about })}
         placeholder="Works nights as a paramedic, loves old films." />
       <TextArea label="How you look" value={draft.looks} rows={2} maxLength={600} onChange={(looks) => set({ looks })}
         placeholder="Short dark curls, freckles, round glasses."
-        hint="For pictures of you with a companion. A few things a camera can see." />
+        tip="For pictures of you with a companion. A few things a camera can see." />
       {persona && <PersonaPicture persona={persona} looks={draft.looks} onChange={(data) => onSaved(data)} />}
       <PersonaPets drafts={draft.pets} onChange={(pets) => set({ pets })} persona={persona} />
       <PersonaHome moving={home.moving} disabled={saving} onChange={(next) => { home.setHome(next); setNote(null) }} />

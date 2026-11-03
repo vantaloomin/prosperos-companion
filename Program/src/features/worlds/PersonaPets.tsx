@@ -4,6 +4,7 @@ import { api } from '../../api'
 import type { Persona, PetsView } from '../../types'
 import { MAX_PET_AGE, PET_KINDS, PETS_KEY, ageChoice } from '../pets/petText'
 import { Stepper } from '../../components/NumberFields'
+import { InfoTip } from '../../components/InfoTip'
 import { MAX_PETS, unsetAge, type PetDraft } from './personaPetsText'
 
 /** The user's own pets: only what the user writes, never invented. Once saved they live their lives in the world,
@@ -14,8 +15,7 @@ export function PersonaPets({ drafts, onChange, persona }: { drafts: PetDraft[];
   const set = (index: number, change: Partial<PetDraft>) => onChange(drafts.map((pet, at) => at === index ? { ...pet, ...change } : pet))
   return (
     <fieldset className="persona-pets">
-      <legend>Your pets</legend>
-      <p className="subtle">Optional. Pets you add here have lives of their own: off days, vet visits, growing old. Your companions know them by name. Leave the age and the app picks one that fits their looks.</p>
+      <legend><span className="label-row">Your pets<InfoTip id="persona-pets-about" label="Your pets" text="Pets you add here have lives of their own: off days, vet visits, growing old. Your companions know them by name. Leave the age and the app picks one that fits their looks." /></span></legend>
       {drafts.map((pet, index) => (
         <div className="persona-pet" key={index}>
           <div className="persona-pet-row">

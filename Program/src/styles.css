@@ -826,9 +826,9 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
   .hobby-card .person-actions { margin-bottom: -10px; }
   .hobby-form input:not([type="checkbox"]), .hobby-form select { max-width: none; }
 }
-.persona-pets, .persona-home { border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
-.persona-pets legend, .persona-home legend { padding: 0 6px; font-weight: 600; }
-.persona-pets > .button { justify-self: start; }
+.persona-pets, .persona-home { border: 0; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; min-width: 0; }
+.persona-pets legend, .persona-home legend { padding: 0; margin-bottom: 4px; font-family: var(--read-font); font-size: 1.15rem; }
+.persona-pets > .button { justify-self: start; padding-left: 0; }
 .persona-pet { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .persona-pet .text-button { justify-self: start; }
 .persona-pet-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; align-items: start; }
@@ -2133,48 +2133,56 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* A world in a past year: its year under the name, whole, since a long name is cut short. */
 .app-nav .nav-world .nav-world-year { margin-top: -4px; font-variant-numeric: tabular-nums; }
 .nav-persona { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--accent-tint); color: var(--accent); font-weight: 600; font-size: 0.85rem; }
-.worlds { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
-.worlds-header, .worlds-list { max-width: 760px; width: 100%; margin: 0 auto; padding: 18px 32px 12px; display: flex; flex-direction: column; gap: 10px; }
-.worlds-list { padding-top: 0; padding-bottom: 32px; gap: 18px; }
-.worlds-header h1 { font-size: 1.3rem; }
-.persona-worlds { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
-.persona-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.persona-row h2 { flex: 1; font-size: 1.05rem; margin: 0; }
-.persona-initial { display: grid; place-items: center; font-weight: 600; color: var(--accent); background: var(--accent-tint); }
-.world-rows { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
-.world-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 8px; flex-wrap: wrap; }
-.world-row[aria-current='true'] { background: var(--accent-tint); }
-.world-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.world-row-actions { display: flex; align-items: center; gap: 10px; }
-.world-row-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+/* Worlds (v1.3 design): your worlds grouped by who you are in them, beside the world you picked, like Notes folders.
+ * A phone shows the list, then the world. */
+.worlds { flex: 1; display: flex; min-height: 0; }
+.worlds-pane { width: 300px; flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding: 12px 8px 24px; border-right: 1px solid var(--border); background: var(--surface); }
+.worlds-pane-head { display: flex; align-items: center; gap: 12px; padding: 0 8px; }
+.worlds-pane-head h1 { flex: 1; margin: 0; font-size: 1.3rem; }
+.worlds-group ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.worlds-group-label { display: flex; align-items: center; gap: 6px; font-family: inherit; font-size: 0.8125rem; font-weight: 500; color: var(--muted); margin: 0 0 4px; padding: 0 10px; }
+.world-pick .chat-row-text strong { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.world-pick .portrait, .world-new .portrait { width: 36px; height: 36px; }
+.world-pick .portrait svg, .world-new .portrait svg { width: 18px; height: 18px; }
+.world-new { min-height: 48px; color: var(--muted); }
+.world-new .portrait { background: transparent; border-style: dashed; color: var(--muted); }
+.worlds-group-label .world-here { width: 14px; height: 14px; }
+.world-here { flex: none; width: 18px; height: 18px; color: var(--accent); }
+.worlds-detail { flex: 1; min-width: 0; overflow-y: auto; padding: 28px 40px 48px; display: flex; flex-direction: column; gap: 16px; }
+.worlds-detail > * { width: 100%; max-width: 760px; }
+.world-detail, .worlds-new { display: flex; flex-direction: column; gap: 12px; }
+.world-detail > p { margin: 0; }
+.world-detail-head { display: flex; align-items: center; gap: 12px; }
+.world-detail-name { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 1.3rem; margin: 0; }
+.worlds-new h2 { font-size: 1.3rem; margin: 0; }
+.world-detail .persona-form { padding-top: 16px; }
+.persona-form-title { display: flex; align-items: center; gap: 4px; }
+.persona-form-title h2 { margin: 0; }
+.persona-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; align-items: start; }
+.persona-grid > .field, .persona-grid .field { margin: 0; min-width: 0; }
+.persona-grid > .kind-fields { display: contents; }
+.persona-grid .kind-human-terms { grid-column: 1 / -1; }
+.persona-grid select, .persona-grid input { width: 100%; }
+.persona-grid .label-row { min-height: 24px; }
+@media (max-width: 1100px) { .persona-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .persona-grid { grid-template-columns: minmax(0, 1fr); } }
 /* A world in a past year: the year it is there, beside its name. */
-.year-badge { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.year-badge { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; font-family: inherit; font-size: 0.75rem; }
 .year-badge svg { width: 0.8rem; height: 0.8rem; }
-/* On the world you are in, whose row is tinted already, the badge keeps a fill a step darker. */
-.world-row[aria-current='true'] .year-badge { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 /* A world where life stands still: muted rather than the accent, so it reads as waiting, not as news. */
-.paused-badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
+.paused-badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-family: inherit; font-size: 0.75rem; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
 .paused-badge svg { width: 0.75rem; height: 0.75rem; }
 .paused-note { line-height: 1.45; }
-/* Phone: the buttons go under the name, lined up with it, so the name keeps the row's width (Iris, 2026-10-29). */
-@media (max-width: 480px) { .world-row-actions { flex-basis: 100%; padding-left: 58px; flex-wrap: wrap; } }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
 .world-rename input { flex: 1; min-width: 0; }
-/* Lined up with the world rows' names (row padding + portrait + gap), so it reads as this persona's. */
-.new-world { padding: 4px 10px 8px 68px; max-width: 528px; }
-/* New world for them, and Copy them to a new world, side by side under their worlds; each link stays whole. */
-.persona-world-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-.persona-world-actions .text-button { white-space: nowrap; }
-.new-world-title { margin: 0 0 2px; font-weight: 600; }
-.persona-row h2:focus { outline: none; }
-.persona-row h2:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-/* A copy just made (Iris): its section lights up briefly; Motion off makes it instant. */
-.persona-worlds.arrived { animation: persona-arrived 2.4s ease-out; }
-/* The tint reaches past the section's edge (its shadow), so nothing sits against it, and all of it fades. */
+.new-world { max-width: 528px; }
+/* A copy just made (Iris): its group lights up briefly; Motion off makes it instant. */
+.worlds-group.arrived { animation: persona-arrived 2.4s ease-out; }
 @keyframes persona-arrived { from, 30% { background: var(--accent-tint); box-shadow: 0 0 0 8px var(--accent-tint); border-radius: 8px; } to { background: transparent; box-shadow: 0 0 0 8px transparent; border-radius: 8px; } }
 @media (max-width: 720px) {
-  .worlds-header, .worlds-list { padding-left: 16px; padding-right: 16px; }
-  .new-world { padding-left: 0; padding-right: 0; max-width: none; }
+  .worlds { flex-direction: column; overflow-y: auto; }
+  .worlds-pane { width: auto; flex: none; overflow: visible; border-right: 0; background: transparent; padding: 12px 8px 0; }
+  .worlds-detail { overflow: visible; padding: 8px 16px 32px; }
 }
 
 /* While you were away (src/features/conversation/AwayRecap.tsx): a quiet catch-up above the composer. */
@@ -2695,8 +2703,6 @@ p.breakup-line { align-items: center; }
 .watch-numbers { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px !important; }
 .watch-thought .watch-line-body > p:first-child, .watch-dream .watch-line-body > p:first-child, .watch-private .watch-line-body > p:first-child { color: var(--muted); font-style: italic; }
 .watch-empty { max-width: 600px; }
-.world-watch { flex-basis: 100%; padding: 4px 0 2px 58px; }
-@media (max-width: 720px) { .world-watch { padding-left: 0; } }
 .welcome-watch { margin-top: 4px; }
 @media (max-width: 720px) {
   .watch-banner { margin: 10px auto 0; }

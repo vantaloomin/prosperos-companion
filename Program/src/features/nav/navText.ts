@@ -9,7 +9,7 @@ export const RAIL_IDS = new Set(['conversation', 'dating', 'story', 'today', 'se
  * and Character), Worlds, group chats and Secrets, so every view below belongs under it.
  */
 export function inChats(view: string): boolean {
-  return view === 'chats' || view === 'conversation' || view === 'secrets' || view.startsWith('group/') || view === 'worlds' || underProfile(view)
+  return view === 'chats' || view === 'conversation' || view === 'secrets' || view.startsWith('group/') || underProfile(view)
 }
 
 /** A profile tab, or Create another companion, opened from the Character page outside the tabs. */

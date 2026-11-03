@@ -10,8 +10,8 @@ test('the kind pickers name the app pick and the kind lifespan first', () => {
   assert.equal(foundOption('Elf', 'words'), 'As their description says (Elf)')
   assert.equal(foundOption('Half-elf', 'parents'), 'From their parents (Half-elf)')
   assert.equal(foundOption('Human', 'app'), 'As the app picks (Human)')
-  assert.equal(asKindOption(600), 'As their kind (about 600 years)')
-  assert.equal(asKindOption(null), "As their kind (doesn't age)")
+  assert.equal(asKindOption(600), 'About 600 years (their kind)')
+  assert.equal(asKindOption(null), "Doesn't age (their kind)")
   assert.equal(yearsText(1000), '1,000 years')
 })
 
@@ -34,8 +34,8 @@ test('a folded kind section sums itself up', () => {
 
 test('on the Persona page the pickers speak to you', () => {
   assert.equal(foundOption('Elf', 'words', true), 'As About you says (Elf)')
-  assert.equal(asKindOption(600, true), 'As your kind (about 600 years)')
-  assert.equal(asKindOption(null, true), "As your kind (doesn't age)")
+  assert.equal(asKindOption(600, true), 'About 600 years (your kind)')
+  assert.equal(asKindOption(null, true), "Doesn't age (your kind)")
 })
 
 test('life age in the browser matches the rules', () => {
