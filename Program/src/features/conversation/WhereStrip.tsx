@@ -8,7 +8,7 @@ import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
 import { useEraWords, useMagicCalls } from '../world/useEraWords'
 import { say, type EraWords } from '../world/eraWords'
-import { WHERE_KEY, callActions, canStayLonger, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
+import { WHERE_KEY, callActions, canGoBack, canStayLonger, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
 const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
 // On their way home after a meetup, by how they travel (companion/life/heading_home.py).
@@ -65,18 +65,34 @@ function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLi
     onDone()
   }
   const Glyph = where.kind === 'out' && outing.state !== 'done' ? MapPin : Home  // Headed home is always the house.
-  const longer = canStayLonger(where)
+  const two = canStayLonger(where) || canGoBack(where)
   return (
     // With two buttons the phone puts them on a row of their own under the text (Iris, 2026-11-02).
-    <aside className={longer ? 'where-strip two-actions' : 'where-strip'} aria-label="Where you are" aria-live="polite">
+    <aside className={two ? 'where-strip two-actions' : 'where-strip'} aria-label="Where you are" aria-live="polite">
       <Glyph aria-hidden="true" />
-      <span>{line.lead}{line.place && <a className="where-strip-place" href={`#map/${encodeURIComponent(line.place.id)}`} title="Show on map">{line.place.name}</a>}{line.tail}</span>
-      {longer ? <div className="where-strip-actions">
-        <button type="button" className="text-button" onClick={() => void act('longer')}><Hourglass aria-hidden="true" />Stay longer</button>
+      <StripText line={line} />
+      {two ? <div className="where-strip-actions">
+        <StayOrBack where={where} act={act} />
         {action && <StripButton action={action} onClick={() => void act(action.action)} />}
       </div> : action && <StripButton action={action} onClick={() => void act(action.action)} />}
     </aside>
   )
+}
+
+/** Stay longer; or, just after they moved on to a second place by themselves, Undo to go back (companion/life/onward.py). */
+function StayOrBack({ where, act }: { where: WhereState; act: (verb: 'back' | 'longer') => Promise<void> }) {
+  if (canGoBack(where)) return <button type="button" className="text-button" onClick={() => void act('back')}><Undo2 aria-hidden="true" />Undo</button>
+  return <button type="button" className="text-button" onClick={() => void act('longer')}><Hourglass aria-hidden="true" />Stay longer</button>
+}
+
+/** Where, until when, and where next: places link to the map. */
+function StripText({ line }: { line: StripLine }) {
+  return <span>{line.lead}{line.place && <StripPlace place={line.place} />}{line.tail}{line.then && <StripPlace place={line.then} />}</span>
+}
+
+/** A place on the strip, linked to the map. */
+function StripPlace({ place }: { place: { id: string; name: string } }) {
+  return <a className="where-strip-place" href={`#map/${encodeURIComponent(place.id)}`} title="Show on map">{place.name}</a>
 }
 
 function StripButton({ action, onClick }: { action: StripAction; onClick: () => void }) {

@@ -437,6 +437,10 @@ ADDED_COLUMNS = (
     ('outings', 'auto_longer', 'INTEGER NOT NULL DEFAULT 0'),
     # A trip away together (companion/life/away_together.py): how they get there and what the place is like (JSON).
     ('trips', 'away', 'TEXT'),
+    # Second location (companion/life/onward.py): whether and where a meetup moves on to a second place (JSON), and the
+    # Moving on slider (Settings > Realism): 0 never, 1 now and then, 2 true to life, 3 often.
+    ('outings', 'onward', 'TEXT'),
+    ('life_settings', 'onward_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (onward_realism BETWEEN 0 AND 3)'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

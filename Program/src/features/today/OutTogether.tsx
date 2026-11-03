@@ -6,7 +6,7 @@ import { Notice } from '../../components/Feedback'
 import { WHERE_KEY } from '../conversation/whereText'
 import { firstName } from '../character/panelText'
 import { openWedding } from '../character/weddingText'
-import { OUTING_STATES, TOGETHER_KEY, bigDayLine, meetLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from './outingText'
+import { OUTING_STATES, TOGETHER_KEY, bigDayLine, meetLine, onwardLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from './outingText'
 import { useTogether } from './useTogether'
 
 /** Plans with the user. The companion picked the places; the user can call them off (with Undo for the rest of the
@@ -55,6 +55,7 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       {bigDayLine(outing, firstName(name)) && <p className="subtle">{bigDayLine(outing, firstName(name))}</p>}
       {note && <p className="subtle">{note}</p>}
       <MeetLine outing={outing} />
+      {onwardLine(outing) && <p className="subtle together-next">{onwardLine(outing)}</p>}
       <SitterLine outing={outing} />
       {outing.state === 'planned' && <Planned outing={outing} name={name} act={act} />}
       {outing.state === 'now' && <Now outing={outing} act={act} />}
@@ -75,12 +76,15 @@ function SitterLine({ outing }: { outing: Outing }) {
   return <p className="subtle">{outing.sitter.text}</p>
 }
 
-/** Stay longer when their next hour is free; Head home, or Call it a night after a long day: your wedding, or a big day in their circle (not a funeral). */
+/** Somewhere else for the next place when they are about to move on, and Undo just after; Stay longer when their next hour is free; Head home, or Call it a night after a long day: your wedding, or a big day in their circle (not a funeral). */
 function Now({ outing, act }: { outing: Outing; act: (path: string) => Promise<void> }) {
   const long = outing.activity === 'wedding' || (outing.activity === 'big-day' && !outing.place.quiet)
   return (
     <div className="together-actions">
-      {outing.longer_ok && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/longer`)}><Hourglass aria-hidden="true" />Stay longer</button>}
+      {/* Moving on to a second place (companion/life/onward.py): another one before, back just after. */}
+      {outing.next && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/next`)}><MapPin aria-hidden="true" />Somewhere else</button>}
+      {outing.undo_move && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/back`)}><Undo2 aria-hidden="true" />Undo</button>}
+      {outing.longer_ok && !outing.undo_move && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/longer`)}><Hourglass aria-hidden="true" />Stay longer</button>}
       <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/home`)}>{long ? <><Moon aria-hidden="true" />Call it a night</> : <><Home aria-hidden="true" />Head home</>}</button>
     </div>
   )
