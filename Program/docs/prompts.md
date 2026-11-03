@@ -26,6 +26,19 @@ for comparison.
 | Guests in group chats | Who a guest is, in their own reply: someone from a member's circle or around town ([group-chat.md](group-chat.md#guests)) | `SHEET` in `companion/group_guests.py` |
 | Character drafting (5) | The quick start, "Help me write" and the paste box | `companion/prompts/character-*.md` ([character-drafting.md](character-drafting.md)) |
 | Sidecar | The sidecar's replies and proposed changes ([sidecar.md](sidecar.md)) | `companion/prompts/sidecar.md` |
+| Pictures: What pictures leave out | The negative prompt of every picture a model makes | `NEGATIVE` in `companion/images/prompts.py` |
+| Pictures: How a picture opens | After the style line: a plain moment, a selfie, a view, an in-person scene | `OPENINGS` (`MOMENT` and `FRAMINGS`) in `companion/images/prompts.py` |
+| Pictures: Camera details | The camera line that ends a photographic picture, per kind of shot | `CAMERAS` in `companion/images/prompts.py` |
+| Pictures: Faces for each mood | "Her face shows ..." for the moment's mood | `EXPRESSIONS` in `companion/images/prompts.py` |
+| Pictures: What each activity looks like | What they are doing in a picture of a moment of their day | `PICTURES` in `companion/images/prompts.py` |
+
+The Pictures entries are pieces, not whole prompts: the rule-based picture prompt builder strings them
+together with the style line (Settings > Pictures), the looks and the moment. The lists are one
+`name: words` line per entry; every name stays, a line's words may be left empty, and a line may use any
+of the list's placeholders or none. A name a newer default adds uses its default words until the user
+saves the list again. The builders read the user's wording while they build a request
+(`prompt_library.reading`), so outside one the pieces are the defaults. A world set in a past decade
+keeps that decade's own opening and camera (`companion/world/decades.py`).
 
 `companion/prompt_library.py` is the list. Defaults are read from the constants above when needed,
 so changing one in code is the new default at once. The constants are written for `str.format`;

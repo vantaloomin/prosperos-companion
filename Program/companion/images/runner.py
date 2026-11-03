@@ -10,7 +10,7 @@ changed, the backend must still be enabled, and the request is classified again 
 import asyncio
 import contextlib
 
-from companion import persona_pictures
+from companion import persona_pictures, prompt_library
 from companion.database import decode, encode, one, optional
 from companion.images import backends, jobs, prompts, sheet, storage
 from companion.images.adapters.base import AdapterError, ImageRequest, size_for
@@ -165,9 +165,11 @@ class ImageRunner:
             backend = optional(connection, 'SELECT * FROM image_backends WHERE id=?', (job['backend_id'],))
             post = optional(connection, 'SELECT status FROM feed_posts WHERE id=?', (job['post_id'],))
             stale = prompts.stale(connection, inputs)
-        if backend is not None:
-            # The backend's own style replaces the general one now that the backend is known.
-            inputs = prompts.restyle(inputs, backends.own_style(backend))
+            if backend is not None:
+                # The backend's own style replaces the general one now that the backend is known, with the camera
+                # details in the user's wording, as the request was built with.
+                with prompt_library.reading(connection):
+                    inputs = prompts.restyle(inputs, backends.own_style(backend))
         if job['status'] != 'queued':
             return None
         problem = self.problem(job, backend, post, stale, inputs)
