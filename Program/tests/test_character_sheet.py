@@ -46,6 +46,8 @@ def test_other_backends_and_pictures_without_the_companion_make_no_sheet(client,
     drain(client)
     assert len(adapters['hosted'].requests) == 1 and adapters['hosted'].requests[0].reference is None
     assert not sheet.depicts_companion({'framing': 'view'})
+    assert not sheet.depicts_companion({'framing': 'things', 'pictured': False})
+    assert not sheet.depicts_companion({'pictured': False})  # a pet photo
     assert not sheet.depicts_companion({'framing': 'meme', 'meme': {'subject': 'a cat in a box'}})
     assert sheet.depicts_companion({'framing': 'selfie'}) and sheet.depicts_companion({})
 
