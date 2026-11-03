@@ -13,18 +13,20 @@ replaces, since the rules already catch a plainly stated change ("I moved to Den
 """
 import json
 import re
+from dataclasses import replace
 
 from companion import prompt_library
 from companion.characters import by_id, for_timeline
+from companion.clock import parse as parse_time
 from companion.database import encode, identifier, many, one, optional, settings
-from companion.memory import addressed, corrections, formation, owners, records
+from companion.memory import addressed, corrections, dates, formation, owners, records
 from companion.memory.extraction import SINGLE_VALUED, Candidate, sentences, subject_key
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import MAINTENANCE, BackgroundInterrupted
 from companion.text_models import config_for
 
-PROMPT_VERSION = 'memory-suggest-6'
+PROMPT_VERSION = 'memory-suggest-7'
 BATCH = 8
 MIN_WORDS = 6
 NAMED = re.compile(r"\b[A-Z][a-z']+")
@@ -40,7 +42,11 @@ RULES = (
     '"user_fact" | "plan" | "temporary" | "shared_experience" | "relationship", "subject": short label, "value": '
     'just the fact}.\n'
     'Rules:\n'
-    '- Keep only lasting facts the user states plainly about themselves or their people.\n'
+    '- Keep only lasting facts the user states plainly about themselves or their people: things that will still be '
+    'true, or still worth asking about, next week.\n'
+    '- A "plan" is only something on a day or at an event the companion could ask about afterwards ("my interview is '
+    'Friday", "flying to Lisbon in June"). Leave out meals, cooking, chores, errands, what the user is about to do '
+    'today, "next time" ideas and maybes.\n'
     '- "value" is the fact in a few of the user\'s own words, without "I", "I\'m" or "my" in front.\n'
     '- "subject" says whose fact it is when it is about someone else ("Mom\'s home", "Sister\'s job").\n'
     '- In a message, "you" is the companion in "to". Call them by that name, never "the assistant", "the AI", '
@@ -65,7 +71,10 @@ RULES = (
     '"subject": "Ana\'s fears", "value": "scared of bats"}]\n'
     '"I feel safe with you" with "to": "Mira" gives [{"message": 1, "layer": "relationship", "subject": '
     '"Trust in Mira", "value": "feel safe with Mira"}]\n'
-    '"my dog is snoring lol" gives []'
+    '"my dog is snoring lol" gives []\n'
+    '"I like it a lot, tomorrow I\'ll add sausages to the pasta" gives []\n'
+    '"my sister Ana is visiting on the 14th, I\'ll make soup" gives [{"message": 1, "layer": "plan", "subject": '
+    '"Ana\'s visit", "value": "sister Ana visiting on the 14th"}]'
 )
 
 
@@ -269,6 +278,23 @@ def duplicate(connection, companion, found) -> bool:
                     (companion['id'], found.subject_key, found.subject, found.value)) is not None
 
 
+def dated(found, message, timezone):
+    """A model-found plan takes its day from its own words, or else from the sentence of the message they come from
+    ("add sausages to the pasta tomorrow"), the way the rules date theirs, so it closes once that day is over
+    (memory/plans.py)."""
+    if found.layer != 'plan' or found.applies_from is not None:
+        return found
+    stated = parse_time(message['created_at'])
+    words = set(terms(found.value))
+    source = max(sentences(message['text']) or [message['text']], key=lambda sentence: len(words & set(terms(sentence))))
+    span = dates.resolve(found.value, stated, timezone) or dates.resolve(source, stated, timezone)
+    if span is None:
+        return found
+    start, end = dates.bounds(span, timezone)
+    return replace(found, applies_from=start, applies_until=end if (span.end - span.start).days > 1 else None,
+                   dates_uncertain=not span.certain)
+
+
 def store(connection, message, found, corrected, timestamp) -> int:
     current = optional(connection, 'SELECT * FROM messages WHERE id=?', (message['id'],))
     if current is None or formation.blocked(connection, current):
@@ -284,7 +310,7 @@ def store(connection, message, found, corrected, timestamp) -> int:
                         (mark_value,))
     if declined or duplicate(connection, companion, found):
         return 0
-    fields = formation.proposal(found, current)
+    fields = formation.proposal(dated(found, current, settings(connection)['user_timezone']), current)
     if replaces_core(connection, companion, found, timestamp):
         return hold(connection, companion, current, fields, mark_value, 'conflict', timestamp)
     # Any other new value for a single-valued subject commits like a rule-found one: the newest statement wins.

@@ -56,6 +56,10 @@ NAME = r"(?-i:([A-Z][\w'’-]+(?: [A-Z][\w'’-]+)?))"
 THING = r"([^,.;!?]+)"
 NOT_THINGS = {'you', 'it', 'that', 'this', 'them', 'him', 'her', 'those', 'these', 'everything', 'nothing',
               'something', 'anything', 'everyone', 'nobody', 'talking to you', 'that idea', 'this idea'}
+# Words that point at the moment ("it a lot", "that one", "this too"), never a thing that stays liked.
+POINTING = {'it', "it's", 'that', 'this', 'them', 'him', 'her', 'those', 'these', 'you', 'your', 'how', 'what', 'when'}
+TRAILING = re.compile(r'(?:\s+(?:so much|so so much|a lot|a ton|very much|too|honestly|really|tbh|lol|lmao|haha))+$',
+                      re.IGNORECASE)
 CLAUSE_END = re.compile(r'\s+(?:because|but|although|though|so|and i|and my|when|since|if)\b.*$', re.IGNORECASE)
 PLAN_NOUNS = ('interview', 'appointment', 'exam', 'meeting', 'date', 'flight', 'trip', 'party', 'wedding',
               'concert', 'game', 'match', 'presentation', 'deadline', 'holiday', 'vacation', 'birthday party',
@@ -132,7 +136,9 @@ def thing(text: str) -> str | None:
     text = CLAUSE_END.sub('', text).strip(' \'"')
     text = re.sub(r'\s+(?:please|thanks|thank you|ok|okay|now|these days|nowadays|any ?more|currently|instead)$', '',
                   text, flags=re.IGNORECASE)
-    if not text or text.casefold() in NOT_THINGS or len(text.split()) > 8:
+    text = TRAILING.sub('', text)
+    # "I like it a lot" names nothing: a pronoun up front is the thing in the conversation, not a taste.
+    if not text or text.casefold() in NOT_THINGS or text.split()[0].casefold() in POINTING or len(text.split()) > 8:
         return None
     return text
 
