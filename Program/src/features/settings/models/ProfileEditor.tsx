@@ -8,7 +8,7 @@ import { Field, TextInput } from '../../../components/Fields'
 import { CliAccountPicker } from './CliAccountPicker'
 import { folderExample } from './cliAccounts'
 import { GenerationSettings } from './GenerationSettings'
-import { generationSummary } from './budgets'
+import { generationShort, generationSummary } from './budgets'
 import { FoldRow, SettingRow } from '../../../components/Rows'
 import { ModelCombobox } from './ModelCombobox'
 import { applyDiscovered, discoveredSettings, profileReady, recallReady, reusableKey, savedKeyApplies, typedModelSettings, type Discovery } from './discovery'
@@ -186,7 +186,7 @@ function ModelFields({ config, patch, discovery }: { config: ProfileConfig; patc
   return <>
     <TextInput label="Model ID" value={config.model} onChange={value => patch(typedModelSettings(value.trim(), config, models))} maxLength={200} placeholder="Pick from the list or type an ID"
       tip="The exact name the service uses for the model, such as gpt-4o-mini or llama3.1:8b. Test connection lists the models this service offers, and picking one fills in its settings." />
-    <div className="row-list"><FoldRow summary="Generation settings" value={generationSummary(config)}>
+    <div className="row-list"><FoldRow summary="Generation settings" value={<GenerationValue config={config} />}>
       <div className="fold-pad"><GenerationSettings config={config} patch={patch} model={models.find(model => model.id === config.model)} /></div>
     </FoldRow></div>
   </>
@@ -221,4 +221,10 @@ function KeyField({ saved, reused, sharedWith, value, onChange, share, onShare, 
     {/* A replaced key does every job that shared it, so a rotated key keeps recall working; unticked, only this profile changes. */}
     {saved && others && <label className="checkbox-row"><input type="checkbox" checked={share} onChange={(event) => onShare(event.target.checked)} />Also use it for {others}</label>}
     <button type="button" className="text-button" onClick={() => { onChange(''); onShare(true); onDone() }}>{reused && !saved ? `Use the ${reused} key` : 'Cancel key entry'}</button></div>
+}
+
+/** "16K context · 800 reply", or "16K · 800" on a phone (Iris), with the full line as its title. */
+function GenerationValue({ config }: { config: ProfileConfig }) {
+  const full = generationSummary(config)
+  return <span title={full}><span className="wide-only">{full}</span><span className="narrow-only" aria-label={full}>{generationShort(config)}</span></span>
 }
