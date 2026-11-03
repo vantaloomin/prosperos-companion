@@ -152,6 +152,12 @@ def builtins() -> tuple[dict, ...]:
     return tuple(found)
 
 
+@cache
+def shipped_codes() -> frozenset[str]:
+    """The moneys the app's own cities pay in, said by their symbols (gr., d., cr); any other is a world's own."""
+    return frozenset(code_of(city) for city in builtins()) | {'USD', 'none'}
+
+
 def code_of(city: dict) -> str:
     return (city.get('currency') or {}).get('code') or 'USD'
 

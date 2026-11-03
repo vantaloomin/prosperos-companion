@@ -93,7 +93,7 @@ def test_the_budget_works_in_a_world_pack_with_no_rents(tmp_path, monkeypatch):
     money.cached.cache_clear()
     try:
         view = money.snapshot({'name': 'Wren', 'home_city': 'thornmere'}, TODAY)
-        assert view['available'] and view['text']['income'].endswith(' g')
+        assert view['available'] and view['text']['income'].endswith(' gold')
         assert money.context_lines({'name': 'Wren', 'home_city': 'thornmere'}, TODAY)
     finally:
         monkeypatch.delenv(catalog.PACKS_ENV)
@@ -106,8 +106,13 @@ def test_the_emerald_city_still_has_no_money():
     assert view == {'available': False, 'reason': 'There is no money in The Emerald City.'}
 
 
-def test_made_up_gold_and_silver_are_counted_in_whole_coins():
+def test_a_worlds_own_coin_is_said_by_name_and_counted_whole():
+    # "28 g" could read as grams: sentences say the coin, only a tight chip keeps its symbol (Iris, PR #538).
     gold = {'code': 'GLD', 'symbol': 'g', 'name': 'gold'}
-    assert money.amount(1.46, gold) == '1 g'
-    assert money.amount(0.3, gold) == '1 g'
+    assert money.amount(28.4, gold) == '28 gold'
+    assert money.amount(1.46, gold, short=True) == '1 g'
+    assert money.amount(0.3, gold) == '1 gold'
+    assert money.amount(1, {'code': 'KRK', 'symbol': 'k', 'name': 'krakens'}) == '1 kraken'
+    # The app's own moneys keep their symbols.
     assert money.amount(4.2, {'code': 'CR', 'symbol': 'cr', 'name': 'credits'}) == '4.20 cr'
+    assert money.amount(3, {'code': 'groschen', 'symbol': 'gr.', 'name': 'silver groschen'}) == '3 gr.'

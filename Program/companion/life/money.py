@@ -485,8 +485,10 @@ def shillings(value: float, symbol: str, pounds: bool = False) -> str:
     return ' '.join(part for part in (f'{whole}s{dot}' if whole else '', f'{pence}d{dot}' if pence else '') if part)
 
 
-def amount(value: float, currency: dict) -> str:
-    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d."""
+def amount(value: float, currency: dict, short: bool = False) -> str:
+    """A rough amount as people say it: $1,240, £85, $5.50, ¥68,000, ₩1,250,000, 4s. 1d., 3 d. A world's own money
+    (a city pack's gold, one picked for it by world/money_fill.py) is said by name, "28 gold", since "28 g" could be
+    grams; `short` keeps its symbol, for a tight cost chip (Iris, PR #538)."""
     code = currency.get('code')
     if code in SHILLINGS and value > 0:
         return shillings(value, currency['symbol'], code in STERLING)
@@ -503,6 +505,9 @@ def amount(value: float, currency: dict) -> str:
     symbol = currency['symbol']
     if symbol in PREFIXES:
         return f'{symbol}{number}'
+    if not short and code not in money_fill.shipped_codes():
+        name = currency['name']
+        return f'{number} {name[:-1] if number == "1" and name.endswith("s") and not name.endswith("ss") else name}'
     return f'{number} {symbol or currency["name"]}'.strip()
 
 

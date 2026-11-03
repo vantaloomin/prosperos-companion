@@ -2331,6 +2331,8 @@ export interface AdminItem {
   moves: number
   deadline: string | null
   cost_text: string
+  /** The cost as the chip shows it: a world's own coin by its symbol ("1 g"), where cost_text says "1 gold". */
+  cost_short?: string
   /** False for another feature's item shown read-only (Looks' haircuts follow their own draw). */
   movable: boolean
   /** A late night's project, shown under its title (companion/life/work.py); empty otherwise. */
