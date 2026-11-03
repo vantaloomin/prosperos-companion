@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Settings as SettingsIcon, UserPlus, UserRound } from 'lucide-react'
+import { BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Settings as SettingsIcon, UserPlus, UserRound } from 'lucide-react'
 import type { View } from '../../companion'
 import { badge } from '../chats/chatText'
 import { WorldButton } from '../worlds/WorldButton'
@@ -10,9 +10,9 @@ import { useReady, useReadyActions } from '../ready/useReady'
 
 /**
  * The views. The desktop side rail shows all of them; the phone's tab bar (`rail-only` hidden) keeps Today, Story,
- * Matchlight and Settings, with Chats in place of the rail's Chats and Memories (navText.ts). Group chats are in the
- * Chats list on both. The rail's
- * Chats opens the companion's Messages; their Posts, Memories and Character are tabs above it, and keep it lit. While the user is just
+ * Matchlight and Settings, with its own Chats tab (navText.ts). Group chats are in the Chats list on both. The rail's
+ * Chats opens the companion's chat; their profile (Posts, Memories, Character) opens from their name and keeps Chats
+ * lit, so Memories left the rail in 1.3. While the user is just
  * watching, Watching takes Matchlight's place (Matchlight waits meanwhile), so the phone still has five tabs.
  */
 type NavView = { id: View; label: string; icon: typeof UserRound; railOnly?: boolean }
@@ -22,7 +22,6 @@ const VIEWS: NavView[] = [
   { id: 'dating', label: 'Matchlight', icon: Heart },
   { id: 'story', label: 'Story', icon: BookOpen },
   { id: 'today', label: 'Today', icon: CalendarDays },
-  { id: 'memories', label: 'Memories', icon: BookHeart, railOnly: true },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ]
 

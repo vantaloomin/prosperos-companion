@@ -17,14 +17,14 @@ import { useWhere } from './useWhere'
 import { WHERE_KEY, canCall, type WhereState } from './whereText'
 import { ChatMenu } from './ChatMenu'
 
-type Props = { companion: Companion; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; onTimelines: () => void; onGroups?: () => void; onBack?: () => void }
+type Props = { companion: Companion; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; onTimelines: () => void; onGroups?: () => void; onBack?: () => void; onProfile: () => void }
 
 /**
  * The chat's header (style guide: Chat header): the panel button, their picture and name, one status line, then at
  * most four buttons: Call, Search, Sidecar and ⋯. Timelines, Start a group, Export and the chat style live under ⋯,
- * and on a phone Call and Search move there too.
+ * and on a phone Call and Search move there too. Their name (or picture) opens their profile: Posts, Memories, Character.
  */
-export function ConversationHeader({ companion, searching, searchButton, onSearch, timeline, onTimelines, onGroups, onBack }: Props) {
+export function ConversationHeader({ companion, searching, searchButton, onSearch, timeline, onTimelines, onGroups, onBack, onProfile }: Props) {
   const name = companion.version.name
   const portrait = usePortrait()
   const phone = usePhone()
@@ -39,9 +39,12 @@ export function ConversationHeader({ companion, searching, searchButton, onSearc
       {/* On a phone the way back to the Chats list, as every messaging app has; the side list does it on a wide screen. */}
       {onBack && <button type="button" className="icon-button chat-back phone-only" aria-label="Chats" onClick={onBack}><ChevronLeft aria-hidden="true" /></button>}
       <ListButton />
-      {portrait ? <img className="portrait" src={portrait} alt="" aria-hidden="true" /> : <div className="portrait" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>}
+      {/* The picture is a mouse shortcut to the same profile the name opens, so keyboards and screen readers meet it once. */}
+      <button type="button" className="portrait-button" tabIndex={-1} aria-hidden="true" onClick={onProfile}>
+        {portrait ? <img className="portrait" src={portrait} alt="" /> : <span className="portrait">{name.slice(0, 1).toUpperCase()}</span>}
+      </button>
       <div className="conversation-title">
-        <h1>{name}</h1>
+        <h1><button type="button" className="name-button" title="Open profile" onClick={onProfile}>{name}</button></h1>
         <StatusLine companion={companion} timeline={timeline} phone={phone} />
       </div>
       {!phone && <WideButtons call={call} searching={searching} searchButton={searchButton} onSearch={onSearch} />}

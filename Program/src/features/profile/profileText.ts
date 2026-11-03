@@ -2,13 +2,13 @@ import type { ChatStyle } from '../../types'
 import type { StatusWhere } from '../status/statusText'
 import { MODERN_WORDS, type EraWords } from '../world/eraWords.ts'
 
-/** The companion's profile holds four views; the address keeps the older names so every link still works. */
-export type ProfileTab = 'conversation' | 'feed' | 'memories' | 'character'
+/** The companion's profile holds three views, opened from their name in the chat (v1.3). The chat itself is not one of
+ * them any more; the address keeps the older names so every link still works. */
+export type ProfileTab = 'feed' | 'memories' | 'character'
 
-/** The four tabs, Messages and Posts in the era's words ("Letters" and "Chronicle" in Camelot). */
+/** The three tabs, Posts in the era's words ("Chronicle" in Camelot). */
 export function profileTabs(words: EraWords = MODERN_WORDS): { id: ProfileTab; label: string }[] {
   return [
-    { id: 'conversation', label: words.messages_tab },
     { id: 'feed', label: words.posts_tab },
     { id: 'memories', label: 'Memories' },
     { id: 'character', label: 'Character' },
@@ -17,15 +17,15 @@ export function profileTabs(words: EraWords = MODERN_WORDS): { id: ProfileTab; l
 
 /** Which profile tab a view sits under, or null when the view is not part of the profile. */
 export function profileTab(view: string): ProfileTab | null {
-  if (view === 'conversation' || view === 'feed' || view === 'memories' || view === 'character') return view
+  if (view === 'feed' || view === 'memories' || view === 'character') return view
   if (view === 'appearance' || view === 'portraits' || view.startsWith('cast/')) return 'character'
   if (view === 'year') return 'memories'
   return null
 }
 
-/** The full profile card shows above Posts and Character; Messages and the pages under Character keep only the tabs. */
+/** The profile header shows above each of the three tabs; the pages under them (pictures, Our year) keep only the tabs. */
 export function showsCard(view: string): boolean {
-  return view === 'feed' || view === 'character'
+  return view === 'feed' || view === 'memories' || view === 'character'
 }
 
 /** A screen name made from their name, the way a social app would show it. */

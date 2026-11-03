@@ -3,10 +3,10 @@ import { test } from 'node:test'
 import { howText, modelHow, tieText } from '../../src/features/memories/pairText.ts'
 import { profileTabs, circleText, handle, placeFact, profileClass, profileTab, showsCard } from '../../src/features/profile/profileText.ts'
 
-test('the profile holds Messages, Posts, Memories and Character under their old addresses', () => {
-  assert.deepEqual(profileTabs().map((tab) => [tab.id, tab.label]), [['conversation', 'Messages'], ['feed', 'Posts'], ['memories', 'Memories'], ['character', 'Character']])
+test('the profile holds Posts, Memories and Character under their old addresses', () => {
+  assert.deepEqual(profileTabs().map((tab) => [tab.id, tab.label]), [['feed', 'Posts'], ['memories', 'Memories'], ['character', 'Character']])
   assert.equal(profileTab('memories'), 'memories')
-  assert.equal(profileTab('conversation'), 'conversation')
+  assert.equal(profileTab('conversation'), null)
   assert.equal(profileTab('feed'), 'feed')
   assert.equal(profileTab('portraits'), 'character')
   assert.equal(profileTab('appearance'), 'character')
@@ -19,7 +19,7 @@ test('the card shows above Posts and Character, and Messages keeps only the tabs
   assert.equal(showsCard('feed'), true)
   assert.equal(showsCard('character'), true)
   assert.equal(showsCard('conversation'), false)
-  assert.equal(showsCard('memories'), false)
+  assert.equal(showsCard('memories'), true)
   assert.equal(showsCard('portraits'), false)
 })
 
