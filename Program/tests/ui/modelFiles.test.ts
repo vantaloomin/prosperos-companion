@@ -110,9 +110,9 @@ test('the settings page and the server agree on the families', () => {
 
 test('the file list says when its model was picked for the graphics card', () => {
   const fit = 'krea2_turbo_nvfp4.safetensors'
-  assert.equal(filesLabel(NONE, fit), '(picked for this graphics card)')
-  assert.equal(filesLabel(NONE, null), '(defaults)')
-  assert.equal(filesLabel({ ...NONE, vae_name: 'mine.safetensors' }, fit), '(your choice)')
+  assert.equal(filesLabel(NONE, fit), 'Fits this card')
+  assert.equal(filesLabel(NONE, null), 'Defaults')
+  assert.equal(filesLabel({ ...NONE, vae_name: 'mine.safetensors' }, fit), 'Your choice')
   assert.equal(fitLine(fit, NONE, 11.9), 'On this 12 GB card it uses krea2_turbo_nvfp4, a smaller file that fits.')
   assert.equal(fitLine('Krea 2\\krea2_turbo-Q3_K_M.gguf', NONE, 8), 'On this 8.0 GB card it uses krea2_turbo-Q3_K_M, a smaller file that fits.')
   assert.equal(fitLine(fit, NONE, null), 'On this graphics card it uses krea2_turbo_nvfp4, a smaller file that fits.')

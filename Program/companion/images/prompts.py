@@ -262,7 +262,7 @@ def camera(style: str, framing='moment', period: dict | None = None) -> str:
 
 
 def restyle(inputs: dict, own: str | None) -> dict:
-    """The request with the backend's own style (Settings > Images, per backend) in place of the one it
+    """The request with the backend's own style (Settings > Pictures, per backend) in place of the one it
     was built with, or back to the general style for a backend without one: the opening style line
     and the camera details that follow from it. `general_style` keeps the general one, so a retry or
     fallback on another backend starts from it. A prompt that does not open with its style (a meme)
@@ -671,7 +671,7 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
 
 
 def user_shown(connection) -> str:
-    """The user in words, for a moment they share with the companion, or '' when Settings > Images leaves them out."""
+    """The user in words, for a moment they share with the companion, or '' when Settings > Pictures leaves them out."""
     from companion import persona_pictures  # it builds on the image modules that import this one
     persona = persona_pictures.here(connection)
     return persona_pictures.described(persona) if persona else ''

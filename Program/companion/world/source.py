@@ -4,7 +4,7 @@ from typing import Sequence
 
 from companion.almanac import days as almanac_days
 from companion.life.world import Place
-from companion.world import catalog, changes, custom
+from companion.world import catalog, changes, custom, destinations
 from companion.world.generators import SEASONS, conditions, unit
 
 # The composer's place kinds, answered from this data's place kinds (and tags, for waterfronts and books).
@@ -32,7 +32,10 @@ class CatalogWorld:
         self.database = database
 
     def find(self, city: str, day: date | None = None) -> dict | None:
-        """The city's data; with `day`, as it stands that day after its changes (see companion/world/changes.py)."""
+        """The city's data; with `day`, as it stands that day after its changes (see companion/world/changes.py). A
+        place away together that the app does not ship is its stand-in (companion/world/destinations.py)."""
+        if destinations.is_stand_in(city):
+            return destinations.city(city)
         if not self.database:
             data = changes.resolve(city, {})
             return changes.apply(data, changes.known(data, day), day) if data and day else data
@@ -42,7 +45,9 @@ class CatalogWorld:
         return changes.apply(data, changes.known(data, day, saved), day) if saved else data
 
     def changes(self, city: str, day: date) -> list[dict]:
-        """Changes to the city people have heard of by `day`, oldest first."""
+        """Changes to the city people have heard of by `day`, oldest first (none for a stand-in)."""
+        if destinations.is_stand_in(city):
+            return []
         if not self.database:
             data = changes.resolve(city, {})
             return changes.known(data, day) if data else []
@@ -61,7 +66,7 @@ class CatalogWorld:
         seasons (a team's season, "The London Season") are not one-day outings and are left out. Modern US
         cities add the day's parties from the almanac (companion/almanac/days.py)."""
         data = self.find(city)
-        if not data:
+        if not data or data.get('stand_in'):
             return []
         hoods = {hood['id']: hood['name'] for hood in data['neighborhoods']}
         return [{'id': item['id'], 'name': item['name'], 'kind': 'event', 'city': data['name'],

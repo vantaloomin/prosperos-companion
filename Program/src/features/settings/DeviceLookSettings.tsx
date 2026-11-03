@@ -1,11 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { InfoTip } from '../../components/InfoTip'
+import { SettingRow, SwitchRow } from '../../components/Rows'
 import { DEFAULT_LOOK, TEXT_SCALE, saveLook, useDeviceLook, type Motion, type ReadingFont } from './deviceLook'
 
 const TICKS = [85, 100, 150, 200]
-const FONTS: { id: ReadingFont; label: string; hint: string }[] = [
-  { id: 'default', label: "Default (the style's own)", hint: '' },
-  { id: 'atkinson', label: 'Atkinson Hyperlegible', hint: 'Clear, distinct letters' },
-  { id: 'opendyslexic', label: 'OpenDyslexic', hint: 'Weighted letters for dyslexia' },
+// Each name is set in its own font, which shows what it is better than a description.
+const FONTS: { id: ReadingFont; label: string }[] = [
+  { id: 'default', label: "Default (the style's own)" },
+  { id: 'atkinson', label: 'Atkinson Hyperlegible' },
+  { id: 'opendyslexic', label: 'OpenDyslexic' },
 ]
 const MOTIONS: { id: Motion; label: string }[] = [
   { id: 'system', label: 'Match my computer' }, { id: 'reduce', label: 'Less motion' }, { id: 'full', label: 'Full motion' },
@@ -14,12 +17,10 @@ const MOTIONS: { id: Motion; label: string }[] = [
 /** General > Appearance, "On this device": text size, reading font and motion, kept in this browser only. */
 export function DeviceLookSettings() {
   const look = useDeviceLook()
+  const id = useId()
   return (
     <div className="form-stack">
-      <div>
-        <h3>On this device</h3>
-        <p className="subtle">Text size, reading font and motion are set for each phone or computer on its own.</p>
-      </div>
+      <h2 className="section-title">On this device<InfoTip id={`${id}-about`} label="On this device" text="Text size, reading font and motion are set for each phone or computer on its own." /></h2>
       <TextSize value={look.textScale} />
       <ReadingFonts font={look.font} everywhere={look.fontEverywhere} />
       <MotionChoice motion={look.motion} />
@@ -62,22 +63,23 @@ function ReadingFonts({ font, everywhere }: { font: ReadingFont; everywhere: boo
       {FONTS.map(option => (
         <label key={option.id} className={`reading-font font-${option.id}`}>
           <input type="radio" name={name} value={option.id} checked={font === option.id} onChange={() => saveLook({ font: option.id })} />
-          <span><span className="reading-font-name">{option.label}</span>{option.hint && <small>{option.hint}</small>}</span>
+          <span className="reading-font-name">{option.label}</span>
         </label>
       ))}
-      <label className="checkbox-row">
-        <input type="checkbox" checked={everywhere} disabled={font === DEFAULT_LOOK.font} onChange={(event) => saveLook({ fontEverywhere: event.target.checked })} />
-        Use it for menus and buttons too
-      </label>
+      <div className="row-list">
+        <SwitchRow nested label="Use it for menus and buttons too" checked={everywhere} disabled={font === DEFAULT_LOOK.font} onChange={(checked) => saveLook({ fontEverywhere: checked })} />
+      </div>
     </fieldset>
   )
 }
 
+/** A segmented control, or on a narrow phone, where three segments wrap, a select in a row (Iris). */
 function MotionChoice({ motion }: { motion: Motion }) {
   const name = useId()
-  return (
-    <fieldset className="motion-choice" aria-describedby={`${name}-hint`}>
-      <legend className="field-label">Motion</legend>
+  const tip = "Less motion turns off slides, fades and the map's pulsing pins."
+  return <>
+    <fieldset className="motion-choice motion-wide" aria-describedby={`${name}-hint`}>
+      <legend className="field-label legend-with-tip">Motion<InfoTip id={`${name}-hint`} label="Motion" text={tip} /></legend>
       <div className="segmented">
         {MOTIONS.map(option => (
           <label key={option.id}>
@@ -86,7 +88,13 @@ function MotionChoice({ motion }: { motion: Motion }) {
           </label>
         ))}
       </div>
-      <small id={`${name}-hint`} className="subtle">Less motion turns off slides, fades and the map's pulsing pins.</small>
     </fieldset>
-  )
+    <div className="row-list motion-narrow">
+      <SettingRow label="Motion" tip={tip}>
+        {(id) => <select id={id} value={motion} onChange={(event) => saveLook({ motion: event.target.value as Motion })}>
+          {MOTIONS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+        </select>}
+      </SettingRow>
+    </div>
+  </>
 }

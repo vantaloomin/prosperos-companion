@@ -6,7 +6,7 @@ import { Toggle } from '../../components/Fields'
 
 const KEY = ['debug-matches']
 
-/** Settings > Debug: every Matchlight like is liked back, to test matches and dates without swiping for them. */
+/** Settings > Data: every Matchlight like is liked back, to test matches and dates without swiping for them. */
 export function DebugMatches() {
   const client = useQueryClient()
   const query = useQuery({ queryKey: KEY, queryFn: () => api<{ on: boolean }>('/debug-matches') })

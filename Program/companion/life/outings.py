@@ -25,7 +25,7 @@ from companion import in_character
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
-from companion.life import composer, money, own_plans, routine
+from companion.life import composer, money, onward, own_plans, routine
 from companion.memory.extraction import SENTENCE
 from companion.world import catalog, custom, generators, inside
 
@@ -427,6 +427,8 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
     from companion.life import hobbies
     wanted = proposal(message['text'], local_now.date(), own_plans.holiday_dates(
         connection, definition, local_now.date()), data, firm, hobbies.patterns(connection, companion['active_timeline_id']))
+    if not firm and onward.asked(connection, companion, message, wanted, parse(message['created_at'])):
+        return None  # Out together already: they go on somewhere from here (companion/life/onward.py).
     if not wanted:
         # Not going out: maybe a visit, or saying goodbye while together (companion/life/together.py).
         from companion.life import together
@@ -496,6 +498,7 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
          int(wanted['place'] is not None), cost if affordable else round(cost * 0.6, 2), timestamp))
     from companion.life import admin
     admin.make_room(connection, companion, day, at, parse(timestamp))
+    onward.plan(connection, companion, outing_id)  # Whether it moves on to a second place (companion/life/onward.py).
     return get(connection, outing_id)
 
 
@@ -516,11 +519,13 @@ def save_pastime(connection, companion, message, wanted, data, day: date, at: st
          wanted['day'].isoformat() if wanted['day'] else None, encode(place), cost, timestamp))
     admin.make_room(connection, companion, day, at, parse(timestamp))
     hobbies.outing_added(connection, companion, parse(timestamp))
+    onward.plan(connection, companion, outing_id)
     return get(connection, outing_id)
 
 
 def view(row: dict) -> dict:
-    return {**row, 'place': decode(row['place']), 'named': bool(row['named'])}
+    return {**row, 'place': decode(row['place']), 'named': bool(row['named']),
+            'onward': decode(row['onward']) if row.get('onward') else None}
 
 
 def get(connection, outing_id: str) -> dict:
@@ -579,13 +584,16 @@ def slot_id(outing: dict) -> str:
     """The agenda's id for an outing's slot: it changes when the place does, or when they met up early, so the agenda
     composes the slot again."""
     moved = f":{outing['at_time']}" if outing.get('early_from') else ''
-    return f"outing:{outing['id']}:{outing['rolls']}{moved}"
+    stop = onward.stop_of(outing)
+    later = f":{stop['place']['id']}:{stop['at']}" if stop else ''  # Moving on to a second place.
+    return f"outing:{outing['id']}:{outing['rolls']}{moved}{later}"
 
 
 def later_hours(outing: dict) -> list[str]:
     """The whole hours after a wedding's start, or an outing they stayed on at, up to its end ('16:00' ... '22:00'):
     blocks it also takes."""
-    if (outing['activity'] not in LONG_DAYS and not outing.get('longer')) or outing['until_time'] <= outing['at_time']:
+    if (outing['activity'] not in LONG_DAYS and not outing.get('longer') and not onward.stop_of(outing)) or \
+            outing['until_time'] <= outing['at_time']:
         return []
     return [f'{hour:02d}:00' for hour in range(int(outing['at_time'][:2]) + 1, int(outing['until_time'][:2]))]
 
@@ -607,6 +615,14 @@ def doing(outing: dict) -> str:
         if hobby.get('event'):
             return f"had {hobby['event']} at {place}, and you came to watch"
         return f"{hobby['session']} at {place}"
+    return out_doing(outing)
+
+
+def out_doing(outing: dict) -> str:
+    """Out in town: 'went for a walk at Patterson Park', or on to a second place (companion/life/onward.py)."""
+    place, activity = outing['place']['name'], outing['activity']
+    if onward.stop_of(outing):
+        return f"went out for {onward.before_text(outing)}{ACTIVITIES[activity][5]} at {place}{onward.then_text(outing)}"
     if activity == 'walk':
         return f'went for a walk at {place}'
     if activity in ('dinner', 'lunch-out', 'coffee', 'drinks'):
@@ -905,7 +921,10 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     for outing in in_force(connection, companion['active_timeline_id'], (today - timedelta(days=1)).isoformat()):
         found = state(outing, version['timezone'], now)
         if found == 'now':
-            result.append((f"outing:{outing['id']}:now", scene(connection, companion, outing, now)))
+            # Where they are right now: the first place, or the second once they moved on (companion/life/onward.py).
+            result.append((f"outing:{outing['id']}:now", scene(connection, companion,
+                                                                onward.here(outing, version['timezone'], now), now)))
+            result += onward.lines(connection, companion, outing, now, fresh_ids)
             if ending := ending_line(connection, companion, outing, now):
                 result.append((f"outing:{outing['id']}:ending", ending))
         elif found == 'planned':
@@ -920,13 +939,69 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
                            f"- {when} you and the user got married at {outing['place']['name']}; the wedding "
                            'is over now.'))
         elif now - window(outing, version['timezone'])[1] < RECENT:
-            from companion.life import their_people
-            paid = money_text(companion, outing)
-            had = their_people.what(outing, past=True) if outing['activity'] in MEETUPS else what(outing)
-            result.append((f"outing:{outing['id']}:done", f"- Earlier you and the user had {had}; it is over now.{paid}"))
+            result.append((f"outing:{outing['id']}:done", done_line(connection, companion, outing, now)))
     from companion.life import heading_home
     if on_way := heading_home.context_line(connection, companion, now):
         result.append(on_way)  # On their way home from it (companion/life/heading_home.py).
+    return result
+
+
+def done_line(connection, companion: dict, outing: dict, now: datetime) -> str:
+    """An outing that ended in the last RECENT hours: when it was, and whether it was their first time out together,
+    so a reply later that day doesn't talk as if the day held only work (tester, 2026-11-02: Sett's first date)."""
+    from companion.life import their_people
+    timezone = companion['version']['timezone']
+    start, end = window(outing, timezone)
+    today = now.astimezone(zone(timezone)).date().isoformat()
+    when = 'Earlier today' if outing['local_date'] == today else 'Yesterday'  # Past midnight.
+    had = their_people.what(outing, past=True) if outing['activity'] in MEETUPS else evening(outing, timezone)
+    first = ' It was the first time the two of you went out together.' if first_time(connection, companion, outing) \
+        else ''
+    return (f"- {when} ({hhmm(start.astimezone(zone(timezone)))}-{hhmm(end.astimezone(zone(timezone)))}) you and the "
+            f"user had {had}; it is over now.{first}{money_text(companion, outing)}")
+
+
+def evening(outing: dict, timezone: str) -> str:
+    """What they had together, with the second place when they moved on (companion/life/onward.py)."""
+    if not onward.stop_of(outing) or onward.cut_off(outing, timezone):
+        return what({**outing, 'onward': None})
+    return f"{onward.before_text(outing)}{what(outing)}{onward.then_text(outing)}"
+
+
+def first_time(connection, companion: dict, outing: dict) -> bool:
+    """No outing with the user went ahead before this one on this timeline (a knock sent home at once doesn't count)."""
+    from companion.life import together
+    timezone = companion['version']['timezone']
+    start = window(outing, timezone)[0]
+    return not any(other['id'] != outing['id'] and window(other, timezone)[1] <= start
+                   and not together.turned_away(other, timezone)
+                   for other in in_force(connection, companion['active_timeline_id']))
+
+
+def with_user_blocks(connection, companion: dict, ahead: list[tuple]) -> list[tuple]:
+    """The companion's day blocks (companion/life/pacing.py day_blocks) with each block an outing took shown as the
+    outing itself, at its own hours: the agenda marks the routine block it lands in ("Bathhouse and cards 14:00-20:00")
+    and the day line read that label, so a reply that evening said the day was only work (tester, 2026-11-02)."""
+    from companion.life import together
+    marked_blocks = [item for item in ahead if item[0].get('with_user')]
+    if not marked_blocks:
+        return ahead
+    timezone = companion['version']['timezone']
+    since = (marked_blocks[0][1].astimezone(zone(timezone)).date() - timedelta(days=1)).isoformat()
+    spans = [(outing, *window(outing, timezone)) for outing in in_force(connection, companion['active_timeline_id'],
+                                                                         since)
+             if not together.turned_away(outing, timezone)]
+    result, shown = [], set()
+    for block, starts_at, ends_at in ahead:
+        found = [span for span in spans if span[1] < ends_at and span[2] > starts_at] if block.get('with_user') else []
+        if not found:
+            result.append((block, starts_at, ends_at))
+            continue
+        for outing, start, end in found:
+            if outing['id'] not in shown:
+                shown.add(outing['id'])
+                result.append(({'kind': 'outing', 'label': f'with the user, {what(outing)}', 'with_user': True},
+                               start, end))
     return result
 
 
@@ -953,6 +1028,7 @@ def finish_due(connection, companion: dict, now: datetime) -> int:
     for outing in in_force(connection, companion['active_timeline_id'], oldest['since']):
         if outing['status'] != 'planned' or state(outing, timezone, now) != 'done' or undoable_home(outing, now):
             continue
+        outing = onward.settle(connection, outing, timezone)  # Headed home before moving on: one place, one bill.
         if together.turned_away(outing, timezone):
             connection.execute("UPDATE outings SET status='done' WHERE id=?", (outing['id'],))
             continue
@@ -996,7 +1072,7 @@ def memory_text(outing: dict, name: str) -> dict:
         return {'subject': subject, 'value': f'{said} {on}.'}
     pastime = (place.get('hobby') or {}).get('label') if outing['activity'] == 'hobby' else None
     return {'subject': f"{pastime or ACTIVITIES[outing['activity']][5].capitalize()} together at {place['name']}",
-            'value': f"Went out together for {what(outing)} {on}."}
+            'value': f"Went out together for {onward.before_text(outing)}{what(outing)}{onward.then_text(outing)} {on}."}
 
 
 # Memories saved in the old wording ----------------------------------------------------------------------------------
@@ -1127,6 +1203,8 @@ def longer_ok(connection, companion: dict, outing: dict, now: datetime) -> bool:
     in that hour, at most MOST_LONGER times. Not for times other people set."""
     if state(outing, companion['version']['timezone'], now) != 'now':
         return False
+    if onward.pending(outing, companion['version']['timezone'], now):
+        return True  # Staying where they are instead of moving on (companion/life/onward.py).
     return room_after(connection, companion, outing)
 
 
@@ -1158,6 +1236,8 @@ def stay_longer(connection, companion: dict, outing_id: str, now: datetime) -> d
     """Stay on together for another hour."""
     outing = owned(connection, companion, outing_id)
     require(longer_ok(connection, companion, outing, now), 'They have to be somewhere after this.', 409)
+    if onward.pending(outing, companion['version']['timezone'], now):
+        return onward.stay(connection, companion, outing_id, now)
     connection.execute('UPDATE outings SET until_time=?, longer=longer+1 WHERE id=?', (longer_end(outing), outing_id))
     return get(connection, outing_id)
 
@@ -1265,6 +1345,7 @@ def elsewhere(connection, companion: dict, outing_id: str, now: datetime) -> dic
     require(item is not None, 'There is nowhere else like it in their city.', 409)
     connection.execute('UPDATE outings SET place=?, named=0, rolls=? WHERE id=?',
                        (encode(place_view(item, data)), rolls, outing_id))
+    onward.replan(connection, companion, outing_id)  # The next place, near the new one.
     return get(connection, outing_id)
 
 
@@ -1274,8 +1355,9 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     since = (now.astimezone(zone(version['timezone'])).date() - timedelta(days=14)).isoformat()
     found = in_force(connection, companion['active_timeline_id'], since, include_cancelled=True)
     from companion.life import our_child  # An evening out with a child at home: who watches them (screen only).
-    return [{**outing, 'state': state(outing, version['timezone'], now),
+    return [{**onward.here(outing, version['timezone'], now), 'state': state(outing, version['timezone'], now),
              'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
+             'undo_move': onward.undoable(outing, version['timezone'], now),
              'cost_text': money_text(companion, outing).strip(),
              'sitter': our_child.sitter_view(connection, companion, outing),
              **choices(connection, companion, outing, now)} for outing in found]
@@ -1299,7 +1381,7 @@ def photograph(database) -> None:
         ready = [row for row in photo_ready(connection, now) if companion and row['companion_id'] == companion['id']]
         if not ready or not jobs.image_settings(connection)['chat_photos']:
             return
-        outing = view(ready[0])
+        outing = onward.final(view(ready[0]), companion['version']['timezone'])  # Where the evening ended.
         connection.execute('UPDATE outings SET photo_tried=1 WHERE id=?', (outing['id'],))
         if outing['place'].get('no_photo') or outing['place'].get('quiet'):
             return  # A child's big day is told in words only; no photo of a funeral (companion/life/loss.py).

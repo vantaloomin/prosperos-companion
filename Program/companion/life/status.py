@@ -280,7 +280,8 @@ def view(connection, companion: dict, now) -> dict:
             'set_by': 'you' if mine else 'app',
             'away': away(connection, companion, now, retro),
             # Together or apart (companion/life/together.py), in plain words: '' while apart in the same city.
-            'where': {'state': found['state'], 'kind': found['kind'], 'text': found['text']}}
+            'where': {'state': found['state'], 'kind': found['kind'], 'text': found['text'],
+                      **({'short': found['short']} if found.get('short') else {})}}
 
 
 def for_all(connection, now) -> dict[str, dict]:

@@ -244,7 +244,7 @@ def test_a_saved_city_that_no_longer_validates_leaves_the_others_listed(app, cli
 
 
 def test_a_saved_city_that_crashes_while_loading_leaves_the_others_listed(app, client, monkeypatch):
-    """A tester's Settings > Life & cities said "Something went wrong" and Real-world lookups stayed blank: any
+    """A tester's Settings > World said "Something went wrong" and Real-world lookups stayed blank: any
     error loading one saved city, not only a validation error, failed the city list and every lookup with it."""
     template = client.get('/api/world/template').json()
     assert client.post('/api/world/cities', json=template | {'id': 'odd-town', 'name': 'Odd Town'}).status_code == 200

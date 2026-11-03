@@ -25,7 +25,7 @@ def reroll(database, message_id, vault=None) -> dict:
         return another_template(database, message_id)
     if photo['source'] == 'gif':
         return another_gif(database, message_id, vault)
-    require(photo['job_id'] is not None, 'No image service could take this picture. Check Settings > Images.', 409)
+    require(photo['job_id'] is not None, 'No image service could take this picture. Check Settings > Pictures.', 409)
     with database.connect() as connection:
         job = one(connection, 'SELECT post_id, inputs FROM image_jobs WHERE id=?', (photo['job_id'],))
     inputs = {**decode(job['inputs']), 'seed': random.SystemRandom().randrange(1, 2**31)}
@@ -43,7 +43,7 @@ def another_template(database, message_id) -> dict:
     pictures = meme_pictures.available(database.root, classics)
     moods = next((picture.moods for picture in pictures if picture.id == shown), ('any',))
     fits = [picture for picture in pictures if picture.id != shown and fitting(picture.moods, moods)]
-    require(bool(fits), 'There is no other picture for this meme yet. Add your own in Settings > Images.', 409)
+    require(bool(fits), 'There is no other picture for this meme yet. Add your own in Settings > Pictures.', 409)
     picture = random.SystemRandom().choice(fits)
     with database.connect(write=True) as connection:
         connection.execute('UPDATE chat_photos SET meme_picture=?, summary=? WHERE message_id=?',

@@ -76,7 +76,7 @@ def test_a_world_map_opens_as_a_city_file_to_change_and_nothing_is_saved(client)
     assert response.status_code == 200, response.text
     body = response.json()
     assert body['definition']['neighborhoods'] and body['definition']['places']
-    assert any('Settings > Life & cities' in note for note in body['notes'])
+    assert any('Settings > World' in note for note in body['notes'])
     assert not any('editor' in note for note in body['notes'])
     # The app picks the weather itself (Mild when nothing in the map says otherwise) and says so.
     assert body['definition']['climate']['months'] and 'Weather set to Mild; change it on Overview.' in body['notes']

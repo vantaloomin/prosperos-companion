@@ -564,7 +564,7 @@ def retry(database, message_id) -> dict:
     require(photo is not None, 'This photo could not be found.', 404)
     require(photo['status'] not in jobs.ACTIVE, 'This photo is still being made.', 409)
     require(photo['status'] != 'completed', 'This photo is already here.', 409)
-    require(photo['job_id'] is not None, 'No image service could take this photo. Check Settings > Images.', 409)
+    require(photo['job_id'] is not None, 'No image service could take this photo. Check Settings > Pictures.', 409)
     try:
         jobs.retry(database, photo['job_id'])
     except DomainError as failure:

@@ -69,7 +69,9 @@ test('tool arguments read as words and are offered by their type', () => {
   assert.equal(withAppFilled(filled, search), filled)
 })
 
-test('the add-a-lookup buttons wrap onto new lines on a phone', () => {
+test('every way to add a lookup sits in one Add menu (v1.3 design, step 11)', () => {
   const page = readFileSync(new URL('../../src/features/settings/ContextSettings.tsx', import.meta.url), 'utf8')
-  assert.match(page, /<div className="form-actions wrap">\s*\{\(\['weather', 'pulse', 'culture'\]/)
+  assert.match(page, /<Menu label="Add a lookup"/)
+  assert.match(page, /\['weather', 'pulse', 'culture'\]/)
+  assert.match(page, /Another MCP server…/)
 })

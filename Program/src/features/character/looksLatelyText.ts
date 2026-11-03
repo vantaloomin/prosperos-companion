@@ -6,7 +6,7 @@ export const LOOKS_KEY = ['grooming']
 export const LOOKS_LEVELS = [
   { label: 'Never', hint: 'Everyone keeps the look they have now. Changes already made are set aside until you turn this back on.' },
   { label: 'Now and then', hint: 'Haircuts, nails and a summer tan, and only now and then something new: a cut, a soft color or new glasses.' },
-  { label: 'Like real life', hint: 'Hair grows and gets cut, nails get done, a tan comes and fades, and every few months they try something bold.' },
+  { label: 'True to life', hint: 'Hair grows and gets cut, nails get done, a tan comes and fades, and every few months they try something bold.' },
   { label: 'Often', hint: 'They change it up more often: bright colors, big cuts, new glasses, a beard grown or shaved off.' },
 ]
 

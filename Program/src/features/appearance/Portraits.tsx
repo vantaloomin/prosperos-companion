@@ -66,7 +66,7 @@ function Planner(props: PlannerProps) {
   if (!draft.data) return null
   if (!draft.data.any_backend) {
     return <div className="form-stack lora-panel">
-      <Notice action={<button type="button" className="text-button" onClick={() => props.go('settings/images')}>Open Settings</button>}>No image backend is set up yet. Add one in Settings, Images, then come back here from the Character page. You can still use a picture of your own as {props.name}'s profile picture.</Notice>
+      <Notice action={<button type="button" className="text-button" onClick={() => props.go('settings/pictures')}>Open Settings</button>}>No image backend is set up yet. Add one in Settings, Pictures, then come back here from the Character page. You can still use a picture of your own as {props.name}'s profile picture.</Notice>
       <OwnPicture name={props.name} />
     </div>
   }

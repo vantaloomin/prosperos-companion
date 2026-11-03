@@ -76,6 +76,20 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.3.0 "A Sea-Change" (2026-11-03)
+
+- **A simpler look:** every screen cleared of taglines and helper lines, with labels beside their controls and
+  empty sections hidden; a quieter Paper cream; Chats, Today, Matchlight and Settings on the rail; the chat list
+  beside the chat (hide it with **[**); a four-button chat header with the rest under ⋯; their profile opens from
+  their name; Today's Now card; Worlds as a list; Settings in eight groups laid out as rows, model profiles too.
+- **Away together:** ask your companion away for a long weekend or a week, or let them suggest it; places fit
+  their world and era, each pays their own way, and a week away uses their vacation days.
+- **Second location:** a date or meetup in town can move on to a nearby second place, picked by the app, with
+  Somewhere else, Stay longer and Back to on the Where strip and Today, and a Moving on slider in Realism.
+- **Fixes (1.2.3):** a date is remembered the same evening; memories name your companion and say who did what;
+  "new in Feed" goes to the new post; the message box shrinks after sending; Claude Code and Codex profiles can
+  pick an account found on this computer.
+
 ## v1.2.2 (2026-11-02)
 
 - **Meeting up in person:** the plan card says how meetups work; Go now and Stay longer; a date runs on an hour

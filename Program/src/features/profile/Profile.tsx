@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Clock, CloudRain, MapPin, MessageCircle, Undo2, Users } from 'lucide-react'
+import { Check, ChevronLeft, Clock, CloudRain, MapPin, MessageCircle, Undo2, Users } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { CirclePerson, Companion, PairTie } from '../../types'
@@ -8,29 +8,30 @@ import { howText, listedHow, tieText, tieWhy } from '../memories/pairText'
 import { usePortrait } from '../conversation/portrait'
 import { useChatStyle } from '../conversation/useChatStyle'
 import { useLocalTime } from '../conversation/clock'
+import { useChatLook } from '../conversation/useTheirLook'
 import { StatusEditor } from '../status/StatusLine'
 import { profileTabs, circleText, handle, showsHandle, placeFact, profileClass, profileTab, showsCard } from './profileText'
 import { useEraWords, useEraDecade } from '../world/useEraWords'
 import { ROUGH_PATCH_KEY, UNDO_MS, roughPatchLine, type RoughPatch } from './roughPatchText'
 
 /**
- * The companion's profile: Messages, Posts and Character as tabs, then their card. It takes the chat
- * style's look. The tabs stay at the top on every tab and never scroll away. Messages keeps its own header,
- * so the card only shows on Posts and Character, scrolling with the page, with a Message button that goes
- * back to the chat the way a social app's profile does.
+ * The companion's profile, opened from their name in the chat: one header (their picture, name, status, where and
+ * when they are), then Posts, Memories and Character as tabs. It takes the chat style's look. The header scrolls with
+ * the page and the tabs stay at the top; Message goes back to the chat the way a social app's profile does. The pages
+ * under a tab (their pictures, Our year) keep only the tabs.
  */
 export function Profile({ companion, view, go, children }: { companion: Companion; view: View; go: (view: View) => void; children: ReactNode }) {
   const chat = useChatStyle()
   const card = showsCard(view)
   return (
     <div className={`${profileClass(chat.style, chat.retroDark)}${card ? ' with-card' : ''}`}>
-      <ProfileTabs view={view} go={go} />
       {card ? (
         <div className="profile-scroll">
-          <ProfileCard companion={companion} message={() => go('conversation')} />
+          <ProfileCard companion={companion} posts={view === 'feed'} go={go} />
+          <ProfileTabs view={view} go={go} />
           {children}
         </div>
-      ) : children}
+      ) : <><ProfileTabs view={view} go={go} />{children}</>}
     </div>
   )
 }
@@ -53,34 +54,55 @@ function MessageButton({ onClick }: { onClick: () => void }) {
   return <button type="button" className="button primary profile-message" aria-label={label} onClick={onClick}><MessageCircle aria-hidden="true" /><span>{label}</span></button>
 }
 
-function ProfileCard({ companion, message }: { companion: Companion; message: () => void }) {
-  const { identity, interests } = companion.version.definition
+/**
+ * Their picture opens Profile pictures. Their name takes their color, as in the chat (theirLook.ts). The bio, ties and
+ * interests sit on Posts, the social side of the profile. The cover band went in 1.3, except Visual novel's small stage
+ * under their portrait, which is that style's period look. Bubbles and Feed put Message under the place line; the other
+ * styles keep it beside the name. A phone gets a ‹ back to the chat.
+ */
+function ProfileCard({ companion, posts, go }: { companion: Companion; posts: boolean; go: (view: View) => void }) {
   const name = companion.version.name
   const portrait = usePortrait()
   const decade = useEraDecade()
+  const style = useChatStyle().style
+  const card = useRef<HTMLElement>(null)
+  const look = useChatLook(card)
+  const below = style === 'bubbles' || style === 'feed'
+  const message = <MessageButton onClick={() => go('conversation')} />
   return (
-    <header className="profile-card">
+    <header ref={card} className={`profile-card${style === 'novel' ? ' novel-card' : ''}${look.className}`} style={look.style} data-their-font={look.font}>
+      <button type="button" className="icon-button profile-back" aria-label="Back to chat" onClick={() => go('conversation')}><ChevronLeft aria-hidden="true" /></button>
       <div className="profile-titlebar" aria-hidden="true">{name} · Profile</div>
-      <div className="profile-cover" aria-hidden="true" />
+      {style === 'novel' && <div className="profile-cover" aria-hidden="true" />}
       <div className="profile-who">
-        {portrait ? <img className="profile-avatar" src={portrait} alt="" /> : <div className="profile-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>}
+        <button type="button" className="profile-avatar-button" aria-label="Profile pictures" title="Profile pictures" onClick={() => go('portraits')}>
+          {portrait ? <img className="profile-avatar" src={portrait} alt="" /> : <span className="profile-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>}
+        </button>
         <div className="profile-name">
           <h1>{name}</h1>
           {showsHandle(decade) && handle(name) && <p className="profile-handle">{handle(name)}</p>}
           <StatusEditor id={companion.id} name={name} status={companion.status} />
         </div>
-        <MessageButton onClick={message} />
+        {!below && message}
       </div>
-      {identity.trim() && <p className="profile-bio">{identity.trim()}</p>}
       <ProfileFacts companion={companion} />
-      <ProfileTies name={name} />
-      {interests.length > 0 && (
-        <ul className="profile-interests" aria-label="Interests">
-          {interests.slice(0, 8).map((interest) => <li key={interest}>{interest}</li>)}
-        </ul>
-      )}
+      {below && <div className="profile-actions">{message}</div>}
+      {posts && <ProfileAbout companion={companion} />}
     </header>
   )
+}
+
+function ProfileAbout({ companion }: { companion: Companion }) {
+  const { identity, interests } = companion.version.definition
+  return <>
+    {identity.trim() && <p className="profile-bio">{identity.trim()}</p>}
+    <ProfileTies name={companion.version.name} />
+    {interests.length > 0 && (
+      <ul className="profile-interests" aria-label="Interests">
+        {interests.slice(0, 8).map((interest) => <li key={interest}>{interest}</li>)}
+      </ul>
+    )}
+  </>
 }
 
 /** How close they and the other companions they know feel. Read-only: only what happens between them moves it. */
@@ -109,7 +131,7 @@ function ProfileFacts({ companion }: { companion: Companion }) {
   return (
     <ul className="profile-facts">
       {place && <li><MapPin aria-hidden="true" />{place}</li>}
-      {time && <li><Clock aria-hidden="true" />{time} for {companion.version.name}</li>}
+      {time && <li><Clock aria-hidden="true" />{time} their time</li>}
       {people > 0 && <li><Users aria-hidden="true" />{circleText(people)}</li>}
       <RoughPatchFact />
     </ul>

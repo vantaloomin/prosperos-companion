@@ -14,7 +14,7 @@
 :root[data-theme='ash'], [data-palette='ash'] { --canvas: #1b1b1b; --surface: #242424; --raised: #2c2c2c; --border: #3c3c3c; }
 /* Paper: the light profile (Iris, companion-design/v09-appearance-first-launch.md). Text 4.5:1 or more everywhere,
    the accent too since it is also used as text; inputs get a darker edge so they stay visible (WCAG 1.4.11). */
-:root[data-theme='paper'], [data-palette='paper'] { color-scheme: light; --canvas: #f4f0e8; --surface: #fbf9f4; --raised: #ece7dd;
+:root[data-theme='paper'], [data-palette='paper'] { color-scheme: light; --canvas: #f7f4ee; --surface: #fdfbf7; --raised: #efe9df;
   --border: #d5cdbf; --input-border: #8f8574; --text: #26221c; --muted: #5b5448; --faint: #6b6457; --accent: #7f5c1e;
   --accent-hover: #684a16; --accent-tint: #f0e5d1; --on-accent: #ffffff; --danger: #a3321f; --danger-tint: #a3321f14;
   --danger-border: #a3321f55; --label: #332e27; --user-text: #3a352d; --shadow: #2a20101f;
@@ -177,7 +177,8 @@ a.button { color: inherit; text-decoration: none; }
    bar while the box is hovered or focused, and a button at the right that folds it to one line to see more of the
    chat. A fade on the top edge says there is more text above. Phones size it by what is typed alone, as in
    Messages, up to about a third of the screen, and fold it themselves while reading back. */
-.message-box { position: relative; flex: 1; min-width: 0; display: flex; }
+/* Bottom-aligned, not stretched: stretched, the box can't shrink back when it is measured with its frame held. */
+.message-box { position: relative; flex: 1; min-width: 0; display: flex; align-items: flex-end; }
 .message-box textarea { width: 100%; }
 .message-box.folded textarea { height: 52px; min-height: 0; max-height: none; overflow: hidden; }
 .message-box[data-more-above]::before { content: ''; position: absolute; top: 1px; left: 8px; right: 8px; height: 22px; z-index: 1; pointer-events: none; background: linear-gradient(var(--canvas), transparent); }
@@ -399,8 +400,6 @@ a.button { color: inherit; text-decoration: none; }
 .closeness-stage { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
 .closeness-history summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .closeness-history ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.875rem; color: var(--muted); }
-.closeness-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px; }
-.closeness-steps { display: flex; flex-wrap: wrap; gap: 10px; flex-basis: 100%; }
 .closeness-nickname, .closeness-pick { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
 /* A long shared moment would size the picker past a phone screen; it shortens inside the box instead. */
 .closeness-pick .field, .closeness-pick select { max-width: 100%; }
@@ -483,40 +482,92 @@ a.button { color: inherit; text-decoration: none; }
 :root[data-motion='reduce'] .message-sheet { animation: none; }
 
 .settings > .notice { max-width: 760px; margin-bottom: 16px; }
-.settings-search { max-width: 960px; margin-bottom: 20px; }
-.settings-search .search-field { display: flex; align-items: center; gap: 8px; max-width: 360px; }
+/* Settings (v1.3 design): Find a setting and the eight groups beside the open one, Advanced last under a line; a phone
+ * opens on the list of groups and each group has a way back. */
+.settings-search { margin-bottom: 12px; }
+.settings-search .search-field { display: flex; align-items: center; gap: 8px; }
 .settings-search .search-field svg { width: 16px; height: 16px; color: var(--muted); flex: 0 0 auto; }
 .settings-search input { flex: 1; min-width: 0; }
 .settings-results { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.settings-layout { display: flex; gap: 32px; align-items: flex-start; max-width: 1040px; }
-.settings-nav { display: flex; flex-direction: column; gap: 16px; flex: 0 0 180px; position: sticky; top: 0; align-self: flex-start; }
+.settings-layout { display: flex; gap: 40px; align-items: flex-start; max-width: 1040px; }
+.settings-nav { display: flex; flex-direction: column; flex: 0 0 220px; position: sticky; top: 0; align-self: flex-start; }
 .settings-tabs { display: flex; flex-direction: column; gap: 2px; }
-.advanced-switch { padding: 12px 12px 0; border-top: 1px solid var(--border); font-size: 0.8125rem; }
 .settings-tabs [role='tab'] { text-align: left; padding: 9px 12px; border-radius: 7px; color: var(--muted); font-size: 0.875rem; }
 .settings-tabs [role='tab']:hover { background: var(--raised); color: var(--text); }
 .settings-tabs [role='tab'][aria-selected='true'] { background: var(--accent-tint); color: var(--accent); font-weight: 500; }
-.settings-panel { flex: 1; min-width: 0; }
-.community-link { align-self: flex-start; padding: 0 12px; min-height: 44px; line-height: 1.35; }
-.community-link svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.settings-tabs .settings-tab-apart { margin-top: 9px; position: relative; }
+.settings-tabs .settings-tab-apart::before { content: ''; position: absolute; left: 0; right: 0; top: -6px; border-top: 1px solid var(--border); }
+.settings-panel { flex: 1; min-width: 0; max-width: 760px; display: flex; flex-direction: column; gap: 20px; }
+/* Visually hidden labels stay inside the scrolling page, so the window itself never scrolls. */
+.page.settings { position: relative; }
+.settings-panel > .row-group { margin: 0; }
 .settings-section { padding: 24px 0; border-top: 1px solid var(--border); }
 .settings-panel > .settings-section:first-child, .settings-panel > .notice:first-child + .settings-section { border-top: 0; padding-top: 0; }
+.settings-panel > .row-group + .settings-section, .settings-panel > .settings-section:has(> .row-group-label:first-child) { border-top: 0; padding: 0; }
+.style-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.style-tile { display: grid; justify-items: center; gap: 6px; padding: 12px 4px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 0.8125rem; color: var(--muted); }
+.style-tile:hover { color: var(--text); }
+.style-tile[aria-checked='true'] { border-color: var(--accent); background: var(--accent-tint); color: var(--text); }
+.settings-link-row { color: inherit; text-decoration: none; font-size: 0.875rem; }
+.settings-link-row svg, .settings-group-row svg { width: 16px; height: 16px; color: var(--muted); }
+.settings-group-row { width: 100%; text-align: left; font-size: 0.9375rem; color: var(--text); }
+.settings-group-row + .settings-group-row, .settings-link-row { border-top: 1px solid var(--border); }
+.settings-home .row-list + .row-list { margin-top: 16px; }
+.settings-phone-head { display: flex; align-items: center; gap: 4px; margin: -8px 0 16px -10px; }
+.settings-phone-head h1 { margin: 0; }
 @media (max-width: 720px) {
   .settings-layout { flex-direction: column; gap: 16px; }
-  .settings-nav { flex: 0 0 auto; width: 100%; position: static; gap: 10px; }
   .settings-panel { width: 100%; }
-  .settings-tabs { flex-direction: row; width: 100%; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
-  .advanced-switch { padding: 0; border-top: 0; }
-  /* The link drops to the foot of the page, below the open tab, so the tabs stay first. */
-  .settings-nav { display: contents; }
-  .settings-nav > * { width: 100%; }
-  .settings-nav > .community-link { width: auto; order: 1; padding: 0; }
-  .settings-tabs [role='tab'] { white-space: nowrap; flex: 0 0 auto; }
+  .style-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .settings-section h2 { margin-bottom: 6px; }
 .settings-intro { max-width: 760px; margin: 0 0 20px; }
 .settings-section a { color: var(--accent); }
 .settings-panel > .settings-intro + .settings-section { border-top: 0; padding-top: 0; }
 
+/* Today (v1.3 design): a header with the tools, then the Now card: what they're doing, their day as a strip. */
+.today-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 760px; margin-bottom: 16px; }
+.today-head h1 { margin: 0; margin-right: auto; }
+.today-tools { display: flex; gap: 4px; }
+.now-card { max-width: 760px; display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); margin-bottom: 8px; }
+.now-card > p { margin: 0; }
+.now-head { display: flex; align-items: center; gap: 12px; }
+.now-text { flex: 1; min-width: 0; }
+.now-line { font-family: inherit; font-size: 1.05rem; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+.now-name { color: var(--accent); }
+.now-card.their-look .now-name { color: var(--their-name); font-family: var(--their-font); font-weight: var(--their-weight); }
+.now-text .row-sub { margin: 2px 0 0; }
+.now-message { flex: none; }
+.day-strip-wrap { display: grid; gap: 4px; }
+.day-strip { position: relative; height: 28px; margin: 0; padding: 0; list-style: none; border-radius: 6px; overflow: hidden; background: var(--raised); }
+.day-strip > li { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; padding: 0 6px; overflow: hidden; font-size: 0.75rem; color: var(--text); white-space: nowrap; box-shadow: inset -1px 0 0 var(--surface); }
+.day-label { white-space: nowrap; }
+.day-sleep, .day-rest { background: color-mix(in srgb, var(--muted) 18%, var(--raised)); color: var(--muted) !important; }
+.day-work, .day-study { background: color-mix(in srgb, var(--accent) 34%, var(--raised)); }
+.day-errand { background: color-mix(in srgb, var(--accent) 18%, var(--raised)); }
+.day-away { background: color-mix(in srgb, var(--accent) 24%, var(--raised)); }
+.away-now-action { margin: 0; }
+.away-now-action .text-button { padding-left: 0; }
+.day-leisure, .day-social { background: color-mix(in srgb, var(--text) 10%, var(--raised)); }
+.day-strip > .day-now { width: 2px; padding: 0; margin-left: -1px; background: var(--text); box-shadow: none; }
+.day-hours { display: flex; justify-content: space-between; font-size: 0.6875rem; color: var(--faint); }
+.today-section-title { display: flex; align-items: center; gap: 4px; }
+.today-section-title h2 { margin: 0; }
+.today-folds { max-width: 760px; margin-top: 28px; }
+/* Centered on a wide screen, like the profile (Iris): the column and its header icons. */
+@media (min-width: 1200px) { .page.today { padding-left: max(40px, calc((100% - 760px) / 2)); padding-right: max(40px, calc((100% - 760px) / 2)); } }
+.today-section-title .today-more, .today-group-title .today-more { margin-left: auto; font-size: 0.8125rem; }
+.today-group-title { display: flex; align-items: baseline; gap: 8px; }
+.today-group-title h3 { margin-top: 10px; }
+.plain-list.money-list { padding-left: 0; list-style: none; }
+.money-goal-label { flex-wrap: nowrap; align-items: flex-start; }
+.admin-move-words { display: none; }
+@media (max-width: 720px) { .admin-move-words { display: inline; } }
+@media (max-width: 600px) {
+  .now-head { flex-wrap: wrap; }
+  .now-message { width: 100%; justify-content: center; }
+  .day-hours span:nth-child(even) { visibility: hidden; }
+}
 .today > .notice, .today > div > .notice { max-width: 760px; margin-bottom: 12px; }
 .today-section { max-width: 760px; margin-top: 28px; display: flex; flex-direction: column; gap: 8px; }
 .today-section h3 { font-size: 1rem; margin-top: 10px; color: var(--muted); }
@@ -576,7 +627,13 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .text-button.back-link svg { width: 18px; height: 18px; }
 
 .post-list { display: flex; flex-direction: column; gap: 14px; max-width: 680px; }
-.post { padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.post { scroll-margin-top: 72px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.post { transition: box-shadow 0.6s ease; }
+.post.arrived { box-shadow: 0 0 0 2px var(--accent); }
+.post:focus:not(:focus-visible) { outline: none; }
+.nowrap { white-space: nowrap; }
+.inline-link { padding: 0; font: inherit; color: var(--accent); }
+.inline-link:hover, .inline-link:focus-visible { text-decoration: underline; }
 .post.hidden-post { opacity: .7; border-style: dashed; }
 .post-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .post-header .speaker { flex: 1; min-width: 0; }
@@ -779,9 +836,9 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
   .hobby-card .person-actions { margin-bottom: -10px; }
   .hobby-form input:not([type="checkbox"]), .hobby-form select { max-width: none; }
 }
-.persona-pets, .persona-home { border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
-.persona-pets legend, .persona-home legend { padding: 0 6px; font-weight: 600; }
-.persona-pets > .button { justify-self: start; }
+.persona-pets, .persona-home { border: 0; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; min-width: 0; }
+.persona-pets legend, .persona-home legend { padding: 0; margin-bottom: 4px; font-family: var(--read-font); font-size: 1.15rem; }
+.persona-pets > .button { justify-self: start; padding-left: 0; }
 .persona-pet { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .persona-pet .text-button { justify-self: start; }
 .persona-pet-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; align-items: start; }
@@ -915,8 +972,8 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .image-provenance dt { color: var(--muted); }
 .image-provenance dd { margin: 0; overflow-wrap: anywhere; }
 .inline-check { display: flex; gap: 8px; align-items: center; font-size: 0.8125rem; }
-.backend-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.backend-row { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.backend-list { list-style: none; margin: 0; padding: 0; }
+.backend-list > li + li { border-top: 1px solid var(--border); }
 .backend-actions { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .workflow-editor .label-row { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .workflow-editor textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.8125rem; line-height: 1.5; white-space: pre; overflow-x: auto; overflow-wrap: normal; tab-size: 2; resize: vertical; }
@@ -1057,7 +1114,7 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .featured-region { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .featured-summary { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.875rem; }
 @media (max-width: 720px) {
-  .featured-strip { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: calc(100% - 34px); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .featured-strip { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: calc(100% - 34px); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
 }
 .city-card { scroll-margin-top: 16px; outline: 2px solid transparent; outline-offset: 2px; transition: outline-color 0.6s ease; }
 .city-card.jumped { outline-color: var(--accent); }
@@ -1261,7 +1318,23 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 :root[data-motion='reduce'] .model-usage { animation: none; }
 .model-profile-editor { padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
 .provider-picker { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
-.provider-picker legend { margin-bottom: 8px; font-weight: 500; }
+.provider-picker legend { padding: 0; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+.row-group-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.radio-row { cursor: pointer; }
+.radio-row input[type='radio'] { margin: 0; accent-color: var(--accent); flex: none; }
+.radio-row .setting-row-label { flex: none; white-space: nowrap; font-size: 0.875rem; color: var(--text); }
+.radio-row .row-value { flex: 1; min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.narrow-only { display: none; }
+@media (max-width: 480px) { .narrow-only { display: inline; } }
+/* Inside the profile form a group's title reads as a field label (Iris, #535). */
+.model-profile-editor .row-group-label { font: inherit; font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+.range-field { display: flex; align-items: center; gap: 12px; }
+.range-field input[type='range'] { flex: 1; min-width: 0; }
+.range-field output { min-width: 5.5em; text-align: right; font-variant-numeric: tabular-nums; font-size: 0.875rem; color: var(--muted); }
+.model-profile-editor .fold-pad { padding: 16px; }
+.model-profile-editor .fold-text { white-space: nowrap; }
+.key-row > .setting-row { width: 100%; box-sizing: border-box; }
+.key-row .row-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .provider-picker .button.selected { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); }
 .token-entry { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .token-entry p { margin: 0; font-size: 0.875rem; }
@@ -1304,7 +1377,7 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .palette-option:has(input:checked) { border-color: var(--accent); background: var(--accent-tint); }
 .palette-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
 .palette-option .swatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--input-border, var(--faint)); flex-shrink: 0; }
-.palette-option .swatch-split { background: linear-gradient(135deg, #f4f0e8 50%, #191816 50%); }
+.palette-option .swatch-split { background: linear-gradient(135deg, #f7f4ee 50%, #191816 50%); }
 /* "On this device" (Iris, v09-appearance-first-launch.md 1b to 1d). */
 .text-size { position: relative; }
 .text-size input[type='range'] { padding: 0; border: 0; background: none; accent-color: var(--accent); }
@@ -1449,7 +1522,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-retro .field > label, .chat-retro .field > .label-row > label { color: var(--text); }
 .chat-retro .conversation-header { gap: 10px; padding: 5px 8px; border: 0; background: linear-gradient(90deg, #0a246a, #24508f); color: #ffffff; }
 .chat-retro .conversation-header h1 { font-family: inherit; font-size: 0.9375rem; font-weight: 700; }
-.chat-retro .conversation-header .subtle { color: #e6ecfa; font-size: 0.75rem; }
+.chat-retro .conversation-header :is(.subtle, .conversation-status, .conversation-meta, .meta-sep) { color: #e6ecfa; font-size: 0.75rem; }
 .chat-retro .conversation-header .portrait { width: 26px; height: 26px; font-size: 0.875rem; border-radius: 3px; border-color: #ffffff80; background: #ffffff; color: #0a246a; }
 .chat-retro .conversation-header .icon-button { color: #ffffff; border-radius: 2px; }
 .chat-retro .conversation-header .icon-button:hover { background: #ffffff2a; color: #ffffff; }
@@ -1611,7 +1684,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .phone-help summary { cursor: pointer; }
 .phone-help ol { margin: 8px 0 0; padding-left: 1.25rem; display: grid; gap: 6px; }
 
-/* Debug time (Settings > Debug): the banner while it is on, and the tab's controls. */
+/* Debug time (Settings > Data): the banner while it is on, and the tab's controls. */
 .debug-banner { display: flex; flex: none; align-items: center; gap: 10px; max-width: 760px; margin: 12px 24px 0; padding: 9px 13px; border: 1px dashed var(--accent); border-radius: 8px; font-size: 0.875rem; background: var(--surface); }
 .debug-banner > span { flex: 1; min-width: 0; }
 .form-actions.wrap { flex-wrap: wrap; }
@@ -1656,6 +1729,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .note-body { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
 .note-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .note-head strong { font-family: var(--display-font, inherit); font-weight: 600; }
+.note-title { display: inline-flex; align-items: center; gap: 4px; }
 .note-switch { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; cursor: pointer; }
 .note-switch input { appearance: none; width: 36px; height: 20px; margin: 0; border-radius: 10px; background: var(--border); position: relative; cursor: pointer; flex-shrink: 0; }
 .note-switch input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff; transition: transform .15s; }
@@ -1666,7 +1740,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .note-count { align-self: flex-end; font-size: 0.8125rem; margin-top: -6px; }
 .note-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.8125rem; }
 .note-foot > span { flex: 1; min-width: 0; }
-.note-foot .text-button { padding: 0; flex-shrink: 0; }
+.note-foot .text-button { padding: 0; flex-shrink: 0; margin-left: auto; }
 .note-done { margin-top: 6px; }
 .note-tray textarea.note-unused { color: var(--muted); }
 @media (max-width: 720px) { .note-foot .note-clear { min-height: 44px; padding: 0 4px; } }
@@ -1710,13 +1784,12 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-scroll > .page { overflow: visible; padding-top: 22px; }
 .profile-card { padding-bottom: 16px; }
 .profile-titlebar { display: none; }
-.profile-cover { height: 120px; border-bottom: 1px solid var(--border); background: linear-gradient(120deg, var(--accent-tint), var(--cover-mid) 55%, var(--raised)); }
-.profile-who { display: flex; align-items: flex-end; gap: 16px; margin: -44px 40px 0; }
-.profile-avatar { display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 4px solid var(--canvas); background: var(--accent-tint); color: var(--accent); font-family: var(--read-font); font-size: 2.5rem; flex-shrink: 0; }
-.profile-name { min-width: 0; padding-bottom: 6px; }
+.profile-who { display: flex; align-items: center; gap: 16px; margin: 24px 40px 0; }
+.profile-avatar { display: grid; place-items: center; width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); background: var(--accent-tint); color: var(--accent); font-family: var(--read-font); font-size: 2.5rem; flex-shrink: 0; }
+.profile-name { min-width: 0; }
 .profile-name h1 { font-size: 1.6rem; overflow-wrap: anywhere; }
 .profile-handle { color: var(--faint); font-size: 0.8125rem; }
-.profile-message { flex: none; margin: 0 0 6px auto; }
+.profile-message { flex: none; margin: 0 0 0 auto; }
 .profile-bio { max-width: 680px; margin: 14px 40px 0; font-size: 0.9375rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .profile-facts, .profile-interests { list-style: none; display: flex; flex-wrap: wrap; margin: 12px 40px 0; padding: 0; }
 .profile-facts { gap: 6px 18px; color: var(--muted); font-size: 0.8125rem; }
@@ -1738,9 +1811,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-tabs :focus-visible { outline-offset: -3px; }
 
 /* Bubbles: a phone contact card, centered, with pill tabs. */
-.profile-bubbles .profile-cover { height: 84px; border: 0; background: linear-gradient(180deg, var(--raised), var(--canvas)); }
-.profile-bubbles .profile-who { flex-direction: column; align-items: center; gap: 8px; margin-top: -56px; text-align: center; }
-.profile-bubbles .profile-avatar { width: 112px; height: 112px; }
+.profile-bubbles .profile-who { flex-direction: column; align-items: center; gap: 8px; margin-top: 20px; text-align: center; }
+.profile-bubbles .profile-avatar { width: 96px; height: 96px; }
 .profile-bubbles .profile-name { padding: 0; }
 .profile-bubbles .profile-message { margin: 0; border-radius: 999px; }
 .profile-bubbles .profile-name h1 { font-family: var(--ui-font); font-weight: 500; }
@@ -1754,9 +1826,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 
 /* Community: a chat-server profile card with a banner, and the feed as a flat channel. */
 .profile-community .profile-card { max-width: 720px; margin: 18px 40px 0; padding-bottom: 16px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
-.profile-community .profile-cover { height: 96px; border: 0; background: linear-gradient(90deg, #8a6f42, var(--accent)); }
-.profile-community .profile-who { margin: -40px 16px 0; }
-.profile-community .profile-avatar { width: 88px; height: 88px; border: 6px solid var(--surface); font-family: var(--ui-font); font-weight: 600; font-size: 2rem; }
+.profile-community .profile-who { margin: 16px 16px 0; }
+.profile-community .profile-avatar { width: 72px; height: 72px; font-family: var(--ui-font); font-weight: 600; font-size: 2rem; }
 .profile-community .profile-name h1 { font-family: var(--ui-font); font-size: 1.3rem; font-weight: 600; }
 .profile-community :is(.profile-bio, .profile-facts, .profile-interests) { margin-inline: 16px; }
 .profile-community .profile-bio { padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.875rem; }
@@ -1778,7 +1849,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   color-scheme: var(--app-scheme); font-family: var(--ui-font); }
 .profile-retro .profile-card { margin: 10px 10px 0; padding-bottom: 10px; border: 2px outset #e8e6e1; background: var(--surface); }
 .profile-retro .profile-titlebar { display: block; padding: 4px 8px; background: linear-gradient(90deg, #0a246a, #24508f); color: #ffffff; font-size: 0.8125rem; font-weight: 700; }
-.profile-retro .profile-cover { display: none; }
 .profile-retro .profile-who { align-items: flex-start; gap: 10px; margin: 10px 10px 0; }
 .profile-retro .profile-avatar { width: 72px; height: 72px; border: 2px inset #e8e6e1; border-radius: 0; background: var(--canvas); color: var(--accent); font-family: inherit; font-size: 2rem; }
 .profile-retro .profile-name h1 { font-family: inherit; font-size: 1rem; font-weight: 700; }
@@ -1825,7 +1895,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .profile-novel .post-header time { margin-left: auto; }
 
 @media (max-width: 720px) {
-  .profile-cover { height: 96px; }
+  .profile-novel .profile-cover { height: 96px; }
   .profile-who, .profile-bio, .profile-facts, .profile-interests { margin-inline: 16px; }
   .profile-patch .text-button { min-height: 44px; }
   .profile-facts li.profile-patch.has-reason .text-button { flex-basis: 100%; justify-content: flex-start; }
@@ -1835,9 +1905,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .profile-retro .profile-card, .profile-retro .profile-tabs { margin-inline: 4px; }
   .profile-retro .feed { margin: 4px; padding: 12px; }
   .profile-retro .profile-tabs { padding: 4px 4px 0; }
-  /* The icon alone, so a long name keeps its width; the button is still named "Message". */
-  .profile-message { min-width: 40px; padding-inline: 10px; }
-  .profile-message span { display: none; }
 }
 
 /* What the app is doing for the conversation (ActivityLine.tsx): one line that always keeps its space, so it never moves the messages. */
@@ -1945,7 +2012,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-row-where { display: flex; align-items: flex-start; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.75rem; }
 .chat-row-where > span { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 .chat-row-where > svg { flex: none; width: 0.85rem; height: 0.85rem; margin-top: 1px; color: var(--accent); }
-.side-bubbles .chat-row.current .chat-row-where, .side-bubbles .chat-row.current .chat-row-where > svg { color: var(--on-accent); opacity: .85; }
 .chat-row.unread .chat-row-top strong { font-weight: 700; }
 .chat-row.unread .chat-row-preview { color: var(--text); }
 .chat-row.unread .chat-row-time { color: var(--accent); }
@@ -1977,9 +2043,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* A row's name, time and preview shrink with an ellipsis instead of widening the list past its edge. */
 .side-list ul { grid-template-columns: minmax(0, 1fr); }
 .side-bubbles .side-title { font-family: var(--ui-font); font-weight: 600; }
-.side-bubbles .chat-row.current { background: var(--accent); color: var(--on-accent); }
-.side-bubbles .chat-row.current :is(.chat-row-preview, .chat-row-time) { color: var(--on-accent); opacity: .85; }
-.side-bubbles .chat-row.current .unread-badge { background: var(--on-accent); color: var(--accent); }
+.side-bubbles .chat-row.current { background: var(--accent-tint); }
 /* Community: a rail of round pictures, a pill beside the open chat and a short one beside chats with news. */
 .side-rail { width: 72px; padding: 12px 0; align-items: center; background: var(--canvas); border-right: 1px solid var(--border); }
 .side-rail ul { gap: 8px; }
@@ -2078,7 +2142,11 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* On their mind (features/today/OnTheirMind.tsx): a folded line under the day's heading. */
 .on-their-mind { margin-top: 6px; max-width: 640px; }
 .on-their-mind summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); font-size: 0.92rem; }
-.on-their-mind summary svg { width: 15px; height: 15px; }
+.on-their-mind > p { margin: 0; font-size: 0.92rem; }
+.on-their-mind .mind-label { color: var(--muted); }
+.on-their-mind details { margin-top: 4px; }
+.on-their-mind summary::before { content: "▸"; font-size: 0.75rem; }
+.on-their-mind details[open] summary::before { content: "▾"; }
 .on-their-mind ul { margin-top: 8px; gap: 6px; }
 .on-their-mind time { color: var(--muted); font-size: 0.85rem; margin-right: 4px; }
 
@@ -2091,48 +2159,56 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 /* A world in a past year: its year under the name, whole, since a long name is cut short. */
 .app-nav .nav-world .nav-world-year { margin-top: -4px; font-variant-numeric: tabular-nums; }
 .nav-persona { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--accent-tint); color: var(--accent); font-weight: 600; font-size: 0.85rem; }
-.worlds { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
-.worlds-header, .worlds-list { max-width: 760px; width: 100%; margin: 0 auto; padding: 18px 32px 12px; display: flex; flex-direction: column; gap: 10px; }
-.worlds-list { padding-top: 0; padding-bottom: 32px; gap: 18px; }
-.worlds-header h1 { font-size: 1.3rem; }
-.persona-worlds { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
-.persona-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.persona-row h2 { flex: 1; font-size: 1.05rem; margin: 0; }
-.persona-initial { display: grid; place-items: center; font-weight: 600; color: var(--accent); background: var(--accent-tint); }
-.world-rows { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
-.world-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 8px; flex-wrap: wrap; }
-.world-row[aria-current='true'] { background: var(--accent-tint); }
-.world-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.world-row-actions { display: flex; align-items: center; gap: 10px; }
-.world-row-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+/* Worlds (v1.3 design): your worlds grouped by who you are in them, beside the world you picked, like Notes folders.
+ * A phone shows the list, then the world. */
+.worlds { flex: 1; display: flex; min-height: 0; }
+.worlds-pane { width: 300px; flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding: 12px 8px 24px; border-right: 1px solid var(--border); background: var(--surface); }
+.worlds-pane-head { display: flex; align-items: center; gap: 12px; padding: 0 8px; }
+.worlds-pane-head h1 { flex: 1; margin: 0; font-size: 1.3rem; }
+.worlds-group ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.worlds-group-label { display: flex; align-items: center; gap: 6px; font-family: inherit; font-size: 0.8125rem; font-weight: 500; color: var(--muted); margin: 0 0 4px; padding: 0 10px; }
+.world-pick .chat-row-text strong { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.world-pick .portrait, .world-new .portrait { width: 36px; height: 36px; }
+.world-pick .portrait svg, .world-new .portrait svg { width: 18px; height: 18px; }
+.world-new { min-height: 48px; color: var(--muted); }
+.world-new .portrait { background: transparent; border-style: dashed; color: var(--muted); }
+.worlds-group-label .world-here { width: 14px; height: 14px; }
+.world-here { flex: none; width: 18px; height: 18px; color: var(--accent); }
+.worlds-detail { flex: 1; min-width: 0; overflow-y: auto; padding: 28px 40px 48px; display: flex; flex-direction: column; gap: 16px; }
+.worlds-detail > * { width: 100%; max-width: 760px; }
+.world-detail, .worlds-new { display: flex; flex-direction: column; gap: 12px; }
+.world-detail > p { margin: 0; }
+.world-detail-head { display: flex; align-items: center; gap: 12px; }
+.world-detail-name { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 1.3rem; margin: 0; }
+.worlds-new h2 { font-size: 1.3rem; margin: 0; }
+.world-detail .persona-form { padding-top: 16px; }
+.persona-form-title { display: flex; align-items: center; gap: 4px; }
+.persona-form-title h2 { margin: 0; }
+.persona-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; align-items: start; }
+.persona-grid > .field, .persona-grid .field { margin: 0; min-width: 0; }
+.persona-grid > .kind-fields { display: contents; }
+.persona-grid .kind-human-terms { grid-column: 1 / -1; }
+.persona-grid select, .persona-grid input { width: 100%; }
+.persona-grid .label-row { min-height: 24px; }
+@media (max-width: 1100px) { .persona-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .persona-grid { grid-template-columns: minmax(0, 1fr); } }
 /* A world in a past year: the year it is there, beside its name. */
-.year-badge { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.year-badge { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; font-family: inherit; font-size: 0.75rem; }
 .year-badge svg { width: 0.8rem; height: 0.8rem; }
-/* On the world you are in, whose row is tinted already, the badge keeps a fill a step darker. */
-.world-row[aria-current='true'] .year-badge { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 /* A world where life stands still: muted rather than the accent, so it reads as waiting, not as news. */
-.paused-badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
+.paused-badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-family: inherit; font-size: 0.75rem; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
 .paused-badge svg { width: 0.75rem; height: 0.75rem; }
 .paused-note { line-height: 1.45; }
-/* Phone: the buttons go under the name, lined up with it, so the name keeps the row's width (Iris, 2026-10-29). */
-@media (max-width: 480px) { .world-row-actions { flex-basis: 100%; padding-left: 58px; flex-wrap: wrap; } }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
 .world-rename input { flex: 1; min-width: 0; }
-/* Lined up with the world rows' names (row padding + portrait + gap), so it reads as this persona's. */
-.new-world { padding: 4px 10px 8px 68px; max-width: 528px; }
-/* New world for them, and Copy them to a new world, side by side under their worlds; each link stays whole. */
-.persona-world-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-.persona-world-actions .text-button { white-space: nowrap; }
-.new-world-title { margin: 0 0 2px; font-weight: 600; }
-.persona-row h2:focus { outline: none; }
-.persona-row h2:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-/* A copy just made (Iris): its section lights up briefly; Motion off makes it instant. */
-.persona-worlds.arrived { animation: persona-arrived 2.4s ease-out; }
-/* The tint reaches past the section's edge (its shadow), so nothing sits against it, and all of it fades. */
+.new-world { max-width: 528px; }
+/* A copy just made (Iris): its group lights up briefly; Motion off makes it instant. */
+.worlds-group.arrived { animation: persona-arrived 2.4s ease-out; }
 @keyframes persona-arrived { from, 30% { background: var(--accent-tint); box-shadow: 0 0 0 8px var(--accent-tint); border-radius: 8px; } to { background: transparent; box-shadow: 0 0 0 8px transparent; border-radius: 8px; } }
 @media (max-width: 720px) {
-  .worlds-header, .worlds-list { padding-left: 16px; padding-right: 16px; }
-  .new-world { padding-left: 0; padding-right: 0; max-width: none; }
+  .worlds { flex-direction: column; overflow-y: auto; }
+  .worlds-pane { width: auto; flex: none; overflow: visible; border-right: 0; background: transparent; padding: 12px 8px 0; }
+  .worlds-detail { overflow: visible; padding: 8px 16px 32px; }
 }
 
 /* While you were away (src/features/conversation/AwayRecap.tsx): a quiet catch-up above the composer. */
@@ -2493,7 +2569,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 @keyframes lightbox-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
 .dating-debug { margin-top: 8px; }
 
-/* Model family (Settings > Images): a short select, full width on a phone (Iris). */
+/* Model family (Settings > Pictures): a short select, full width on a phone (Iris). */
 @media (min-width: 721px) { .family-picker select { max-width: 360px; } }
 .family-picker .family-reference { margin: -8px 0 0; }
 
@@ -2653,8 +2729,6 @@ p.breakup-line { align-items: center; }
 .watch-numbers { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px !important; }
 .watch-thought .watch-line-body > p:first-child, .watch-dream .watch-line-body > p:first-child, .watch-private .watch-line-body > p:first-child { color: var(--muted); font-style: italic; }
 .watch-empty { max-width: 600px; }
-.world-watch { flex-basis: 100%; padding: 4px 0 2px 58px; }
-@media (max-width: 720px) { .world-watch { padding-left: 0; } }
 .welcome-watch { margin-top: 4px; }
 @media (max-width: 720px) {
   .watch-banner { margin: 10px auto 0; }
@@ -2953,3 +3027,330 @@ p.breakup-line { align-items: center; }
 .world-image-pick legend { padding: 0; margin-bottom: 4px; font-weight: 600; }
 .world-image-list { display: flex; flex-direction: column; gap: 8px; padding-left: 12px; }
 .world-model-pick { border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+/* Style guide building blocks (src/components/Rows.tsx, Menu.tsx): rows on a 4px grid, 48px tall, label left and
+   control right; one bordered list per group; a switch; a fold-out row; the ⋯ and + menus. */
+.row-group { display: grid; gap: 8px; min-width: 0; }
+.row-group-label { margin: 0; font-size: 0.8125rem; font-weight: 400; color: var(--muted); }
+.row-list { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); min-width: 0; }
+.row-list > * + * { border-top: 1px solid var(--border); }
+.setting-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 4px 16px; min-width: 0; }
+.setting-row.nested { padding-left: 40px; }
+.setting-row-label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
+.setting-row-label label { font-size: 0.875rem; color: var(--text); }
+.setting-row.disabled .setting-row-label label { color: var(--faint); }
+.setting-row select, .setting-row input:not([type='checkbox']):not([type='range']) { width: auto; max-width: 60%; }
+.row-value, .row-sub { color: var(--muted); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.row-sub { display: block; }
+.switch { position: relative; flex: none; width: 36px; height: 20px; border-radius: 10px; background: var(--input-border, var(--faint)); transition: background-color 150ms ease-out; }
+.switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px var(--shadow); transition: transform 150ms ease-out; }
+.switch::before { content: ''; position: absolute; inset: -12px -4px; }
+@media (max-width: 720px) { .switch::before { inset: -12px -8px; } }
+.switch[aria-checked='true'] { background: var(--accent); }
+.switch:disabled { opacity: .45; cursor: default; }
+.switch[aria-checked='true']::after { transform: translateX(16px); }
+.fold-summary { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 4px 16px; text-align: left; border-radius: 12px; }
+.fold-row.open > .fold-summary { border-radius: 12px 12px 0 0; }
+.row-list .fold-summary, .row-list .fold-row.open .fold-summary { border-radius: 0; }
+.row-list > :first-child .fold-summary, .row-list > .fold-row:first-child > .fold-summary { border-radius: 11px 11px 0 0; }
+.row-list > .fold-row:last-child:not(.open) > .fold-summary { border-radius: 0 0 11px 11px; }
+.row-list > .fold-row:only-child:not(.open) > .fold-summary { border-radius: 11px; }
+.fold-summary:hover { background: var(--raised); }
+.fold-text { flex: 1; min-width: 0; font-size: 0.875rem; }
+.fold-chevron { width: 16px; height: 16px; color: var(--faint); flex: none; transition: transform 150ms ease-out; }
+.fold-row.open > .fold-summary .fold-chevron { transform: rotate(180deg); }
+.fold-row:not(.open) .fold-text .row-sub { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.fold-body { border-top: 1px solid var(--border); }
+.fold-body > .setting-row + .setting-row { border-top: 1px solid var(--border); }
+.menu-anchor { position: relative; display: inline-flex; }
+.menu-anchor > .icon-button { position: relative; }
+.menu-anchor > .icon-button[aria-expanded='true'] { background: var(--raised); color: var(--text); }
+.menu-pop { position: absolute; z-index: 40; top: calc(100% + 4px); right: 0; min-width: 240px; max-width: min(340px, calc(100vw - 16px)); display: grid; padding: 4px;
+  background: var(--app-surface); color: var(--app-text); border: 1px solid var(--app-border); border-radius: 12px; box-shadow: 0 8px 24px -8px var(--app-shadow); transform: translateX(var(--fit-shift, 0px)); }
+.menu-pop.start { left: 0; right: auto; }
+.menu-pop.up { top: auto; bottom: calc(100% + 4px); }
+.menu-item { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 8px 12px; border-radius: 8px; text-align: left; font-size: 0.875rem; color: var(--app-text); }
+.menu-item svg { width: 16px; height: 16px; flex: none; color: var(--app-muted); }
+.menu-item:hover:not(:disabled), .menu-item:focus-visible { background: var(--app-raised); }
+.menu-item:disabled { color: var(--app-faint); opacity: 1; }
+.menu-label { flex: 1; min-width: 0; white-space: nowrap; }
+.menu-value { margin-left: 12px; color: var(--app-faint); font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.menu-sep { border: 0; border-top: 1px solid var(--app-border); margin: 4px; }
+.menu-caption { padding: 8px 12px 4px; font-size: 0.75rem; color: var(--app-faint); }
+/* v1.3 chat list (src/features/chats): always beside the chat on a wide screen, with search and a + menu; the panel
+   button at the top left of the chat hides it, with a dot for something new while hidden. */
+.list-button { position: relative; flex-shrink: 0; }
+.list-button[aria-pressed='true'] { color: var(--text); }
+.list-button .nav-dot, .menu-anchor .nav-dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--canvas); }
+.chat-search { display: flex; align-items: center; gap: 8px; margin: 0 4px 8px; padding: 0 12px; height: 36px; border-radius: 8px; background: var(--raised); color: var(--faint); }
+.chat-search svg { width: 16px; height: 16px; flex: none; }
+.chat-search input { flex: 1; min-width: 0; border: 0; background: none; padding: 0; height: 100%; outline: none; font-size: 0.875rem; color: var(--text); }
+.chat-search:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.chats-home .chat-search { margin: 8px 8px; }
+.side-head .menu-anchor { flex-shrink: 0; }
+.side-rail > .menu-anchor { margin: auto auto 0; padding-top: 8px; }
+.side-tray { overflow: visible; position: relative; z-index: 5; }
+.side-tray ul { overflow-x: auto; min-width: 0; }
+.side-tray > .menu-anchor { margin-left: auto; align-self: center; }
+.buddy-tools { display: inline-flex; align-items: center; gap: 2px; }
+.buddy-tools .icon-button { width: 22px; height: 22px; color: #ffffff; border-radius: 2px; }
+.buddy-tools .icon-button svg { width: 16px; height: 16px; }
+.secrets-page { width: 100%; max-width: 720px; margin: 0 auto; padding: 24px 28px 40px; }
+.secrets-page .secrets { margin-top: 0; padding-top: 0; border-top: 0; }
+.secrets-page h1 { margin: 0; font-family: var(--read-font); font-weight: 500; font-size: 1.25rem; }
+@media (max-width: 720px) { .secrets-page { padding: 16px; } }
+/* The chat header keeps one row on a wide screen: the title lines end in an ellipsis instead of wrapping the buttons
+   under them. Below 1100px the style select moves into ⋯ (ChatMenu). */
+@media (min-width: 721px) {
+  .conversation-header { flex-wrap: nowrap; }
+  .conversation-title :is(h1, p) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+.secrets-title { display: flex; align-items: center; gap: 4px; }
+.secrets-title :is(h1, h2) { margin: 0; }
+/* v1.3 chat header and composer (ConversationHeader.tsx, ChatMenu.tsx, Composer.tsx). */
+.conversation-meta { color: var(--muted); }
+.conversation-status { display: flex; min-width: 0; font-size: 0.8125rem; color: var(--muted); }
+.conversation-status > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-status .conversation-meta { flex: 1 1 auto; }
+.conversation-status .status-line { flex: 0 1 auto; }
+.style-previews { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 4px 4px 4px; }
+.style-preview { display: grid; justify-items: center; gap: 4px; padding: 8px 2px; border-radius: 8px; font-size: 0.6875rem; white-space: nowrap; color: var(--app-muted); }
+.chat-menu .menu-pop { min-width: 320px; }
+.style-preview:hover, .style-preview:focus-visible { background: var(--app-raised); }
+.style-preview[aria-checked='true'] { background: var(--app-accent-tint); color: var(--app-text); }
+.style-thumb { display: flex; flex-direction: column; justify-content: center; gap: 3px; width: 36px; height: 24px; padding: 4px; border: 1px solid var(--app-border); border-radius: 4px; background: var(--app-canvas); }
+.style-thumb i { display: block; height: 3px; border-radius: 2px; background: var(--app-faint); opacity: .7; }
+.style-thumb .t-l { width: 60%; }
+.style-thumb .t-r { width: 56%; align-self: flex-end; background: var(--app-accent); }
+.style-thumb .t-a { width: 70%; margin-left: 6px; box-shadow: -6px 0 0 -0.5px var(--app-faint); }
+.style-thumb .t-n { width: 80%; background: #24508f; opacity: .8; }
+.style-thumb .t-s { height: 8px; width: 40%; align-self: center; border-radius: 4px 4px 0 0; }
+.style-thumb .t-b { width: 100%; height: 3px; }
+.menu-field { display: grid; gap: 4px; padding: 0 12px 8px; }
+.menu-field .menu-caption { padding: 8px 0 0; }
+.menu-field select { width: 100%; }
+.composer > .composer-add { flex-shrink: 0; align-self: flex-end; }
+.composer > .composer-add > .icon-button { width: 40px; height: 40px; border-radius: 50%; background: var(--raised); color: var(--muted); margin-bottom: 6px; }
+.chat-retro .composer > .composer-add > .icon-button { border-radius: 0; border: 2px outset #f2f1ee; background: var(--surface); color: #000000; }
+.composer-add .menu-pop { bottom: calc(100% + 8px); }
+.ai-notice-line { margin: 0 0 16px; text-align: center; font-size: 0.75rem; line-height: 1.4; color: var(--faint); }
+.chat-retro .ai-notice-line { text-align: left; font-size: 0.6875rem; margin-bottom: 8px; }
+@media (max-width: 720px) { .composer > .composer-add > .icon-button { margin-bottom: 0; } }
+.meta-sep { flex: none; margin: 0 4px; color: var(--faint); }
+/* Phone: the status gives way first, so the time always shows in full (Iris, step 3). */
+@media (max-width: 720px) { .conversation-status .conversation-meta { flex: 0 0 auto; } .conversation-status .status-line { flex: 0 1 auto; min-width: 0; } }
+
+/* v1.3 step 4: the profile opens from the name in the chat; one header, then Posts, Memories and Character. */
+.conversation-title h1 .name-button { max-width: 100%; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.conversation-title h1 .name-button:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.portrait-button { flex: none; padding: 0; border-radius: 50%; cursor: pointer; }
+.chat-retro .portrait-button { border-radius: 3px; }
+.profile-avatar-button { flex: none; padding: 0; border-radius: 50%; cursor: pointer; }
+.profile-avatar-button:hover .profile-avatar { filter: brightness(0.96); }
+.profile-retro .profile-avatar-button { border-radius: 0; }
+.with-card .profile-tabs { position: sticky; top: 0; z-index: 2; margin-top: 8px; }
+/* Step 4a review (Iris): their name in their color, a way back on a phone, one axis for Bubbles. */
+.profile-card.their-look:not(.novel-card) .profile-name h1 { color: var(--their-name); font-family: var(--their-font); font-weight: var(--their-weight); }
+.profile-card { position: relative; }
+.profile-back { display: none; }
+.profile-actions { display: flex; justify-content: center; margin: 14px 24px 0; }
+.profile-actions .profile-message { margin: 0; }
+.profile-feed .profile-actions { justify-content: flex-start; margin-inline: 40px; }
+.profile-bubbles.with-card .profile-scroll > .page { max-width: 760px; margin-inline: auto; }
+@media (max-width: 720px) {
+  .profile-back { display: inline-grid; position: absolute; top: 4px; left: 4px; z-index: 1; min-width: 44px; min-height: 44px; color: var(--muted); }
+  .profile-retro .profile-back { top: 0; left: 0; width: 28px; height: 26px; min-height: 0; color: #ffffff; }
+  .profile-retro .profile-titlebar { padding-left: 30px; }
+  .profile-feed .profile-actions { margin-inline: 16px; }
+  .profile-feed .profile-who, .profile-community .profile-who { padding-left: 32px; }
+}
+/* Step 4b: Character fields are a label and the field; the pen that helps write one sits at the end of its label line. */
+.field > .label-row { display: flex; width: 100%; }
+.label-row > .field-help { margin: 0 0 0 auto; gap: 4px 8px; }
+.label-row > .field-help.open { flex-basis: 100%; margin: 4px 0 0; }
+.field-pen { width: 32px; height: 32px; min-height: 0; color: var(--muted); }
+.field-pen svg { width: 16px; height: 16px; }
+.version-line { margin: 0; color: var(--faint); font-size: 0.8125rem; }
+.version-line > summary { display: flex; gap: 12px; align-items: baseline; cursor: pointer; list-style: none; }
+.version-line > summary::-webkit-details-marker { display: none; }
+.version-line ol { padding-left: 22px; display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.version-line li span { display: block; font-size: 0.875rem; color: var(--text); }
+.version-line li small { color: var(--muted); font-size: 0.8125rem; }
+.version-history { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 720px) { .field-pen { width: 44px; height: 44px; margin: -6px -6px -6px 0; } }
+/* Name and Relationship share a row; Where they live takes the next one whole, never half a row alone (Iris, 4b). */
+.form-grid.character-basics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-grid.character-basics > :last-child { grid-column: 1 / -1; }
+@media (max-width: 720px) { .form-grid.character-basics { grid-template-columns: minmax(0, 1fr); } }
+/* Step 4c: Character's life sections as fold rows; inside, rows and the odd block of detail share one list. */
+.character-folds { margin-top: var(--stack-gap); max-width: 760px; }
+.fold-body > * + * { border-top: 1px solid var(--border); }
+.fold-extra { display: grid; gap: 12px; padding: 12px 16px; min-width: 0; }
+.fold-extra > :is(h2, h3) { font-size: 0.875rem; }
+.fold-about { display: flex; align-items: center; gap: 4px; margin: 0; font-size: 0.875rem; }
+.fold-extra.family-panel { padding-block: 12px 16px; }
+.fold-extra.family-panel .kids-block { margin-bottom: 0; }
+/* The empty announcer under Add a child keeps no gap (it stays in the page so its news is read out). */
+.kids-block > [aria-live]:empty { margin-top: -8px; }
+.fold-extra:empty { display: none; }
+.setting-row select { min-height: 36px; padding-block: 4px; font-size: 0.875rem; }
+/* Below 480px a select takes its own line under its label, so its value never cuts off; switches stay on the right. */
+@media (max-width: 480px) {
+  .setting-row:has(> select) { flex-wrap: wrap; padding-block: 8px 12px; gap: 6px 12px; }
+  .setting-row > select { flex-basis: 100%; width: 100%; max-width: 100%; }
+}
+.character-folds + * { border-top: 0; }
+/* Step 5: Posts without an intro; Memories led by how close you are, a five-step meter and Adjust rows. */
+.feed-top { display: flex; align-items: flex-start; gap: 8px; }
+.feed-top .own-post { flex: 1; min-width: 0; }
+.feed-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.feed-new { font-size: 0.8125rem; color: var(--muted); }
+.closeness-now { display: grid; gap: 8px; max-width: 760px; }
+.closeness-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.closeness-head h2 { margin: 0; }
+.closeness-basis { display: inline-flex; align-items: center; gap: 4px; }
+.closeness-adjust { margin-left: auto; }
+.closeness-meter { list-style: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin: 4px 0 0; padding: 0; }
+.closeness-meter li { display: grid; gap: 6px; min-width: 0; }
+.closeness-bar { height: 8px; border-radius: 4px; background: var(--raised); border: 1px solid var(--border); }
+.closeness-meter li.on .closeness-bar { background: var(--accent); border-color: var(--accent); }
+.closeness-step { font-size: 0.75rem; line-height: 1.3; color: var(--faint); overflow-wrap: break-word; }
+.closeness-meter li[aria-current] .closeness-step { color: var(--text); font-weight: 500; }
+.closeness-description { margin: 0; max-width: 64ch; color: var(--muted); font-size: 0.875rem; line-height: 1.55; }
+.closeness-rows { margin-top: 4px; }
+.closeness-rows input { width: 12rem; }
+.stepper { display: inline-flex; align-items: center; gap: 4px; }
+.stepper-value { min-width: 8rem; text-align: center; font-size: 0.875rem; }
+.memories-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 32px; }
+.memories-head h2 { margin: 0; }
+.memories-actions { display: inline-flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.memory-group-title { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.memory-group-title h3 { margin: 0; font-size: 1rem; }
+.memories-folds { max-width: 760px; }
+@media (max-width: 720px) {
+  .closeness-step { display: none; }
+  .closeness-meter li[aria-current] .closeness-step { display: block; overflow: visible; }
+  .stepper-value { min-width: 6rem; }
+  .closeness-rows input { width: 100%; }
+}
+.stepper .icon-button { width: 32px; height: 32px; min-height: 0; }
+.people-header h3 { margin: 0; font-size: 1rem; }
+@media (max-width: 720px) { .stepper .icon-button { width: 44px; height: 44px; } }
+.people-header { justify-content: flex-start; align-items: center; gap: 4px 8px; }
+.people-header > .text-button { margin-left: auto; }
+.memories-head, .memory-toolbar { max-width: 760px; }
+/* Step 5 review (Iris): counts under the heading, Adjust on the heading line, quiet history switch at the foot. */
+.closeness-head { flex-wrap: nowrap; align-items: center; }
+.closeness-head .closeness-adjust { flex: none; }
+.closeness-basis { margin-top: -4px; }
+.memory-history { display: inline-flex; align-items: center; gap: 8px; max-width: 760px; font-size: 0.8125rem; color: var(--muted); }
+.feed-top { align-items: center; }
+.feed-top > .icon-button { flex: none; min-width: 44px; min-height: 44px; }
+.feed-chips .vibe-pick.hidden-chip { margin-left: 8px; }
+@media (max-width: 720px) {
+  .memories-actions { margin-left: 0; flex-basis: 100%; }
+}
+.setting-row > .stepper { margin: 0; flex-wrap: nowrap; }
+/* Settings, step 8 review: the group's name heads the page on every screen; sections share one serif title; the
+   out-of-character markers are nested rows in their group. */
+.settings-panel > .settings-head { margin: 0 0 -4px; }
+.section-title { display: flex; align-items: center; gap: 4px; margin: 0; }
+.legend-with-tip { display: inline-flex; align-items: center; gap: 4px; }
+.reading-font { align-items: center; }
+.marker-row .setting-row-label { flex-wrap: wrap; font-size: 0.875rem; }
+.marker-fields { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--muted); }
+.setting-row.marker-row .marker-fields input { width: 5.5rem; }
+.marker-row .marker-remove { flex: none; width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; color: var(--muted); }
+.marker-row .marker-remove svg { width: 15px; height: 15px; }
+.marker-problem { flex-basis: 100%; font-size: 0.8125rem; color: var(--danger, #c0504d); }
+.marker-add { gap: 16px; }
+.marker-kinds { display: inline-flex; gap: 16px; }
+.marker-reset { margin-left: auto; }
+.setting-row.disabled .setting-row-label, .setting-row.disabled .marker-fields { color: var(--faint); }
+.custom-palette { padding: 4px 16px 16px; }
+.marker-row .setting-row-label { flex: 1 0 auto; }
+@media (max-width: 480px) { .setting-row.marker-row .marker-fields input { width: 4.25rem; } .marker-fields { gap: 6px; } }
+.motion-narrow { display: none; }
+@media (max-width: 480px) { .motion-wide { display: none; } .motion-narrow { display: block; } }
+/* Settings > Realism (v1.3 design, step 9): presets as one segmented control, a slider per row with its value word
+   under the name, and rows that open each page. */
+.realism-start { display: grid; gap: 6px; }
+.realism-start-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.realism-start-row h2 { font-family: inherit; font-size: 0.875rem; margin: 0; flex: 0 0 auto; }
+.realism-segmented { margin-left: auto; }
+.realism-segmented label > span:not(.visually-hidden) { min-height: 36px; padding: 7px 14px; font-size: 0.875rem; }
+.realism-mix { font-size: 0.8125rem; text-align: right; }
+.slider-row { padding-block: 8px; }
+.slider-row .slider-row-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.slider-row .row-value { cursor: default; }
+.slider-row .step-slider { flex: 0 0 200px; width: 200px; margin: 0; }
+.setting-row.disabled .row-value { color: var(--faint); }
+.link-row { width: 100%; text-align: left; color: var(--text); font-size: 0.875rem; }
+.link-row svg { width: 16px; height: 16px; color: var(--muted); flex: none; }
+@media (max-width: 720px) {
+  .realism-segmented { margin-left: 0; width: 100%; flex-wrap: nowrap; }
+  .realism-segmented label > span:not(.visually-hidden) { padding: 7px 6px; }
+  .realism-mix { text-align: left; }
+  .slider-row { flex-wrap: wrap; row-gap: 4px; }
+  .slider-row .step-slider { flex: 1 0 100%; width: 100%; }
+}
+.closeness-line { margin: 4px 0 0; }
+.row-group > .row-list + .row-group-label { margin-top: 12px; }
+.settings-subhead { display: grid; gap: 2px; justify-items: start; }
+.settings-back { margin-left: -6px; font-size: 0.8125rem; color: var(--muted); }
+.settings-back svg { width: 15px; height: 15px; }
+.settings-head, .settings-phone-head h1 { display: flex; align-items: center; gap: 4px; }
+/* Settings > Pictures (v1.3 design, step 10): models as fold rows with their content chip, rows for the rest. */
+.row-group-head { display: flex; align-items: center; gap: 12px; }
+.row-group-head > :first-child { flex: 1; }
+.backend-row .fold-body:not([hidden]) { display: grid; padding: 0 0 12px; }
+.backend-row .fold-body > * + * { border-top: 0; }
+/* Rows sit flush in an open fold, edge to edge with a line between (Iris, step 11 r2); notes and actions keep the inset. */
+.backend-row .fold-body > :not(.setting-row):not(.fold-row) { margin: 12px 16px 0; }
+.backend-row .fold-body > :is(.setting-row, .fold-row) + :is(.setting-row, .fold-row) { border-top: 1px solid var(--border); }
+.backend-row .fold-body > .backend-actions { border-top: 1px solid var(--border); padding-top: 12px; }
+.backend-chips { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.backend-chips .badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.backend-chips .badge svg { width: 11px; height: 11px; }
+.badge-quiet { background: var(--raised); color: var(--muted); }
+.badge-warn { background: var(--danger-tint); color: var(--danger); }
+.row-empty, .row-note { margin: 0; color: var(--muted); font-size: 0.875rem; }
+.row-note { padding-block: 10px; }
+.setting-row .row-link { font-size: 0.8125rem; }
+.count-stepper .stepper-value { min-width: 3rem; }
+.row-segmented label > span { min-height: 34px; padding: 6px 12px; font-size: 0.8125rem; }
+
+.key-row { display: inline-flex; align-items: center; gap: 8px; }
+.setting-row .key-row input { width: 12rem; }
+.meme-folder .fold-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+@media (max-width: 720px) {
+  .setting-row input.style-input, .setting-row .key-row input { width: 100%; }
+  .backend-row .fold-summary { flex-wrap: wrap; }
+}
+.setting-row.stacked { flex-direction: column; align-items: stretch; gap: 6px; padding-block: 10px 12px; }
+.setting-row.stacked input:not([type='checkbox']):not([type='range']) { width: 100%; max-width: none; }
+.setting-row .row-link { color: var(--accent); }
+.add-button { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
+.add-button svg { width: 15px; height: 15px; }
+@media (max-width: 720px) {
+  .setting-row:has(> .row-link) { flex-wrap: wrap; row-gap: 0; }
+  .setting-row > .row-link { order: 3; flex-basis: 100%; text-align: left; padding: 0 0 6px; justify-content: flex-start; }
+}
+.row-control { display: inline-flex; align-items: center; gap: 12px; }
+/* A fold inside an open fold (a picture model's details, Iris): indented like a nested row, its body inset under it. */
+.fold-row.nested > .fold-summary { padding-left: 40px; min-height: 44px; border-radius: 0; }
+.fold-row.nested > .fold-body:not([hidden]) { border-top: 1px solid var(--border); padding: 12px 16px 12px 40px; }
+.fold-row.nested > .fold-body .sub-fold-body { gap: 12px; }
+.fold-row.nested .workflow-editor { margin-bottom: 0; }
+.slider-number:has(> .slider-value) { grid-template-columns: 1fr 3.5rem; }
+.slider-value { font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+.form-actions > .refresh-list { width: 32px; height: 32px; }
+@media (max-width: 480px) { .wide-only { display: none; } }
+/* Rows inside an open detail line up with its fields, not indented again. */
+.sub-fold-body > .setting-row, .sub-fold-body > .fold-row.nested > .fold-summary { padding-left: 0; padding-right: 0; min-height: 40px; }
+.sub-fold-body > .fold-row.nested > .fold-body:not([hidden]) { padding-left: 0; padding-right: 0; }
+
+/* "Back to Cinghiale" just after moving on to a second place: the name truncates, "Back to" stays (Iris, 2026-11-03). */
+.text-button.back-to { min-width: 0; max-width: 100%; flex: 0 1 auto; }
+.where-strip .text-button.back-to { flex: 0 1 auto; }
+.back-to-label { display: inline-flex; min-width: 0; white-space: nowrap; }
+.back-to-place { margin-left: 0.3em; min-width: 0; overflow: hidden; text-overflow: ellipsis; }

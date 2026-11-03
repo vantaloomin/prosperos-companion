@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { LOOKS_LEVELS, changeLine, fixedLine } from '../../src/features/character/looksLatelyText.ts'
 
 test('the Realism slider has a word for every level the server accepts (0 to 3)', () => {
-  assert.deepEqual(LOOKS_LEVELS.map((level) => level.label), ['Never', 'Now and then', 'Like real life', 'Often'])
+  assert.deepEqual(LOOKS_LEVELS.map((level) => level.label), ['Never', 'Now and then', 'True to life', 'Often'])
 })
 
 test('looks the user wrote are named in plain words', () => {

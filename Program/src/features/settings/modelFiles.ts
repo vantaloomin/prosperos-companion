@@ -132,7 +132,7 @@ export const isChosen = (saved: ModelFiles) => Object.values(saved).some(Boolean
 /** How the file list's heading describes it: the user's files, the smaller model the app picked for this computer's
  * graphics card (companion/hardware.py fit_images), or the family's own. */
 export const filesLabel = (saved: ModelFiles, fit: string | null | undefined) =>
-  isChosen(saved) ? '(your choice)' : fit ? '(picked for this graphics card)' : '(defaults)'
+  isChosen(saved) ? 'Your choice' : fit ? 'Fits this card' : 'Defaults'
 
 /** A model file's name without its folder or extension: krea2_turbo_nvfp4. */
 export const shortName = (file: string) => (file.split(/[\\/]/).pop() ?? file).replace(/\.(safetensors|gguf)$/i, '')

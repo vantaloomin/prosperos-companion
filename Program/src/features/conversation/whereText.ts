@@ -5,12 +5,12 @@ import { MODERN_WORDS, say, type EraWords } from '../world/eraWords.ts'
 export const WHERE_KEY = ['where']
 
 /** Out somewhere, at their place, at yours, or a knock at your door; apart in the same city, or long distance; on a call, or ringing you; a weekend visit across the distance, them staying with you or you with them. */
-export type WhereKind = 'apart' | 'heading-home' | 'long-distance' | 'out' | 'theirs' | 'yours' | 'knock' | 'call' | 'ringing' | 'staying' | 'hosting' | 'home'
+export type WhereKind = 'apart' | 'heading-home' | 'long-distance' | 'out' | 'theirs' | 'yours' | 'knock' | 'call' | 'ringing' | 'staying' | 'hosting' | 'away' | 'home'
 export interface WhereOuting extends Outing { not_now: boolean }
 /** A call (companion/life/calls.py): on, ringing, or one that just ended or went unanswered. `direction` is who called: 'you' or 'them'. */
 export interface WhereCall { id: string; direction: 'you' | 'them'; status: 'ringing' | 'on' | 'missed' | 'declined' | 'ended'; started_at: string | null; until_at: string | null; ended_at: string | null }
-/** A weekend visit under way (companion/life/long_distance.py): 'to-you' when they came to stay with you, 'host' when you went to stay with them. `leave_at` is when the visit ends on its last day. */
-export interface WhereVisit { id: string; direction: 'to-you' | 'host'; city_name: string; start_date: string; end_date: string; leave_at: string }
+/** A weekend visit under way (companion/life/long_distance.py): 'to-you' when they came to stay with you, 'host' when you went to stay with them, 'together' away together (companion/life/away_together.py; `prep` "in", "on" or "at" the place). `leave_at` is when the visit ends on its last day. */
+export interface WhereVisit { id: string; direction: 'to-you' | 'host' | 'together'; city_name: string; start_date: string; end_date: string; leave_at: string; prep?: string }
 /** Living together (companion/life/moving_in.py): both home of an evening, or you out for a while (`until`). */
 export interface WhereHome { status: 'home' | 'out'; until?: string; they_home?: boolean }
 /** On their way home after a meetup (companion/life/heading_home.py): how ('walk', 'car', 'bus', ...), in words ("driving home"), and when they are back ('18:10'). */
@@ -19,10 +19,11 @@ export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereK
 export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string }
 
 /** What the strip says: a lead, the place (linked to the map when it is out in town) and how long. */
-export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string; /** A shorter lead for the phone, when there is one. */ short?: string }
+export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string; /** A shorter lead for the phone, when there is one. */ short?: string
+  /** The place they move on to next (companion/life/onward.py), after ", then ". */ then?: { id: string; name: string } | null }
 /** The strip's one button: Head home (Call it a night at your own wedding), Say goodbye, Not now, or Undo just after
  * one of those. */
-export interface StripAction { action: 'home' | 'undo'; label: string }
+export interface StripAction { action: 'home' | 'undo' | 'back'; label: string }
 /** A call's buttons: Decline and Answer while it rings, End call while it is on, Call back after one you missed. */
 export interface CallAction { action: 'answer' | 'decline' | 'end' | 'call'; label: string }
 
@@ -77,7 +78,9 @@ function outLine(outing: WhereOuting, tail: string): StripLine {
   if (outing.activity === 'wedding') return mapped('Your wedding at ', outing, tail)
   // A big day in their circle (companion/life/big_days.py): "At Leo's wedding at Druid Hill Park".
   if (outing.activity === 'big-day' && outing.place.title) return mapped(`At ${outing.place.title} at `, outing, tail)
-  return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail }
+  // Moving on to a second place soon (companion/life/onward.py): "Together at Lupa until 9:00 PM, then The Owl Bar".
+  const then = outing.next && !outing.next.place.id.startsWith('~') ? { id: outing.next.place.id, name: outing.next.place.name } : null
+  return { lead: 'Together at ', place: { id: outing.place.id, name: outing.place.name }, tail: then ? `${tail}, then ` : tail, then }
 }
 
 /** After a meetup: "Sett is driving home, back around 6:10 PM", the time kept with its words on a phone. */
@@ -85,10 +88,11 @@ export function headingLine(heading: WhereHeading, name: string): StripLine {
   return { lead: `${name} is ${heading.words}`, place: null, tail: `, back\u00a0around\u00a0${timeText(heading.back)}` }
 }
 
-/** A weekend visit: who is staying with whom, and until when ("until Sun, Oct 18"). */
+/** A weekend visit: who is staying with whom, and until when ("until Sun, Oct 18"); away together, "Away with Mira in Lisbon until Mon, Oct 19". */
 export function visitLine(visit: WhereVisit, name: string): StripLine {
   const tail = ` until ${dayText(visit.end_date)}`
   if (visit.direction === 'to-you') return { lead: `${name} is staying with you`, place: null, tail }
+  if (visit.direction === 'together') return { lead: `Away with ${name.split(' ')[0]} ${visit.prep ?? 'in'} ${visit.city_name}`, place: null, tail }
   return { lead: `Staying with ${name} in ${visit.city_name}`, place: null, tail }
 }
 
@@ -156,7 +160,12 @@ function leaveLabel(outing: WhereOuting): string {
 
 /** Stay longer on the strip, beside Head home: under way, and their next hour is free. */
 export function canStayLonger(where: WhereState | undefined): boolean {
-  return where?.outing?.state === 'now' && Boolean(where.outing.longer_ok)
+  return where?.outing?.state === 'now' && Boolean(where.outing.longer_ok) && !where.outing.undo_move
+}
+
+/** Just moved on to a second place by themselves: Undo takes them back for a minute or two (companion/life/onward.py). */
+export function canGoBack(where: WhereState | undefined): boolean {
+  return where?.outing?.state === 'now' && Boolean(where.outing.undo_move)
 }
 
 /** Whether the chat writes in person now: texting habits like bursts stop while they are together. */
@@ -180,4 +189,12 @@ export const TOGETHER_LEVELS = [
   { label: 'Now and then', hint: 'Once in a while they suggest meeting up, ask you over or call. Nobody turns up at your door unannounced.' },
   { label: 'True to life', hint: 'They suggest meeting up, ask you over and call about as often as real friends do (more when they live far away), and someone close who lives nearby sometimes knocks unannounced. Never in your quiet hours.' },
   { label: 'Often', hint: 'They want to see and hear from you a lot: plans most weeks, invitations over, calls, and close companions in your city dropping by more often. Never in your quiet hours.' },
+]
+
+/** The Moving on slider's steps (Settings > Realism, companion/life/onward.py): how often a meetup moves on to a second place nearby. */
+export const ONWARD_LEVELS = [
+  { label: 'Never', hint: 'A meetup ends where it started. Ask in the chat while you are out and they still go on somewhere with you.' },
+  { label: 'Now and then', hint: 'About one meetup in five moves on to a second place nearby when the first one ends.' },
+  { label: 'True to life', hint: 'About two in five move on, more often when the first place closes for the night: dinner, then drinks around the corner.' },
+  { label: 'Often', hint: 'Most meetups move on to a second place, as long as they have the time after.' },
 ]

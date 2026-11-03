@@ -5,14 +5,15 @@ import { SETTINGS_KEY, useWorkspaceSettings } from '../../companion'
 import type { ChatList, Closeness as ClosenessState, WorkspaceSettings } from '../../types'
 import { CHATS_KEY } from '../chats/useChats'
 import { CLOSENESS_KEY } from '../memories/closenessText'
-import { StageControls } from '../memories/Closeness'
+import { ClosenessRows } from '../memories/Closeness'
+import { firstName } from '../watch/watchText'
 import { DRAMA_LEVELS } from '../today/storyText'
 import { LOOKS_LEVELS } from '../character/looksLatelyText'
 import { KITCHEN_LEVELS } from '../character/kitchenText'
 import { WORK_LEVELS } from '../character/workText'
 import { MEDIA_LEVELS } from '../character/mediaText'
 import { HOBBY_LEVELS } from '../character/hobbiesText'
-import { TOGETHER_LEVELS } from '../conversation/whereText'
+import { ONWARD_LEVELS, TOGETHER_LEVELS } from '../conversation/whereText'
 import { ROUGH_PATCH_LEVELS } from '../profile/roughPatchText'
 import { PACE_LEVELS } from '../character/stepsText'
 import { BREAKUPS_HINT } from '../character/breakupText'
@@ -27,7 +28,7 @@ import { READ_LEVELS, READ_TIP } from './readPaceText'
 import { POLITICS_LEVELS, POLITICS_TIP } from '../today/politicsText'
 import { TROLL_LEVELS, TROLLS_TIP } from '../feed/trollsText'
 import { Notice } from '../../components/Feedback'
-import { Field, TextInput, Toggle } from '../../components/Fields'
+import { SettingRow, SliderRow, SwitchRow } from '../../components/Rows'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { SectionPending } from '../../components/SectionPending'
 import { useLifeSettings, type SaveResult } from './useLifeSettings'
@@ -58,133 +59,73 @@ const MEME_LEVELS = [
   { label: 'Often', hint: 'Memes come often when you sound down, and now and then out of the blue. Still a few pictures a day at most.' },
 ]
 
-/** The top of Settings > Realism: Iris's opening line and one-tap presets for the world-wide settings below. */
+/** The top of Settings > Realism: one segmented control of presets; picking one moves the sliders below. */
 export function RealismIntro() {
-  return (
-    <>
-      <p className="subtle settings-intro">How true to life the world is. Everything here can be changed back any time.</p>
-      <RealismPresets heading="presets-heading" title="Start from" />
-    </>
-  )
+  return <RealismPresets heading="presets-heading" title="Start from" compact />
 }
+
+/** A switch's longer explanation and its rule in one tip, since rows carry no paragraph. */
+const both = (hint: string, tip?: string) => (tip ? `${hint} ${tip}` : hint)
 
 /** How much drama, their pace and plans that go off course. Drama is this world's own (companion/life/world_drama.py). */
 export function PaceSettings({ name }: { name: string }) {
   const { settings, data, save, result } = useLifeSettings()
   const world = useWorlds().data?.world.name
   if (!data) return <SectionPending queries={[settings]} heading="pace-heading" title="Their days" />
-  const level = step(DRAMA_LEVELS, data.drama, 1)
-  const looks = step(LOOKS_LEVELS, data.looks_realism, 2)
-  const work = step(WORK_LEVELS, data.work_realism, 2)
-  const guests = step(GUEST_LEVELS, data.guests_realism, 2)
-  const media = step(MEDIA_LEVELS, data.media_realism, 2)
-  const pastimes = step(HOBBY_LEVELS, data.hobbies_realism, 2)
-  const memes = step(MEME_LEVELS, data.memes_realism, 2)
-  const voice = step(INNER_VOICE_LEVELS, data.inner_voice, 2)
-  const look = step(LOOK_LEVELS, data.their_look, 2)
-  const waking = step(WAKING_LEVELS, data.waking_realism, 2)
-  const reading = step(READ_LEVELS, data.read_pace, 2)
-  const together = step(TOGETHER_LEVELS, data.together_realism, 2)
-  const families = step(FAMILY_LEVELS, data.growing_families, 2)
-  const familyLife = step(FAMILY_LIFE_LEVELS, data.family_life, 2)
-  const shapes = step(FAMILY_SHAPES_LEVELS, data.family_shapes, 2)
-  const turns = step(TURN_LEVELS, data.life_turns, 2)
-  const loss = step(LOSS_LEVELS, data.loss, 2)
-  const politics = step(POLITICS_LEVELS, data.politics_realism, 2)
-  const snark = step(TROLL_LEVELS, data.trolls_realism, 1)
+  const alone = data.alone && name ? ` ${name} is the only companion here, so a little more happens to them.` : ''
   return (
-    <section className="settings-section form-stack" aria-labelledby="pace-heading">
-      <h2 id="pace-heading">Their days</h2>
-      <Field label={`Drama in ${world ?? 'this world'}: ${level.label}`} tip="Only this world. Each of your worlds keeps its own drama level."
-        hint={data.alone && name ? `${level.hint} ${name} is the only companion here, so a little more happens to them.` : level.hint}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.drama} label={level.label}
-          onChange={(drama) => void save({ drama })} />}
-      </Field>
-      <Field label={`Their looks change: ${looks.label}`} hint={looks.hint} tip="Only looks the app picked change. Anything you wrote about how someone looks stays exactly as you wrote it.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.looks_realism} label={looks.label}
-          onChange={(looks_realism) => void save({ looks_realism })} />}
-      </Field>
-      <Field label={`Work life: ${work.label}`} hint={work.hint}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.work_realism} label={work.label}
-          onChange={(work_realism) => void save({ work_realism })} />}
-      </Field>
-      <Field label={`Life's big turns: ${turns.label}`} hint={turns.hint} tip="Undo any big turn on Today, or make it go another way under Hidden values.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.life_turns} label={turns.label}
-          onChange={(life_turns) => void save({ life_turns })} />}
-      </Field>
-      <Toggle label="People can pass away" checked={data.people_pass_away} onChange={(value) => void save({ people_pass_away: value })}
-        hint={PASS_AWAY_HINT} tip={PASS_AWAY_TIP} />
-      {data.people_pass_away && (
-        <Field label={`Loss: ${loss.label}`} hint={loss.hint}>
-          {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.loss} label={loss.label}
-            onChange={(value) => void save({ loss: value })} />}
-        </Field>
-      )}
-      <Field label={`Their pastimes: ${pastimes.label}`} hint={pastimes.hint} tip="Pastimes from their interests, and ones you add, are never given up on their own.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.hobbies_realism} label={pastimes.label}
-          onChange={(hobbies_realism) => void save({ hobbies_realism })} />}
-      </Field>
-      <Field label={`Getting together: ${together.label}`} hint={together.hint} tip="You can always ask them over or out yourself, and say not now when someone knocks.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.together_realism} label={together.label}
-          onChange={(together_realism) => void save({ together_realism })} />}
-      </Field>
-      <LoveLifeSlider value={data.love_life} onChange={(love_life) => void save({ love_life })} />
-      <Field label={`Growing families: ${families.label}`} hint={families.hint} tip="Babies and children are only ever mentioned in words, never pictured. Town babies show up in the paper.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.growing_families} label={families.label}
-          onChange={(growing_families) => void save({ growing_families })} />}
-      </Field>
-      <Field label={`Family life: ${familyLife.label}`} hint={familyLife.hint} tip="Your own children with them, once you two have one. Children are only ever mentioned in words, never pictured.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.family_life} label={familyLife.label}
-          onChange={(family_life) => void save({ family_life })} />}
-      </Field>
-      <Field label={`Family shapes: ${shapes.label}`} hint={shapes.hint} tip="Change anyone in their family on Today > People.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.family_shapes} label={shapes.label}
-          onChange={(family_shapes) => void save({ family_shapes })} />}
-      </Field>
-      <Field label={`Local politics: ${politics.label}`} hint={politics.hint} tip={POLITICS_TIP}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.politics_realism} label={politics.label}
-          onChange={(politics_realism) => void save({ politics_realism })} />}
-      </Field>
-      <Field label={`Trolls and snark on posts: ${snark.label}`} hint={snark.hint} tip={TROLLS_TIP}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.trolls_realism} label={snark.label}
-          onChange={(trolls_realism) => void save({ trolls_realism })} />}
-      </Field>
-      <Field label={`Guests in group chats: ${guests.label}`} hint={guests.hint}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.guests_realism} label={guests.label}
-          onChange={(guests_realism) => void save({ guests_realism })} />}
-      </Field>
-      <Field label={`Reading, watching, listening: ${media.label}`} hint={media.hint}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.media_realism} label={media.label}
-          onChange={(media_realism) => void save({ media_realism })} />}
-      </Field>
-      <Field label={`Memes and GIFs: ${memes.label}`} hint={memes.hint} tip="Memes need no image backend. Reaction GIFs need your own GIPHY key, in Settings > Images.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.memes_realism} label={memes.label}
-          onChange={(memes_realism) => void save({ memes_realism })} />}
-      </Field>
-      <Field label={`Their look in chat: ${look.label}`} hint={look.hint} tip={LOOK_TIP}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.their_look} label={look.label}
-          onChange={(their_look) => void save({ their_look })} />}
-      </Field>
-      <Field label={`Inner voice: ${voice.label}`} hint={voice.hint} tip="What the Watching page tells while you just watch a world. Feelings come through in words; numbers show only with Hidden values on.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.inner_voice} label={voice.label}
-          onChange={(inner_voice) => void save({ inner_voice })} />}
-      </Field>
-      <Toggle label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
-        hint={`When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake, unless a second text, "wake up" or a call wakes them. In group chats, each reply shows after the time it would take to read and type it, one after another. Turn off and busy companions answer right away too.`} />
-      {data.paced_replies && (
-        <div className="toggle-nested">
-          <Field label={`Waking them: ${waking.label}`} hint={waking.hint} tip="A companion in another time zone can live on your clock instead: the switch is on their Character page.">
-            {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.waking_realism} label={waking.label}
-              onChange={(waking_realism) => void save({ waking_realism })} />}
-          </Field>
-        </div>
-      )}
-      <Field label={`How quickly they read your texts: ${reading.label}`} hint={reading.hint} tip={READ_TIP}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.read_pace} label={reading.label}
-          onChange={(read_pace) => void save({ read_pace })} />}
-      </Field>
-      <Toggle label="Let their days go off plan" checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
-        hint={`Now and then they run late, stay late, have plans fall through, have something come up or get a surprise visit. Rolled with fixed dice, so a day never changes after the fact. Off: every day goes as planned.`} />
+    <section className="row-group" aria-labelledby="pace-heading">
+      <h2 id="pace-heading" className="visually-hidden">Their days</h2>
+      <h3 className="row-group-label">Their life</h3>
+      <div className="row-list">
+        <SliderRow label={`Drama in ${world ?? 'this world'}`} levels={DRAMA_LEVELS} fallback={1} value={data.drama} onChange={(drama) => void save({ drama })}
+          tip={`Only this world. Each of your worlds keeps its own drama level.${alone}`} />
+        <SliderRow label="Their looks change" levels={LOOKS_LEVELS} value={data.looks_realism} onChange={(looks_realism) => void save({ looks_realism })}
+          tip="Only looks the app picked change. Anything you wrote about how someone looks stays exactly as you wrote it." />
+        <SliderRow label="Work life" levels={WORK_LEVELS} value={data.work_realism} onChange={(work_realism) => void save({ work_realism })} />
+        <SliderRow label="Life's big turns" levels={TURN_LEVELS} value={data.life_turns} onChange={(life_turns) => void save({ life_turns })}
+          tip="Undo any big turn on Today, or make it go another way under Hidden values." />
+        <SwitchRow label="People can pass away" checked={data.people_pass_away} onChange={(value) => void save({ people_pass_away: value })} tip={both(PASS_AWAY_HINT, PASS_AWAY_TIP)}>
+          <SliderRow nested label="Loss" levels={LOSS_LEVELS} value={data.loss} onChange={(loss) => void save({ loss })} />
+        </SwitchRow>
+        <SliderRow label="Their pastimes" levels={HOBBY_LEVELS} value={data.hobbies_realism} onChange={(hobbies_realism) => void save({ hobbies_realism })}
+          tip="Pastimes from their interests, and ones you add, are never given up on their own." />
+        <SliderRow label="Reading, watching, listening" levels={MEDIA_LEVELS} value={data.media_realism} onChange={(media_realism) => void save({ media_realism })} />
+        <SwitchRow label="Let their days go off plan" checked={data.day_shifts} onChange={(value) => void save({ day_shifts: value })}
+          tip="Now and then they run late, stay late, have plans fall through, have something come up or get a surprise visit. Rolled with fixed dice, so a day never changes after the fact. Off: every day goes as planned." />
+      </div>
+      <h3 className="row-group-label">People around them</h3>
+      <div className="row-list">
+        <SliderRow label="Getting together" levels={TOGETHER_LEVELS} value={data.together_realism} onChange={(together_realism) => void save({ together_realism })}
+          tip="You can always ask them over or out yourself, and say not now when someone knocks." />
+        <SliderRow label="Moving on" levels={ONWARD_LEVELS} value={data.onward_realism} onChange={(onward_realism) => void save({ onward_realism })}
+          tip="You can always keep them where they are with Stay longer, or ask to go on somewhere yourself." />
+        <SliderRow label="Their love life" levels={LOVE_LIFE_LEVELS} value={data.love_life} onChange={(love_life) => void save({ love_life })}
+          tip="Anyone they start seeing joins the people in their life. You can remove them there, or undo it on Today. Someone in a relationship with you only sees other people in an open relationship, or in secret on Drama." />
+        <SliderRow label="Growing families" levels={FAMILY_LEVELS} value={data.growing_families} onChange={(growing_families) => void save({ growing_families })}
+          tip="Babies and children are only ever mentioned in words, never pictured. Town babies show up in the paper." />
+        <SliderRow label="Family life" levels={FAMILY_LIFE_LEVELS} value={data.family_life} onChange={(family_life) => void save({ family_life })}
+          tip="Your own children with them, once you two have one. Children are only ever mentioned in words, never pictured." />
+        <SliderRow label="Family shapes" levels={FAMILY_SHAPES_LEVELS} value={data.family_shapes} onChange={(family_shapes) => void save({ family_shapes })}
+          tip="Change anyone in their family on Today > People." />
+        <SliderRow label="Local politics" levels={POLITICS_LEVELS} value={data.politics_realism} onChange={(politics_realism) => void save({ politics_realism })} tip={POLITICS_TIP} />
+        <SliderRow label="Trolls and snark on posts" levels={TROLL_LEVELS} fallback={1} value={data.trolls_realism} onChange={(trolls_realism) => void save({ trolls_realism })} tip={TROLLS_TIP} />
+        <SliderRow label="Guests in group chats" levels={GUEST_LEVELS} value={data.guests_realism} onChange={(guests_realism) => void save({ guests_realism })} />
+      </div>
+      <h3 className="row-group-label">In chat</h3>
+      <div className="row-list">
+        <SliderRow label="Memes and GIFs" levels={MEME_LEVELS} value={data.memes_realism} onChange={(memes_realism) => void save({ memes_realism })}
+          tip="Memes need no image backend. Reaction GIFs need your own GIPHY key, in Settings > Pictures." />
+        <SliderRow label="Their look in chat" levels={LOOK_LEVELS} value={data.their_look} onChange={(their_look) => void save({ their_look })} tip={LOOK_TIP} />
+        <SliderRow label="Inner voice" levels={INNER_VOICE_LEVELS} value={data.inner_voice} onChange={(inner_voice) => void save({ inner_voice })}
+          tip="What the Watching page tells while you just watch a world. Feelings come through in words; numbers show only with Hidden values on." />
+        <SwitchRow label="Reply at their own pace" checked={data.paced_replies} onChange={(value) => void save({ paced_replies: value })}
+          tip={'When a companion is busy they decide how to answer: later, a quick holding text first, or a short note now. Asleep, they answer when they wake, unless a second text, "wake up" or a call wakes them. In group chats, each reply shows after the time it would take to read and type it. Off: busy companions answer right away too.'}>
+          <SliderRow nested label="Waking them" levels={WAKING_LEVELS} value={data.waking_realism} onChange={(waking_realism) => void save({ waking_realism })}
+            tip="A companion in another time zone can live on your clock instead: the switch is on their Character page." />
+        </SwitchRow>
+        <SliderRow label="How quickly they read your texts" levels={READ_LEVELS} value={data.read_pace} onChange={(read_pace) => void save({ read_pace })} tip={READ_TIP} />
+      </div>
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
@@ -195,40 +136,20 @@ export function PaceSettings({ name }: { name: string }) {
 export function LoveSettings() {
   const { settings, data, save, result } = useLifeSettings()
   if (!data) return <SectionPending queries={[settings]} heading="love-heading" title="Love and friendship" />
-  const pace = PACE_LEVELS[data.steps_pace] ?? PACE_LEVELS[2]
-  const rough = step(ROUGH_PATCH_LEVELS, data.rough_patches_realism, 2)
   return (
-    <section className="settings-section form-stack" aria-labelledby="love-heading">
-      <div>
-        <h2 id="love-heading">Love and friendship</h2>
-        <p className="subtle">Relationships move on by themselves: being exclusive, saying "I love you", meeting their people, becoming best friends. You can always bring a step up yourself, or set it on their Character page.</p>
+    <section className="row-group" aria-labelledby="love-heading">
+      <div className="row-list">
+        <SliderRow label="Relationship pace" levels={PACE_LEVELS} value={data.steps_pace} onChange={(steps_pace) => void save({ steps_pace })} />
+        <SwitchRow label="Friends can fall for you" checked={data.friends_fall} onChange={(value) => void save({ friends_fall: value })}
+          tip="Now and then a close friend falls for you and tells you. Say yes and you start dating; say no and the friendship carries on after a few awkward days. Rare on a real life, likelier with more drama. Keep a friend as just friends on their Character page." />
+        {/* Next to Breaks and breakups, which needs rough patches at true to life or more (Iris). */}
+        <SliderRow label="Rough patches" levels={ROUGH_PATCH_LEVELS} value={data.rough_patches_realism} onChange={(rough_patches_realism) => void save({ rough_patches_realism })}
+          tip="You can always clear the air yourself. Companions can be the ones at fault too, and then they apologise first." />
+        <SwitchRow label="Breaks and breakups" checked={data.breakups} onChange={(value) => void save({ breakups: value })}
+          tip={both(BREAKUPS_HINT, 'Either of you can end it, and getting back together is possible later. Nothing is deleted.')} />
       </div>
-      <Field label={`Relationship pace: ${pace.label}`} hint={pace.hint}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.steps_pace} label={pace.label}
-          onChange={(steps_pace) => void save({ steps_pace })} />}
-      </Field>
-      <Toggle label="Friends can fall for you" checked={data.friends_fall} onChange={(value) => void save({ friends_fall: value })}
-        hint={'Now and then a close friend falls for you and tells you. Say yes and you start dating; say no and the friendship carries on after a few awkward days. Rare on a real life, likelier with more drama.'}
-        tip="Keep a friend as just friends on their Character page." />
-      {/* Next to Breaks and breakups, which needs rough patches at true to life or more (Iris). */}
-      <Field label={`Rough patches: ${rough.label}`} hint={rough.hint} tip="You can always clear the air yourself. Companions can be the ones at fault too, and then they apologise first.">
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.rough_patches_realism} label={rough.label}
-          onChange={(rough_patches_realism) => void save({ rough_patches_realism })} />}
-      </Field>
-      <Toggle label="Breaks and breakups" checked={data.breakups} onChange={(value) => void save({ breakups: value })}
-        hint={BREAKUPS_HINT} tip="Either of you can end it, and getting back together is possible later. Nothing is deleted." />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
-  )
-}
-
-/** Their own love life (companion/life/love_life.py): how much goes on in the love lives of the people around you. */
-function LoveLifeSlider({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  const love = LOVE_LIFE_LEVELS[value] ?? LOVE_LIFE_LEVELS[2]
-  return (
-    <Field label={`Their love life: ${love.label}`} hint={love.hint} tip="Anyone they start seeing joins the people in their life. You can remove them there, or undo it on Today. Someone in a relationship with you only sees other people in an open relationship, or in secret on Drama.">
-      {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={value} label={love.label} onChange={onChange} />}
-    </Field>
   )
 }
 
@@ -236,51 +157,19 @@ function LoveLifeSlider({ value, onChange }: { value: number; onChange: (value: 
 export function HomeLifeSettings() {
   const { settings, data, save, result } = useLifeSettings()
   if (!data) return <SectionPending queries={[settings]} heading="home-life-heading" title="Around the home" />
-  const upkeep = UPKEEP_LEVELS[data.upkeep_realism] ?? UPKEEP_LEVELS[2]
-  const kitchen = KITCHEN_LEVELS[data.kitchen_realism] ?? KITCHEN_LEVELS[2]
-  const pets = PET_LEVELS[data.pets_realism] ?? PET_LEVELS[2]
-  const admin = ADMIN_LEVELS[data.admin_realism] ?? ADMIN_LEVELS[2]
   return (
-    <section className="settings-section form-stack" aria-labelledby="home-life-heading">
-      <div>
-        <h2 id="home-life-heading">Around the home</h2>
-        <p className="subtle">How much everyday life happens at home. Past days stay as they were; changes apply from today.</p>
+    <section className="row-group" aria-labelledby="home-life-heading">
+      <div className="row-list">
+        <SliderRow label="Housework" levels={UPKEEP_LEVELS} value={data.upkeep_realism} onChange={(upkeep_realism) => void save({ upkeep_realism })} />
+        <SliderRow label="Kitchen" levels={KITCHEN_LEVELS} value={data.kitchen_realism} onChange={(kitchen_realism) => void save({ kitchen_realism })} />
+        <SliderRow label="Pets" levels={PET_LEVELS} value={data.pets_realism} onChange={(pets_realism) => void save({ pets_realism })} />
+        <SwitchRow nested label="Pets can die" checked={data.pets_can_die} disabled={data.pets_realism === 0} onChange={(value) => void save({ pets_can_die: value })}
+          tip="Rarely, and only late in life: of old age, or a serious illness when they are very old. Off: pets still grow old but are always there. A pet that died can be brought back on the Character page." />
+        <SliderRow label="Life admin" levels={ADMIN_LEVELS} value={data.admin_realism} onChange={(admin_realism) => void save({ admin_realism })} />
       </div>
-      <Field label={`Housework: ${upkeep.label}`} hint={upkeep.hint}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.upkeep_realism} label={upkeep.label}
-          onChange={(upkeep_realism) => void save({ upkeep_realism })} />}
-      </Field>
-      <Field label={`Kitchen: ${kitchen.label}`} hint={kitchen.hint}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.kitchen_realism} label={kitchen.label}
-          onChange={(kitchen_realism) => void save({ kitchen_realism })} />}
-      </Field>
-      <Field label={`Pets: ${pets.label}`} hint={pets.hint}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.pets_realism} label={pets.label}
-          onChange={(pets_realism) => void save({ pets_realism })} />}
-      </Field>
-      <Toggle label="Pets can die" checked={data.pets_can_die} disabled={data.pets_realism === 0} onChange={(value) => void save({ pets_can_die: value })}
-        hint="Rarely, and only late in life: of old age, or a serious illness when they are very old. Off: pets still grow old but are always there. A pet that died can be brought back on the Character page." />
-      <Field label={`Life admin: ${admin.label}`} hint={admin.hint}>
-        {(id, describedBy) => <StepSlider id={id} describedBy={describedBy} value={data.admin_realism} label={admin.label}
-          onChange={(admin_realism) => void save({ admin_realism })} />}
-      </Field>
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </section>
   )
-}
-
-/** A slider's step as shown, or the fallback step when the saved value is out of range. */
-function step<T>(levels: readonly T[], value: number, fallback: number): T {
-  return levels[value] ?? levels[fallback]
-}
-
-/** A four-step Realism slider (0 to 3) in the accent colour, with a tick at each step and the step's name read out. */
-function StepSlider({ id, describedBy, value, label, onChange }: { id: string; describedBy?: string; value: number; label: string; onChange: (value: number) => void }) {
-  return <>
-    <input id={id} className="step-slider" type="range" list={`${id}-steps`} min={0} max={3} step={1} value={value} aria-valuetext={label}
-      aria-describedby={describedBy} onChange={(event) => onChange(Number(event.target.value))} />
-    <datalist id={`${id}-steps`}>{[0, 1, 2, 3].map((step) => <option key={step} value={step} />)}</datalist>
-  </>
 }
 
 /** The Housework slider's steps (companion/life/upkeep.py SCALE). */
@@ -305,21 +194,17 @@ export function ClosenessSettings({ name }: { name: string }) {
   const words = filter.trim().toLowerCase()
   const shown = companions.filter((chat) => chat.id === chosen?.id || chat.name.toLowerCase().includes(words))
   return (
-    <section className="settings-section form-stack" aria-labelledby="closeness-settings-heading">
-      <div>
-        <h2 id="closeness-settings-heading">Closeness</h2>
-        <p className="subtle">Closeness grows from the days you talk and the moments you keep. Skip ahead, hold it still or put a limit on it. It only changes how they talk with you.</p>
-      </div>
-      {companions.length > SEARCH_FROM && (
-        <TextInput label="Find a companion" value={filter} onChange={setFilter} maxLength={60} type="search" />
-      )}
-      {companions.length > 1 && (
-        <Field label="Companion" hint="Shows their closeness here. Your open chat stays as it is.">{(id, describedBy) => (
-          <select id={id} aria-describedby={describedBy} value={chosen?.id ?? ''} onChange={(event) => setPicked(event.target.value)}>
+    <section className="row-group" aria-labelledby="closeness-settings-heading">
+      {companions.length > 1 && <div className="row-list">
+        {companions.length > SEARCH_FROM && <SettingRow label="Find a companion">
+          {(id) => <input id={id} type="search" autoComplete="off" value={filter} maxLength={60} onChange={(event) => setFilter(event.target.value)} />}
+        </SettingRow>}
+        <SettingRow label="Companion" tip="Shows their closeness here. Your open chat stays as it is.">{(id) => (
+          <select id={id} value={chosen?.id ?? ''} onChange={(event) => setPicked(event.target.value)}>
             {shown.map((chat) => <option key={chat.id} value={chat.id}>{chat.name}</option>)}
           </select>
-        )}</Field>
-      )}
+        )}</SettingRow>
+      </div>}
       {chosen ? <CompanionCloseness key={chosen.id} id={chosen.id} name={chosen.name} open={chosen.focus} /> : <CompanionCloseness id="" name={name} open />}
     </section>
   )
@@ -347,21 +232,14 @@ function CompanionCloseness({ id, name, open }: { id: string; name: string; open
   if (closeness.isError) return <ErrorNotice error={closeness.error} />
   if (!closeness.data) return null
   return (
-    <div className="form-stack">
-      <p>{stageLine(closeness.data, name)}</p>
-      <div className="closeness-controls"><StageControls name={name} state={closeness.data} change={change} path={path} /></div>
+    <div className="row-group">
+      <ClosenessRows name={name} state={closeness.data} change={change} path={path} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
       {open
-        ? <p className="subtle">Nickname, running jokes and starting over are in <a href="#memories">{name}&apos;s Memories</a>.</p>
-        : <p className="subtle">Nickname, running jokes and starting over are in {name}&apos;s Memories, once their chat is open.</p>}
+        ? <p className="subtle">Nickname, running jokes and starting over are in <a className="inline-link" href="#memories">{firstName(name)}&apos;s Memories</a>.</p>
+        : <p className="subtle">Nickname, running jokes and starting over are in {firstName(name)}&apos;s Memories, once their chat is open.</p>}
     </div>
   )
-}
-
-/** "Mira is at Friends.", saying so when the user set or keeps it there. */
-function stageLine(state: ClosenessState, name: string) {
-  const how = state.held_level ? ', kept there by you' : state.set_on ? ', set by you' : ''
-  return `${name} is at ${state.name}${how}.`
 }
 
 /** The adult side of life (companion/world/intimacy.py): off until turned on, adults only, private to each person. */
@@ -377,14 +255,11 @@ export function AdultSideSettings() {
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'That setting was not saved.') }
   }
   return (
-    <section className="settings-section form-stack" aria-labelledby="adult-side-heading">
-      <div>
-        <h2 id="adult-side-heading">Adult side of life</h2>
-        <p className="subtle">Real people have a love life and desires of their own. Off until you turn it on.</p>
+    <section className="row-group" aria-labelledby="adult-side-heading">
+      <div className="row-list">
+        <SwitchRow label="Give adults an adult side" checked={settings.data?.adult_side === true} disabled={!settings.data} onChange={(checked) => void save(checked)}
+          tip="Every adult townsperson and companion gets who they're drawn to, how adventurous they are, their drive and a few things they're into, rolled by the app. Adults only: nobody under 18 ever gets one. It stays private to each person and only shapes them when romance or intimacy comes up. It never goes into pictures, the town paper or the feed. Change a companion's on their Character page, under Life details. Hidden values can show what townsfolk are like this way." />
       </div>
-      <Toggle label="Give adults an adult side" checked={settings.data?.adult_side === true} disabled={!settings.data} onChange={(checked) => void save(checked)}
-        hint="Every adult townsperson and companion gets who they're drawn to, how adventurous they are, their drive and a few things they're into, rolled by the app. Adults only: nobody under 18 ever gets one. It stays private to each person and only shapes them when romance or intimacy comes up. It never goes into pictures, the town paper or the feed."
-        tip="Change a companion's on their Character page, under Life details. Hidden values can show what townsfolk are like this way." />
       {error && <Notice tone="error">{error}</Notice>}
     </section>
   )

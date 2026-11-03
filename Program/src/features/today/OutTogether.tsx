@@ -6,7 +6,7 @@ import { Notice } from '../../components/Feedback'
 import { WHERE_KEY } from '../conversation/whereText'
 import { firstName } from '../character/panelText'
 import { openWedding } from '../character/weddingText'
-import { OUTING_STATES, TOGETHER_KEY, bigDayLine, meetLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from './outingText'
+import { OUTING_STATES, TOGETHER_KEY, bigDayLine, meetLine, onwardLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from './outingText'
 import { useTogether } from './useTogether'
 
 /** Plans with the user. The companion picked the places; the user can call them off (with Undo for the rest of the
@@ -55,6 +55,7 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       {bigDayLine(outing, firstName(name)) && <p className="subtle">{bigDayLine(outing, firstName(name))}</p>}
       {note && <p className="subtle">{note}</p>}
       <MeetLine outing={outing} />
+      <NextLine outing={outing} act={act} />
       <SitterLine outing={outing} />
       {outing.state === 'planned' && <Planned outing={outing} name={name} act={act} />}
       {outing.state === 'now' && <Now outing={outing} act={act} />}
@@ -75,15 +76,29 @@ function SitterLine({ outing }: { outing: Outing }) {
   return <p className="subtle">{outing.sitter.text}</p>
 }
 
-/** Stay longer when their next hour is free; Head home, or Call it a night after a long day: your wedding, or a big day in their circle (not a funeral). */
+/** Somewhere else for the next place when they are about to move on, and Undo just after; Stay longer when their next hour is free; Head home, or Call it a night after a long day: your wedding, or a big day in their circle (not a funeral). */
 function Now({ outing, act }: { outing: Outing; act: (path: string) => Promise<void> }) {
   const long = outing.activity === 'wedding' || (outing.activity === 'big-day' && !outing.place.quiet)
   return (
     <div className="together-actions">
-      {outing.longer_ok && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/longer`)}><Hourglass aria-hidden="true" />Stay longer</button>}
+      {/* Moving on to a second place (companion/life/onward.py): another one before, back just after. */}
+      {outing.undo_move && outing.came_from && <button type="button" className="text-button back-to" aria-label={`Back to ${outing.came_from.name}`} onClick={() => void act(`/life/outings/${outing.id}/back`)}><Undo2 aria-hidden="true" /><BackTo name={outing.came_from.name} /></button>}
+      {outing.longer_ok && !outing.undo_move && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/longer`)}><Hourglass aria-hidden="true" />Stay longer</button>}
       <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/home`)}>{long ? <><Moon aria-hidden="true" />Call it a night</> : <><Home aria-hidden="true" />Head home</>}</button>
     </div>
   )
+}
+
+/** Moving on to a second place: where next, with Somewhere else? at the end of the line it changes, or where they came from. */
+function NextLine({ outing, act }: { outing: Outing; act: (path: string) => Promise<void> }) {
+  const line = onwardLine(outing)
+  if (!line) return null
+  return <p className="subtle together-next">{line}{outing.next && <> <button type="button" className="text-button inline" onClick={() => void act(`/life/outings/${outing.id}/next`)}>Somewhere else?</button></>}</p>
+}
+
+/** "Back to Cinghiale": the place name gives way first on a narrow screen, "Back to" never does (Iris, 2026-11-03). */
+export function BackTo({ name }: { name: string }) {
+  return <span className="back-to-label">Back to <span className="back-to-place">{name}</span></span>
 }
 
 /** Go now when they are free before the time, call it off or somewhere else; the wedding is changed on its card on the Character page (companion/life/wedding.py),
@@ -112,7 +127,8 @@ function Planned({ outing, name, act }: { outing: Outing; name: string; act: (pa
 export function Trips({ name }: { name: string }) {
   const client = useQueryClient()
   const [error, setError] = useState('')
-  const trips = shown(useTogether().data?.trips ?? [])
+  // Trips away together sit in the Now card and Coming up instead (AwayTogether.tsx).
+  const trips = shown(useTogether().data?.trips ?? []).filter((trip) => trip.visit !== 'together')
   if (!trips.length) return null
   const act = async (path: string) => {
     setError('')
@@ -139,17 +155,47 @@ function TripItem({ trip, name, act }: { trip: Trip; name: string; act: (path: s
       <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/undo`)}><Undo2 aria-hidden="true" />Undo</button>
     </li>
   )
+  if (trip.home_undo) return (
+    <li className="together-item together-undo">
+      <p><strong>{tripTitle(trip, name.split(' ')[0])}</strong> <span className="subtle">Heading home early.</span></p>
+      <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/stay`)}><Undo2 aria-hidden="true" />Undo</button>
+    </li>
+  )
   return (
     <li className="together-item">
       <div className="together-head">
-        <strong>{tripTitle(trip, name)}</strong>
+        <strong>{tripTitle(trip, trip.visit === 'together' ? name.split(' ')[0] : name)}</strong>
         <span className="badge">{trip.state === 'now' ? (trip.visit ? 'Together now' : 'Away now') : OUTING_STATES[trip.state]}</span>
       </div>
-      <p className="subtle">{tripDays(trip)}{trip.cost_text ? ` · ${trip.visit ? `${name} spends about` : 'about'} ${trip.cost_text}` : ''}</p>
+      <p className="subtle">{tripMeta(trip, name)}</p>
       {trip.postcard_message_id && <p className="subtle">{name} sent you a postcard{trip.landmark ? ` of ${trip.landmark.name}` : ''}.</p>}
-      {trip.visit && trip.state === 'planned' && <div className="together-actions">
-        <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/cancel`)}><X aria-hidden="true" />Call it off</button>
-      </div>}
+      <TripActions trip={trip} act={act} />
     </li>
+  )
+}
+
+/** "Fri, Oct 16 – Sun, Oct 18 · By plane · Mira's share about $900". */
+function tripMeta(trip: Trip, name: string): string {
+  const travel = tripTravel(trip)
+  const spends = trip.visit === 'together' ? `${name.split(' ')[0]}'s share about` : trip.visit ? `${name} spends about` : 'about'
+  const cost = trip.cost_text ? ` · ${spends} ${trip.cost_text}` : ''
+  return `${tripDays(trip)}${travel ? ` · ${travel}` : ''}${cost}`
+}
+
+/** A visit or trip together still to come: Somewhere else (a trip together) and Call it off; under way, a trip
+ * together can end early with Head home. */
+function TripActions({ trip, act }: { trip: Trip; act: (path: string) => Promise<void> }) {
+  const together = trip.visit === 'together'
+  if (trip.visit && trip.state === 'planned') return (
+    <div className="together-actions">
+      {together && <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/elsewhere`)}><MapPin aria-hidden="true" />Somewhere else</button>}
+      <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/cancel`)}><X aria-hidden="true" />Call it off</button>
+    </div>
+  )
+  if (!together || trip.state !== 'now' || trip.start_date === trip.end_date) return null
+  return (
+    <div className="together-actions">
+      <button type="button" className="text-button" onClick={() => void act(`/life/trips/${trip.id}/home`)}><Home aria-hidden="true" />Head home</button>
+    </div>
   )
 }

@@ -84,7 +84,7 @@ function referenceText(kind: BackendKind, provider: HostedProvider): string {
   const profiles = ' Reference pictures go along when you make profile pictures: the first one goes along with the other two.'
   return kind === 'codex'
     ? `${profiles} With Codex, each picture of your companion also sends their character sheet, and their first picture takes two requests: one to draw the sheet (from their profile picture, if they have one), then the picture.`
-    : `${profiles} Where it can take a reference picture, each picture of your companion also sends their profile picture, so they keep one face (Settings > Images can turn this off).`
+    : `${profiles} Where it can take a reference picture, each picture of your companion also sends their profile picture, so they keep one face (Settings > Pictures can turn this off).`
 }
 
 /** What a new backend will receive, matching the server's disclosure; null when nothing leaves this computer. */

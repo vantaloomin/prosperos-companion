@@ -1,5 +1,7 @@
 import { useId, useState, type CSSProperties, type ReactNode } from 'react'
 import type { WorkspaceSettings } from '../../types'
+import { InfoTip } from '../../components/InfoTip'
+import { FoldRow } from '../../components/Rows'
 import { COLOR_SCHEMES, PALETTE_KEYS, defaultPalette, paletteReadability, paletteStyles, paperPalette, validHex, validPalette, type ColorScheme, type Palette } from './palette'
 
 type Theme = NonNullable<WorkspaceSettings['theme']>
@@ -25,10 +27,7 @@ export function ColorSchemeSettings({ theme, scheme, palette, save, children }: 
   const chosen = theme === 'scheme' ? scheme : theme
   return (
     <div className="form-stack">
-      <div>
-        <h3>Colors</h3>
-        <p className="subtle">The colors of the whole app. Retro IM keeps its own messenger colors.</p>
-      </div>
+      <h2 className="section-title">Colors<InfoTip id={`${name}-about`} label="Colors" text="The colors of the whole app, on every device. Retro IM keeps its own messenger colors." /></h2>
       <fieldset className="palette-options">
         <legend className="visually-hidden">Color scheme</legend>
         {choices(palette).map((option) => (
@@ -38,20 +37,22 @@ export function ColorSchemeSettings({ theme, scheme, palette, save, children }: 
           </label>
         ))}
       </fieldset>
-      <CustomPalette saved={palette} apply={(custom) => save({ theme: 'scheme', color_scheme: 'custom', custom_palette: custom })} />
+      <div className="row-list">
+        <CustomPalette saved={palette} inUse={chosen === 'custom'} apply={(custom) => save({ theme: 'scheme', color_scheme: 'custom', custom_palette: custom })} />
+      </div>
       {children}
     </div>
   )
 }
 
-function CustomPalette({ saved, apply }: { saved: Palette | null; apply: (palette: Palette) => Promise<void> }) {
+/** Custom colors as a fold-out row: its value says whether the app is using them. */
+function CustomPalette({ saved, inUse, apply }: { saved: Palette | null; inUse: boolean; apply: (palette: Palette) => Promise<void> }) {
   const [draft, setDraft] = useState<Palette>(saved && validPalette(saved) ? saved : defaultPalette)
   const readability = paletteReadability(draft)
   const update = (key: keyof Palette, value: string) => setDraft({ ...draft, [key]: value })
   return (
-    <details className="custom-palette">
-      <summary>Custom palette</summary>
-      <div className="form-stack">
+    <FoldRow summary="Custom palette" value={inUse ? 'Custom' : 'Off'}>
+      <div className="form-stack custom-palette">
         {PALETTE_KEYS.map((key) => <ColorControl key={key} name={key} value={draft[key]} onChange={(value) => update(key, value)} />)}
         <div className="palette-preview" style={paletteStyles(validPalette(draft) ? draft : defaultPalette) as CSSProperties}>
           <p>There was still a little light at the end of the hall.</p>
@@ -67,7 +68,7 @@ function CustomPalette({ saved, apply }: { saved: Palette | null; apply: (palett
           <button type="button" className="text-button" onClick={() => setDraft(paperPalette)}>Start from Paper</button>
         </div>
       </div>
-    </details>
+    </FoldRow>
   )
 }
 

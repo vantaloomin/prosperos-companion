@@ -1,3 +1,4 @@
+import { InfoTip } from '../../components/InfoTip'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Download, FilePlus2, FolderSync, Pencil, PencilRuler, Rocket, Search, Trash2, Upload } from 'lucide-react'
@@ -60,6 +61,7 @@ function saveFile(id: string, definition: unknown) {
 }
 
 /** Build, import, copy, edit and export cities (PRD W5). Built-in and pack cities are read-only here. */
+/** Settings > World > Cities, a page of its own whose title and intro Settings shows (src/features/settings/subPages.ts). */
 export function Cities() {
   const client = useQueryClient()
   const cities = useQuery({ queryKey: CITIES_KEY, queryFn: () => api<CityListing[]>('/world/cities') })
@@ -144,11 +146,7 @@ export function Cities() {
   }
 
   return (
-    <section className="settings-section form-stack" aria-labelledby="cities-heading">
-      <div>
-        <h2 id="cities-heading">Cities</h2>
-        <p className="subtle">A companion's days are built from their home city: its neighborhoods, places, work and weather. Start a city of your own, copy one to change it, or open a city file someone shared. Prospero's Draft Table draws up a whole place from one line, in a window of its own. A Marinara world map opens as a city straight away, with its places' notes as world lore.</p>
-      </div>
+    <section className="form-stack" aria-labelledby="cities-heading">
       <div className="form-actions wrap">
         <button type="button" className="button" onClick={() => void startNew()}><FilePlus2 aria-hidden="true" />New city</button>
         <button type="button" className="button" onClick={() => void startNew('ship')}><Rocket aria-hidden="true" />Start from a ship</button>
@@ -247,8 +245,8 @@ function FeaturedStrip({ featured }: { featured: FeaturedCities }) {
   const jump = (id: string) => { jumpToCity(id) }
   return (
     <div className="featured-cities" role="region" aria-labelledby="featured-cities-heading">
-      <h3 id="featured-cities-heading">{featured.title}</h3>
-      {featured.note && <p className="subtle">{featured.note}</p>}
+      {/* The release's line is a tip, not a paragraph (Iris, step 11). */}
+      <h3 id="featured-cities-heading" className="legend-with-tip">{featured.title}{featured.note && <InfoTip id="featured-cities-tip" label={featured.title} text={featured.note} />}</h3>
       <ul className="featured-strip">
         {featured.cities.map((city) => { const where = [city.region, city.country].filter(Boolean).join(', '); return (
           <li key={city.id}>

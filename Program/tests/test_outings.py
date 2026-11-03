@@ -167,7 +167,13 @@ def test_a_named_place_is_kept_and_the_bill_comes_out_of_their_budget(client, mi
     money = client.get('/api/today/money').json()
     if money['available'] and done['cost']:
         assert any(item['for'] == 'outing' and 'Ouzo Bay' in item['label'] for item in money['bought'])
-    assert 'Earlier you and the user had dinner at Ouzo Bay' in client.get('/api/context/preview').json()['prompt']
+    preview = client.get('/api/context/preview').json()['prompt']
+    # Said as today, at its hours, and the first time out together (tester 2026-11-02: Sett forgot the first date).
+    assert 'Earlier today (19:00-21:00) you and the user had dinner at Ouzo Bay' in preview
+    assert 'It was the first time the two of you went out together.' in preview
+    # The day line shows the dinner itself, not the routine block it landed in.
+    day = next(line for line in preview.splitlines() if line.startswith('Your day today:'))
+    assert 'with the user, dinner at Ouzo Bay' in day and '19:00-21:00' in day
 
 
 def test_an_outing_still_finishes_after_a_long_absence(client, mira, provider, clock):
@@ -462,3 +468,14 @@ def test_driving_home_holds_a_reply_until_they_are_in(client, mira, monkeypatch,
         assert pacing.hold(connection, companion, clock.now(), 'seed')['held_until'] == stamp(back)
         monkeypatch.setattr(heading_home, 'heading', lambda *_args: {'by': 'bus', 'back_at': back})
         assert heading_home.held_until(connection, companion, clock.now()) is None
+
+
+def test_only_the_first_outing_is_called_the_first_time(client, mira, provider, clock):
+    send(client, 'Want to go to Ouzo Bay Wednesday?', 'client-out-first-1')
+    send(client, 'Drinks Friday?', 'client-out-first-2')
+    later = next(item for item in listing(client)['outings'] if item['local_date'] == '2026-10-09')
+    clock.advance(timedelta(days=4, hours=11))  # Friday 23:00: both are over.
+    reconcile(client)
+    preview = client.get('/api/context/preview').json()['prompt']
+    assert f"Earlier today ({later['at_time']}-{later['until_time']}) you and the user had" in preview
+    assert 'first time the two of you went out together' not in preview

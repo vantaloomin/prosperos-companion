@@ -35,7 +35,7 @@ def test_a_cli_without_app_server_falls_back_to_common_models(tmp_path, monkeypa
     script = tmp_path / 'old_codex.py'
     script.write_text('import sys\nsys.exit(2)\n')
     original = codex.app_server_models
-    monkeypatch.setattr(codex, 'app_server_models', lambda _command: original([sys.executable, str(script)]))
+    monkeypatch.setattr(codex, 'app_server_models', lambda _command, **_options: original([sys.executable, str(script)]))
     models, reported = asyncio.run(codex.codex_models('codex'))
     assert not reported
     assert [model['id'] for model in models] == list(codex.FALLBACK_MODELS)

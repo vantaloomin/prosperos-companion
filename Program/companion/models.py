@@ -421,6 +421,8 @@ class SettingsUpdate(Input):
     period_words: bool | None = None
     # Keep my colours everywhere (companion/their_look.py): no companion's own colours or name font anywhere.
     keep_my_colours: bool | None = None
+    # Look for Claude Code and Codex accounts on this PC (companion/providers/cli_accounts.py, Settings > Models).
+    find_cli_accounts: bool | None = None
     color_scheme: Literal['ink', 'slate', 'umber', 'moss', 'wine', 'ash', 'custom'] | None = None
     custom_palette: Palette | None = None
     # 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
@@ -565,6 +567,8 @@ class LifeSettingsUpdate(Input):
     waking_realism: int | None = Field(default=None, ge=0, le=3)
     # Getting together (companion/life/together.py): 0 never on their own, 1 light, 2 true to life, 3 often.
     together_realism: int | None = Field(default=None, ge=0, le=3)
+    # Moving on (companion/life/onward.py): 0 never, 1 now and then, 2 true to life, 3 often.
+    onward_realism: int | None = Field(default=None, ge=0, le=3)
     # Rough patches (companion/life/rough_patches.py): 0 off, 1 easy, 2 true to life, 3 dramatic.
     rough_patches_realism: int | None = Field(default=None, ge=0, le=3)
     # Next steps (companion/life/steps.py): 0 only when the user brings it up, 1 slow, 2 true to life, 3 fast.

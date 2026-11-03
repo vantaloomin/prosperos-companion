@@ -335,7 +335,7 @@ def busy(state) -> str | None:
         return 'A LoRA is training in this world. Switch when it has finished.'
     with state.database.connect() as connection:
         if optional(connection, 'SELECT id FROM debug_time WHERE id=1'):
-            return 'Debug time is on in this world. Return to real time in Settings > Debug first.'
+            return 'Debug time is on in this world. Return to real time in Settings > Data first.'
     return None
 
 
@@ -512,7 +512,7 @@ def create_world(database: Database, persona_id: str | None = None, name: str | 
                  watch: bool = False, year: int | None = None) -> dict:
     """A new world for a persona (the active one by default), in the current city unless another is named. `town`
     reuses a town's people instead of seeding new ones (Become a townsperson). `SOMEWHERE_NEW` lets the app pick.
-    `town_mix` is its townsfolk mix (Settings > Debug), else the current world's. `watch` starts it just watching
+    `town_mix` is its townsfolk mix (Settings > Data), else the current world's. `watch` starts it just watching
     (Watch a city, companion/observer.py). `year` starts it in a past year (Back when, companion/world_year.py)."""
     if year is not None:
         world_year.check(year, database.clock.real().date())

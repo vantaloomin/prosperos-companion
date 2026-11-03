@@ -15,11 +15,11 @@ export function foundOption(foundLabel: string, source: KindSource, you = false)
   return source === 'parents' ? `From their parents (${foundLabel})` : `As the app picks (${foundLabel})`
 }
 
-/** How long they live's first option: "As their kind (about 600 years)", "As their kind (doesn't age)"; "your kind"
- * on the Persona page. */
+/** How long they live's first option: "About 600 years (their kind)", "Doesn't age (their kind)"; "your kind" on the
+ * Persona page. The years lead, so a narrow select never cuts them off (Iris). */
 export function asKindOption(kindYears: number | null, you = false) {
   const whose = you ? 'your' : 'their'
-  return kindYears === null ? `As ${whose} kind (doesn't age)` : `As ${whose} kind (about ${yearsText(kindYears)})`
+  return kindYears === null ? `Doesn't age (${whose} kind)` : `About ${yearsText(kindYears)} (${whose} kind)`
 }
 
 const HUMAN_YEARS = 80

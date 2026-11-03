@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { badge, chatLabel, chatsButtonLabel, clampWidth, isOpen, othersUnread, preview, readThrough, unreadOf } from '../../src/features/chats/chatText.ts'
+import { badge, chatLabel, clampWidth, listButtonLabel, matching, newGroupNeeds, isOpen, othersUnread, preview, readThrough, unreadOf } from '../../src/features/chats/chatText.ts'
 
 test('a chat shows their latest message, or yours with "You:"', () => {
   assert.equal(preview({ name: 'Sally', last: { role: 'companion', text: 'Lunch?', at: '2026-10-08T12:00:00Z' } }), 'Lunch?')
@@ -17,8 +17,15 @@ test('the Chats button counts only what waits in the other chats', () => {
   assert.equal(isOpen(chats[0], { kind: 'group', id: 'g' }), false)
   assert.equal(unreadOf(chats, 'companion'), 5)
   assert.equal(unreadOf(chats, 'group'), 4)
-  assert.equal(chatsButtonLabel(2), 'Chats, 2 unread')
-  assert.equal(chatsButtonLabel(0), 'Chats')
+  assert.equal(listButtonLabel(true, 0), 'Hide the chat list')
+  assert.equal(listButtonLabel(false, 2), 'Show the chat list, 2 unread')
+  assert.equal(listButtonLabel(false, 0), 'Show the chat list')
+  assert.equal(newGroupNeeds(1), '2+ companions')
+  assert.equal(newGroupNeeds(2), undefined)
+  const named = [{ name: 'Maya Brooks' }, { name: 'Zoë Hale' }, { name: 'Friday crew' }]
+  assert.deepEqual(matching(named, 'zoe').map((chat) => chat.name), ['Zoë Hale'])
+  assert.deepEqual(matching(named, ' BRO ').map((chat) => chat.name), ['Maya Brooks'])
+  assert.equal(matching(named, '').length, 3)
   assert.equal(badge(7), '7')
   assert.equal(badge(140), '99+')
   assert.equal(chatLabel({ kind: 'companion', id: 's', name: 'Sally', unread: 1, focus: false }), 'Sally, 1 unread message')

@@ -5,7 +5,8 @@ import { api } from '../../api'
 import { shownPath, useRefetchOnFocus } from '../../paths'
 import type { ImageSettings as Limits, MemeSources } from '../../types'
 import { Notice } from '../../components/Feedback'
-import { TextInput, Toggle } from '../../components/Fields'
+import { InfoTip } from '../../components/InfoTip'
+import { SettingRow, SwitchRow } from '../../components/Rows'
 import { countText } from '../../components/numberBounds'
 
 const MEMES_KEY = ['image-memes']
@@ -19,16 +20,14 @@ export function MemeSettings({ data, save, phone }: { data: Limits; save: (chang
   useRefetchOnFocus(() => void sources.refetch(), !phone)
   const found = sources.data
   return (
-    <div className="form-stack meme-settings">
-      <div>
-        <h3 id="memes-heading">Memes and GIFs</h3>
-        <p className="subtle">Memes need no image backend. The app writes the captions from their day and picks a picture to go under them. With a backend above, some memes are made by it too.</p>
+    <section className="row-group meme-settings" aria-labelledby="memes-heading">
+      <h3 id="memes-heading" className="section-title">Memes and GIFs<InfoTip id="memes-tip" label="Memes and GIFs" text="Memes need no picture model. The app writes the captions from their day and picks a picture to go under them. With a model above, some memes are made by it too." /></h3>
+      <div className="row-list">
+        <SwitchRow label="Download classic meme formats" checked={data.meme_formats} onChange={(value) => void save({ meme_formats: value })} tip={formatsHint(found)} />
+        {found && (found.key_here ? <GifKey hasKey={found.gif_key} /> : <GifKeyOnPc hasKey={found.gif_key} />)}
+        {!phone && found && <OwnTemplates sources={found} />}
       </div>
-      <Toggle label="Download classic meme formats" checked={data.meme_formats} onChange={(value) => void save({ meme_formats: value })}
-        hint={formatsHint(found)} />
-      {found && (found.key_here ? <GifKey hasKey={found.gif_key} /> : <GifKeyOnPc hasKey={found.gif_key} />)}
-      {!phone && found && <OwnTemplates sources={found} />}
-    </div>
+    </section>
   )
 }
 
@@ -45,14 +44,14 @@ function OwnTemplates({ sources }: { sources: MemeSources }) {
     try { await api('/images/memes/folder/open', {}) } catch (error) { setProblem(failure(error, "Couldn't open the folder.")) }
   }
   return (
-    <div className="meme-folder">
-      <p className="meme-folder-line"><strong>Your meme templates</strong> <span className="subtle">{countText(sources.mine, 'picture', 'pictures', 'No pictures yet')}</span></p>
-      <p className="subtle">Put JPEG, PNG, WebP or GIF pictures in this folder and they're used for memes too, with the captions at the top and bottom. Memes also use a starter pack of {sources.pack} public-domain pictures that comes with the app.</p>
-      <div className="form-actions">
-        <button type="button" className="button" onClick={() => void open()}><FolderOpen size={15} aria-hidden="true" />Open folder</button>
-        <small className="subtle meme-folder-path">{shownPath(sources.folder)}</small>
-      </div>
-      {problem && <Notice tone="error">{problem}</Notice>}
+    <div className="setting-row meme-folder">
+      <span className="fold-text">
+        <span className="setting-row-label">Your meme templates<InfoTip id="meme-folder-tip" label="Your meme templates"
+          text={`Put JPEG, PNG, WebP or GIF pictures in this folder and they're used for memes too, with the captions at the top and bottom. Memes also use a starter pack of ${sources.pack} public-domain pictures that comes with the app.`} /></span>
+        <span className="row-sub meme-folder-path">{countText(sources.mine, 'picture', 'pictures', 'No pictures yet')} · {shownPath(sources.folder)}</span>
+        {problem && <Notice tone="error">{problem}</Notice>}
+      </span>
+      <button type="button" className="text-button" onClick={() => void open()}><FolderOpen size={15} aria-hidden="true" />Open folder</button>
     </div>
   )
 }
@@ -60,9 +59,9 @@ function OwnTemplates({ sources }: { sources: MemeSources }) {
 /** Over home Wi-Fi, which is not encrypted, the key is added on the PC instead (companion/images/routes.py). */
 function GifKeyOnPc({ hasKey }: { hasKey: boolean }) {
   return (
-    <div className="form-stack">
-      <p className="meme-folder-line"><strong>Reaction GIFs</strong> <span className="subtle">{hasKey ? 'On' : 'Off'}</span></p>
-      <p className="subtle">Your GIPHY key is added on your PC, in Settings &gt; Images, or on this phone over Tailscale. Home Wi-Fi is not encrypted, so keys are never sent over it.</p>
+    <div className="setting-row">
+      <span className="setting-row-label">Reaction GIFs<InfoTip id="gif-pc-tip" label="Reaction GIFs" text="Your GIPHY key is added on your PC, in Settings > Pictures, or on this phone over Tailscale. Home Wi-Fi is not encrypted, so keys are never sent over it." /></span>
+      <span className="row-value">{hasKey ? 'On' : 'Off'}</span>
     </div>
   )
 }
@@ -79,16 +78,15 @@ function GifKey({ hasKey }: { hasKey: boolean }) {
       setResult({ tone: 'info', text: done })
     } catch (error) { setResult({ tone: 'error', text: failure(error, 'Not saved.') }) }
   }
-  return (
-    <div className="form-stack">
-      <TextInput label="GIPHY key" type="password" value={draft} onChange={setDraft} maxLength={200}
-        placeholder={hasKey ? 'Saved; type a new one to replace it' : ''} tip={GIF_TIP}
-        hint="Add your own free GIPHY key and your companions can send reaction GIFs. Without one, they still send memes." />
-      <div className="form-actions">
-        {draft.trim() && <button type="button" className="button primary" onClick={() => void store(draft.trim(), 'Saved. Reaction GIFs are on.')}>Save key</button>}
-        {hasKey && !draft && <button type="button" className="button" onClick={() => void store('', 'Key removed. Reaction GIFs are off.')}>Remove key</button>}
-      </div>
-      {result && <Notice tone={result.tone}>{result.text}</Notice>}
-    </div>
-  )
+  return <>
+    <SettingRow label="GIPHY key" tip={`Add your own free GIPHY key and your companions can send reaction GIFs. Without one, they still send memes. ${GIF_TIP}`}>
+      {(id) => <span className="key-row">
+        <input id={id} type="password" autoComplete="off" value={draft} maxLength={200} placeholder={hasKey ? 'Saved' : 'Paste a key'} onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => { if (event.key === 'Enter' && draft.trim()) { event.preventDefault(); void store(draft.trim(), 'Saved. Reaction GIFs are on.') } }} />
+        {draft.trim() && <button type="button" className="text-button" onClick={() => void store(draft.trim(), 'Saved. Reaction GIFs are on.')}>Save</button>}
+        {hasKey && !draft && <button type="button" className="text-button" onClick={() => void store('', 'Key removed. Reaction GIFs are off.')}>Remove</button>}
+      </span>}
+    </SettingRow>
+    {result && <div className="setting-row row-note"><Notice tone={result.tone}>{result.text}</Notice></div>}
+  </>
 }

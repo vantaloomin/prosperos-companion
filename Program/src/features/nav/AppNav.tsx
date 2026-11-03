@@ -1,9 +1,8 @@
 import { Fragment, useEffect, useRef } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Lightbulb, Settings as SettingsIcon, UserPlus, UserRound, UsersRound } from 'lucide-react'
+import { BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Settings as SettingsIcon, UserPlus, UserRound } from 'lucide-react'
 import type { View } from '../../companion'
 import { badge } from '../chats/chatText'
 import { WorldButton } from '../worlds/WorldButton'
-import { toggleSidecar } from '../sidecar/toggle'
 import { chatsTarget, inChats, railCurrent } from './navText'
 import { useEraWords } from '../world/useEraWords'
 import { isActive, navLabel, percent, type ReadyView } from '../ready/readyText'
@@ -11,19 +10,18 @@ import { useReady, useReadyActions } from '../ready/useReady'
 
 /**
  * The views. The desktop side rail shows all of them; the phone's tab bar (`rail-only` hidden) keeps Today, Story,
- * Matchlight and Settings, with Chats in place of the rail's Chats, Groups and Memories (navText.ts). The rail's
- * Chats opens the companion's Messages; their Posts, Memories and Character are tabs above it, and keep it lit. While the user is just
+ * Matchlight and Settings, with its own Chats tab (navText.ts). Group chats are in the Chats list on both. The rail's
+ * Chats opens the companion's chat; their profile (Posts, Memories, Character) opens from their name and keeps Chats
+ * lit, so Memories left the rail in 1.3. While the user is just
  * watching, Watching takes Matchlight's place (Matchlight waits meanwhile), so the phone still has five tabs.
  */
 type NavView = { id: View; label: string; icon: typeof UserRound; railOnly?: boolean }
 const WATCHING: NavView = { id: 'watch', label: 'Watching', icon: Eye }
 const VIEWS: NavView[] = [
   { id: 'conversation', label: 'Chats', icon: MessageCircle, railOnly: true },
-  { id: 'groups', label: 'Groups', icon: UsersRound, railOnly: true },
   { id: 'dating', label: 'Matchlight', icon: Heart },
   { id: 'story', label: 'Story', icon: BookOpen },
   { id: 'today', label: 'Today', icon: CalendarDays },
-  { id: 'memories', label: 'Memories', icon: BookHeart, railOnly: true },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ]
 
@@ -35,13 +33,12 @@ interface Props {
   /** Matchlight is a phone app to install there (not a website, the paper or the matchmaker). */
   datingApp?: boolean
   unread: { companion: number; group: number }
-  sidecarOpen: boolean
-  sidecarWaiting: boolean
   watching?: boolean
 }
 
-export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, unread, sidecarOpen, sidecarWaiting, watching }: Props) {
-  const counts: Partial<Record<string, number>> = { conversation: unread.companion, groups: unread.group }
+export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, unread, watching }: Props) {
+  // Group chats share the Chats list now, so the rail's Chats counts both, as the phone's tab does.
+  const counts: Partial<Record<string, number>> = { conversation: unread.companion + unread.group }
   const ready = useSettingsMark(view)
   // Matchlight goes by the era's name: the Personals in 1895, the Matchmaker in Camelot (eraWords.ts).
   const dating = useEraWords().dating_tab
@@ -51,10 +48,6 @@ export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, u
       <ChatsTab view={view} go={go} unread={unread.companion + unread.group} />
       {VIEWS.map((item) => watching && item.id === 'dating' ? WATCHING : item).filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon, railOnly }) => (
         <Fragment key={id}>
-          {/* The sidecar opens beside any view, so it is a toggle rather than a view. On a phone it is in the chat header. */}
-          {id === 'settings' && <button type="button" className="nav-sidecar rail-only" aria-pressed={sidecarOpen} onClick={() => toggleSidecar(sidecarOpen)}>
-            <Lightbulb aria-hidden="true" />{sidecarWaiting && <span className="nav-dot" aria-label="something waiting" />}<span>Sidecar</span>
-          </button>}
           <button type="button" className={`nav-${id}${railOnly ? ' rail-only' : ''}`} aria-current={railCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}
             aria-label={id === 'settings' ? navLabel(ready) : undefined}>
             <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <DatingBadge app={datingApp} />}

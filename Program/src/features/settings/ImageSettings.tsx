@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Lock, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import { useRefetchOnFocus } from '../../paths'
 import { usePhoneStatus } from '../phone/phoneAccess'
+import type { WorkspaceSettings } from '../../types'
 import type { BackendCheck, BackendFiles, BackendKind, HostedProvider, ImageBackend, ImageBackendList, ImageFamily, ImageSettings as Limits, ModelFiles, ModelLink, SamplerSettings, StyleLora } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { InfoTip } from '../../components/InfoTip'
+import { CountStepper, FoldRow, RowGroup, SettingRow, SwitchRow } from '../../components/Rows'
+import { SETTINGS_KEY as WORKSPACE_KEY, useWorkspaceSettings } from '../../companion'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { BACKEND_KINDS, NSFW_PROVIDERS, PROVIDERS, disclosureFor } from '../feed/imageState'
@@ -19,8 +23,7 @@ import { ImageModelField } from './ImageModelField'
 import { LaunchFor } from './models/LocalPrograms'
 import { imageKeyFrom } from './models/discovery'
 import type { ModelsOverview } from './models/types'
-import { SliderField, SliderNumber } from '../../components/NumberFields'
-import { countText } from '../../components/numberBounds'
+import { SliderNumber } from '../../components/NumberFields'
 
 const SETTINGS_KEY = ['image-settings']
 const BACKENDS_KEY = ['image-backends']
@@ -45,16 +48,10 @@ export function ImageSettings() {
   if (!settings.data || !backends.data) return <SectionPending queries={[settings, backends]} heading="images-heading" title="Images" />
   const data = settings.data
   const list = backends.data.backends
-  const hasLocal = list.some((backend) => backend.enabled && backend.accepts_nsfw)
   return (
-    <section className="settings-section form-stack" aria-labelledby="images-heading">
-      <div>
-        <h2 id="images-heading">Images</h2>
-        <p className="subtle">Feed posts can have an illustration. Every request is checked on this computer first. NSFW requests only go to a ComfyUI server on this computer, or to an image API you switched to take NSFW; Codex, Google and the OpenAI API only ever receive safe requests, and some things are never made anywhere.</p>
-      </div>
-      {list.length === 0 && <p className="subtle">No image backend is set up yet. Posts stay text-only until you add one.</p>}
-      {list.length > 0 && !hasLocal && <p className="subtle">No enabled backend takes NSFW requests, so they will be refused.</p>}
-      <Backends list={list} refresh={refresh} setResult={setResult} phone={onPhone} />
+    <section className="form-stack pictures-settings" aria-labelledby="images-heading">
+      <h2 id="images-heading" className="visually-hidden">Pictures</h2>
+      <Backends list={list} data={data} save={save} refresh={refresh} setResult={setResult} phone={onPhone} />
       <WorldImagePick list={list} world={backends.data.world} refresh={refresh} setResult={setResult} />
       <ImageControls data={data} save={save} />
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
@@ -63,57 +60,106 @@ export function ImageSettings() {
   )
 }
 
-/** The backends in the order they are tried, each with its controls, and adding another. */
-function Backends({ list, refresh, setResult, phone }: { list: ImageBackend[]; refresh: () => Promise<unknown>; setResult: (result: Result) => void; phone: boolean }) {
+/** What each model may receive, said once behind the heading's "?" and per model by its chip. */
+const SAFETY = 'Every request is checked on this computer first. Adult requests only go to a ComfyUI server on this computer, or to an image API you switched to take them; Codex, Google and the OpenAI API only ever receive safe requests, and some things are never made anywhere. Models are tried in this order.'
+const ON_PHONE = 'On a phone you can add OpenRouter, Google, the OpenAI API, NanoGPT or NovelAI. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings > Pictures, since those name addresses and programs on the PC.'
+
+interface BackendsProps { list: ImageBackend[]; data: Limits; save: Save; refresh: () => Promise<unknown>; setResult: (result: Result) => void; phone: boolean }
+
+/** Picture models in the order they are tried, each folding out to its controls, then the fallback switch and Add. */
+function Backends({ list, data, save, refresh, setResult, phone }: BackendsProps) {
   const [adding, setAdding] = useState(false)
   const addButton = useReturnFocus<HTMLButtonElement>(adding)
   const hardware = useHardware()
+  const hasLocal = list.some((backend) => backend.enabled && backend.accepts_nsfw)
+  return (
+    <section className="row-group" aria-labelledby="picture-models-heading">
+      <div className="row-group-head">
+        <h3 id="picture-models-heading" className="section-title">Picture models<InfoTip id="picture-models-tip" label="Picture models" text={phone ? `${SAFETY} ${ON_PHONE}` : SAFETY} /></h3>
+        {!adding && <button ref={addButton} type="button" className="text-button add-button" onClick={() => setAdding(true)}><Plus aria-hidden="true" />Add</button>}
+      </div>
+      <div className="row-list">
+        {list.length === 0
+          ? <p className="setting-row row-empty">No picture model yet. Posts stay text-only until you add one.</p>
+          : <ol className="backend-list">{list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} phone={phone} />)}</ol>}
+        {list.length > 1 && <SwitchRow label="If one fails, try the next" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
+          tip="Only to a model allowed to receive that request." />}
+      </div>
+      {list.length > 0 && !hasLocal && <p className="subtle">No model that's on takes adult requests, so they are refused.</p>}
+      {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
+      {adding && <AddBackend phone={phone} onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />}
+    </section>
+  )
+}
+
+type Save = (change: Partial<Limits>, done?: string) => Promise<boolean>
+
+/** Pictures in chat, with what depends on it nested under it; then pictures for new posts, which need the world
+ * running in the background, a daily limit, the shape and the style every prompt starts with. */
+function ImageControls({ data, save }: { data: Limits; save: Save }) {
   return <>
-    <ol className="backend-list">
-      {list.map((backend, index) => <BackendRow key={backend.id} backend={backend} index={index} count={list.length} refresh={refresh} setResult={setResult} phone={phone} />)}
-    </ol>
-    {hardware.data && <HardwareWarnings warnings={hardware.data.warnings} area="images" />}
-    {phone && <p className="subtle">On a phone you can add OpenRouter, Google, the OpenAI API, NanoGPT or NovelAI. A ComfyUI server, Codex, or an image API at an address of your own is added on your PC, in Settings &gt; Images, since those name addresses and programs on the PC.</p>}
-    {adding ? <AddBackend phone={phone} onDone={() => { setAdding(false); void refresh() }} setResult={setResult} />
-      : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => setAdding(true)}>Add an image backend</button></div>}
+    <RowGroup id="chat-pictures-heading">
+      <SwitchRow label="Pictures in chat" checked={data.chat_photos} onChange={(value) => void save({ chat_photos: value })}
+        tip="Ask what they're up to, or for a selfie or a meme, and they can answer with a picture. A photo of the moment is also that moment's feed picture. Photos and selfies are made by the models above under the same content rules; memes and GIFs work without one (below).">
+        <SwitchRow nested label="Unasked pictures" checked={data.unprompted_photos} onChange={(value) => void save({ unprompted_photos: value })}
+          tip="Now and then a reply comes with a photo or a meme, a few a day at most. If they may message you first (Settings > World), they sometimes text a photo of what they're out doing, once a day at most." />
+      </SwitchRow>
+      <SwitchRow label="Keep their face from the profile picture" checked={data.follow_profile_picture} onChange={(value) => void save({ follow_profile_picture: value })}
+        tip="New pictures of them start from their profile picture, so they look like the same person every time. Only on models that can take a reference picture. A LoRA you adopted for them is used instead. This world only." />
+      <SwitchRow label="Show me in pictures we're in together" checked={data.show_me} onChange={(value) => void save({ show_me: value })}
+        tip="Pictures of an outing, a visit or an evening at home together show you beside them, from How you look and your picture on the Persona page. This world only." />
+    </RowGroup>
+    <RowGroup id="post-pictures-heading">
+      <PostPictures data={data} save={save}>
+        <SettingRow nested label="Most a day" tip="Automatic pictures for new posts stop here for the day.">
+          {(id, disabled) => <CountStepper id={id} label="Most a day" value={data.daily_limit} min={0} max={24} disabled={disabled} format={(value) => (value === 0 ? 'None' : String(value))} onChange={(value) => void save({ daily_limit: value })} />}
+        </SettingRow>
+      </PostPictures>
+    </RowGroup>
+    <RowGroup id="every-picture-heading" label="Every picture">
+      <SettingRow label="Shape" tip="For post pictures and photos in chat. Memes a model makes are square; the rest keep their picture's shape.">
+        {(id) => <ShapePick id={id} value={data.aspect} onChange={(aspect) => void save({ aspect })} />}
+      </SettingRow>
+      <StyleRow saved={data.style} save={(style) => save({ style }, 'Saved.')} />
+    </RowGroup>
   </>
 }
 
-function ImageControls({ data, save }: { data: Limits; save: (change: Partial<Limits>, done?: string) => Promise<boolean> }) {
-  const [style, setStyle] = useState<string | null>(null)
-  const saveDrafts = async () => {
-    if (style !== null && await save({ style }, 'Saved.')) setStyle(null)
-  }
-  return <>
-      <Toggle label="Make images for new posts automatically" checked={data.automatic_images} onChange={(value) => void save({ automatic_images: value })}
-        hint="Needs background activity on. Only covers posts written from now on, never catch-up summaries, and stops at the daily limit." />
-      <Toggle label="Send photos, selfies and memes in chat" checked={data.chat_photos} onChange={(value) => void save({ chat_photos: value })}
-        hint="Ask what they're up to, or for a selfie or a meme, and they can answer with a picture. A photo of the moment is also that moment's feed picture. Photos and selfies are made by the backends above under the same content rules; memes and GIFs work without one (below)." />
-      <Toggle label="Let them send pictures without being asked" checked={data.unprompted_photos} disabled={!data.chat_photos} onChange={(value) => void save({ unprompted_photos: value })}
-        hint="Now and then a reply comes with a photo or a meme, a few a day at most. If they may message you first (Life & cities), they sometimes text a photo of what they're out doing, once a day at most." />
-      <Toggle label="Keep their face from their profile picture" checked={data.follow_profile_picture} onChange={(value) => void save({ follow_profile_picture: value })}
-        hint="New pictures of them start from their profile picture, so they look like the same person every time. Only on backends that can take a reference picture. A LoRA you adopted for them is used instead. This world only." />
-      <Toggle label="Show me in pictures we're in together" checked={data.show_me} onChange={(value) => void save({ show_me: value })}
-        hint="Pictures of an outing, a visit or an evening at home together show you beside them, from How you look and your picture on the Persona page. This world only." />
-      <Toggle label="If a backend fails, try the next one" checked={data.fallback} onChange={(value) => void save({ fallback: value })}
-        hint="Only to a backend allowed to receive that request." />
-      <div className="form-grid">
-        <SliderField label="Most automatic images a day" value={data.daily_limit} min={0} max={24} format={(value) => countText(value, 'image', 'images', 'None')}
-          onChange={(value) => void save({ daily_limit: value }, 'Saved.')} />
-        <Field label="Shape" hint="For post pictures and photos in chat. Memes a backend makes are square; the rest keep their picture's shape.">{(id, hint) => (
-          <select id={id} aria-describedby={hint} value={data.aspect} onChange={(event) => void save({ aspect: event.target.value as Limits['aspect'] })}>
-            <option value="landscape">Landscape</option><option value="square">Square</option><option value="portrait">Portrait</option>
-          </select>
-        )}</Field>
-      </div>
-      <TextInput label="Style" value={style ?? data.style} maxLength={500} placeholder="Candid, natural-light photograph" hint="Starts every image prompt, unless a backend above has its own style." onChange={setStyle} />
-      {style !== null && (
-        <div className="form-actions">
-          <button type="button" className="button primary" onClick={() => void saveDrafts()}>Save</button>
-          <button type="button" className="button" onClick={() => setStyle(null)}>Cancel</button>
-        </div>
-      )}
-  </>
+/** Pictures for new posts only run with the world going in the background; while it isn't, the row says so with a
+ * link that turns it on. */
+function PostPictures({ data, save, children }: { data: Limits; save: Save; children: ReactNode }) {
+  const client = useQueryClient()
+  const workspace = useWorkspaceSettings().data
+  const off = workspace ? !workspace.background_activity : false
+  const turnOn = async () => client.setQueryData(WORKSPACE_KEY, await api<WorkspaceSettings>('/settings', { background_activity: true }, 'PUT'))
+  return <SwitchRow label="Pictures for new posts" checked={data.automatic_images} disabled={off} onChange={(value) => void save({ automatic_images: value })}
+    extra={off ? <button type="button" className="text-button row-link" onClick={() => void turnOn()}>Needs background on</button> : undefined}
+    tip="Only covers posts written from now on, never catch-up summaries, and stops at the daily limit.">{children}</SwitchRow>
+}
+
+const SHAPES: { id: Limits['aspect']; label: string }[] = [{ id: 'landscape', label: 'Landscape' }, { id: 'square', label: 'Square' }, { id: 'portrait', label: 'Portrait' }]
+
+function ShapePick({ id, value, onChange }: { id: string; value: Limits['aspect']; onChange: (value: Limits['aspect']) => void }) {
+  return <span className="segmented row-segmented" id={id} role="radiogroup" aria-label="Shape">
+    {SHAPES.map((shape) => (
+      <label key={shape.id}>
+        <input type="radio" className="visually-hidden" name={`${id}-shape`} value={shape.id} checked={value === shape.id} onChange={() => onChange(shape.id)} />
+        <span>{shape.label}</span>
+      </label>
+    ))}
+  </span>
+}
+
+/** The style every prompt starts with, saved when you leave the box or press Enter (settings save on change). */
+function StyleRow({ saved, save }: { saved: string; save: (style: string) => Promise<boolean> }) {
+  const [style, setStyle] = useState(saved)
+  const commit = () => { if (style.trim() !== saved.trim()) void save(style) }
+  return (
+    <SettingRow stacked label="Style" tip="Starts every picture prompt, unless a model above has its own style.">
+      {(id) => <input id={id} className="style-input" value={style} maxLength={500} autoComplete="off" placeholder="Candid, natural-light photograph"
+        onChange={(event) => setStyle(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); commit() } }} />}
+    </SettingRow>
+  )
 }
 
 /** A paired phone changes an image API's name, key and model, never an address or program (companion/images/routes.py). */
@@ -135,6 +181,8 @@ function BackendSetup({ backend, phone, put, putWorkflow }: { backend: ImageBack
 function BackendRow({ backend, index, count, refresh, setResult, phone }: { backend: ImageBackend; index: number; count: number; refresh: () => Promise<unknown>; setResult: (result: Result) => void; phone: boolean }) {
   const [check, setCheck] = useState<BackendCheck | null>(null)
   const [busy, setBusy] = useState(false)
+  // Opens by itself when something needs the user: a blocked model, or terms to accept before it is on.
+  const [open, setOpen] = useState(Boolean(backend.blocked_reason))
   // Busy controls are marked, not disabled: disabling the focused control would drop keyboard focus.
   const act = async (action: () => Promise<unknown>) => {
     if (busy) return false
@@ -144,19 +192,19 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
   const pending = Boolean(backend.disclosure && !backend.disclosure_accepted)
   return (
     <li className="backend-row">
-      <BackendSummary backend={backend} />
+      <FoldRow summary={backend.label} sub={summaryLine(backend)} value={<BackendChips backend={backend} />} open={open} onToggle={setOpen}>
       {backend.blocked_reason && (
         <Notice tone="error" action={<button type="button" className="button" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}/unblock`, {}))}>{backend.kind === 'codex' ? 'Signed in again' : 'Try again'}</button>}>
           {backend.blocked_reason}
         </Notice>
       )}
       {pending && <p className="subtle">{backend.disclosure}</p>}
-      <Toggle label="Enabled" checked={backend.enabled}
-        onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { enabled: value, accept_disclosure: value && pending ? true : undefined }, 'PUT'))}
-        hint={pending ? 'Turning it on accepts what it receives, described above.' : undefined} />
-      {backend.nsfw_switch && <Toggle label="Also take NSFW requests" checked={backend.allows_nsfw}
-        onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { allows_nsfw: value, accept_disclosure: value || undefined }, 'PUT'))}
-        hint={backend.allows_nsfw ? 'NSFW requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow NSFW images. Turning it on accepts that NSFW requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
+        <SwitchRow label="On" checked={backend.enabled}
+          onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { enabled: value, accept_disclosure: value && pending ? true : undefined }, 'PUT'))}
+          tip={pending ? 'Turning it on accepts what it receives, described above.' : undefined} />
+        {backend.nsfw_switch && <SwitchRow label="Also take adult requests" checked={backend.allows_nsfw}
+          onChange={(value) => void act(() => api(`/images/backends/${backend.id}`, { allows_nsfw: value, accept_disclosure: value || undefined }, 'PUT'))}
+          tip={backend.allows_nsfw ? 'Adult requests go to this provider under its terms. Prohibited requests are never sent.' : 'Only for a provider whose terms allow adult images. Turning it on accepts that adult requests go to this provider and its terms decide what it makes and keeps. Every request is still checked on this computer first, and prohibited ones are never sent.'} />}
       {backend.kind === 'comfyui' && <FamilyPicker backend={backend} save={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))} />}
       <BackendSetup backend={backend} phone={phone} put={(body) => act(() => api(`/images/backends/${backend.id}`, body, 'PUT'))}
         putWorkflow={async (body) => {
@@ -171,6 +219,7 @@ function BackendRow({ backend, index, count, refresh, setResult, phone }: { back
         <button type="button" className="text-button danger-text" aria-disabled={busy} onClick={() => void act(() => api(`/images/backends/${backend.id}`, undefined, 'DELETE'))}><Trash2 aria-hidden="true" />Remove</button>
         <LaunchFor id={backend.id} />
       </div>
+      </FoldRow>
     </li>
   )
 }
@@ -234,20 +283,19 @@ function BackendConnection({ backend, save }: { backend: ImageBackend; save: (bo
   const hosted = backend.kind === 'hosted'
   const store = async () => { if (await save(connectionBody(backend, draft))) setDraft((current) => ({ ...current, apiKey: '' })) }
   return (
-    <details>
-      <summary className="subtle">Connection</summary>
-      <div className="form-stack">
+    <FoldRow nested summary="Connection" value={whereLine(backend)}>
+      <div className="form-stack sub-fold-body">
         <TextInput label="Name" value={draft.label} onChange={set('label')} />
-        {hosted && <TextInput label="API key" type="password" value={draft.apiKey} onChange={set('apiKey')} placeholder={backend.has_key ? 'Saved; type a new one to replace it' : backend.key_from ? `Using the key saved with ${backend.key_from}` : ''} hint={backend.key_from ? 'Type a key only to use a different one here.' : "Saved in your system's credential store."} />}
+        {hosted && <TextInput label="API key" type="password" value={draft.apiKey} onChange={set('apiKey')} placeholder={backend.has_key ? 'Saved; type a new one to replace it' : backend.key_from ? `Using the key saved with ${backend.key_from}` : ''} tip={backend.key_from ? 'Type a key only to use a different one here.' : "Saved in your system's credential store."} />}
         <AddressField backend={backend} draft={draft} onChange={set('baseUrl')} />
         {hosted && <ImageModelField provider={backend.provider} baseUrl={draft.baseUrl} apiKey={draft.apiKey} backendId={backend.id} value={draft.model} onChange={set('model')} />}
-        {backend.kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={draft.cliPath} onChange={set('cliPath')} hint="Found on PATH when empty." />}
+        {backend.kind === 'codex' && <TextInput label="Codex CLI location (optional)" value={draft.cliPath} onChange={set('cliPath')} tip="Found on PATH when empty." />}
         {connectionChanged(backend, draft) && <div className="form-actions">
           <button type="button" className="button primary" onClick={() => void store()}>Save connection</button>
           <button type="button" className="button" onClick={() => setDraft(connectionDraft(backend))}>Cancel</button>
         </div>}
       </div>
-    </details>
+    </FoldRow>
   )
 }
 
@@ -272,13 +320,12 @@ function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: 
   const general = useQuery({ queryKey: SETTINGS_KEY, queryFn: () => api<Limits>('/images/settings') }).data?.style
   const [draft, setDraft] = useState<string | null>(null)
   const store = async (value: string) => { if (await save(value)) setDraft(null) }
-  const { fallback, hint, reset } = styleFallback(backend)
+  const { hint, reset } = styleFallback(backend)
   return (
-    <details>
-      <summary className="subtle">Prompt style {backend.style ? '(its own)' : `(${fallback})`}</summary>
-      <div className="form-stack">
+    <FoldRow nested summary="Prompt style" value={backend.style ? 'Its own' : backend.family_style ? "Model's own" : 'General'}>
+      <div className="form-stack sub-fold-body">
         <TextArea grows label="Style for this backend" value={draft ?? backend.style} maxLength={500}
-          placeholder={backend.family_style || general || 'Candid, natural-light photograph'} hint={hint} onChange={setDraft} />
+          placeholder={backend.family_style || general || 'Candid, natural-light photograph'} tip={hint} onChange={setDraft} />
         <div className="form-actions">
           {draft !== null && <>
             <button type="button" className="button primary" onClick={() => void store(draft)}>Save style</button>
@@ -287,7 +334,7 @@ function BackendStyle({ backend, save }: { backend: ImageBackend; save: (style: 
           {backend.style && draft === null && <button type="button" className="text-button" onClick={() => void store('')}>{reset}</button>}
         </div>
       </div>
-    </details>
+    </FoldRow>
   )
 }
 
@@ -309,16 +356,14 @@ function FamilyPicker({ backend, save }: { backend: ImageBackend; save: (body: o
     if (!(await save({ family: next })) || !before) return setUndo(null)
     setUndo({ to: FAMILIES[next].sampling, body: before, before: was, after: null })
   }
-  return <div className="form-stack family-picker">
-    <Field label="Model family" hint={familyHint(family, backend.custom_workflow, fitLine(backend.model_fit, backend.model_files, biggestCard(hardware.data)))}>{(id, describedBy) => (
-      <select id={id} aria-describedby={describedBy} value={backend.family ?? 'krea2'} onChange={(event) => void choose(event.target.value as ImageFamily)}>
+  return <>
+    <SettingRow label="Model family" tip={[familyHint(family, backend.custom_workflow, fitLine(backend.model_fit, backend.model_files, biggestCard(hardware.data))), !backend.reference_workflow && family.reference].filter(Boolean).join(' ')}>{(id) => (
+      <select id={id} value={backend.family ?? 'krea2'} onChange={(event) => void choose(event.target.value as ImageFamily)}>
         {FAMILY_KEYS.map((key) => <option key={key} value={key}>{FAMILIES[key].label}</option>)}
       </select>
-    )}</Field>
-    {/* Its own muted line, so the sentence above reads the same for every family (Iris). */}
-    {family.reference && !backend.reference_workflow && <p className="subtle family-reference">{family.reference}</p>}
+    )}</SettingRow>
     {shown && <div className="family-undo"><Notice action={<button type="button" className="text-button" onClick={() => void save(shown.body).then(() => setUndo(null))}>Undo</button>}>Switched to {shown.to} defaults.</Notice></div>}
-  </div>
+  </>
 }
 
 /** The memory of this computer's biggest graphics card, which the app picks model files for. */
@@ -355,20 +400,18 @@ function ModelFilePicker({ backend, saved, save }: { backend: ImageBackend; save
   const shown = shownFiles(family.slots, draft, saved, server.defaults)
   const store = async (body: ModelFiles) => { if (await save(body)) setDraft({}) }
   return (
-    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="subtle">Model files for the built-in workflow {filesLabel(saved, backend.model_fit)}</summary>
-      <div className="form-stack">
-        <p className="subtle">Pick the files your ComfyUI server has. The lists come from the server at this backend's address; nothing is downloaded or installed.</p>
+    <FoldRow nested summary="Model files" value={filesLabel(saved, backend.model_fit)} onToggle={setOpen}>
+      <div className="form-stack sub-fold-body">
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its files…</p>}
         {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
-        {hasMatching(server.matching) && <Toggle label={`Only ${family.short} files`} checked={familyOnly} onChange={setFamilyOnly}
-          hint={`Files whose name or folder says ${family.looks}. Turn off to see every file.`} />}
+        {hasMatching(server.matching) && <SwitchRow label={`Only ${family.short} files`} checked={familyOnly} onChange={setFamilyOnly}
+          tip={`Files whose name or folder says ${family.looks}. Turn off to see every file. The lists come from your ComfyUI server; nothing is downloaded or installed.`} />}
         {server.answered && <FileSlots slots={family.slots} server={server} familyOnly={familyOnly} shown={shown} start={shownFiles(family.slots, {}, saved, server.defaults)} onChange={(key, value) => setDraft({ ...draft, [key]: value })} />}
         <FileActions changed={Object.keys(draft).length > 0} chosen={isChosen(saved)} busy={files.isFetching}
           save={() => void store(filesBody(family.slots, shown, server.defaults))} cancel={() => setDraft({})} reset={() => void store(noChoice(family.slots))} refresh={() => void files.refetch()} />
         <ModelLinks links={links.data?.links ?? []} family={backend.family} />
       </div>
-    </details>
+    </FoldRow>
   )
 }
 
@@ -391,9 +434,12 @@ function FileActions({ changed, chosen, busy, save, cancel, reset, refresh }: Fi
     </>}
     {chosen && <button type="button" className="text-button" onClick={reset}>Use the defaults</button>}
     {/* Marked busy, not disabled, so keyboard focus stays on it. */}
-    <button type="button" className="text-button" aria-disabled={busy} onClick={() => { if (!busy) refresh() }}><RefreshCw aria-hidden="true" />Refresh list</button>
+    <button type="button" className="icon-button refresh-list" aria-label="Refresh list" title="Refresh list" aria-disabled={busy} onClick={() => { if (!busy) refresh() }}><RefreshCw aria-hidden="true" /></button>
   </div>
 }
+
+/** A file's name without its folder, so a long path never cuts off in a select on a phone (Iris); the option's title has it all. */
+const fileName = (path: string) => path.split(/[\\/]/).pop() ?? path
 
 /** A ComfyUI server's model files (built-in workflow only) and style LoRAs (any workflow). */
 function ComfyFiles({ backend, put }: { backend: ImageBackend; put: (body: object) => Promise<boolean> }) {
@@ -418,20 +464,18 @@ function SamplerPicker({ backend, saved, save }: { backend: ImageBackend; saved:
   const store = async (body: object) => { if (await save(body)) setDraft({}) }
   const slot = (label: string, hint: string): FileSlot => ({ key: 'unet_name', label, role: null, hint })
   return (
-    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="subtle">Sampling {isTuned(saved) ? '(your settings)' : `(${family.sampling} defaults)`}</summary>
-      <div className="form-stack">
-        <p className="subtle">Starts on {family.sampling}'s settings: {defaults.steps} steps, CFG {defaults.cfg}, {defaults.sampler_name} and {defaults.scheduler}. Change them when your model's page recommends others.</p>
+    <FoldRow nested summary="Sampling" value={isTuned(saved) ? 'Your settings' : `${family.sampling} defaults`} onToggle={setOpen}>
+      <div className="form-stack sub-fold-body">
         <div className="form-grid">
-          <SliderNumber label="Steps" value={shown.steps} min={1} max={100} step={1} hint={family.steps} onChange={(steps) => setDraft({ ...draft, steps })} />
-          <SliderNumber label="CFG" value={shown.cfg} min={0} max={30} step={0.5} hint="At 1 the negative prompt is ignored." onChange={(cfg) => setDraft({ ...draft, cfg })} />
+          <SliderNumber label="Steps" value={shown.steps} min={1} max={100} step={1} tip={`${family.steps} ${family.sampling} starts on ${defaults.steps}.`} onChange={(steps) => setDraft({ ...draft, steps })} />
+          <SliderNumber label="CFG" value={shown.cfg} min={0} max={30} step={0.5} tip={`At 1 the negative prompt is ignored. ${family.sampling} starts on ${defaults.cfg}.`} onChange={(cfg) => setDraft({ ...draft, cfg })} />
           <FileField slot={slot('Sampler', 'From ComfyUI\'s KSampler.')} options={server.options.sampler_name} matching={[]} value={shown.sampler_name} start={shownSampler({}, saved, defaults).sampler_name} fallback={defaults.sampler_name ?? ''} onChange={(value) => setDraft({ ...draft, sampler_name: value })} />
           <FileField slot={slot('Scheduler', 'From ComfyUI\'s KSampler.')} options={server.options.scheduler} matching={[]} value={shown.scheduler} start={shownSampler({}, saved, defaults).scheduler} fallback={defaults.scheduler ?? ''} onChange={(value) => setDraft({ ...draft, scheduler: value })} />
         </div>
         <FileActions changed={Object.keys(draft).length > 0} chosen={isTuned(saved)} busy={files.isFetching}
           save={() => void store(shown)} cancel={() => setDraft({})} reset={() => void store(defaults)} refresh={() => void files.refetch()} />
       </div>
-    </details>
+    </FoldRow>
   )
 }
 
@@ -447,11 +491,12 @@ function useBackendFiles(backend: ImageBackend, open: boolean) {
 /** A dropdown of the server's files (only `matching` when given), or a text box when it listed none. `start` is
  * the value it opened on, kept in the list after another file is picked even when the server lacks it. */
 function FileField({ slot, options, matching, value, start = '', fallback, onChange }: { slot: FileSlot; options: string[]; matching: string[]; value: string; start?: string; fallback: string; onChange: (value: string) => void }) {
-  const { label, hint, tip, same } = slot
-  if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback || same} hint={hint} tip={tip} onChange={onChange} />
-  return <Field label={label} hint={hint} tip={tip}>{(id, describedBy) => <>
+  const { label, same } = slot
+  const tip = [slot.hint, slot.tip].filter(Boolean).join(' ')
+  if (options.length === 0) return <TextInput label={label} value={value} maxLength={300} placeholder={fallback || same} tip={tip} onChange={onChange} />
+  return <Field label={label} tip={tip}>{(id, describedBy) => <>
     <select id={id} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
-      {fileChoices(options, value, matching, matching.length > 0, same, start).map(choice => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+      {fileChoices(options, value, matching, matching.length > 0, same, start).map(choice => <option key={choice.value} value={choice.value} title={choice.value || undefined}>{choice.value ? fileName(choice.label) : choice.label}</option>)}
     </select>
     {/* On its own line, so the file name in the box is never cut short by it (Iris). */}
     {missingFrom(options, value) && <p className="subtle field-missing">{MISSING}</p>}
@@ -467,30 +512,29 @@ function StyleLoraPicker({ backend, saved, save }: { backend: ImageBackend; save
   const server = serverFiles(files.data, files.isError ? failure(files.error, 'The server could not be asked.') : null, {})
   const store = async (body: StyleLora[]) => { if (await save(body)) setDraft(null) }
   return (
-    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="subtle">Style LoRAs {saved.length ? `(${saved.length})` : '(none)'}</summary>
-      <div className="form-stack">
-        <p className="subtle">Extra LoRAs for the look of every picture from this server, such as a phone-photo or realism LoRA. They apply after the character's own LoRA, when one is adopted, in this order.</p>
+    <FoldRow nested summary="Style LoRAs" value={saved.length ? String(saved.length) : 'None'} onToggle={setOpen}>
+      <div className="form-stack sub-fold-body">
         {open && !server.answered && <p className="subtle">Asking ComfyUI for its LoRAs…</p>}
         {server.error && <Notice tone="error">{server.error} Type the file names instead.</Notice>}
         {server.answered && <StyleLoraRows rows={draft ?? saved} saved={saved} options={server.options.lora} matching={server.matching.lora} short={familyOf(backend.family).short} looks={familyOf(backend.family).looks} setRows={setDraft} />}
         {draft && <FileActions changed chosen={false} busy={files.isFetching} save={() => void store(draft)} cancel={() => setDraft(null)} reset={() => undefined} refresh={() => void files.refetch()} />}
       </div>
-    </details>
+    </FoldRow>
   )
 }
 
-const LORA_SLOT: FileSlot = { key: 'unet_name', label: 'LoRA', role: null, hint: 'From ComfyUI\'s models/loras folder.' }
+const LORA_SLOT: FileSlot = { key: 'unet_name', label: 'LoRA', role: null, hint: 'From ComfyUI\'s models/loras folder.',
+  tip: 'For the look of every picture from this server, such as a phone-photo or realism LoRA. Applied after the character\'s own LoRA, when one is adopted, in this order.' }
 
 function StyleLoraRows({ rows, saved, options, matching, short, looks, setRows }: { rows: StyleLora[]; saved: StyleLora[]; options: string[]; matching: string[]; short: string; looks: string; setRows: (rows: StyleLora[]) => void }) {
   const [familyOnly, setFamilyOnly] = useState(true)
   const edit = (index: number, change: Partial<StyleLora>) => setRows(rows.map((row, at) => at === index ? { ...row, ...change } : row))
   return <>
-    {matching.length > 0 && <Toggle label={`Only ${short} LoRAs`} checked={familyOnly} onChange={setFamilyOnly} hint={`LoRAs whose name or folder says ${looks}. Turn off to see every LoRA.`} />}
+    {matching.length > 0 && <SwitchRow label={`Only ${short} LoRAs`} checked={familyOnly} onChange={setFamilyOnly} tip={`LoRAs whose name or folder says ${looks}. Turn off to see every LoRA.`} />}
     {rows.map((row, index) => <div key={index} className="form-grid">
       <FileField slot={{ ...LORA_SLOT, label: `LoRA ${index + 1}` }} options={options} matching={familyOnly ? matching : []} value={row.name} start={saved[index]?.name ?? ''} fallback="" onChange={(name) => edit(index, { name })} />
-      <SliderNumber label="Strength" value={row.strength} min={-2} max={2} step={0.05} hint="0.6 to 0.8 suits most style LoRAs." onChange={(strength) => edit(index, { strength })} />
-      <TextInput label="Trigger words" value={row.trigger} maxLength={200} hint="Put in front of the prompt when the LoRA needs them." onChange={(trigger) => edit(index, { trigger })} />
+      <SliderNumber label="Strength" value={row.strength} min={-2} max={2} step={0.05} tip="0.6 to 0.8 suits most style LoRAs." onChange={(strength) => edit(index, { strength })} />
+      <TextInput label="Trigger words" value={row.trigger} maxLength={200} tip="Put in front of the prompt when the LoRA needs them." onChange={(trigger) => edit(index, { trigger })} />
       <button type="button" className="text-button" onClick={() => setRows(rows.filter((_, at) => at !== index))}><Trash2 aria-hidden="true" />Remove</button>
     </div>)}
     {rows.length < MAX_STYLE_LORAS && <div className="form-actions">
@@ -504,15 +548,15 @@ function ModelLinks({ links, family }: { links: ModelLink[]; family: ImageFamily
   const groups = linksByRole(links, family ?? 'krea2')
   const { pack } = familyOf(family)
   if (groups.length === 0) return null
-  return <div>
-    <p className="subtle"><strong>Where to get models.</strong> Put each file in the ComfyUI folder named, then refresh the list.{pack && <> Pictures made from a reference also need the {pack.label} <a className="text-button" href={pack.url} target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder{pack.install ? '; Check offers to install it' : ''}.</>}{family === 'anima' && <> They also need the Anima Edit LoRA, <code>AnimeEditV2.safetensors</code>, in models/loras.</>} Check the license on each page before downloading.</p>
+  return <FoldRow nested summary="Where to get models">
+    <p className="subtle">Put each file in the ComfyUI folder named, then refresh the list.{pack && <> Pictures made from a reference also need the {pack.label} <a className="text-button" href={pack.url} target="_blank" rel="noreferrer">node pack</a> in ComfyUI's custom_nodes folder{pack.install ? '; Check offers to install it' : ''}.</>}{family === 'anima' && <> They also need the Anima Edit LoRA, <code>AnimeEditV2.safetensors</code>, in models/loras.</>} Check the license on each page before downloading.</p>
     <ul className="plain-list">
       {groups.flatMap(({ slot, links: items }) => items.map(link => <li key={link.name}>
         {slot.label}: <a className="text-button" href={link.url} target="_blank" rel="noreferrer">{link.name}</a>{link.file && <> · {link.file}</>}
         <br /><span className="subtle">{link.licence}</span>
       </li>))}
     </ul>
-  </div>
+  </FoldRow>
 }
 
 type WorkflowField = 'workflow' | 'reference_workflow'
@@ -593,7 +637,7 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
   const set = field === 'workflow' ? backend.custom_workflow : backend.reference_workflow
   const flow = useWorkflow(backend, field, save)
   // A built-in one starts closed and the user's own starts open (Iris); saving or resetting never folds it away.
-  const [startOpen] = useState(set)
+  const [shown, setShown] = useState(set)
   // The built-in one shows the family's workflow with the chosen model files and sampler; once they change, an
   // untouched box follows.
   const picks = JSON.stringify([backend.family, backend.model_files, backend.sampler])
@@ -607,9 +651,8 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
     if (saved !== null && !saved && text === builtIn) void load()
   }, [picks, saved, text, builtIn, load])
   return (
-    <details open={startOpen} onToggle={(event) => { if (event.currentTarget.open && flow.saved === null) void flow.load() }}>
-      <summary className="subtle">{copy.title} {set ? '(yours)' : '(built-in)'}</summary>
-      <div className="form-stack workflow-editor">
+    <FoldRow nested summary={copy.title} value={set ? 'Yours' : 'Built in'} open={shown} onToggle={(open) => { setShown(open); if (open && flow.saved === null) void flow.load() }}>
+      <div className="form-stack workflow-editor sub-fold-body">
         <Field label={copy.label} hint={<>{copy.hint}{!set && <> {shownNote}{needs(flow.builtIn)}</>}</>}>{(id, describedBy) =>
           <>
             <textarea id={id} rows={12} value={flow.text} placeholder="Paste a workflow" spellCheck={false} aria-describedby={describedBy}
@@ -619,7 +662,7 @@ function WorkflowEditor({ backend, field, save }: { backend: ImageBackend; field
           </>}</Field>
         <WorkflowActions flow={flow} set={set} />
       </div>
-    </details>
+    </FoldRow>
   )
 }
 
@@ -639,22 +682,36 @@ function WorkflowActions({ flow, set }: { flow: Workflow; set: boolean }) {
   </>
 }
 
-function summaryLine(backend: ImageBackend) {
-  const where = backend.kind === 'codex' ? 'Codex CLI' : backend.local ? 'This computer' : backend.base_url
-  const missingKey = backend.kind === 'hosted' && !backend.has_key && !backend.key_from
-  return [where, backend.model, missingKey ? (backend.provider === 'novelai' ? 'no API token' : 'no API key') : '', backend.key_from ? `key from ${backend.key_from}` : '', backend.takes_reference ? 'can follow a reference picture' : ''].filter(Boolean).join(' · ')
+/** "openrouter.ai" for https://openrouter.ai/api/v1: the address's host is enough to tell where pictures go. */
+function hostOf(url: string): string {
+  try { return new URL(url).host } catch { return url }
 }
 
-function BackendSummary({ backend }: { backend: ImageBackend }) {
-  return <>
-    <div className="backend-title">
-      <strong>{backend.label}</strong>
-      <span className="badge">{backend.accepts_nsfw ? (backend.local ? 'Local · safe and NSFW' : 'Safe and NSFW') : 'Safe only'}</span>
-      {backend.experimental && <span className="badge">Experimental</span>}
-      {backend.enabled && !backend.in_world && <span className="badge">Not used in this world</span>}
-    </div>
-    <p className="subtle">{summaryLine(backend)}</p>
-  </>
+/** Where a model runs, for its summary and its Connection row: "This computer", "Codex CLI" or the address's host. */
+function whereLine(backend: ImageBackend) {
+  return backend.kind === 'codex' ? 'Codex CLI' : backend.local ? 'This computer' : hostOf(backend.base_url)
+}
+
+function summaryLine(backend: ImageBackend) {
+  const where = whereLine(backend)
+  const missingKey = backend.kind === 'hosted' && !backend.has_key && !backend.key_from
+  const line = [where, backend.model, missingKey ? (backend.provider === 'novelai' ? 'no API token' : 'no API key') : '', backend.key_from ? `key from ${backend.key_from}` : ''].filter(Boolean).join(' · ')
+  // Left off on a phone, where it would wrap; the Model family tip says it too (Iris).
+  return backend.takes_reference ? <>{line}<span className="wide-only"> · can follow a reference picture</span></> : line
+}
+
+/** The model's content rule as a chip with the rule in its tooltip (Iris), and anything else to know at a glance. */
+function BackendChips({ backend }: { backend: ImageBackend }) {
+  const rule = backend.accepts_nsfw
+    ? 'Adult requests can go here. Every request is checked on this computer first, and prohibited ones are never sent.'
+    : 'Only ever gets safe requests.'
+  return <span className="backend-chips">
+    {backend.blocked_reason && <span className="badge badge-warn">Needs a look</span>}
+    {!backend.enabled && <span className="badge badge-quiet">Off</span>}
+    {backend.experimental && <span className="badge badge-quiet">Experimental</span>}
+    {backend.enabled && !backend.in_world && <span className="badge badge-quiet">Not in this world</span>}
+    <span className="badge" title={rule}>{backend.accepts_nsfw ? 'Takes adult' : <><Lock aria-hidden="true" />Safe only</>}</span>
+  </span>
 }
 
 interface Draft { kind: BackendKind; provider: HostedProvider; baseUrl: string; model: string; apiKey: string; cliPath: string; workflow: string; controlled: boolean; nsfw: boolean }

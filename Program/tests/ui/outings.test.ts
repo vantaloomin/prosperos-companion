@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { meetLine, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
+import { awayNowLine, awayTrips, meetLine, onwardLine, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
 
 const outing: Outing = {
   id: 'o1', local_date: '2026-10-08', at_time: '19:00', until_time: '21:00', activity: 'dinner', asked_date: null,
@@ -56,4 +56,28 @@ test('the plan says how meeting up works, with no Go there step', () => {
   assert.equal(meetLine({ state: 'now', until_time: '' }), "You're there together now.")
   assert.equal(meetLine({ state: 'done', until_time: '17:30' }), '')
   assert.equal(meetLine({ state: 'cancelled', until_time: '17:30' }), '')
+})
+
+test('a trip away together is named by where it goes and how it gets there', () => {
+  const away: Trip = { id: 't9', start_date: '2026-10-16', end_date: '2026-10-18', city_id: 'away:modern:2026:b-lisbon', city_name: 'Lisbon', kind: 'getaway', company: { id: '~you', name: 'you', role: 'the user' }, landmark: null, sunny: true, cost_text: '$900', state: 'planned', postcard_message_id: null, visit: 'together', undo: false, away: { prep: 'in', by: 'plane', hours: 9 } }
+  assert.equal(tripTitle(away, 'Mira'), 'Away in Lisbon with Mira')
+  assert.equal(tripTravel(away), 'By plane')
+  assert.equal(tripTitle({ ...away, city_name: 'the garden deck', away: { prep: 'on', by: 'tram', hours: 1 } }, 'Mira'), 'Away on the garden deck with Mira')
+  assert.equal(tripTravel({ ...away, away: { prep: 'on', by: 'tram', hours: 1 } }), '')
+})
+
+test('a trip away together under way is the Now line, and coming-up trips are listed apart', () => {
+  const base: Trip = { id: 'a', start_date: '2026-11-01', end_date: '2026-11-05', city_id: 'x', city_name: 'Lisbon', kind: 'getaway', company: null, landmark: null, sunny: true, cost_text: '', state: 'now', postcard_message_id: null, visit: 'together', undo: false, away: { prep: 'in', by: 'plane', hours: 9 } }
+  assert.equal(awayNowLine(base), 'Away in Lisbon until Thu')
+  assert.equal(awayNowLine(null), undefined)
+  const found = awayTrips([base, { ...base, id: 'b', state: 'planned' }, { ...base, id: 'c', visit: '' }, { ...base, id: 'd', state: 'cancelled' }])
+  assert.equal(found.now?.id, 'a')
+  assert.deepEqual(found.coming.map((trip) => trip.id), ['b'])
+})
+
+test('moving on: Today says where next, then where they came from', () => {
+  const place = { id: 'the-owl-bar', name: 'The Owl Bar', kind: 'bar', neighborhood: 'Mount Vernon', summary: '', cost: '$$', cuisine: '', city: 'Baltimore' }
+  assert.match(onwardLine({ state: 'now', next: { place, activity: 'drinks', at: '21:00', asked: false }, came_from: null }), /^Then drinks at The Owl Bar, around 9:00/)
+  assert.equal(onwardLine({ state: 'now', next: null, came_from: { name: 'Lupa', activity: 'dinner', neighborhood: '' } }), 'Came over from Lupa.')
+  assert.equal(onwardLine({ state: 'planned', next: null, came_from: null }), '')
 })

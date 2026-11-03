@@ -5,6 +5,7 @@ import { api, ApiError } from '../../api'
 import { COMPANION_KEY, useWorkspaceSettings, type View } from '../../companion'
 import type { CharacterDefinition, CharacterVersion, Companion, Connection, ImageBackend, Relationship } from '../../types'
 import { Notice } from '../../components/Feedback'
+import { RowGroup } from '../../components/Rows'
 import { Field, TextArea, TextInput, Toggle } from '../../components/Fields'
 import { RELATIONSHIPS, cleanDefinition, completeDefinition, emptyDefinition, guessTimezone, listTexts, stageNames, timezones } from './definition'
 import { fieldValue, withField, type DraftField, type FormState } from './drafting'
@@ -138,61 +139,52 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
       {chrome.heading}
       {chrome.notice && <div className="start-notice">{chrome.notice}</div>}
       <form className="form-stack" onSubmit={submit}>
-        <div className="form-grid">
+        <div className="form-grid character-basics">
           <NameField name={definition.name} creating={!companion} onChange={(name) => set({ name })} />
-          <Field label="Relationship" hint="Someone you haven't met yet starts as a Friendship at Just met. Romance starts only with your yes." tip="Sets how they think of you and what they are comfortable with. You can change it later and their memories stay.">
+          <Field label="Relationship" tip="Sets how they think of you and what they are comfortable with. Someone you haven't met yet starts as a Friendship at Just met; Romance starts only with your yes. You can change it later and their memories stay.">
             {(id, hint) => (
               <select id={id} aria-describedby={hint} value={definition.relationship} onChange={(event) => set({ relationship: event.target.value as Relationship })}>
                 {RELATIONSHIPS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             )}
           </Field>
-          <TextInput label="Where they live" value={definition.location} onChange={(location) => set({ location })} maxLength={200} hint="A fictional or real city for their life." tip="This is how they describe where they live. Home city, further down, is what builds their actual days." />
+          <TextInput label="Where they live" value={definition.location} onChange={(location) => set({ location })} maxLength={200} placeholder="A fictional or real city" tip="This is how they describe where they live. Home city, further down, is what builds their actual days." />
         </div>
         <KnowEachOther definition={definition} creating={!companion} set={set} />
-        <TextArea label="Who they are" value={definition.identity} onChange={(identity) => set({ identity })} maxLength={4000} hint="Age, work, what matters to them." />
-        {help('identity', 'who they are')}
-        <TextArea label="Personality" value={definition.personality} onChange={(personality) => set({ personality })} rows={4} maxLength={8000} hint="Temperament, habits, what makes them laugh or snap. Specific beats general." />
-        {help('personality', 'their personality')}
+        <TextArea label="Who they are" value={definition.identity} onChange={(identity) => set({ identity })} maxLength={4000} placeholder="Age, work, what matters to them" action={help('identity', 'who they are')} />
+        <TextArea label="Personality" value={definition.personality} onChange={(personality) => set({ personality })} rows={4} maxLength={8000} placeholder="Temperament, habits, what makes them laugh or snap" tip="Specific beats general." action={help('personality', 'their personality')} />
         <PersonalityChips shown={!details} onOpen={() => openPersonality(setDetails)} definition={cleaned} value={definition.personality_sliders} set={setPersonality} seed={seed} />
-        <TextArea label="Voice" value={definition.voice} onChange={(voice) => set({ voice })} maxLength={4000} hint="How they talk: rhythm, humour, words they like." />
-        {help('voice', 'their voice')}
-        <TextArea label="Skills" value={texts.skills} onChange={setText('skills')} rows={4} hint="One per line. Concrete things they are good at, and a few they are only middling at." />
-        {help('skills', 'their skills')}
-        <TextArea label="Flaws" value={texts.flaws} onChange={setText('flaws')} rows={4} hint="One per line. Real flaws that show up in conversation make them feel like a person." />
-        {help('flaws', 'their flaws')}
-        <TextInput label="Interests" value={texts.interests} onChange={setText('interests')} hint="Separate with commas." />
-        {help('interests', 'their interests')}
-        <TextArea label="Background" value={definition.background} onChange={(background) => set({ background })} rows={4} maxLength={12000} hint="Where they grew up, family, past jobs and relationships, what shaped them." />
-        {help('background', 'their background')}
-        <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} hint="What they look like: build, hair, face, usual style." tip="Pictures of them start from this description, so describe what a camera would see." />
-        {help('appearance', 'their appearance')}
+        <TextArea label="Voice" value={definition.voice} onChange={(voice) => set({ voice })} maxLength={4000} placeholder="How they talk: rhythm, humour, words they like" action={help('voice', 'their voice')} />
+        <TextArea label="Skills" value={texts.skills} onChange={setText('skills')} rows={4} placeholder="One per line: what they are good at, and a few they are only middling at" action={help('skills', 'their skills')} />
+        <TextArea label="Flaws" value={texts.flaws} onChange={setText('flaws')} rows={4} placeholder="One per line" tip="Real flaws that show up in conversation make them feel like a person." action={help('flaws', 'their flaws')} />
+        <TextInput label="Interests" value={texts.interests} onChange={setText('interests')} placeholder="Separate with commas" action={help('interests', 'their interests')} />
+        <TextArea label="Background" value={definition.background} onChange={(background) => set({ background })} rows={4} maxLength={12000} placeholder="Where they grew up, family, past jobs and relationships, what shaped them" action={help('background', 'their background')} />
+        <TextArea label="Appearance" value={definition.appearance} onChange={(appearance) => set({ appearance })} maxLength={4000} placeholder="Build, hair, face, usual style" tip="Pictures of them start from this description, so describe what a camera would see." action={help('appearance', 'their appearance')} />
         <InPhotosField definition={cleaned} value={definition.in_photos} set={set} />
         <Toggle label="Use their name in pictures" checked={Boolean(definition.name_in_pictures)} onChange={(on) => set({ name_in_pictures: on })}
-          hint="Helps when image models already know them, like a character from a game or show. Anime models always get the name as a tag."
-          tip="For an original character, the name gives the model nothing to draw, and it can show up as lettering in the picture." />
+          tip="Helps when image models already know them, like a character from a game or show; anime models always get the name as a tag. For an original character, the name gives the model nothing to draw, and it can show up as lettering in the picture." />
         <TheirHoursField definition={definition} companion={companion} set={set} />
         <DetailsToggle shown={details} onChange={setDetails} />
         {details && <>
           <LooksFields definition={cleaned} looks={definition.looks} set={set} />
-          <TextInput label="Their time zone" value={definition.timezone} onChange={(timezone) => set({ timezone })} suggestions={timezones()} maxLength={64} hint="Sets their day: when they wake, work and sleep." tip="A name like America/New_York. Start typing to pick from the list. It can differ from yours." />
+          <TextInput label="Their time zone" value={definition.timezone} onChange={(timezone) => set({ timezone })} suggestions={timezones()} maxLength={64} placeholder="America/New_York" tip="Sets their day: when they wake, work and sleep. Start typing to pick from the list. It can differ from yours." />
           <TextingFields value={definition.texting} onChange={(texting) => set({ texting })} />
-          <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} hint="How they describe a typical day. The weekly routine below is what their life actually follows." />
-          {help('routine', 'their routine')}
+          <TextArea label="Routine in their words" value={definition.routine} onChange={(routine) => set({ routine })} maxLength={8000} placeholder="How they describe a typical day" tip="The weekly routine below is what their life actually follows." action={help('routine', 'their routine')} />
           <LifeFields definition={definition} set={set} themes={texts.themes} setThemes={setText('themes')} help={help} />
           <PersonalityFields definition={cleaned} value={definition.personality_sliders} set={setPersonality} seed={seed} />
           <PerceptionFields definition={cleaned} seenAs={definition.seen_as ?? ''} seesSelf={definition.sees_self ?? ''} set={set} />
           <AdultSideFields definition={cleaned} value={definition.intimacy} set={set} />
           <TraitEditor traits={definition.emotional_traits} onChange={(emotional_traits) => set({ emotional_traits })} />
           <TextArea label="How they react to time apart" value={definition.absence_reaction} onChange={(absence_reaction) => set({ absence_reaction })} maxLength={2000}
-            hint="Optional. Left empty, they are relaxed about time apart and never make you feel guilty for it." />
+            placeholder="Left empty, they are relaxed about time apart" tip="Left empty, they never make you feel guilty for time apart." />
         </>}
-        {companion && <TextInput label="What changed (optional)" value={note} onChange={setNote} maxLength={500} hint="A note for the version history, so you can find this version again." />}
+        {companion && <TextInput label="What changed" value={note} onChange={setNote} maxLength={500} placeholder="A note for the version history" />}
         <SaveFeedback result={result} saved={savedNow(saved, companion)} onReload={() => void client.invalidateQueries({ queryKey: COMPANION_KEY })} />
         {problems.length > 0 && <Notice tone="error">{problems.join(' ')}</Notice>}
         <div className="form-actions">
           <button type="submit" className="button primary" disabled={saving || !nameReady(definition.name, !companion) || problems.length > 0}>{chrome.label}</button>
         </div>
+        <VersionLine companion={companion} />
       </form>
       {companion && <SavedSections companion={companion} details={details} go={go} />}
     </section>
@@ -203,8 +195,13 @@ export function CharacterForm({ companion, start, onRestart, go, saved, onSaved,
 function SavedSections({ companion, details, go }: { companion: Companion; details: boolean; go: (view: View) => void }) {
   const name = companion.version.name
   return (<>
-    <Steps name={name} />
-    <Family name={name} />
+    {/* Their life as Settings-style fold rows, each showing its state (Iris, 4c). */}
+    <RowGroup className="character-folds">
+      <Steps name={name} />
+      <Family name={name} />
+      <TheirLook name={name} />
+      <Voice name={name} />
+    </RowGroup>
     {details && <>
       <LifeLately name={name} />
       <Home name={name} />
@@ -219,12 +216,9 @@ function SavedSections({ companion, details, go }: { companion: Companion; detai
       <LifeAdmin name={name} />
       <SelfFacts name={name} />
     </>}
-    <TheirLook name={name} />
-    <Voice name={name} />
     <Lore />
     <Library name={name} />
     <TownSeed companion={companion} />
-    <Versions current={companion.active_version_id} />
     <Cast go={go} />
     <WhoTheyKnow name={name} />
     <AnotherSection name={name} go={go} />
@@ -286,7 +280,7 @@ function initialForm(companion: Companion | null, start: Start | null): FormStat
 /** A new companion left without a name gets one that fits (companion/characters.py); an existing one keeps one. */
 function NameField({ name, creating, onChange }: { name: string; creating: boolean; onChange: (name: string) => void }) {
   return <TextInput label="Name" value={name} onChange={onChange} required={!creating} maxLength={120}
-    hint={`${creating ? 'Left empty, they get one that fits. ' : 'What they go by. '}Their family shares the last name.`} />
+    placeholder={creating ? 'Left empty, they get one that fits' : undefined} tip="What they go by. Their family shares the last name." />
 }
 
 function nameReady(name: string, creating: boolean): boolean {
@@ -312,12 +306,12 @@ function CharacterHeading({ companion, go }: { companion: Companion | null; go: 
   return (<>
     <header className="page-header">
       <div>
-        {companion ? <h2>Character</h2> : <h1>Create your companion</h1>}
-        <p className="subtle">{companion ? `${companion.version.name}, version ${companion.version.number}. Saving creates a new version that applies from the next reply; earlier messages keep the version they used.` : 'Nothing here is required, and you can change everything later.'}</p>
+        {companion ? <h2 className="visually-hidden">Character</h2> : <h1>Create your companion</h1>}
+        {!companion && <p className="subtle">Nothing here is required, and you can change everything later.</p>}
       </div>
-      {companion && <div className="form-actions">
-        <button type="button" className="button" onClick={() => go('portraits')}>Profile pictures</button>
-        {loraMaker && <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>}
+      {/* Profile pictures open from their picture in the profile header. */}
+      {companion && loraMaker && <div className="form-actions">
+        <button type="button" className="button" onClick={() => go('appearance')}>Look and LoRA</button>
       </div>}
     </header>
   </>)
@@ -328,12 +322,17 @@ function SaveFeedback({ result, saved, onReload }: { result: { tone: 'info' | 'e
   return saved ? <Notice>Saved version {saved}. It applies from the next reply.</Notice> : null
 }
 
-function Versions({ current }: { current: string }) {
-  const versions = useQuery({ queryKey: ['versions'], queryFn: () => api<CharacterVersion[]>('/companion/versions') })
-  if (!versions.data || versions.data.length < 2) return null
+/** One quiet line under Save: which version this is and when changes land, with History when there are earlier ones.
+ * Saving makes a new version that applies from the next reply; earlier messages keep the version they used. */
+function VersionLine({ companion }: { companion: Companion | null }) {
+  const versions = useQuery({ queryKey: ['versions'], enabled: !!companion, queryFn: () => api<CharacterVersion[]>('/companion/versions') })
+  if (!companion) return null
+  const line = `Version ${companion.version.number} · changes apply from the next reply`
+  if (!versions.data || versions.data.length < 2) return <p className="version-line">{line}</p>
+  const current = companion.active_version_id
   return (
-    <details className="versions">
-      <summary>Earlier versions ({versions.data.length - 1})</summary>
+    <details className="version-line">
+      <summary><span>{line}</span><span className="version-history">History</span></summary>
       <ol reversed>
         {[...versions.data].reverse().map((version) => (
           <li key={version.id}>
@@ -351,7 +350,7 @@ function KnowEachOther({ definition, creating, set }: { definition: CharacterDef
   return (
     <div className="form-grid">
       {creating && (
-        <Field label="How close you start" hint="Just met unless you pick otherwise. It grows from here as you talk." tip="You can change it any time later in Memories, under How close you are.">
+        <Field label="How close you start" tip="Just met unless you pick otherwise. It grows from here as you talk, and you can change it any time later in Memories.">
           {(id, hint) => (
             <select id={id} aria-describedby={hint} value={definition.starting_closeness ?? 1} onChange={(event) => set({ starting_closeness: Number(event.target.value) })}>
               {stageNames(definition.relationship).map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
@@ -359,8 +358,8 @@ function KnowEachOther({ definition, creating, set }: { definition: CharacterDef
           )}
         </Field>
       )}
-      <TextArea label="How you know each other (optional)" value={definition.history_together ?? ''} onChange={(history_together) => set({ history_together })} rows={2} maxLength={2000}
-        placeholder="Roommates all through college; we still get breakfast most Sundays." hint="Your history together so far, so a close start has something real behind it." />
+      <TextArea label="How you know each other" value={definition.history_together ?? ''} onChange={(history_together) => set({ history_together })} rows={2} maxLength={2000}
+        placeholder="Roommates all through college; we still get breakfast most Sundays." tip="Your history together so far, so a close start has something real behind it." />
     </div>
   )
 }

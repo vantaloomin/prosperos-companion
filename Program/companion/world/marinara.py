@@ -36,7 +36,7 @@ ROOMS = ('room', 'floor')
 # One step on a parent's 0-100 grid, so a whole map spans about 20 km, a city's width.
 STEP_KM = 0.2
 TEXT = 400
-# Where the user changes the country, and the time zone, of a city brought in here: Settings > Life & cities edits
+# Where the user changes the country, and the time zone, of a city brought in here: Settings > World edits
 # it after import; the Draft Table changes the country on Overview, and the time zone once it is saved.
 EDITOR = ('in the editor', 'in the editor')
 DRAFT_TABLE = ('on Overview', "with Edit on its card in Companion once it's saved")

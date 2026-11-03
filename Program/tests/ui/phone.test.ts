@@ -20,8 +20,8 @@ test('a Tailscale link in an error can be opened', () => {
   assert.equal(parts.map((part) => part.text).join(''), 'Open https://login.tailscale.com/f/serve?node=abc, allow it, then try again.')
 })
 
-test('Phone access has a tab, and Backups stays off a phone', () => {
-  assert.ok(availableTabs(true).some((tab) => tab.id === 'phone'))
+test('Phone access is under Devices, and Data stays off a phone', () => {
+  assert.ok(availableTabs(true).some((tab) => tab.id === 'devices'))
   assert.ok(!availableTabs(true, true).some((tab) => tab.id === 'data'))
   assert.equal(pickTab('data', true, true), 'general')
   assert.deepEqual(searchSettings('tailscale', true).map((match) => match.section.heading), ['phone-heading'])

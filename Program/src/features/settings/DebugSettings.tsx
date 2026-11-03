@@ -39,7 +39,7 @@ function useDebugCalls() {
   return { call, finish, busy, problem }
 }
 
-/** Settings > Debug: move the app's time ahead or run it faster, then go back (companion/debug_time.py). */
+/** Settings > Data: move the app's time ahead or run it faster, then go back (companion/debug_time.py). */
 export function DebugSettings({ name }: { name: string }) {
   const status = useDebugTime()
   const { call, finish, busy, problem } = useDebugCalls()

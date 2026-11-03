@@ -83,7 +83,7 @@ export interface ChatPhoto {
 
 export interface MemeBox { x: number; y: number; w: number; h: number }
 
-/** Where meme pictures come from (Settings > Images > Memes and GIFs). */
+/** Where meme pictures come from (Settings > Pictures > Memes and GIFs). */
 export interface MemeSources { folder: string; mine: number; pack: number; formats_on: boolean; formats_here: number; formats_total: number; gif_key: boolean; key_here: boolean }
 
 export interface TextingStyle { bursts: boolean; lowercase: boolean; typos: boolean; quick?: boolean }
@@ -322,6 +322,8 @@ export interface WorkspaceSettings {
   period_words?: boolean
   /** Keep my colours everywhere: no companion's own colours or name font (companion/their_look.py). */
   keep_my_colours?: boolean
+  /** Look for Claude Code and Codex accounts on this PC for profiles to pick (Settings > Models). On unless turned off. */
+  find_cli_accounts?: boolean
   /** The app's colors (Prospero's Study's palettes); Retro IM keeps its own. */
   color_scheme?: ColorScheme
   /** The four colors of the custom scheme, or null before one is made. */
@@ -350,7 +352,7 @@ export interface WorkspaceSettings {
   show_adult_side?: boolean
   /** The numbers behind their life, such as upkeep meters (Settings > Realism > Hidden values). */
   show_home_meters?: boolean
-  /** Settings > Debug: every model request and response is written in full to logs/model-calls; off by default. */
+  /** Settings > Data: every model request and response is written in full to logs/model-calls; off by default. */
   record_model_calls?: boolean
   /** The one-time notice that the characters are AI, with the 18+ confirmation, has been read. */
   ai_notice_confirmed?: boolean
@@ -542,6 +544,7 @@ export interface LifeSettings {
   read_pace: number
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
+  onward_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
   rough_patches_realism: number
   /** Next steps (companion/life/steps.py): how soon they bring up the next step, 0 only when you do, 1 slow, 2 true to life, 3 fast. */
@@ -1909,7 +1912,7 @@ export interface CastDraft {
 }
 export interface TownspersonNow { doing: string; place: { id: string; name: string } | null; mood: string }
 
-/** Debug time (Settings > Debug, companion/debug_time.py): the app clock moved ahead or running faster. */
+/** Debug time (Settings > Data, companion/debug_time.py): the app clock moved ahead or running faster. */
 export interface DebugTime {
   active: boolean
   /** The app's time, and the PC's real time. */
@@ -1985,7 +1988,7 @@ export interface Dating {
   words: DatingWords
   city: { id: string; name: string }
   profile: DatingProfile | null
-  /** Settings > Debug > 100% Matchlight matches is on. */
+  /** Settings > Data > 100% Matchlight matches is on. */
   all_matches?: boolean
   /** Just watching (companion/observer.py): Matchlight waits until the user steps back in. */
   watching?: boolean
@@ -2047,7 +2050,7 @@ export interface GuestOption {
   host_id: string | null
 }
 
-/** Record model calls (companion/model_calls.py), Settings > Debug. */
+/** Record model calls (companion/model_calls.py), Settings > Data. */
 export interface ModelCallLog { recording: boolean; folder: string; keep_days: number; files: number; bytes: number }
 
 export interface GroupMood {
@@ -2286,7 +2289,7 @@ export interface Worlds {
 /** While you were away (companion/recap.py): a catch-up after a few days without a message. */
 export interface AwayRecap { since: string; days: number; items: string[] }
 
-/** Settings > Debug > Townsfolk mix (companion/world/mix.py): the shares the townsfolk rolls use. */
+/** Settings > Data > Townsfolk mix (companion/world/mix.py): the shares the townsfolk rolls use. */
 export interface MixValues {
   nonbinary: number; women: number; height_woman: number; height_man: number
   slender: number; middle: number; heavier: number; beard: number

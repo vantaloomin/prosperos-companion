@@ -378,7 +378,7 @@ function TableBar({ work, setWork, check, onCheck, careful, toast, setToast }: B
       const kept = { ...definition, id: saved.id }
       setWork((current) => current && { ...current, definition: kept, saved: { id: saved.id, revision: saved.revision }, polished: [] })
       setSavedAs(kept)
-      setToast({ tone: 'success', text: `Saved ${saved.name}. It is in Companion now, under Custom in Settings > Life & cities.`, show: saved.id })
+      setToast({ tone: 'success', text: `Saved ${saved.name}. It is in Companion now, under Custom in Settings > World.`, show: saved.id })
       announceSaved()
     } catch (failure) {
       setToast({ tone: 'error', text: message(failure, 'Not saved.'), saveAsNew: failure instanceof ApiError && failure.status === 409 })
@@ -441,13 +441,13 @@ function announceSaved() {
   try { const channel = new BroadcastChannel(CITIES_CHANNEL); channel.postMessage('saved'); channel.close() } catch { /* it lists it on its next look */ }
 }
 
-/** Companion's window opens Settings > Life & cities at the saved city: the open window if there is one, else a new one. */
+/** Companion's window opens Settings > World at the saved city: the open window if there is one, else a new one. */
 function showInCompanion(id: string) {
-  try { localStorage.setItem(SHOW_CITY_KEY, id) } catch { /* it opens on Settings > Life & cities all the same */ }
+  try { localStorage.setItem(SHOW_CITY_KEY, id) } catch { /* it opens on Settings > World all the same */ }
   try { const channel = new BroadcastChannel(CITIES_CHANNEL); channel.postMessage({ show: id }); channel.close() } catch { /* the new window reads it */ }
   const companion = window.opener as Window | null
   if (companion && !companion.closed) companion.focus()
-  else window.open('/#settings/life', 'prospero-companion')
+  else window.open('/#settings/world', 'prospero-companion')
 }
 
 function saveFile(definition: Definition) {

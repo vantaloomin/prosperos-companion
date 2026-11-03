@@ -13,7 +13,7 @@ const GROUNDS: Record<string, Ground> = {
   moss: { canvas: '#171b17', surface: '#1e241d', raised: '#252c24', text: '#ede5d6', muted: '#b0a99b', retro: false },
   wine: { canvas: '#1c1518', surface: '#251c20', raised: '#2e2429', text: '#ede5d6', muted: '#b0a99b', retro: false },
   ash: { canvas: '#1b1b1b', surface: '#242424', raised: '#2c2c2c', text: '#ede5d6', muted: '#b0a99b', retro: false },
-  paper: { canvas: '#f4f0e8', surface: '#fbf9f4', raised: '#ece7dd', text: '#26221c', muted: '#5b5448', retro: false },
+  paper: { canvas: '#f7f4ee', surface: '#fdfbf7', raised: '#efe9df', text: '#26221c', muted: '#5b5448', retro: false },
   retro: { canvas: '#ffffff', surface: '#d4d0c8', raised: '#c4c0b8', text: '#000000', muted: '#3a3a3a', retro: true },
   retroDark: { canvas: '#101114', surface: '#2b2b2e', raised: '#3a3a3e', text: '#e8e8ea', muted: '#b8b8be', retro: true },
   // A light custom palette of the user's own.

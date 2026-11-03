@@ -3,7 +3,7 @@ import { PanelLeftClose, PanelRightClose } from 'lucide-react'
 import { WIDTHS } from './chatText'
 import { useChatListCollapsed } from './layout'
 
-/** Hides the list beside the chat; the Chats button at the top of the chat brings it back. */
+/** Hides the list from inside Retro IM's buddy list window; the panel button at the top of the chat brings it back. */
 export function CollapseButton({ side = 'left' }: { side?: 'left' | 'right' }) {
   const [, setCollapsed] = useChatListCollapsed()
   const Icon = side === 'left' ? PanelLeftClose : PanelRightClose

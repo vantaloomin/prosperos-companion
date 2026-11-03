@@ -23,7 +23,7 @@ import re
 from datetime import date, datetime, timedelta
 
 from companion.clock import parse, stamp, zone
-from companion.database import encode, many, optional, settings
+from companion.database import decode, encode, many, optional, settings
 from companion.errors import require
 from companion.life import breakups, money, own_plans, together, trips, where
 from companion.world import catalog, generators
@@ -31,7 +31,7 @@ from companion.world import catalog, generators
 ACTIVE = True
 # The first text about a visit the app planned; off in most tests (tests/conftest.py).
 FIRST_TEXTS = True
-TO_YOU, HOST = 'to-you', 'host'
+TO_YOU, HOST, TOGETHER = 'to-you', 'host', 'together'
 YOU = {'id': '~you', 'name': 'you', 'role': 'the user'}
 # Days between weekend visits by the Getting together slider, and the chance a free weekend after that brings one
 # (more for a long weekend). Beyond a trip's reach, FAR_GAP times as long between them.
@@ -48,6 +48,7 @@ HOST_SHARE = 0.04
 SWAPS = ('rota', 'freelance')
 # When they arrive on the first day and leave on the last.
 ARRIVE, LEAVE = '11:00', '16:00'
+SET_OFF = '08:00'  # Away together (companion/life/away_together.py): when they set off on the first day.
 # A visit asked for in the chat: the weekend asked or the next free one, from ASK_FROM days ahead, within ASK_WEEKS.
 ASK_FROM, ASK_WEEKS = 4, 6
 # Beyond a trip's reach, the days a visit can take around a Saturday, as offsets from it, in order of preference: five
@@ -93,8 +94,8 @@ def settle_moves(connection, companion: dict, today: date, now: datetime | None 
     if between:
         far_plans(connection, companion, today, now)
     usable = between if between and reachable(between) else None
-    rows = many(connection, "SELECT id, visit, city_id FROM trips WHERE timeline_id=? AND visit!='' AND "
-                "status='planned' AND start_date>?", (companion['active_timeline_id'], today.isoformat()))
+    rows = many(connection, "SELECT id, visit, city_id FROM trips WHERE timeline_id=? AND visit IN ('to-you', 'host') "
+                "AND status='planned' AND start_date>?", (companion['active_timeline_id'], today.isoformat()))
     for row in rows:
         city = usable and (usable.your_city if row['visit'] == TO_YOU else usable.their_city)
         if not city or city['id'] != row['city_id']:
@@ -252,8 +253,8 @@ def free_for(connection, companion: dict, home: dict, days: list[date], vacation
 
 def turn(connection, companion: dict, saturday: date, seed: str) -> str:
     """Whose turn it is to travel: the other way from the last visit, the first one seeded."""
-    last = optional(connection, "SELECT visit FROM trips WHERE timeline_id=? AND visit!='' AND status='planned' AND "
-                    'start_date<? ORDER BY start_date DESC LIMIT 1', (companion['active_timeline_id'],
+    last = optional(connection, "SELECT visit FROM trips WHERE timeline_id=? AND visit IN ('to-you', 'host') AND "
+                    "status='planned' AND start_date<? ORDER BY start_date DESC LIMIT 1", (companion['active_timeline_id'],
                                                                       saturday.isoformat()))
     if last:
         return HOST if last['visit'] == TO_YOU else TO_YOU
@@ -408,18 +409,27 @@ def visiting(connection, companion: dict, now: datetime) -> dict | None:
                 'start_date<=? AND end_date>=? ORDER BY start_date', (companion['active_timeline_id'],
                                                                       (near + timedelta(days=1)).isoformat(),
                                                                       (near - timedelta(days=1)).isoformat()))
-    for row in rows:
-        local = now.astimezone(visit_zone(companion, row))
-        today, clock = local.date().isoformat(), local.strftime('%H:%M')
-        if row['start_date'] <= today <= row['end_date'] and not (today == row['start_date'] and clock < ARRIVE) \
-                and not (today == row['end_date'] and clock >= LEAVE):
-            return trips.view(row)
-    return None
+    return next((trips.view(row) for row in rows if under_way(companion, row, now)), None)
+
+
+def under_way(companion: dict, trip: dict, now: datetime) -> bool:
+    """From their arrival on the first day (away together, from setting off in the morning at home: they travel
+    together) until they leave on the last."""
+    local = now.astimezone(visit_zone(companion, trip))
+    here = (local.date().isoformat(), local.strftime('%H:%M'))
+    if trip['visit'] == TOGETHER:
+        home = now.astimezone(zone(companion['version']['timezone']))
+        began = (home.date().isoformat(), home.strftime('%H:%M')) >= (trip['start_date'], SET_OFF)
+    else:
+        began = here >= (trip['start_date'], ARRIVE)
+    return began and here < (trip['end_date'], LEAVE)
 
 
 def visit_zone(companion: dict, trip: dict):
     """The time zone of the city a visit is in, else the companion's own."""
-    city = catalog.cities().get(trip['city_id'])
+    from companion.world import destinations
+    city = destinations.city(trip['city_id']) if destinations.is_stand_in(trip['city_id']) else \
+        catalog.cities().get(trip['city_id'])
     try:
         return zone(city['timezone']) if city and city.get('timezone') else zone(companion['version']['timezone'])
     except ValueError:
@@ -432,6 +442,11 @@ def state(connection, companion: dict, now: datetime) -> dict | None:
     if not found:
         return None
     until = date.fromisoformat(found['end_date']).strftime('%A')
+    if found['visit'] == TOGETHER:
+        # Short for the chat header (Iris 2026-11-03): the end date is in the strip.
+        # On a phone header, just the place: the luggage icon says away (Iris).
+        return {'state': 'together', 'kind': 'away', 'text': f'Away {trips.away_where(found)}',
+                'short': found['city_name']}
     if found['visit'] == TO_YOU:
         return {'state': 'together', 'kind': 'staying', 'text': f'Staying with you until {until}'}
     return {'state': 'together', 'kind': 'hosting', 'text': f"You're staying in {found['city_name']} until {until}"}
@@ -443,7 +458,8 @@ def view(connection, companion: dict, now: datetime) -> dict | None:
     if not found:
         return None
     return {'id': found['id'], 'direction': found['visit'], 'city_name': found['city_name'],
-            'start_date': found['start_date'], 'end_date': found['end_date'], 'leave_at': LEAVE}
+            'start_date': found['start_date'], 'end_date': found['end_date'], 'leave_at': LEAVE,
+            'prep': (found.get('away') or {}).get('prep') or 'in'}
 
 
 # --- What the chat context says -----------------------------------------------------------------------------------
@@ -453,6 +469,8 @@ def span(trip: dict) -> str:
 
 
 def what(trip: dict) -> str:
+    if trip['visit'] == TOGETHER:
+        return f"you and the user are going away together to {trip['city_name']}{away_by(trip)}"
     if trip['visit'] == TO_YOU:
         return f"you are going to {trip['city_name']} to stay with the user"
     return f"the user is coming to {trip['city_name']} to stay with you"
@@ -482,20 +500,35 @@ def visits(connection, companion: dict, since: date, now: datetime) -> list[dict
 
 def visit_lines(trip: dict, today: date, now: datetime, fresh_ids: set[str]) -> list[tuple[str, str]]:
     start, end = date.fromisoformat(trip['start_date']), date.fromisoformat(trip['end_date'])
+    away = trip['visit'] == TOGETHER
     if trip['status'] == 'cancelled':
-        return [(f"visit:{trip['id']}:off", f"- The user called off the weekend visit {span(trip)} ({what(trip)}). "
+        called = 'trip away together' if away else 'weekend visit'
+        return [(f"visit:{trip['id']}:off", f"- The user called off the {called} {span(trip)} ({what(trip)}). "
                  'Take it in stride.')]
     if end < today or (end == today and start < today):
+        if away:
+            return [(f"visit:{trip['id']}:done", f"- You just got back from a trip away together "
+                     f"{trips.away_where(trip)} ({span(trip)}). You are apart again, texting.")]
         went = 'you went to stay with the user in' if trip['visit'] == TO_YOU else 'the user came to stay with you in'
         return [(f"visit:{trip['id']}:done", f"- You just spent a weekend together: {went} {trip['city_name']} "
                  f"({span(trip)}). You are apart again, texting.")]
-    if start > today + timedelta(days=AHEAD_DAYS):
+    fresh = trip['message_id'] in fresh_ids
+    if start > today + timedelta(days=AHEAD_DAYS * (3 if away else 1)) and not fresh:
         return []
-    lines = [(f"visit:{trip['id']}", f"- {span(trip)}: {what(trip)} for the weekend. It is booked.")]
-    if trip['message_id'] in fresh_ids:
-        lines.append((f"visit:{trip['id']}:booked", f"- You agreed to a weekend visit: {what(trip)}, {span(trip)}. "
-                      'Confirm the dates in this reply, in your own words.'))
+    length = f"for {(end - start).days + 1} days" if away else 'for the weekend'
+    lines = [(f"visit:{trip['id']}", f"- {span(trip)}: {what(trip)} {length}. It is booked.")]
+    if fresh:
+        agreed = 'to go away together' if away else 'to a weekend visit'
+        confirm = 'the place and the dates' if away else 'the dates'
+        lines.append((f"visit:{trip['id']}:booked", f"- You agreed {agreed}: {what(trip)}, {span(trip)}. "
+                      f'Confirm {confirm} in this reply, in your own words.'))
     return lines
+
+
+def away_by(trip: dict) -> str:
+    """' (by plane)' for a trip together, from how they travel."""
+    by = (trip.get('away') or {}).get('by') or ''
+    return f' (by {by})' if by and by not in ('tram', 'lift') else ''
 
 
 def apart_text(between: where.Between) -> str:
@@ -531,10 +564,28 @@ def offset(connection, companion: dict, now: datetime) -> float:
     return (theirs - yours).total_seconds() / 3600
 
 
+def away_scene(connection, companion: dict, trip: dict, now: datetime, until: str) -> str:
+    """Away together: where, which day of how many, and where they are now (their agenda's slot)."""
+    from companion.life import pacing
+    start, end = date.fromisoformat(trip['start_date']), date.fromisoformat(trip['end_date'])
+    today = now.astimezone(visit_zone(companion, trip)).date()
+    day = f"day {(today - start).days + 1} of {(end - start).days + 1}"
+    found = pacing.block_now(connection, companion, now)
+    entry = optional(connection, "SELECT entry FROM life_agenda WHERE timeline_id=? AND subject='companion' AND "
+                     "starts_at<=? AND ends_at>? ORDER BY starts_at DESC LIMIT 1",
+                     (companion['active_timeline_id'], stamp(now), stamp(now))) if found else None
+    place = (decode(entry['entry']).get('place') or {}).get('name') if entry else None
+    here = f' Right now you are at {place}.' if place else ''
+    return (f"You and the user are away together {trips.away_where(trip)} ({day}), until {until}, when you travel "
+            f"home together.{here}")
+
+
 def scene(connection, companion: dict, trip: dict, now: datetime) -> str:
     """Being together for the weekend, in person."""
     from companion.life import outings
     until = f"{date.fromisoformat(trip['end_date']):%A} afternoon"
+    if trip['visit'] == TOGETHER:
+        return f'- {away_scene(connection, companion, trip, now, until)} You are together, in person. {outings.IN_PERSON}'
     if trip['visit'] == TO_YOU:
         home = where.your_home(connection)
         area = f" in {home[1]['name']}" if home and home[1] else ''
@@ -553,7 +604,10 @@ def scene(connection, companion: dict, trip: dict, now: datetime) -> str:
 NEWS = {TO_YOU: ("Guess what, I'm coming to see you! {span}. I already booked it.",
                  "I'm coming to {city}! {span}, if that works for you. I can't wait."),
         HOST: ("Come stay with me {span}? I cleared the weekend, I'll show you around {city}.",
-               "I want you here. {span}, come stay with me? I already have plans for us in {city}.")}
+               "I want you here. {span}, come stay with me? I already have plans for us in {city}."),
+        TOGETHER: ("Don't say no: I booked us a trip! {where}, {span}. Pack something nice.",
+                   "Okay, surprise. You and me, {where}, {span}. I already booked it.",
+                   "I need a break and I want it with you. {span}, {where}? I booked it.")}
 
 
 def news_due(connection, companion: dict, now: datetime) -> list:
@@ -570,16 +624,23 @@ def news_due(connection, companion: dict, now: datetime) -> list:
     trip = trips.view(rows[0])
     days = f"{date.fromisoformat(trip['start_date']):%A %B} {date.fromisoformat(trip['start_date']).day} to " \
         f"{date.fromisoformat(trip['end_date']):%A %B} {date.fromisoformat(trip['end_date']).day}"
-    if trip['visit'] == TO_YOU:
+    if trip['visit'] == TOGETHER:
+        reason = (f"You just booked a trip away for the two of you: {trips.away_where(trip)}{away_by(trip)}, {days}. "
+                  'Tell them, excited about it, naming the place and the days.')
+    elif trip['visit'] == TO_YOU:
         reason = (f"You just booked a weekend visit: you are going to {trip['city_name']} to stay with the user, "
                   f"{days}. Tell them, glad about it, naming the days.")
     else:
         reason = (f"You'd love the user to come and stay with you in {trip['city_name']}, {days}, and you have kept "
                   'that weekend free. Invite them, naming the days.')
     template = generators.pick(f"visit-news:{trip['id']}", 'news', list(NEWS[trip['visit']])).format(
-        span=days, city=trip['city_name'])
+        span=days, city=trip['city_name'], where=upper_first(trips.away_where(trip)))
     return [Trigger(f"visit-news:{trip['id']}", 'visit_news', reason, template[0].upper() + template[1:],
                     (trip['id'],))]
+
+
+def upper_first(text: str) -> str:
+    return text[:1].upper() + text[1:]
 
 
 # --- Afterwards ---------------------------------------------------------------------------------------------------
@@ -590,6 +651,9 @@ def stay_text(trip: dict, companion: dict) -> dict:
     name, city = companion['version']['definition']['name'].split()[0], trip['city_name']
     start, end = date.fromisoformat(trip['start_date']), date.fromisoformat(trip['end_date'])
     span = f'{start:%A %B} {start.day} to {end:%A %B} {end.day}'
+    if trip['visit'] == TOGETHER:
+        where = trips.away_where(trips.view(trip) if isinstance(trip.get('away'), str) else trip)
+        return {'subject': f'Away together {where}', 'value': f'You and {name} went away together {where}, {span}.'}
     if trip['visit'] == TO_YOU:
         return {'subject': f"{name}'s visit to {city}", 'value': f'{name} came to stay with you in {city}, {span}.'}
     return {'subject': f'Staying with {name} in {city}', 'value': f'You came to stay with {name} in {city}, {span}.'}

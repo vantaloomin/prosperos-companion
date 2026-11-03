@@ -1,20 +1,29 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronUp, Plus, RotateCcw, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, RotateCcw, X } from 'lucide-react'
 import { api } from '../../api'
 import type { Closeness as ClosenessState, Memory } from '../../types'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { Field, TextInput, Toggle } from '../../components/Fields'
+import { Field } from '../../components/Fields'
 import { ErrorNotice } from '../../components/ErrorNotice'
-import { CLOSENESS_KEY, OPENNESS, basisText, milestoneText, stageText } from './closenessText'
+import { CLOSENESS_KEY, OPENNESS, basisText, milestoneText, shortBasis, stageSteered, stageText } from './closenessText'
+import { FoldRow, RowGroup, SettingRow, SwitchRow } from '../../components/Rows'
+import { InfoTip } from '../../components/InfoTip'
 
 type Run = <T>(action: () => Promise<T>, done: string) => Promise<T | null>
 const SHARED = new Set(['shared_experience', 'relationship'])
 
-/** How close the companion feels, why, and the user's controls over it (PRD M4: never a hidden score). */
+const COUNTING = (name: string) => `It counts the days you talked, not how many messages or how long, plus shared moments you keep in Memories. Time apart only lowers it if you turn on cooling in Adjust, and it only changes how ${name} talks with you: nothing in the app opens or closes with it. Excluding or deleting a shared moment takes it out of the count.`
+
+/**
+ * How close the companion feels, why, and the user's controls over it (PRD M4: never a hidden score). The stage name
+ * and a five-step meter lead, with the stage's description under them; Adjust opens the controls. The stage names come
+ * from companion/closeness.py by relationship and never change in a redesign (tester, 2026-11-02).
+ */
 export function Closeness({ name, memories, run }: { name: string; memories: Memory[]; run: Run }) {
   const client = useQueryClient()
   const closeness = useQuery({ queryKey: CLOSENESS_KEY, queryFn: () => api<ClosenessState>('/closeness') })
+  const [adjusting, setAdjusting] = useState(false)
   const change = async (action: () => Promise<ClosenessState>, done: string) => {
     const result = await run(action, done)
     if (result) client.setQueryData(CLOSENESS_KEY, result)
@@ -24,58 +33,111 @@ export function Closeness({ name, memories, run }: { name: string; memories: Mem
   if (!closeness.data) return null
   const state = closeness.data
   return (
-    <section className="memory-group closeness" aria-labelledby="closeness-heading">
-      <h2 id="closeness-heading">How close you are</h2>
-      <p>{stageText(state, name)} {basisText(state)}</p>
-      <ol className="closeness-stages">
-        {state.stages.map((stage, index) => (
-          <li key={stage} aria-current={index + 1 === state.level ? 'step' : undefined}>
-            <span className="closeness-stage">{stage}{index + 1 === state.level && <span className="badge">Now</span>}</span>
-            <span className="subtle">{OPENNESS[index]}</span>
-          </li>
-        ))}
-      </ol>
+    <section className="closeness-now" aria-labelledby="closeness-heading">
+      <div className="closeness-head">
+        <h2 id="closeness-heading"><span className="visually-hidden">How close you are: </span>{state.name}</h2>
+        <button type="button" className="text-button closeness-adjust" aria-expanded={adjusting} aria-controls="closeness-adjust" onClick={() => setAdjusting(!adjusting)}>Adjust</button>
+      </div>
+      <span className="row-sub closeness-basis">{shortBasis(state)}<InfoTip id="closeness-counting" label="How it is counted" text={`${basisText(state)} ${COUNTING(name)}`} /></span>
+      <Meter state={state} />
+      <p className="closeness-description">{OPENNESS[state.level - 1]}</p>
+      {stageSteered(state) && <p className="row-sub">{stageText(state, name)}</p>}
+      {adjusting && <ClosenessRows id="closeness-adjust" name={name} state={state} change={change}>
+        <NicknameRow name={name} state={state} change={change} />
+        <StartOverRow name={name} state={state} change={change} />
+      </ClosenessRows>}
       {state.history.length > 0 && (
         <details className="closeness-history">
           <summary>When it changed</summary>
           <ul>{state.history.map((milestone) => <li key={milestone.level}>{milestoneText(milestone, state.stages)}</li>)}</ul>
         </details>
       )}
-      <p className="subtle">
-        It counts the days you talked, not how many messages or how long, plus shared moments you keep in Memories. Time apart only lowers it if you
-        turn on gentle cooling below, and it only changes how {name} talks with you: nothing in the app opens or closes with it. Excluding or deleting a shared moment takes it out of the count.
-      </p>
-      <Controls name={name} state={state} change={change} />
-      <RunningJokes name={name} state={state} memories={memories} change={change} />
+      <RowGroup><RunningJokes name={name} state={state} memories={memories} change={change} /></RowGroup>
     </section>
   )
 }
 
-export type Change = (action: () => Promise<ClosenessState>, done: string) => Promise<void>
+/** Five steps, lit up to where you are, with the stage names under them; each step says its stage on hover. */
+function Meter({ state }: { state: ClosenessState }) {
+  return (
+    <ol className="closeness-meter" aria-label="Closeness stages">
+      {state.stages.map((stage, index) => (
+        <li key={stage} className={index < state.level ? 'on' : undefined} aria-current={index + 1 === state.level ? 'step' : undefined} title={`${stage}: ${OPENNESS[index]}`}>
+          <span className="closeness-bar" aria-hidden="true" /><span className="closeness-step">{stage}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
 
-function Controls({ name, state, change }: { name: string; state: ClosenessState; change: Change }) {
+interface ClosenessRowsProps { id?: string; name: string; state: ClosenessState; change: Change; path?: string; children?: ReactNode }
+
+/**
+ * Closeness as rows: the stage with a step back and a step closer, Never closer than, Hold at this stage and cooling.
+ * Memories > Adjust adds the nickname and Start over; Settings > Realism shows the same rows for any companion (`path`
+ * names which), so the two can't drift apart (Iris).
+ */
+export function ClosenessRows({ id, name, state, change, path = '/closeness', children }: ClosenessRowsProps) {
+  const put = (body: object) => () => api<ClosenessState>(path, body, 'PUT')
+  const setTo = (level: number) => void change(put({ set_level: level }), `${name} is at ${state.stages[level - 1]} now, and it grows from there.`)
+  const cap = (value: string) => {
+    const level = value ? Number(value) : null
+    void change(put({ ceiling_level: level }), level ? `${name} won't get closer than ${state.stages[level - 1]}.` : 'Closeness can grow all the way again.')
+  }
+  const hold = (on: boolean) => void change(put({ held_level: on ? state.level : null }),
+    on ? `${name} stays at ${state.name} until you change it.` : 'Closeness grows from your shared history again.')
+  const cool = (on: boolean) => void change(put({ cooling: on }), on ? 'Long silences now cool things a little.' : 'Time apart no longer lowers closeness.')
+  const stage = state.held_level ?? state.grown_level
+  return (
+    <div id={id} className="row-list closeness-rows">
+      <SettingRow label="Stage" tip="It keeps growing from the stage you pick, unless you hold it.">
+        {(id) => <span className="stepper" id={id} role="group" aria-label="Stage">
+          <button type="button" className="icon-button" aria-label="One step back" disabled={stage <= 1} onClick={() => setTo(stage - 1)}><ChevronLeft aria-hidden="true" /></button>
+          <span className="stepper-value" aria-live="polite">{state.stages[stage - 1]}</span>
+          <button type="button" className="icon-button" aria-label="One step closer" disabled={stage >= state.stages.length} onClick={() => setTo(stage + 1)}><ChevronRight aria-hidden="true" /></button>
+        </span>}
+      </SettingRow>
+      <SettingRow label="Never closer than" tip="Grows as usual up to this stage, then stops. Good for a slow burn.">
+        {(id) => (
+          <select id={id} value={state.ceiling_level ?? ''} onChange={(event) => cap(event.target.value)}>
+            <option value="">No limit</option>
+            {state.stages.map((item, index) => <option key={item} value={index + 1}>{item}</option>)}
+          </select>
+        )}
+      </SettingRow>
+      <SwitchRow label="Hold at this stage" checked={state.held_level !== null} onChange={hold} tip="Stays put, higher or lower, until you let it grow again." />
+      <SwitchRow label="Long silences cool things" checked={state.cooling} onChange={cool}
+        tip={`After 3 weeks without talking, ${name} is a step less familiar, after 2 months two steps, never below ${state.stages[1]}. Every 2 days you talk again bring a step back.`} />
+      {children}
+    </div>
+  )
+}
+
+/** The nickname you are happy with, saved when you leave the box or press Enter. */
+function NicknameRow({ name, state, change }: { name: string; state: ClosenessState; change: Change }) {
   const [nickname, setNickname] = useState(state.nickname)
-  const [confirming, setConfirming] = useState(false)
-  const saveNickname = (event: FormEvent) => {
-    event.preventDefault()
+  const save = () => {
+    if (nickname.trim() === state.nickname.trim()) return
     void change(() => api('/closeness', { nickname }, 'PUT'),
       nickname.trim() ? `${name} may call you “${nickname.trim()}”.` : `${name} won't use a nickname you chose.`)
   }
+  return (
+    <SettingRow label="Nickname" tip={`A nickname you are happy with. Leave it empty and ${name} won't use a pet name before you are comfortable with each other.`}>
+      {(id) => <input id={id} value={nickname} maxLength={40} autoComplete="off" placeholder="None" onChange={(event) => setNickname(event.target.value)} onBlur={save}
+        onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); save() } }} />}
+    </SettingRow>
+  )
+}
+
+function StartOverRow({ name, state, change }: { name: string; state: ClosenessState; change: Change }) {
+  const [confirming, setConfirming] = useState(false)
   const reset = () => {
     setConfirming(false)
     void change(() => api('/closeness/reset', {}), `Closeness starts again from today. ${name} is back to ${state.stages[0]}.`)
   }
   return (
-    <div className="closeness-controls">
-      <StageControls name={name} state={state} change={change} />
-      <form className="closeness-nickname" onSubmit={saveNickname}>
-        <TextInput label="A nickname you are happy with" value={nickname} onChange={setNickname} maxLength={40}
-          hint={`Leave it empty and ${name} won't use a pet name before you are comfortable with each other.`} />
-        <button type="submit" className="button">Save nickname</button>
-      </form>
-      <div>
-        <button type="button" className="button danger" onClick={() => setConfirming(true)}><RotateCcw aria-hidden="true" />Start over</button>
-      </div>
+    <div className="setting-row">
+      <button type="button" className="text-button danger" onClick={() => setConfirming(true)}><RotateCcw aria-hidden="true" />Start closeness over</button>
       {confirming && (
         <ConfirmDialog title="Start closeness over?" onClose={() => setConfirming(false)} actions={<>
           <button type="button" className="button" onClick={() => setConfirming(false)}>Cancel</button>
@@ -88,54 +150,7 @@ function Controls({ name, state, change }: { name: string; state: ClosenessState
   )
 }
 
-/**
- * Where closeness stands and how far it may go: Set it to, Never closer than, steps, Keep it at and gentle cooling.
- * Memories shows these for the open companion; Settings > Realism for any companion (`path` names which).
- */
-export function StageControls({ name, state, change, path = '/closeness' }: { name: string; state: ClosenessState; change: Change; path?: string }) {
-  const put = (body: object) => () => api<ClosenessState>(path, body, 'PUT')
-  const hold = (value: string) => {
-    const level = value ? Number(value) : null
-    void change(put({ held_level: level }),
-      level ? `${name} stays at ${state.stages[level - 1]} until you change it.` : 'Closeness grows from your shared history again.')
-  }
-  const setTo = (level: number) => void change(put({ set_level: level }), `${name} is at ${state.stages[level - 1]} now, and it grows from there.`)
-  const cap = (value: string) => {
-    const level = value ? Number(value) : null
-    void change(put({ ceiling_level: level }),
-      level ? `${name} won't get closer than ${state.stages[level - 1]}.` : 'Closeness can grow all the way again.')
-  }
-  const cool = (on: boolean) => void change(put({ cooling: on }),
-    on ? 'Long silences now cool things a little.' : 'Time apart no longer lowers closeness.')
-  return (
-    <>
-      <Field label="Set it to" hint="It keeps growing from the stage you pick.">{(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value="" onChange={(event) => { if (event.target.value) setTo(Number(event.target.value)) }}>
-          <option value="">Choose a stage</option>
-          {state.stages.map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
-        </select>
-      )}</Field>
-      <Field label="Never closer than" hint="Grows as usual up to this stage, then stops. Good for a slow burn.">{(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={state.ceiling_level ?? ''} onChange={(event) => cap(event.target.value)}>
-          <option value="">No limit</option>
-          {state.stages.map((stage, index) => <option key={stage} value={index + 1}>{stage}</option>)}
-        </select>
-      )}</Field>
-      <div className="closeness-steps" role="group" aria-label="Move closeness">
-        <button type="button" className="button" disabled={state.grown_level <= 1} onClick={() => setTo(state.grown_level - 1)}><ChevronDown aria-hidden="true" />One step back</button>
-        <button type="button" className="button" disabled={state.grown_level >= state.stages.length} onClick={() => setTo(state.grown_level + 1)}><ChevronUp aria-hidden="true" />One step closer</button>
-      </div>
-      <Field label="Keep it at" hint="Stays put, higher or lower, until you let it grow again.">{(id, describedBy) => (
-        <select id={id} aria-describedby={describedBy} value={state.held_level ?? ''} onChange={(event) => hold(event.target.value)}>
-          <option value="">Keeps growing</option>
-          {state.stages.map((stage, index) => <option key={stage} value={index + 1}>Keep at {stage}</option>)}
-        </select>
-      )}</Field>
-      <Toggle label="Let long silences cool things a little" checked={state.cooling} onChange={cool}
-        hint={`Off unless you turn it on. After 3 weeks without talking, ${name} is a step less familiar, after 2 months two steps, never below ${state.stages[1]}. Every 2 days you talk again bring a step back.`} />
-    </>
-  )
-}
+export type Change = (action: () => Promise<ClosenessState>, done: string) => Promise<void>
 
 function RunningJokes({ name, state, memories, change }: { name: string; state: ClosenessState; memories: Memory[]; change: Change }) {
   const [picked, setPicked] = useState('')
@@ -149,9 +164,9 @@ function RunningJokes({ name, state, memories, change }: { name: string; state: 
     if (memory) void add(memory.id, memory.subject).then(() => setPicked(''))
   }
   return (
-    <div className="closeness-jokes">
-      <h3>Running jokes</h3>
-      <p className="subtle">Shared moments {name} may bring back now and then. A moment that keeps coming up becomes one on its own; remove any you would rather they let go.</p>
+    <FoldRow summary="Running jokes" value={state.jokes.length ? String(state.jokes.length) : 'None yet'}>
+    <div className="fold-extra closeness-jokes">
+      <p className="fold-about">Shared moments they bring back <InfoTip id="jokes-about" label="Running jokes" text={`Shared moments ${name} may bring back now and then. A moment that keeps coming up becomes one on its own; remove any you would rather they let go.`} /></p>
       {state.jokes.length > 0 && (
         <ul className="memory-list">
           {state.jokes.map((joke) => (
@@ -187,5 +202,6 @@ function RunningJokes({ name, state, memories, change }: { name: string; state: 
         </form>
       ) : state.jokes.length === 0 && <p className="subtle">Shared moments you keep in Memories can become running jokes.</p>}
     </div>
+    </FoldRow>
   )
 }

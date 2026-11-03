@@ -93,7 +93,7 @@ function PlanEditor({ draft, close, running }: { draft: GenerationDraft; close: 
   }
   return (
     <div className="form-stack">
-      {enabled.length === 0 && <Notice tone="error">No image backend is enabled. Set one up in Settings, Images.</Notice>}
+      {enabled.length === 0 && <Notice tone="error">No image backend is enabled. Set one up in Settings, Pictures.</Notice>}
       <PlanSettings plan={plan} setBase={setBase} setSeed={setSeed} enabled={enabled} backendId={backendId} setBackendId={setBackendId} nsfw={nsfw} setNsfw={setNsfw} />
       <ShotList shots={plan.shots} setShots={setShots} reset={reset} planned={planned} promptFor={(shot) => composePrompt(draft.style, plan.base, shot.shot)} />
       {error && <Notice tone="error">{error}</Notice>}
@@ -113,7 +113,7 @@ function PlanSettings({ plan, setBase, setSeed, enabled, backendId, setBackendId
       <TextArea label="Description every shot starts from" value={plan.base} rows={3} maxLength={1500} onChange={setBase} hint="Drafted from the appearance description. Keep it the same across a set." />
       <div className="form-grid">
         <TextInput label="Seed" type="number" value={plan.seed} onChange={setSeed} hint="Shared by every shot. Codex and image APIs may ignore it." />
-        <Field label="Backend" hint="Automatic tries your enabled backends in the order set in Settings, Images.">{(id, hint) => (
+        <Field label="Backend" hint="Automatic tries your enabled backends in the order set in Settings, Pictures.">{(id, hint) => (
           <select id={id} aria-describedby={hint} value={backendId} onChange={(event) => setBackendId(event.target.value)}>
             <option value="">Automatic, in your order</option>
             {enabled.map((backend) => <option key={backend.id} value={backend.id}>{backend.label}</option>)}

@@ -1,5 +1,5 @@
 """Life simulation, Today and Feed API (PRD T1–T7, F1, F2, F4)."""
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Request
@@ -7,12 +7,13 @@ from pydantic import Field
 
 from companion import consequences, conversation, news
 from companion.characters import require_current
-from companion.clock import parse, stamp
+from companion.clock import parse, stamp, zone
 from companion.database import settings
 from companion.errors import DomainError, require
 from companion.life import (
     agenda,
     ages,
+    away_together,
     big_days,
     big_turns,
     breakups,
@@ -36,6 +37,7 @@ from companion.life import (
     mood,
     moving_in,
     network,
+    onward,
     outings,
     parenthood,
     pets,
@@ -212,6 +214,13 @@ def list_runs(request: Request, limit: int = 20):
     return simulation.runs(db(request), min(max(limit, 1), 100))
 
 
+def today_slots(schedule, timezone: str, now) -> list[dict]:
+    """Their routine across their own calendar day, midnight to midnight where they live, for Today's day strip."""
+    local = now.astimezone(zone(timezone))
+    start = datetime.combine(local.date(), time(), local.tzinfo)
+    return [slot.view() for slot in routine.slots(schedule, timezone, start, start + timedelta(days=1))]
+
+
 @router.get('/routine')
 def read_routine(request: Request):
     database = db(request)
@@ -219,11 +228,13 @@ def read_routine(request: Request):
     with database.connect() as connection:
         companion = require_current(connection)
         position = simulation.cursor(connection, companion['active_timeline_id'])
-    version = companion['version']
-    schedule, default = routine.blocks(version['definition'])
+        version = companion['version']
+        schedule, default = routine.blocks(version['definition'])
+        # A day away together is one block (companion/life/away_together.py).
+        day = away_together.day_slots(connection, companion, today_slots(schedule, version['timezone'], now))
     now_slot, next_slot = routine.current_and_next(schedule, version['timezone'], now)
     return {'timezone': version['timezone'], 'default_schedule': default,
-            'blocks': [block.view() for block in schedule],
+            'blocks': [block.view() for block in schedule], 'today': day,
             'current': now_slot.view() if now_slot else None, 'next': next_slot.view() if next_slot else None,
             'simulated_through': position['simulated_through'], 'now': stamp(now),
             'clock_behind': now < parse(position['simulated_through'])}
@@ -637,10 +648,13 @@ def change_call(request: Request, call_id: str, action: Literal['answer', 'decli
 
 
 @router.post('/trips/{trip_id}/{action}')
-def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo']):
-    """Call off a weekend visit with the user that has not started (companion/life/long_distance.py), or undo that."""
+def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo', 'elsewhere', 'home', 'stay']):
+    """Call off a weekend visit or a trip together that has not started (companion/life/long_distance.py), or undo
+    that; send a trip together somewhere else, or head home from one early and undo that
+    (companion/life/away_together.py)."""
     database = db(request)
-    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo}[action]
+    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo, 'elsewhere': away_together.elsewhere,
+              'home': away_together.head_home, 'stay': away_together.stay_on}[action]
     with database.connect(write=True) as connection:
         changed = change(connection, require_current(connection), trip_id, database.clock.now())
     request.app.state.life.extend_agenda('return')
@@ -649,12 +663,15 @@ def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo
 
 @router.post('/outings/{outing_id}/{action}')
 def change_outing(request: Request, outing_id: str,
-                  action: Literal['cancel', 'elsewhere', 'home', 'undo', 'now', 'longer']):
+                  action: Literal['cancel', 'elsewhere', 'home', 'undo', 'now', 'longer', 'next', 'back']):
     """Call an outing off, have the companion pick somewhere else, meet up now, stay longer, head home early, or undo
-    calling it off or heading home."""
+    calling it off or heading home; before moving on to a second place, have them pick another one, or just after,
+    go back."""
     database = db(request)
     change = {'cancel': outings.cancel, 'elsewhere': outings.elsewhere, 'home': outings.head_home,
-              'undo': outings.undo, 'now': outings.go_now, 'longer': outings.stay_longer}[action]
+              'undo': outings.undo, 'now': outings.go_now, 'longer': outings.stay_longer,
+              # Second location (companion/life/onward.py): another next place, or back to where they were.
+              'next': onward.elsewhere, 'back': onward.stay}[action]
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         changed = change(connection, companion, outing_id, database.clock.now())

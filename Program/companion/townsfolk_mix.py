@@ -1,4 +1,4 @@
-"""Settings > Debug > Townsfolk mix (companion/world/mix.py): what the open world's town is made of, counted from its
+"""Settings > Data > Townsfolk mix (companion/world/mix.py): what the open world's town is made of, counted from its
 people, and a new world made with a changed mix.
 
 The count reads every townsperson in the main character's city (people at its places and its residents), the

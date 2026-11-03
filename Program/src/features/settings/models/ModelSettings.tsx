@@ -9,6 +9,7 @@ import { LaunchFor } from './LocalPrograms'
 import { ModelUsage } from './ModelUsage'
 import { useModelUsage } from './usage'
 import { ProfileEditor } from './ProfileEditor'
+import { CliLookRow } from './CliAccountPicker'
 import { ModelMix } from './ModelMix'
 import { WorldModelPick } from './WorldModelPick'
 import { ReadyCard, UseBuiltin } from '../../ready/ReadyCard'
@@ -58,6 +59,7 @@ function TextProfiles({ overview, editing, setEditing, refresh, result, setResul
     <ProfileList profiles={profiles} overview={overview} editing={editing} setEditing={setEditing} done={done} refresh={refresh} setResult={setResult} />
     {editing === 'new' ? <ProfileEditor others={overview.profiles} onDone={done} />
       : <div className="form-actions"><button ref={addButton} type="button" className="button" onClick={() => { setResult(null); setEditing('new') }}>Add a model profile</button></div>}
+    <CliLookRow />
     {profiles.some(profile => profile.ready) && <JobAssignments overview={overview} onChanged={refresh} setResult={setResult} />}
     {result && editing !== 'new-recall' && <Notice tone={result.tone}>{result.text}</Notice>}
   </section>

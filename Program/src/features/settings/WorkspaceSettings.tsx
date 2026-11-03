@@ -1,51 +1,11 @@
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { SETTINGS_KEY, pcTimezone, useWorkspaceSettings } from '../../companion'
-import { Pause, Play, X } from 'lucide-react'
-import { api } from '../../api'
-import type { WorkspaceSettings as Settings } from '../../types'
+import { X } from 'lucide-react'
 import { Notice } from '../../components/Feedback'
-import { TextInput, Toggle } from '../../components/Fields'
-import { timezones } from '../character/definition'
+import { Toggle } from '../../components/Fields'
 import { DEFAULT_OOC_MARKERS, type OocMarker } from '../conversation/ooc'
+import { useWorkspace } from './useWorkspace'
 
-type Save = (change: Partial<Settings> & { review_complete?: boolean }) => Promise<boolean>
-
-/**
- * The workspace settings and a way to change them, shared by the sections on several Settings tabs.
- * Toggles show the new state at once and fall back to the saved state if the change is refused.
- */
-function useWorkspace() {
-  const client = useQueryClient()
-  const settings = useWorkspaceSettings()
-  const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState<Partial<Settings>>({})
-  const save: Save = async (change) => {
-    setPending((current) => ({ ...current, ...change }))
-    try {
-      const saved = await api<Settings>('/settings', change, 'PUT')
-      // Holding the saved values locally avoids a flicker before the shared cache re-renders. Only
-      // the changed ones: other tabs' sections save the rest, and a stale copy here would hide them.
-      setPending((current) => ({ ...current, ...pick(saved, change) }))
-      client.setQueryData(SETTINGS_KEY, saved)
-      setError(null)
-      return true
-    } catch (failure) {
-      setPending({})
-      setError(failure instanceof Error ? failure.message : 'That setting was not saved.')
-      return false
-    }
-  }
-  const data = settings.data ? { ...settings.data, ...pending } : null
-  const problem = error ?? (settings.isError ? settings.error.message : null)
-  return { data, save, setError, setPending, problem }
-}
-
-function pick(saved: Settings, change: Partial<Settings>): Partial<Settings> {
-  return Object.fromEntries(Object.keys(change).filter((key) => key in saved).map((key) => [key, saved[key as keyof Settings]]))
-}
-
-function SectionError({ problem }: { problem: string | null }) {
+export function SectionError({ problem }: { problem: string | null }) {
   return problem ? <Notice tone="error">{problem}</Notice> : null
 }
 
@@ -61,84 +21,6 @@ export function RestoredReview({ onDone }: { onDone: () => void }) {
       </Notice>
       <SectionError problem={problem} />
     </>
-  )
-}
-
-export function PauseSettings() {
-  const client = useQueryClient()
-  const { data, setError, setPending, problem } = useWorkspace()
-  if (!data) return <SectionError problem={problem} />
-  const pause = async (paused: boolean) => {
-    try {
-      const saved = await api<Settings>(paused ? '/pause' : '/resume', {})
-      setPending({ paused: saved.paused, paused_at: saved.paused_at })
-      client.setQueryData(SETTINGS_KEY, saved)
-      void client.invalidateQueries({ queryKey: ['today'] })
-    } catch (failure) { setError(failure instanceof Error ? failure.message : 'That did not work.') }
-  }
-  return (
-    <section className="settings-section form-stack" aria-labelledby="activity-heading">
-      <SectionError problem={problem} />
-      <div>
-        <h2 id="activity-heading">Pause</h2>
-        <p className="subtle">{data.paused ? `Paused since ${new Date(data.paused_at!).toLocaleString()}. Nothing happens in your companion's life while paused, and resuming skips that time rather than filling it in.` : 'Pausing stops all background work and life events. You can still talk.'}</p>
-      </div>
-      <div className="form-actions">
-        <button type="button" className="button" onClick={() => void pause(!data.paused)}>{data.paused ? <><Play aria-hidden="true" />Resume</> : <><Pause aria-hidden="true" />Pause</>}</button>
-      </div>
-    </section>
-  )
-}
-
-export function BackgroundSettings() {
-  const { data, save, problem } = useWorkspace()
-  if (!data) return <SectionError problem={problem} />
-  return (
-    <section className="settings-section form-stack" aria-labelledby="background-heading">
-      <h2 id="background-heading">Background activity</h2>
-      <SectionError problem={problem} />
-      <Toggle label="Use your model while the app is open in the background" checked={data.background_activity} onChange={(value) => void save({ background_activity: value })}
-        hint="Their life goes on either way while the Companion is running, built by rules with no model calls. On: your model also words those moments, prepares upcoming ones and looks up the weather and what's on. Nothing runs while the app is closed." />
-    </section>
-  )
-}
-
-const ZONE_USE = 'Used for dates, quiet hours and what time it is for you.'
-const ZONE_HINTS: Record<Settings['user_timezone_source'], string> = {
-  pc: `Following this PC's timezone. ${ZONE_USE}`,
-  chosen: `Set by you, so it stays put if this PC's timezone changes. ${ZONE_USE}`,
-  default: ZONE_USE,
-}
-
-export function TimezoneSettings() {
-  const { data, save, problem } = useWorkspace()
-  if (!data) return <SectionError problem={problem} />
-  return <TimezoneForm data={data} save={save} problem={problem} />
-}
-
-function TimezoneForm({ data, save, problem }: { data: Settings; save: Save; problem: string | null }) {
-  const client = useQueryClient()
-  const [zone, setZone] = useState<string | null>(null)
-  const pc = pcTimezone(data)
-  const edited = zone !== null && zone !== data.user_timezone
-  const offerPc = !!pc && (zone !== null || `${data.user_timezone_source}:${data.user_timezone}` !== `pc:${pc}`)
-  const savedZone = (change: Partial<Settings>) => void save(change).then((saved) => {
-    if (saved) { setZone(null); void client.invalidateQueries({ queryKey: ['today'] }) }
-  })
-  const hint = ZONE_HINTS[data.user_timezone_source]
-  return (
-    <section className="settings-section form-stack" aria-labelledby="time-heading">
-      <h2 id="time-heading">Your time</h2>
-      <SectionError problem={problem} />
-      <TextInput label="Your timezone" value={zone ?? data.user_timezone} onChange={setZone} suggestions={timezones()} maxLength={64} hint={hint} />
-      {pc && <p className="subtle">This PC's timezone: {pc}</p>}
-      {(edited || offerPc) && (
-        <div className="form-actions">
-          {edited && <button type="button" className="button primary" onClick={() => savedZone({ user_timezone: zone!, user_timezone_source: 'chosen' })}>Save time zone</button>}
-          {offerPc && <button type="button" className="button" onClick={() => savedZone({ user_timezone: pc!, user_timezone_source: 'pc' })}>Use this PC's time zone</button>}
-        </div>
-      )}
-    </section>
   )
 }
 
@@ -166,22 +48,6 @@ export function MemorySettings() {
   )
 }
 
-/** General > Out-of-character messages: asides marked like this go to the helper, never to the companion. */
-export function OocSettings() {
-  const { data, save, problem } = useWorkspace()
-  if (!data) return <SectionError problem={problem} />
-  const markers = data.ooc_markers?.length ? data.ooc_markers : DEFAULT_OOC_MARKERS
-  return (
-    <section className="settings-section form-stack" aria-labelledby="ooc-heading">
-      <h2 id="ooc-heading">Out-of-character messages</h2>
-      <SectionError problem={problem} />
-      <Toggle label="Send out-of-character messages to the sidecar" checked={data.ooc_to_helper ?? true} onChange={(value) => void save({ ooc_to_helper: value })}
-        hint="Messages that start with OOC:, or the parts inside (( )), go to the sidecar instead of the character, and stay out of the chat; the rest is sent as usual. Off: the character answers them honestly." />
-      {(data.ooc_to_helper ?? true) && <OocMarkers markers={markers} save={(next) => void save({ ooc_markers: next })} />}
-    </section>
-  )
-}
-
 const sameMarkers = (a: OocMarker[], b: OocMarker[]) =>
   a.length === b.length && a.every((row, index) => row.open.toLowerCase() === b[index].open.toLowerCase() && row.close.toLowerCase() === b[index].close.toLowerCase())
 
@@ -195,7 +61,9 @@ function markerProblem(rows: MarkerRow[], index: number): string | null {
 
 type MarkerRow = OocMarker & { pair: boolean }
 
-function OocMarkers({ markers, save }: { markers: OocMarker[]; save: (markers: OocMarker[]) => void }) {
+/** The markers as nested rows inside the out-of-character group: one row per marker with its fields on the right,
+ * then Add marker. They switch off with the row above them. */
+export function OocMarkers({ markers, save, disabled }: { markers: OocMarker[]; save: (markers: OocMarker[]) => void; disabled?: boolean }) {
   const [rows, setRows] = useState<MarkerRow[]>(() => markers.map((row) => ({ ...row, pair: !!row.close })))
   const [adding, setAdding] = useState(false)
   // Saved as soon as every marker is complete; while one isn't, its row says why.
@@ -207,38 +75,38 @@ function OocMarkers({ markers, save }: { markers: OocMarker[]; save: (markers: O
   }
   const edit = (index: number, part: Partial<MarkerRow>) => change(rows.map((row, at) => (at === index ? { ...row, ...part } : row)))
   const add = (pair: boolean) => { setRows([...rows, { open: '', close: '', pair }]); setAdding(false) }
-  return (
-    <fieldset className="form-stack">
-      <legend>Markers</legend>
-      {rows.map((row, index) => (
-        <MarkerRowEditor key={index} row={row} problem={markerProblem(rows, index)} only={rows.length < 2}
-          onChange={(part) => edit(index, part)} onRemove={() => change(rows.filter((_, at) => at !== index))} />
-      ))}
-      <div className="form-actions">
-        {adding
-          ? <span role="group" aria-label="Kind of marker">
-              <button type="button" className="button" onClick={() => add(false)}>Starts with</button>
-              <button type="button" className="button" onClick={() => add(true)}>Between</button>
-            </span>
-          : <button type="button" className="button" onClick={() => setAdding(true)} disabled={rows.length >= 12}>Add marker</button>}
-        {!sameMarkers(rows, DEFAULT_OOC_MARKERS) && <button type="button" className="text-button" onClick={() => change(DEFAULT_OOC_MARKERS.map((row) => ({ ...row, pair: !!row.close })))}>Reset to defaults</button>}
-      </div>
-    </fieldset>
-  )
+  const off = disabled ? ' disabled' : ''
+  return <>
+    {rows.map((row, index) => (
+      <MarkerRowEditor key={index} row={row} problem={markerProblem(rows, index)} only={rows.length < 2} disabled={!!disabled}
+        onChange={(part) => edit(index, part)} onRemove={() => change(rows.filter((_, at) => at !== index))} />
+    ))}
+    <div className={`setting-row nested marker-add${off}`}>
+      {adding
+        ? <span role="group" aria-label="Kind of marker" className="marker-kinds">
+            <button type="button" className="text-button" disabled={disabled} onClick={() => add(false)}>Starts with</button>
+            <button type="button" className="text-button" disabled={disabled} onClick={() => add(true)}>Between</button>
+          </span>
+        : <button type="button" className="text-button" onClick={() => setAdding(true)} disabled={disabled || rows.length >= 12}>Add marker</button>}
+      {!sameMarkers(rows, DEFAULT_OOC_MARKERS) && <button type="button" className="text-button marker-reset" disabled={disabled} onClick={() => change(DEFAULT_OOC_MARKERS.map((row) => ({ ...row, pair: !!row.close })))}>Reset to defaults</button>}
+    </div>
+  </>
 }
 
-function MarkerRowEditor({ row, problem, only, onChange, onRemove }: { row: MarkerRow; problem: string | null; only: boolean; onChange: (part: Partial<MarkerRow>) => void; onRemove: () => void }) {
+interface MarkerRowProps { row: MarkerRow; problem: string | null; only: boolean; disabled: boolean; onChange: (part: Partial<MarkerRow>) => void; onRemove: () => void }
+
+function MarkerRowEditor({ row, problem, only, disabled, onChange, onRemove }: MarkerRowProps) {
   const box = (value: string, label: string, set: (text: string) => void) =>
-    <input autoComplete="off" value={value} maxLength={12} size={6} aria-label={label} aria-invalid={!!problem} onChange={(event) => set(event.target.value)} />
+    <input autoComplete="off" value={value} maxLength={12} size={5} aria-label={label} aria-invalid={!!problem} disabled={disabled} onChange={(event) => set(event.target.value)} />
   return (
-    <div>
-      <div className="form-actions">
+    <div className={disabled ? 'setting-row nested marker-row disabled' : 'setting-row nested marker-row'}>
+      <span className="setting-row-label">{row.pair ? 'Between' : 'Starts with'}{problem && <span className="marker-problem" role="alert">{problem}</span>}</span>
+      <span className="marker-fields">
         {row.pair
-          ? <span>Between {box(row.open, 'Opening marker', (open) => onChange({ open }))} and {box(row.close, 'Closing marker', (close) => onChange({ close }))}</span>
-          : <span>Starts with {box(row.open, 'Starting word', (open) => onChange({ open }))}</span>}
-        <button type="button" className="icon-button marker-remove" aria-label="Remove this marker" disabled={only} onClick={onRemove}><X aria-hidden="true" /></button>
-      </div>
-      {problem && <p className="subtle" role="alert">{problem}</p>}
+          ? <>{box(row.open, 'Opening marker', (open) => onChange({ open }))}<span aria-hidden="true">and</span>{box(row.close, 'Closing marker', (close) => onChange({ close }))}</>
+          : box(row.open, 'Starting word', (open) => onChange({ open }))}
+        <button type="button" className="icon-button marker-remove" aria-label="Remove this marker" disabled={only || disabled} onClick={onRemove}><X aria-hidden="true" /></button>
+      </span>
     </div>
   )
 }

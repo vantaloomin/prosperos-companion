@@ -1,4 +1,4 @@
-"""Debug time (Settings > Debug): check several days of a companion's life in minutes.
+"""Debug time (Settings > Data): check several days of a companion's life in minutes.
 
 Everything that reads the time reads the app clock (clock.AppClock on Database.clock): life batches,
 the agenda, first messages, paced replies, the feed, notifications, townsfolk and chat context. Debug
@@ -153,7 +153,7 @@ def finish(database: Database, keep: bool) -> dict:
             connection.execute('DELETE FROM debug_time')
     else:
         require(copy.is_file(), 'The copy from before debug time is missing; restore the "Before debug time" '
-                                'backup from Settings > Backups instead.', 409)
+                                'backup from Settings > Data instead.', 409)
         made = image_files(database.path) - image_files(copy)
         backup.snapshot(copy, database.path)
         start_over.remove_files(database.path.parent, sorted(made))

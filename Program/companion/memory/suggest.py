@@ -17,14 +17,14 @@ import re
 from companion import prompt_library
 from companion.characters import by_id, for_timeline
 from companion.database import encode, identifier, many, one, optional, settings
-from companion.memory import corrections, formation, owners, records
+from companion.memory import addressed, corrections, formation, owners, records
 from companion.memory.extraction import SINGLE_VALUED, Candidate, sentences, subject_key
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import MAINTENANCE, BackgroundInterrupted
 from companion.text_models import config_for
 
-PROMPT_VERSION = 'memory-suggest-5'
+PROMPT_VERSION = 'memory-suggest-6'
 BATCH = 8
 MIN_WORDS = 6
 NAMED = re.compile(r"\b[A-Z][a-z']+")
@@ -35,7 +35,7 @@ LAYERS = {'user_fact', 'plan', 'temporary', 'shared_experience', 'relationship'}
 # every field.
 RULES = (
     'You help a companion app remember what the user said about their real life.\n'
-    "Input: a JSON list of the user's messages, numbered.\n"
+    "Input: a JSON list of the user's messages, numbered. \"to\" is the companion the user wrote the message to.\n"
     'Output: JSON only, a list of facts, or [] when there is nothing. Each fact is {"message": number, "layer": '
     '"user_fact" | "plan" | "temporary" | "shared_experience" | "relationship", "subject": short label, "value": '
     'just the fact}.\n'
@@ -43,6 +43,8 @@ RULES = (
     '- Keep only lasting facts the user states plainly about themselves or their people.\n'
     '- "value" is the fact in a few of the user\'s own words, without "I", "I\'m" or "my" in front.\n'
     '- "subject" says whose fact it is when it is about someone else ("Mom\'s home", "Sister\'s job").\n'
+    '- In a message, "you" is the companion in "to". Call them by that name, never "the assistant", "the AI", '
+    '"the bot" or "you".\n'
     '- Leave out questions, hypotheticals, jokes, roleplay, quotes of other people, moments that will not matter '
     'tomorrow ("my dog is snoring"), someone the message does not name ("she\'s a lawyer"), facts listed under a '
     'message\'s "already_saved", and anything you would have to guess.\n'
@@ -61,6 +63,8 @@ RULES = (
     '"subject": "Hobby", "value": "no longer gardens", "corrects": "Hobby"}]\n'
     '"bats eat mosquitoes and flies, my sister Ana is scared of bats" gives [{"message": 1, "layer": "user_fact", '
     '"subject": "Ana\'s fears", "value": "scared of bats"}]\n'
+    '"I feel safe with you" with "to": "Mira" gives [{"message": 1, "layer": "relationship", "subject": '
+    '"Trust in Mira", "value": "feel safe with Mira"}]\n'
     '"my dog is snoring lol" gives []'
 )
 
@@ -79,7 +83,8 @@ def names(connection, companion_id) -> list[str]:
     known = [row['name'] for row in many(connection, 'SELECT name FROM user_people WHERE companion_id=? AND name IS '
                                          'NOT NULL', (companion_id,))]
     companion = by_id(connection, companion_id)
-    return known + ([companion['version']['definition'].get('name') or ''] if companion else [])
+    full = companion['version']['definition'].get('name') or '' if companion else ''
+    return known + [full, addressed.first_name(companion)]
 
 
 def pending(connection, limit=BATCH) -> list[dict]:
@@ -153,8 +158,12 @@ def candidate(item, batch) -> tuple[dict, Candidate, dict | None] | None:
     if not isinstance(index, int) or not 1 <= index <= len(batch) or layer not in LAYERS or not subject or not value:
         return None
     message = batch[index - 1]
-    if not supported(value, message['text']) or not sentences(message['text']):
+    # The companion's name counts as the message's own word: "you" in it is them.
+    if not supported(value, f"{message['text']} {message.get('to') or ''}") or not sentences(message['text']):
         return None
+    subject, value = addressed.fields(subject, value, message.get('to') or '', message['text'],
+                                      message.get('pronoun') or 'they')
+    value = addressed.voiced(layer, value, message['text'])
     if not owners.belongs(subject, message['text'], message.get('names') or ()):
         return None
     corrected = None
@@ -167,7 +176,8 @@ def candidate(item, batch) -> tuple[dict, Candidate, dict | None] | None:
 
 
 async def ask(provider, scheduler, config, key, batch, rules=RULES) -> list[dict]:
-    content = json.dumps([{'message': index, 'text': message['text'],
+    content = json.dumps([{'message': index, **({'to': message['to']} if message.get('to') else {}),
+                           'text': message['text'],
                            **({'already_saved': message['saved']} if message.get('saved') else {}),
                            **({'known': [corrections.label(row) for row in message['known']]}
                               if message.get('known') else {})}
@@ -309,7 +319,8 @@ async def suggest(database, provider, scheduler, vault_key) -> int:
         mark(connection, skipped, 'skipped')
         now = database.now()
         batch = [{**message, 'known': corrections.relevant(connection, owner, message['text'], now),
-                  'names': names(connection, owner)}
+                  'names': names(connection, owner), 'to': addressed.first_name(by_id(connection, owner)),
+                  'pronoun': addressed.pronoun_of(by_id(connection, owner))}
                  for message in batch if eligible(message) for owner in (owner_id(connection, message),)]
         revision = row['permission_revision']
         rules = prompt_library.text(connection, 'memory-suggestions')
@@ -340,7 +351,9 @@ def strays(connection) -> list[str]:
 
 
 def tidy(database) -> int:
-    """Remove the strays left by earlier prompts. Returns how many went."""
+    """Remove the strays left by earlier prompts and name the companion where they wrote "the assistant". Returns
+    how many went."""
+    addressed.tidy(database)
     with database.connect() as connection:
         found = strays(connection)
     gone = set()
