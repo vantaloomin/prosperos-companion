@@ -5,6 +5,7 @@ import { Field, TextInput } from '../../components/Fields'
 import { useWorkspaceSettings } from '../../companion'
 import { guessLabel, OWN_WORK, todayIso, workChoices, workHint } from './money'
 import { useSettled } from './useSettled'
+import { PayField } from './PayField'
 
 const STYLES: { value: SpendingStyle; label: string }[] = [
   { value: 'careful', label: 'Careful: saves first, rarely runs short' },
@@ -63,29 +64,34 @@ export function MoneyFields({ definition, onChange }: Props) {
   const option = (career: CareerSummary) => <option key={career.id} value={career.id}>{career.name} ({career.pay})</option>
   const set = (change: Partial<MoneySetup>) => onChange({ ...money, ...change })
   const own = money.career === OWN_WORK
+  const paySet = money.pay !== null && money.pay !== undefined
+  // Picking "Something else" moves to the box to write it in.
+  const pick = (career: string) => {
+    set({ career })
+    if (career === OWN_WORK) requestAnimationFrame(() => document.querySelector<HTMLInputElement>('[data-own-work] input')?.focus())
+  }
   // A new goal starts counting savings from today.
   const setGoal = (change: Partial<MoneySetup>) => set({ ...change, goal_since: todayIso() })
   return (
     <fieldset className="traits">
       <legend>Work and money</legend>
       <p className="subtle">Their pay comes from their work and their rent from their home city, so some weeks are tight and some are flush. You can see their budget on Today.</p>
-      <Field label="Work" hint={workHint(money.career ? undefined : guessed, own)}>
+      <Field label="Work" hint={workHint(money.career ? undefined : guessed, own, paySet)}>
         {(id, hint) => (
-          <select id={id} aria-describedby={hint} value={money.career} onChange={(event) => set({ career: event.target.value })}>
+          <select id={id} aria-describedby={hint} value={money.career} onChange={(event) => pick(event.target.value)}>
             <option value="">{guessLabel(guessed)}</option>
             {listed.filter((career) => !career.adult).map(option)}
+            <hr />
             <option value={OWN_WORK}>Something else (write it in)</option>
             {listed.some((career) => career.adult) && <optgroup label="Adult work">{listed.filter((career) => career.adult).map(option)}</optgroup>}
           </select>
         )}
       </Field>
-      {own && <TextInput label="Their work" value={money.job ?? ''} maxLength={60} onChange={(job) => set({ job })}
-        hint="Such as a tarot reader at the night market. Left empty, it goes back to the guess." />}
-      <TextInput label="Pay" type="number" value={money.pay ? String(money.pay) : ''}
-        onChange={(value) => set({ pay: Math.max(Number(value) || 0, 0) })}
-        hint="What they take home a month, in their city's money. Left empty, it comes from their work and their city." />
+      {own && <div data-own-work><TextInput label="What they do" value={money.job ?? ''} maxLength={60} onChange={(job) => set({ job })}
+        placeholder="Such as tarot reader at the night market" hint="Left empty, it goes back to the guess." /></div>}
       {studies(money.career, guessed) && <TextInput label="What they study" value={money.field ?? ''} maxLength={60}
         onChange={(field) => set({ field })} hint="For a student, such as Photography. Their coursework follows it. Left empty, it comes from what “Who they are” says." />}
+      <PayField definition={definition} onChange={(pay) => set({ pay })} />
       <Field label="Hours" hint="Left as their work goes, a bartender or nurse gets new shifts each week and a freelancer has gigs that come and go; an office job keeps the same days.">
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.employment} onChange={(event) => set({ employment: event.target.value as Employment })}>

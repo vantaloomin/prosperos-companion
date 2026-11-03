@@ -257,6 +257,10 @@ def test_work_of_their_own_and_the_pay_set_for_it():
     assert nurse['id'] == 'own' and nurse['schedule'] != 'office'
     weekly = money.snapshot({'name': 'Ana', 'home_city': 'calderwick', 'money': {'pay': 52}}, '2026-11-03')
     assert weekly['period'] == 'week' and weekly['budget']['income'] == 12
+    # 0 is unpaid (a volunteer); left empty, pay is worked out.
+    assert money.snapshot({**own, 'money': {**own['money'], 'pay': 0}}, '2026-11-03')['budget']['income'] == 0
+    worked = money.worked_out_pay(own)
+    assert worked['text'].startswith('$') and worked['prefix'] and worked['monthly'] != 3100
     # Left empty, the job goes back to the guess.
     assert money.snapshot({**own, 'money': {'career': 'own', 'job': ' '}}, '2026-11-03')['career'] is None
 
@@ -264,4 +268,11 @@ def test_work_of_their_own_and_the_pay_set_for_it():
 def test_a_new_job_from_life_drops_the_pay_set_for_the_old_one():
     from companion.characters import apply_changes
     changed = apply_changes({'money': {'career': 'own', 'job': 'tarot reader', 'pay': 3100}}, {'career': 'barista'})
-    assert changed['money']['career'] == 'barista' and changed['money']['pay'] == 0
+    assert changed['money']['career'] == 'barista' and changed['money']['pay'] is None
+
+
+def test_the_pay_field_shows_what_their_work_pays(client):
+    body = {'identity': 'A barista at a cafe in Hampden.', 'money': {'career': '', 'pay': 5000}}
+    found = client.post('/api/world/cities/baltimore/pay', json=body).json()
+    assert found['currency']['code'] == 'USD' and 1000 < found['monthly'] < 5000
+    assert client.post('/api/world/cities/emerald-city/pay', json=body).json() is None

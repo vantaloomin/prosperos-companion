@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { careersFor, guessLabel, todayIso, workChoices, workHint } from '../../src/features/character/money.ts'
+import { careersFor, guessLabel, payDraft, payPlaceholder, payText, readPay, todayIso, workChoices, workHint } from '../../src/features/character/money.ts'
 import { completeDefinition } from '../../src/features/character/definition.ts'
 import { boughtFor, costsText, goalText, moodOfMoney, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
 import type { MoneyView } from '../../src/types.ts'
@@ -88,4 +88,21 @@ test('every purchase on the Money panel says where the money went, family costs 
   assert.equal(boughtFor('admin'), 'On errands and paperwork')
   assert.equal(boughtFor(undefined), 'At home')
   assert.equal(boughtFor('something new' as never), 'At home')
+})
+
+test('the Pay box: empty is worked out, 0 is unpaid, and amounts read with separators', () => {
+  assert.equal(readPay(''), null)
+  assert.equal(readPay('0'), 0)
+  assert.equal(readPay('3,100'), 3100)
+  assert.equal(payText(3100), '3,100')
+  assert.equal(payText(null), '')
+  assert.equal(payDraft('$3,1a00'), '3,100')
+  assert.equal(payPlaceholder(2412.4), 'About 2,412 a month from their work')
+})
+
+test('with a pay of their own set, the Work hint says nothing about pay', () => {
+  assert.equal(workHint(null, false, true), 'Nothing in “Who they are” names a job. Pick one to set it.')
+  assert.equal(workHint(undefined, false, true), 'Sets their hours and kind of work. Their pay is set below.')
+  assert.match(workHint(undefined), /^Sets their pay/)
+  assert.equal(workHint(undefined, true), 'Hours follow a job it names, such as nurse; otherwise office hours.')
 })

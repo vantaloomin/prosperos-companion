@@ -67,7 +67,7 @@ def apply_changes(definition: dict, changes: dict) -> dict:
     found = dict(definition)
     if 'career' in changes:
         # A new job pays its own way: pay the user set was for the old one (companion/life/money.py).
-        found['money'] = {**(found.get('money') or {}), 'career': changes['career'], 'pay': 0}
+        found['money'] = {**(found.get('money') or {}), 'career': changes['career'], 'pay': None}
     if 'location' in changes:
         found['location'], found['near'] = changes['location'], ''
     for key in ('home_city', 'timezone'):  # Another city altogether (companion/life/moving_in.py).

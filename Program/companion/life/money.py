@@ -211,7 +211,7 @@ def career_for(definition: dict, city: dict) -> tuple[dict | None, bool]:
     chosen = setup.get('career') or ''
     if chosen == OWN and (setup.get('job') or '').strip():
         like = guess_career({'identity': setup['job']}, offered)
-        return own_career(setup['job'].strip(), city, float(setup.get('pay') or 0), like), False
+        return own_career(setup['job'].strip(), city, set_pay(setup), like), False
     if chosen in offered:
         return offered[chosen], False
     return guess_career(definition, offered), True
@@ -221,15 +221,22 @@ def career_for(definition: dict, city: dict) -> tuple[dict | None, bool]:
 OWN = 'own'
 
 
-def own_career(job: str, city: dict, pay: float, like: dict | None = None) -> dict:
+def set_pay(setup: dict) -> float | None:
+    """The month's take-home the user set: None when left to their work and city, 0 when unpaid. The budget cache
+    keys it as text, so 'None' and '' read as left empty."""
+    value = setup.get('pay')
+    return None if value in (None, '', 'None') else max(float(value), 0.0)
+
+
+def own_career(job: str, city: dict, pay: float | None, like: dict | None = None) -> dict:
     """Work of their own as a career the rest of the life simulation can read, on the pay tier nearest what it pays.
     Its hours and the kind of work come from a career its words name ("night nurse at a clinic" works a nurse's
     shifts), else office hours."""
     tier = DEFAULT_TIER
-    if pay:
+    if pay is not None:
         monthly = [take_home(city, rank) * (52 / 12 if city['rent_period'] == 'week' else 1) for rank in range(4)]
         tier = min(range(4), key=lambda rank: abs(monthly[rank] - pay))
-    if like and not pay:
+    if like and pay is None:
         tier = PAY_TIERS.get(like['pay'], DEFAULT_TIER)
     like = like or {}
     name = job[:1].upper() + job[1:]
@@ -354,7 +361,8 @@ def build(definition: dict) -> Profile | None:
     style = setup.get('style') if setup.get('style') in STYLES else 'balanced'
     seed = f"money:{definition.get('name', '')}:{city['id']}"
     # Pay they set is a month's take-home; a city paid by the week gets a week's share of it.
-    income = float(setup.get('pay') or 0) * (12 / 52 if city['rent_period'] == 'week' else 1) or take_home(city, tier)
+    pay = set_pay(setup)
+    income = take_home(city, tier) if pay is None else pay * (12 / 52 if city['rent_period'] == 'week' else 1)
     hood = home_hood(definition, city, tier, seed)
     unit, rent = housing(hood, tier, income, seed)
     era = era_of(city)
@@ -815,6 +823,18 @@ def payday_text(view: dict, local_date: str) -> str:
     if view['flush']:
         return f"{head} You have some spending money (about {view['text']['left']})."
     return f"{head} About {view['text']['left']} left to spend until then."
+
+
+def worked_out_pay(definition: dict) -> dict | None:
+    """What their work and city pay a month, before any pay the user set (the Pay field's placeholder), and the
+    money it is in. None where there is no money."""
+    found = profile({**definition, 'money': {**(definition.get('money') or {}), 'pay': None}})
+    if not found:
+        return None
+    monthly = found.income * (52 / 12 if found.period == 'week' else 1)
+    currency = found.city['currency']
+    return {'monthly': round(monthly, 2), 'text': amount(monthly, currency), 'currency': currency,
+            'prefix': currency['symbol'] in PREFIXES}
 
 
 def view(database) -> dict:

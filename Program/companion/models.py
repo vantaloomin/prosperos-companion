@@ -99,8 +99,9 @@ class MoneySetup(Input):
     field: str = Field(default='', max_length=60)
     # Work of their own (career 'own', companion/life/money.py OWN): what it is, as the user wrote it.
     job: str = Field(default='', max_length=60)
-    # What they take home a month in their city's money; 0 works it out from their work and city.
-    pay: float = Field(default=0, ge=0, le=1_000_000_000)
+    # What they take home a month in their city's money: None works it out from their work and city, 0 is unpaid
+    # (a volunteer, a carer).
+    pay: float | None = Field(default=None, ge=0, le=1_000_000_000)
 
 
 class Looks(Input):
