@@ -3327,6 +3327,7 @@ p.breakup-line { align-items: center; }
   .backend-row .fold-summary { flex-wrap: wrap; }
 }
 .setting-row.stacked { flex-direction: column; align-items: stretch; gap: 6px; padding-block: 10px 12px; }
+.setting-row.stacked .style-more { align-self: flex-start; }
 .setting-row.stacked input:not([type='checkbox']):not([type='range']) { width: 100%; max-width: none; }
 .setting-row .row-link { color: var(--accent); }
 .add-button { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }

@@ -64,9 +64,8 @@ test('prompts are grouped in order and their placeholders explained', () => {
   assert.equal(placeholderHint(prompt('x', 'g', ['name', 'reason'], { name: "the companion's name" })), "Must keep: {{name}} (the companion's name), {{reason}}.")
   assert.equal(placeholderHint(prompt('x', 'g')), '')
   const list = { ...prompt('y', 'Pictures', ['possessive'], { possessive: 'her, his or their' }), lines: true }
-  assert.equal(placeholderHint(list), 'One line each: a name, a colon, then its words. Keep every name; words can be left empty. A line can use {{possessive}} (her, his or their).')
-  assert.equal(placeholderHint({ ...prompt('m', 'Pictures'), lines: true, more: true }), 'One line each: a name, a colon, then its words. Keep every name and add your own; words can be left empty.')
-  assert.equal(placeholderHint({ ...prompt('z', 'Pictures'), lines: true }), 'One line each: a name, a colon, then its words. Keep every name; words can be left empty.')
+  assert.equal(placeholderHint({ ...list, placeholder_help: { possessive: 'their, her or his' } }), 'One line each: name: words. A line can use {{possessive}} (their, her or his).')
+  assert.equal(placeholderHint({ ...prompt('z', 'Pictures'), lines: true }), 'One line each: name: words.')
 })
 
 test('everything that dials realism down is on the Realism tab, and search finds it there', () => {

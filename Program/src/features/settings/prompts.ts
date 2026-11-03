@@ -25,13 +25,12 @@ export function groupPrompts(prompts: EditablePrompt[]): [string, EditablePrompt
 }
 
 /** "Must keep: {{name}} (the companion's name), {{reason}}." A list says how its lines are written instead. */
-export function placeholderHint(prompt: Pick<EditablePrompt, 'placeholders' | 'placeholder_help'> & { lines?: boolean; more?: boolean }): string {
+export function placeholderHint(prompt: Pick<EditablePrompt, 'placeholders' | 'placeholder_help'> & { lines?: boolean }): string {
   const marks = prompt.placeholders.map((key) => {
     const help = prompt.placeholder_help[key]
     return `{{${key}}}` + (help ? ` (${help})` : '')
   }).join(', ')
-  if (prompt.lines) return `One line each: a name, a colon, then its words. Keep every name${prompt.more ? ' and add your own' : ''}; words can be left empty.` +
-    (marks ? ` A line can use ${marks}.` : '')
+  if (prompt.lines) return 'One line each: name: words.' + (marks ? ` A line can use ${marks}.` : '')
   if (!prompt.placeholders.length) return ''
   return `Must keep: ${marks}.`
 }

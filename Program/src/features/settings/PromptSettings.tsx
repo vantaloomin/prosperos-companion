@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { Notice } from '../../components/Feedback'
@@ -7,10 +7,22 @@ import { groupPrompts, placeholderHint, type EditablePrompt } from './prompts'
 import { SectionPending } from '../../components/SectionPending'
 
 const KEY = ['prompts']
+/** Where Settings > Pictures' Style row jumps to: Advanced, at the Pictures group. */
+export const PICTURE_PROMPTS = '#settings/advanced/pictures'
+const PICTURES_HEADING = 'prompts-pictures-heading'
 
 /** Settings > Advanced: the core prompts sent to the user's models, each with its default (companion/prompt_library.py). */
 export function PromptSettings() {
   const prompts = useQuery({ queryKey: KEY, queryFn: () => api<EditablePrompt[]>('/prompts') })
+  const loaded = !!prompts.data
+  useEffect(() => {
+    if (!loaded || window.location.hash !== PICTURE_PROMPTS) return
+    const heading = document.getElementById(PICTURES_HEADING)
+    if (!heading) return
+    heading.setAttribute('tabindex', '-1')
+    heading.scrollIntoView({ block: 'start' })
+    heading.focus({ preventScroll: true })
+  }, [loaded])
   if (!prompts.data) return <SectionPending queries={[prompts]} heading="prompts-heading" title="Prompts" />
   return (
     <section className="settings-section form-stack" aria-labelledby="prompts-heading">
@@ -20,7 +32,7 @@ export function PromptSettings() {
       </div>
       {groupPrompts(prompts.data).map(([group, items]) => (
         <div key={group} className="form-stack">
-          <h3>{group}</h3>
+          <h3 id={group === 'Pictures' ? PICTURES_HEADING : undefined}>{group}</h3>
           {items.map((prompt) => <PromptEditor key={prompt.name} prompt={prompt} />)}
         </div>
       ))}
@@ -44,7 +56,7 @@ function PromptEditor({ prompt }: { prompt: EditablePrompt }) {
       setResult({ tone: 'error', text: error instanceof Error ? error.message : 'Not saved.' })
     } finally { setBusy(false) }
   }
-  const save = () => run(() => api<EditablePrompt>(`/prompts/${prompt.name}`, { text }, 'PUT'), 'Saved. The next request uses it.')
+  const save = () => run(() => api<EditablePrompt>(`/prompts/${prompt.name}`, { text }, 'PUT'), prompt.group === 'Pictures' ? 'Saved. The next picture uses it.' : 'Saved. The next request uses it.')
   const reset = () => run(() => api<EditablePrompt>(`/prompts/${prompt.name}`, undefined, 'DELETE'), 'Back to the default wording.')
   return (
     <details className="prompt-editor">

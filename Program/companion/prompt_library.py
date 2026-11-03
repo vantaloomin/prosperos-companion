@@ -68,11 +68,13 @@ class Prompt:
     lines: bool = False
     # A list the user may add their own names to (a mood the app has no line for), not only reword.
     more: bool = False
+    # What one entry of a list is called in its error messages: (one, several).
+    noun: tuple[str, str] = ('entry', 'entries')
 
 
 CHAT, DRAFTING, SIDECAR, PICTURES = 'Chat and life', 'Character drafting', 'Sidecar', 'Pictures'
 IMAGES = 'companion.images.prompts'
-PRONOUN_HELP = {'subject': 'she, he or they', 'possessive': 'her, his or their', 'object': 'her, him or them'}
+PRONOUN_HELP = {'subject': 'they, she or he', 'possessive': 'their, her or his', 'object': 'them, her or him'}
 PROMPTS = {prompt.name: prompt for prompt in (
     Prompt('chat-character', CHAT, 'Who the companion is',
            'Opens every chat reply and first text, before the character sheet, memories and the day. '
@@ -194,28 +196,25 @@ PROMPTS = {prompt.name: prompt for prompt in (
             'rules': 'the believable-character prompt', 'emotional': 'the emotional-edges rule',
             'fields': 'the character fields it may change', 'note': "the chat's author's note"}),
     Prompt('image-negative', PICTURES, 'What pictures leave out',
-           'The negative prompt of every picture a model makes, for the backends that take one. A Booru model adds its '
+           'The negative prompt of every picture a model makes, on the backends that take one. A Booru model adds its '
            'own quality tags to it.',
            constant(IMAGES, 'NEGATIVE')),
     Prompt('image-openings', PICTURES, 'How a picture opens',
-           'Follows the style line at the start of a picture of them. "moment" is a plain photo of what they are doing '
-           '(after "of a fictional everyday moment,"), "selfie" and "view" are photos they send in chat, and "scene" and '
-           '"scene_both" are in-person moments with you, without and with you in the picture. A world set in a past '
-           "decade uses that decade's own.",
-           table(IMAGES, 'OPENINGS'), PRONOUN_HELP, lines=True),
+           'What follows the style line: a plain moment, a selfie, a view, or a moment with you (scene) and with you '
+           'in it (scene_both). The names are fixed; change only the words.',
+           table(IMAGES, 'OPENINGS'), PRONOUN_HELP, lines=True, noun=('opening', 'openings')),
     Prompt('image-cameras', PICTURES, 'Camera details',
-           'Ends a picture whose style is a photograph, for each kind of shot ("scene" covers both in-person kinds). '
-           'A style that names its own lens or film, or a painted or drawn one, keeps its own. A world set in a past '
-           "decade uses that decade's camera.",
-           table(IMAGES, 'CAMERAS', skip=('scene_both',)), lines=True),
+           'The camera line that ends a photo-style picture, for each kind of shot. The names are fixed; change only '
+           'the words.',
+           table(IMAGES, 'CAMERAS', skip=('scene_both',)), lines=True, noun=('camera detail', 'camera details')),
     Prompt('image-moods', PICTURES, 'Faces for each mood',
-           'How their face looks for the mood of the moment ("Her face shows ..."). A mood not listed is drawn as '
-           '"a <mood> expression"; add a line to give one its own.',
-           table(IMAGES, 'EXPRESSIONS'), lines=True, more=True),
+           'How their face looks for each mood. A mood that isn\'t listed is drawn as "a (mood) expression". Add a line '
+           'to give it its own.',
+           table(IMAGES, 'EXPRESSIONS'), lines=True, more=True, noun=('mood', 'moods')),
     Prompt('image-activities', PICTURES, 'What each activity looks like',
-           'What they are doing in a picture of a moment of their day, after "She is". The place and company follow '
-           'on their own. A pastime has its own line from their hobbies.',
-           table(IMAGES, 'PICTURES'), PRONOUN_HELP, lines=True),
+           "What they're doing in a picture of their day. The place and the company are added for you. The names are "
+           'fixed; change only the words.',
+           table(IMAGES, 'PICTURES'), PRONOUN_HELP, lines=True, noun=('activity', 'activities')),
 )}
 
 LINE = re.compile(r'^\s*([\w][\w -]*?)\s*:\s?(.*)$')
@@ -241,18 +240,24 @@ def override(connection, name: str) -> dict | None:
     return optional(connection, 'SELECT text, default_text FROM prompt_overrides WHERE name=?', (name,))
 
 
-def entries(text: str) -> tuple[dict[str, str], list[str]]:
-    """A list prompt's "name: words" lines as a dict, with the lines that are not one."""
+def entries(text: str) -> tuple[dict[str, str], list[tuple[int, str]]]:
+    """A list prompt's "name: words" lines as a dict, with the lines that are not one or repeat a name: (line number,
+    the name, or '' for a line with no colon)."""
     found, bad = {}, []
-    for line in text.splitlines():
+    for number, line in enumerate(text.splitlines(), 1):
         if not line.strip():
             continue
         match = LINE.match(line)
         if match and match[1] not in found:
             found[match[1]] = match[2].strip()
         else:
-            bad.append(line.strip())
+            bad.append((number, match[1] if match else ''))
     return found, bad
+
+
+def quoted(names: list[str]) -> str:
+    marks = [f'"{name}"' for name in names]
+    return marks[0] if len(marks) == 1 else f"{', '.join(marks[:-1])} and {marks[-1]}"
 
 
 # The connection the picture prompt builder reads its pieces with (`reading`); without one they are the defaults.
@@ -307,16 +312,23 @@ def views(database) -> list[dict]:
         return [view(connection, name) for name in PROMPTS]
 
 
-def list_problems(default: str, wording: str, more=False) -> str | None:
-    """Why a list's wording cannot be used: a line that is not "name: words", or a name left out or made up."""
+def list_problems(prompt: Prompt, default: str, wording: str) -> str | None:
+    """Why a list's wording cannot be used, naming only the lines at fault (the full list is its default wording): a
+    line with no colon, a name twice, a name left out, or one the app has no line for."""
     known, _ = entries(default)
     found, bad = entries(wording)
+    one, several = prompt.noun
     if bad:
-        return f'Each line is a name, a colon, then its words. This line is not: "{bad[0][:80]}".'
+        number, name = bad[0]
+        return f'"{name}" is listed twice. Keep one line for it.' if name else \
+            f'Line {number} needs a colon after the name.'
     if missing := [key for key in known if key not in found]:
-        return f"Keep a line for each name, even with no words after the colon: {', '.join(missing)}."
-    if not more and (unknown := [key for key in found if key not in known]):
-        return f"The app has no use for {', '.join(unknown)}. The names are {', '.join(known)}."
+        verb = 'is' if len(missing) == 1 else 'are'
+        return f'{quoted(missing)} {verb} missing. Keep every name, and leave its words empty to say nothing.'
+    if not prompt.more and (unknown := [key for key in found if key not in known]):
+        what = f"isn't {'an' if one[0] in 'aeiou' else 'a'} {one}" if len(unknown) == 1 else f"aren't {several}"
+        return (f"{quoted(unknown)} {what} the app draws, and new ones can't be added here. Change only the words "
+                'after each name. Default wording lists every name.')
     return placeholder_problems(default, wording, required=False)
 
 
@@ -345,7 +357,7 @@ def save(database, name: str, wording: str) -> dict:
     require(name)
     default = PROMPTS[name].default()
     prompt = PROMPTS[name]
-    if problem := (list_problems(default, wording, prompt.more) if prompt.lines else problems(default, wording)):
+    if problem := (list_problems(prompt, default, wording) if prompt.lines else problems(default, wording)):
         raise DomainError(problem, 422, 'prompt_placeholders')
     with database.connect(write=True) as connection:
         if wording == default:

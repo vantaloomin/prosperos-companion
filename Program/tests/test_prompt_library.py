@@ -139,12 +139,20 @@ def test_reworded_picture_pieces_are_what_the_picture_prompt_says(client):
 def test_picture_lists_keep_every_name_and_known_placeholders(client):
     default = prompt_library.PROMPTS['image-moods'].default()
     dropped = client.put('/api/prompts/image-moods', json={'text': default.replace('tired: tired eyes and a weary half-smile\n', '')})
-    assert dropped.status_code == 422 and 'tired' in dropped.json()['detail']
+    assert dropped.status_code == 422 and dropped.json()['detail'] == \
+        '"tired" is missing. Keep every name, and leave its words empty to say nothing.'
     activities = prompt_library.PROMPTS['image-activities'].default()
     made_up = client.put('/api/prompts/image-activities', json={'text': activities + '\nskydiving: in free fall'})
-    assert made_up.status_code == 422 and 'skydiving' in made_up.json()['detail']
+    assert made_up.status_code == 422 and made_up.json()['detail'] == (
+        '"skydiving" isn\'t an activity the app draws, and new ones can\'t be added here. Change only the words after '
+        'each name. Default wording lists every name.')
+    two = client.put('/api/prompts/image-activities', json={'text': activities + '\nskydiving: x\nsurfing: y'})
+    assert two.json()['detail'].startswith('"skydiving" and "surfing" aren\'t activities the app draws')
+    twice = client.put('/api/prompts/image-moods', json={'text': default + '\nhappy: beaming'})
+    assert twice.json()['detail'] == '"happy" is listed twice. Keep one line for it.'
     not_a_line = client.put('/api/prompts/image-moods', json={'text': default + '\njust some words'})
-    assert not_a_line.status_code == 422 and 'colon' in not_a_line.json()['detail']
+    assert not_a_line.status_code == 422 and not_a_line.json()['detail'] == \
+        f'Line {len(default.splitlines()) + 1} needs a colon after the name.'
     typo = client.put('/api/prompts/image-activities', json={'text': prompt_library.PROMPTS['image-activities'].default()
                       .replace('{{possessive}} pockets', '{{possesive}} pockets')})
     assert typo.status_code == 422 and '{{possesive}}' in typo.json()['detail']
