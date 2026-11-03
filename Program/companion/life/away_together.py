@@ -481,6 +481,29 @@ def travel_words(trip: dict) -> str:
     return '' if not by or by in destinations.CHEAP_WAYS else f' by {by}'
 
 
+def day_slots(connection, companion: dict, slots: list[dict]) -> list[dict]:
+    """Today's day strip (life/routes.py `read_routine`): on a day away together, their waking hours are one block,
+    "Away in Lisbon", in place of the routine (Iris 2026-11-03)."""
+    if not slots:
+        return slots
+    rows = many(connection, "SELECT * FROM trips WHERE timeline_id=? AND visit=? AND status='planned' AND start_date<=? "
+                'AND end_date>=?', (companion['active_timeline_id'], TOGETHER, slots[-1]['local_date'],
+                                    slots[0]['local_date']))
+    result = []
+    for slot in slots:
+        trip = next((row for row in rows if row['start_date'] <= slot['local_date'] <= row['end_date']), None)
+        if trip is None or slot['block']['kind'] == 'sleep':
+            result.append(slot)
+            continue
+        if result and result[-1]['block'].get('trip') == trip['id'] and result[-1]['ends_at'] == slot['starts_at']:
+            result[-1] = {**result[-1], 'ends_at': slot['ends_at']}
+            continue
+        block = {**slot['block'], 'key': 'away', 'label': f'Away {where_text(trips.view(trip))}', 'kind': 'away',
+                 'trip': trip['id']}
+        result.append({**slot, 'key': f"away@{slot['local_date']}", 'block': block})
+    return result
+
+
 # --- What the user can change (Today) -------------------------------------------------------------------------------
 
 def owned(connection, companion: dict, trip_id: str) -> dict:

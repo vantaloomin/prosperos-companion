@@ -119,6 +119,9 @@ def test_their_own_idea_comes_as_news_and_runs_like_a_visit(client, couple, prov
     assert found['text'] == f"Away {trip['away']['prep']} {trip['city_name']}"
     blocks = agenda(client, start.isoformat())
     assert any(block.get('trip') == trip['id'] for block, _entry in blocks)
+    day = client.get('/api/life/routine').json()['today']  # Today's day strip: the waking day is one block.
+    assert [slot['block']['label'] for slot in day if slot['block']['kind'] == 'away'] == \
+        [f"Away {trip['away']['prep']} {trip['city_name']}"]
     says(provider)
     send(client, 'this place is amazing', 'client-away-8')
     assert 'You and the user are away together' in notes(provider) and 'day 1 of' in notes(provider)

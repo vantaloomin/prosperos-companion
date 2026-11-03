@@ -17,14 +17,15 @@ const HOURS = ['12 AM', '6 AM', '12 PM', '6 PM', '12 AM']
  * 24-hour strip in their time zone with a line at now. Message goes to the chat. A gentle default day says so, with the
  * way to describe their routine.
  */
-export function NowCard({ data, name, go, children }: { data: TodayData; name: string; go: (view: View) => void; children?: ReactNode }) {
+export function NowCard({ data, name, go, status, children }: { data: TodayData; name: string; go: (view: View) => void; status?: string; children?: ReactNode }) {
   const portrait = usePortrait()
   const card = useRef<HTMLElement>(null)
   const look = useChatLook(card)
   const label = useEraWords().message_button
   const at = (value: string) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone: data.companion_timezone }).format(new Date(value))
   const { label: doing, until } = data.availability
-  const line = doing ? `${doing}${until ? ` until ${at(until)}` : ''}` : 'Free'
+  // Away together, the trip is what they are doing (companion/life/away_together.py).
+  const line = status ?? (doing ? `${doing}${until ? ` until ${at(until)}` : ''}` : 'Free')
   const next = data.routine.next
   const sub = [`${at(data.now)} their time`, next && `${next.block.label} from ${at(next.starts_at)}`].filter(Boolean).join(' · ')
   return (

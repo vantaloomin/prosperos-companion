@@ -227,11 +227,13 @@ def read_routine(request: Request):
     with database.connect() as connection:
         companion = require_current(connection)
         position = simulation.cursor(connection, companion['active_timeline_id'])
-    version = companion['version']
-    schedule, default = routine.blocks(version['definition'])
+        version = companion['version']
+        schedule, default = routine.blocks(version['definition'])
+        # A day away together is one block (companion/life/away_together.py).
+        day = away_together.day_slots(connection, companion, today_slots(schedule, version['timezone'], now))
     now_slot, next_slot = routine.current_and_next(schedule, version['timezone'], now)
     return {'timezone': version['timezone'], 'default_schedule': default,
-            'blocks': [block.view() for block in schedule], 'today': today_slots(schedule, version['timezone'], now),
+            'blocks': [block.view() for block in schedule], 'today': day,
             'current': now_slot.view() if now_slot else None, 'next': next_slot.view() if next_slot else None,
             'simulated_through': position['simulated_through'], 'now': stamp(now),
             'clock_behind': now < parse(position['simulated_through'])}

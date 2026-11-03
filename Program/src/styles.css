@@ -538,6 +538,9 @@ a.button { color: inherit; text-decoration: none; }
 .day-sleep, .day-rest { background: color-mix(in srgb, var(--muted) 18%, var(--raised)); color: var(--muted) !important; }
 .day-work, .day-study { background: color-mix(in srgb, var(--accent) 34%, var(--raised)); }
 .day-errand { background: color-mix(in srgb, var(--accent) 18%, var(--raised)); }
+.day-away { background: color-mix(in srgb, var(--accent) 24%, var(--raised)); }
+.away-now-action { margin: 0; }
+.away-now-action .text-button { padding-left: 0; }
 .day-leisure, .day-social { background: color-mix(in srgb, var(--text) 10%, var(--raised)); }
 .day-strip > .day-now { width: 2px; padding: 0; margin-left: -1px; background: var(--text); box-shadow: none; }
 .day-hours { display: flex; justify-content: space-between; font-size: 0.6875rem; color: var(--faint); }

@@ -112,7 +112,8 @@ function Planned({ outing, name, act }: { outing: Outing; name: string; act: (pa
 export function Trips({ name }: { name: string }) {
   const client = useQueryClient()
   const [error, setError] = useState('')
-  const trips = shown(useTogether().data?.trips ?? [])
+  // Trips away together sit in the Now card and Coming up instead (AwayTogether.tsx).
+  const trips = shown(useTogether().data?.trips ?? []).filter((trip) => trip.visit !== 'together')
   if (!trips.length) return null
   const act = async (path: string) => {
     setError('')

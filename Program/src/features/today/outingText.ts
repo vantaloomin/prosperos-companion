@@ -183,6 +183,18 @@ export function tripTravel(trip: Trip): string {
   return by && by !== 'tram' && by !== 'lift' ? `By ${by}` : ''
 }
 
+/** A trip away together under way, for the Now card: "Away in Lisbon until Thu". */
+export function awayNowLine(trip: Trip | null): string | undefined {
+  if (!trip) return undefined
+  return `Away ${trip.away?.prep ?? 'in'} ${trip.city_name} until ${dayText(trip.end_date).split(',')[0]}`
+}
+
+/** Trips away together: the one under way (the Now card) and those still to come or just called off (Coming up). */
+export function awayTrips(trips: Trip[]): { now: Trip | null; coming: Trip[] } {
+  const together = shown(trips).filter((trip) => trip.visit === 'together')
+  return { now: together.find((trip) => trip.state === 'now') ?? null, coming: together.filter((trip) => trip.state === 'planned' || trip.state === 'cancelled') }
+}
+
 /** What Today lists: everything but what was called off, unless it can still be undone. */
 export function shown<T extends { state: OutingState; undo?: boolean }>(items: T[]): T[] {
   return items.filter((item) => item.state !== 'cancelled' || item.undo)
