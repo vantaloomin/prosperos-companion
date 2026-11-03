@@ -18,7 +18,7 @@ from functools import cache, lru_cache
 
 from companion.characters import require_current
 from companion.clock import zone
-from companion.world import catalog, decades, intimacy, ships
+from companion.world import catalog, decades, intimacy, money_fill, ships
 from companion.world.source import CatalogWorld
 
 PAY_TIERS = {'$': 0, '$$': 1, '$$$': 2, '$$$$': 3}
@@ -464,7 +464,7 @@ def saved_since(found: Profile, since: date, day: date) -> float:
 # Currencies without minor units, and symbols written before the number.
 WHOLE = {'JPY', 'KRW'}
 # Coins counted whole: silver pennies, groschen, silver weights (a part of one rounds up to one).
-COINS = {'penny', 'groschen', 'sw'}
+COINS = {'penny', 'groschen', 'sw'} | money_fill.COIN_CODES
 # Shillings, said in shillings and pence (twelve pence to the shilling): 4s. 1d., 2d.
 SHILLINGS = {'shilling', 's'}
 # Shillings of the pound sterling (London 1895), twenty to the pound.
@@ -679,8 +679,11 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         found = with_home(found, home['costs'], home.get('pay'))
     if not found:
         city = city_for(definition)
-        reason = f"There is no money in {city['name']}." if city else \
-            'Money follows a home city with rents and prices. Pick one in Character.'
+        reason = 'Money follows a home city with rents and prices. Pick one in Character.'
+        if city:  # Only a city with no currency at all (Oz) is without money: others get rents (world/money_fill.py).
+            reason = f"There is no money in {city['name']}." if city['currency']['code'] == 'none' else \
+                f"{city['name']} has no rents to work out a budget from."
+
         return {'available': False, 'reason': reason}
     day = date.fromisoformat(local_date)
     start = cycle_start(found, day)

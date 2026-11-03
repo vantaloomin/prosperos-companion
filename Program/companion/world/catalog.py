@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from companion.errors import DomainError
 from companion.identity import VERSION, data_dir
-from companion.world import decades
+from companion.world import decades, money_fill
 from companion.world import mend as mending
 from companion.world.schema import Career, Careers, City, Featured, Holidays, Names
 
@@ -185,20 +185,6 @@ def unset_work_rules(data: dict):
 
 
 # Money for a city that names none, by era: the schema's default is US dollars, which fits only some.
-ERA_CURRENCY = {'medieval': {'code': 'penny', 'symbol': 'd.', 'name': 'silver pennies'},
-                'fantasy': {'code': 'penny', 'symbol': 'd.', 'name': 'silver pennies'},
-                'victorian': {'code': 'shilling', 'symbol': 's.', 'name': 'shillings'},
-                'steampunk': {'code': 'shilling', 'symbol': 's.', 'name': 'shillings'}}
-
-
-def era_currency(data: dict, given: set[str]) -> list[str]:
-    """A city written without a currency pays in its era's money, not US dollars."""
-    if 'currency' in given or data['era'] not in ERA_CURRENCY:
-        return []
-    data['currency'] = dict(ERA_CURRENCY[data['era']])
-    return [f'No currency was given, so money is in {data["currency"]["name"]}, as in its era.']
-
-
 def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     """Validate one city definition and give it a `data_version`. Raises pydantic's ValidationError.
 
@@ -212,7 +198,8 @@ def prepare(raw: bytes | str | dict, *, mend: bool = False) -> dict:
     # stays the same.
     data = model.model_dump(mode='json', exclude=OMIT_WHEN_EMPTY - model.model_fields_set)
     unset_work_rules(data)
-    notes += era_currency(data, model.model_fields_set)
+    # A currency and rents where the city gives none, so its people have a budget (companion/world/money_fill.py).
+    notes += money_fill.settle(data, model.model_fields_set)
     from companion import lore_moments
     from companion.life import media_world
     from companion.world import era_words, lifespans, politics, ships

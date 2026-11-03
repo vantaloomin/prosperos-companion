@@ -65,7 +65,8 @@ def by_name(records: list[dict]) -> dict:
 
 def test_a_world_map_becomes_one_city_that_loads_without_mending(made):
     city = catalog.prepare(made['city'], mend=True)
-    assert 'import_notes' not in city
+    # Nothing mended: the one note says where its rents come from, as a map has none (world/money_fill.py).
+    assert [note for note in city['import_notes'] if not note.startswith('No rents were given')] == []
     assert (city['name'], city['timezone'], city['setting'], city['era']) == ('Lisbon', 'Europe/Lisbon', 'original',
                                                                                'modern')
     # The second top region folds in as a neighbourhood; streets fold into theirs.
