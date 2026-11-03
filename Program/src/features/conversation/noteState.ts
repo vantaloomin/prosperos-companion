@@ -10,3 +10,10 @@ export type Look = 'off' | 'on' | 'paused'
 export function noteLook(text: string, enabled: boolean): Look {
   return !text.trim() ? 'off' : enabled ? 'on' : 'paused'
 }
+
+/** What the + menu shows beside "Author's note": on, off, or nothing while it is empty. */
+export function noteValue(note: { text: string; enabled: boolean }): string | undefined {
+  const look = noteLook(note.text, note.enabled)
+  return look === 'off' ? undefined : look === 'on' ? 'on' : 'off'
+}
+

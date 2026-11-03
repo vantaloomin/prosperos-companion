@@ -1,12 +1,14 @@
 import { useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react'
-import { ArrowUp, ImagePlus, Square, X } from 'lucide-react'
+import { ArrowUp, FileText, ImagePlus, Info, Plus, Square, X } from 'lucide-react'
 import type { DraftState } from './useDraft'
 import { usePrepare } from './usePrepare'
-import { InfoTip } from '../../components/InfoTip'
-import { AiFooter } from '../../components/Safety'
+import { Menu, type MenuItem } from '../../components/Menu'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { sendPicture } from './pictureUpload'
 import { canSend as ready, PER_MESSAGE } from './pictureState'
-import { AuthorsNote } from './AuthorsNote'
+import { NoteTray } from './AuthorsNote'
+import { useNote } from './useNote'
+import { noteValue } from './noteState'
 import { useEraWords } from '../world/useEraWords'
 import { say } from '../world/eraWords'
 import { fitAfterSend, setFolded, useMessageBox } from './messageBox'
@@ -44,21 +46,18 @@ export function Composer({ name, phoneName, chat, draft, streaming, compact, onS
     <form className={compact ? 'composer compact' : 'composer'} onSubmit={(event) => { event.preventDefault(); text.current?.focus(); if (canSend) send() }}
       {...pictures.formEvents}>
       <ComposerPictures draft={draft} busy={pictures.busy} error={pictures.error} />
-      <AuthorsNote key={chat} chat={chat} name={name} />
+      <AddMenu key={chat} chat={chat} name={name} pictures={pictures} count={draft.value.pictures?.length ?? 0} onDone={() => { if (!onPhone()) text.current?.focus({ preventScroll: true }) }} />
       <label className="visually-hidden" htmlFor="composer-text">{placeholder}</label>
       <MessageBox text={text} folded={folded}>
         <textarea ref={text} id="composer-text" rows={1} value={draft.value.text} placeholder={placeholder} maxLength={40000} onFocus={() => setFolded(false)}
           onChange={(event) => { draft.edit(event.target.value); prepare() }} onKeyDown={onKeyDown} {...pictures.textEvents} aria-describedby="composer-help" />
       </MessageBox>
-      <AttachButton enabled={pictures.enabled} count={draft.value.pictures?.length ?? 0} busy={pictures.busy} onAdd={(files) => void pictures.add(files)} />
       <p id="composer-help" className="visually-hidden">Enter sends, Shift and Enter adds a new line{streaming ? ', Escape stops the reply' : ''}. Unsent text is kept if you leave. {OUT_OF_CHARACTER}</p>
-      <InfoTip id="composer-tip" label="writing messages" above text={`Enter sends, Shift+Enter adds a new line. ${OUT_OF_CHARACTER}`} />
       {/* Send replaces Stop once the reply ends; keep the keyboard in the message box rather than losing focus. */}
       {streaming
         ? <button type="button" className="button composer-send" onClick={() => { onStop(); text.current?.focus() }}><Square aria-hidden="true" /><span className="composer-label">Stop</span></button>
         : <button type="submit" className="button primary composer-send" disabled={!canSend}><ArrowUp aria-hidden="true" /><span className="composer-label">Send</span></button>}
     </form>
-    <AiFooter />
   </>)
 }
 
@@ -125,11 +124,28 @@ function ComposerPictures({ draft, busy, error }: { draft: DraftState; busy: boo
   </div>
 }
 
-function AttachButton({ enabled, count, busy, onAdd }: { enabled: boolean; count: number; busy: boolean; onAdd: (files: File[]) => void }) {
+/**
+ * The composer's + (style guide: things you add): a picture, the chat's Author's note (with whether it is on), and
+ * how to write *actions* and step out of character. The note opens as its tray over the chat.
+ */
+function AddMenu({ chat, name, pictures, count, onDone }: { chat: string; name: string; pictures: { enabled: boolean; busy: boolean; add: (files: File[]) => Promise<void> }; count: number; onDone: () => void }) {
   const picker = useRef<HTMLInputElement>(null)
-  if (!enabled) return null
+  const note = useNote(chat)
+  const [open, setOpen] = useState<'note' | 'help' | null>(null)
+  const items: MenuItem[] = [
+    ...(pictures.enabled ? [{ label: 'Send a picture', icon: ImagePlus, disabled: count >= PER_MESSAGE || pictures.busy, onSelect: () => picker.current?.click() }] : []),
+    { label: "Author's note", icon: FileText, value: noteValue(note), onSelect: () => setOpen('note') },
+    { label: '*Actions* and ((OOC)) help', icon: Info, onSelect: () => setOpen('help') },
+  ]
   return <>
-    <input ref={picker} id="composer-pictures" type="file" accept="image/*" multiple className="visually-hidden" tabIndex={-1} aria-label="Add pictures" onChange={(event) => { onAdd(Array.from(event.target.files ?? [])); event.target.value = '' }} />
-    <button type="button" className="button composer-attach" onClick={() => picker.current?.click()} disabled={count >= PER_MESSAGE || busy} aria-label="Add a picture"><ImagePlus aria-hidden="true" /></button>
+    {pictures.enabled && <input ref={picker} id="composer-pictures" type="file" accept="image/*" multiple className="visually-hidden" tabIndex={-1} aria-label="Add pictures"
+      onChange={(event) => { void pictures.add(Array.from(event.target.files ?? [])); event.target.value = '' }} />}
+    <Menu label="Add" icon={Plus} items={items} align="start" up keepFocus className="composer-add" />
+    <NoteTray chat={chat} name={name} note={note} open={open === 'note'} onClosed={() => { setOpen(null); onDone() }} />
+    {open === 'help' && <ConfirmDialog title="Writing messages" onClose={() => { setOpen(null); onDone() }} actions={<button type="button" className="button primary" onClick={() => { setOpen(null); onDone() }}>Done</button>}>
+      <p>Enter sends, Shift+Enter adds a new line.</p>
+      <p>Put an action between asterisks, like *waves*, and it shows in italics.</p>
+      <p>{OUT_OF_CHARACTER}</p>
+    </ConfirmDialog>}
   </>
 }

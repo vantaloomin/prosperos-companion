@@ -7,6 +7,11 @@ export function AiFooter() {
   return <p className="ai-footer">{AI_FOOTER}</p>
 }
 
+/** The same notice as the first line of every chat (v1.3: it moved from under the composer to the top of the chat). */
+export function AiNoticeLine() {
+  return <p className="ai-notice-line" role="note">{AI_FOOTER}</p>
+}
+
 /** The app's note under a message of yours that sounds like self-harm (companion/safety.py). It comes from the app,
  * never from the character, so it looks like nothing a character would send; the chat goes on as usual. */
 export function CrisisNote() {

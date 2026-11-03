@@ -8,10 +8,10 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Stamp } from '../../components/Stamp'
-import { CrisisNote } from '../../components/Safety'
+import { AiNoticeLine, CrisisNote } from '../../components/Safety'
 import { useReturnFocus } from '../../components/returnFocus'
 import { Composer } from '../conversation/Composer'
-import { ChatMenu, ChatStyleSwitch } from '../conversation/ConversationHeader'
+import { ChatMenu } from '../conversation/ChatMenu'
 import { ChatSidebar } from '../chats/ChatSidebar'
 import { ListButton } from '../chats/ListButton'
 import { useMarkRead } from '../chats/useChats'
@@ -94,6 +94,7 @@ function GroupChatView({ data, state, go }: { data: GroupChatData; state: Return
       <GroupHeader group={group} go={go} onChange={act} />
       <div className="transcript" ref={transcript} onScroll={scroll.onScroll} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
         <div className="reading-column">
+            <AiNoticeLine />
           {shown.map((message) => <Fragment key={message.id}>
             <GroupLine message={message} look={lookFor(message.companion_id)} onKeep={(kept) => void act(() => api(`/groups/${id}/messages/${message.id}/moment`, { kept }))} />
             {message.crisis_help && <CrisisNote />}
@@ -214,7 +215,6 @@ function GroupHeader({ group, go, onChange }: { group: Group; go: (view: View) =
           : <h1><span className="group-title-text">{group.title}</span> <button type="button" className="icon-button group-rename" aria-label="Rename the group" onClick={() => setRenaming(true)}><Pencil aria-hidden="true" /></button></h1>}
         <p className="subtle">{membersLine(group)}</p>
       </div>
-      <ChatStyleSwitch />
       <button ref={peopleButton} type="button" className="icon-button" aria-label="People in this group" aria-expanded={people} onClick={() => setPeople(!people)}><UsersRound aria-hidden="true" /></button>
       <ChatMenu threadId={group.id} />
     </header>

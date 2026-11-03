@@ -16,7 +16,7 @@ import { Profile } from './features/profile/Profile'
 import { profileTab } from './features/profile/profileText'
 import { Welcome } from './features/character/Welcome'
 import { AiNotice } from './features/character/AiNotice'
-import { useSidecarMode, useSidecarOpen, useSidecarWaiting } from './features/sidecar/store'
+import { useSidecarMode, useSidecarOpen } from './features/sidecar/store'
 import { useChats } from './features/chats/useChats'
 import { reach } from './features/notifications/useNotifications'
 import { unreadOf } from './features/chats/chatText'
@@ -89,14 +89,13 @@ export default function App() {
   const storyOn = !!useWorkspaceSettings().data?.story_mode
   useAppColors()
   const sidecarOpen = useSidecarOpen()
-  const sidecarWaiting = useSidecarWaiting()
   // The dating app shows a download badge until the user has set it up (src/features/dating).
   const { installed: datingInstalled, app: datingApp } = useDatingStatus()
   const { watching, shown } = useWatchView(view)
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
-      <AppNav view={shown} go={go} storyOn={storyOn} datingInstalled={datingInstalled} datingApp={datingApp} unread={unread} sidecarOpen={sidecarOpen} sidecarWaiting={sidecarWaiting} watching={watching} />
+      <AppNav view={shown} go={go} storyOn={storyOn} datingInstalled={datingInstalled} datingApp={datingApp} unread={unread} watching={watching} />
       <main id="main" className="app-main" tabIndex={-1}>
         <DebugBanner onOpen={() => go('settings/debug')} />
         <ReadyNotice openModels={() => go('settings/models')} />
