@@ -1,0 +1,713 @@
+{
+ "about": "The money a modern city pays in by its country, for a city written without a currency (companion/world/money_fill.py): code, symbol, name, and roughly how many make a US dollar, so rents borrowed from a built-in city of another money come out in about the right numbers. Rough rates for fiction, not exchange rates.",
+ "countries": {
+  "united states": {
+   "code": "USD",
+   "symbol": "$",
+   "name": "US dollars",
+   "per_usd": 1
+  },
+  "usa": {
+   "code": "USD",
+   "symbol": "$",
+   "name": "US dollars",
+   "per_usd": 1
+  },
+  "us": {
+   "code": "USD",
+   "symbol": "$",
+   "name": "US dollars",
+   "per_usd": 1
+  },
+  "united states of america": {
+   "code": "USD",
+   "symbol": "$",
+   "name": "US dollars",
+   "per_usd": 1
+  },
+  "canada": {
+   "code": "CAD",
+   "symbol": "$",
+   "name": "Canadian dollars",
+   "per_usd": 1.37
+  },
+  "mexico": {
+   "code": "MXN",
+   "symbol": "$",
+   "name": "Mexican pesos",
+   "per_usd": 18
+  },
+  "britain": {
+   "code": "GBP",
+   "symbol": "£",
+   "name": "pounds sterling",
+   "per_usd": 0.78
+  },
+  "uk": {
+   "code": "GBP",
+   "symbol": "£",
+   "name": "pounds sterling",
+   "per_usd": 0.78
+  },
+  "united kingdom": {
+   "code": "GBP",
+   "symbol": "£",
+   "name": "pounds sterling",
+   "per_usd": 0.78
+  },
+  "great britain": {
+   "code": "GBP",
+   "symbol": "£",
+   "name": "pounds sterling",
+   "per_usd": 0.78
+  },
+  "england": {
+   "code": "GBP",
+   "symbol": "£",
+   "name": "pounds sterling",
+   "per_usd": 0.78
+  },
+  "scotland": {
+   "code": "GBP",
+   "symbol": "£",
+   "name": "pounds sterling",
+   "per_usd": 0.78
+  },
+  "wales": {
+   "code": "GBP",
+   "symbol": "£",
+   "name": "pounds sterling",
+   "per_usd": 0.78
+  },
+  "northern ireland": {
+   "code": "GBP",
+   "symbol": "£",
+   "name": "pounds sterling",
+   "per_usd": 0.78
+  },
+  "ireland": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "france": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "germany": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "italy": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "spain": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "portugal": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "netherlands": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "belgium": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "austria": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "finland": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "greece": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "luxembourg": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "slovakia": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "slovenia": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "estonia": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "latvia": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "lithuania": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "malta": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "cyprus": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "croatia": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "monaco": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "andorra": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "montenegro": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "kosovo": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "san marino": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "vatican city": {
+   "code": "EUR",
+   "symbol": "€",
+   "name": "euros",
+   "per_usd": 0.92
+  },
+  "switzerland": {
+   "code": "CHF",
+   "symbol": "CHF",
+   "name": "Swiss francs",
+   "per_usd": 0.88
+  },
+  "liechtenstein": {
+   "code": "CHF",
+   "symbol": "CHF",
+   "name": "Swiss francs",
+   "per_usd": 0.88
+  },
+  "norway": {
+   "code": "NOK",
+   "symbol": "kr",
+   "name": "Norwegian kroner",
+   "per_usd": 10.6
+  },
+  "sweden": {
+   "code": "SEK",
+   "symbol": "kr",
+   "name": "Swedish kronor",
+   "per_usd": 10.5
+  },
+  "denmark": {
+   "code": "DKK",
+   "symbol": "kr",
+   "name": "Danish kroner",
+   "per_usd": 6.9
+  },
+  "greenland": {
+   "code": "DKK",
+   "symbol": "kr",
+   "name": "Danish kroner",
+   "per_usd": 6.9
+  },
+  "faroe islands": {
+   "code": "DKK",
+   "symbol": "kr",
+   "name": "Danish kroner",
+   "per_usd": 6.9
+  },
+  "iceland": {
+   "code": "ISK",
+   "symbol": "kr",
+   "name": "Icelandic krónur",
+   "per_usd": 138
+  },
+  "poland": {
+   "code": "PLN",
+   "symbol": "zł",
+   "name": "Polish złoty",
+   "per_usd": 4
+  },
+  "czech republic": {
+   "code": "CZK",
+   "symbol": "Kč",
+   "name": "Czech koruna",
+   "per_usd": 23
+  },
+  "czechia": {
+   "code": "CZK",
+   "symbol": "Kč",
+   "name": "Czech koruna",
+   "per_usd": 23
+  },
+  "hungary": {
+   "code": "HUF",
+   "symbol": "Ft",
+   "name": "Hungarian forints",
+   "per_usd": 360
+  },
+  "romania": {
+   "code": "RON",
+   "symbol": "lei",
+   "name": "Romanian lei",
+   "per_usd": 4.6
+  },
+  "bulgaria": {
+   "code": "BGN",
+   "symbol": "lv",
+   "name": "Bulgarian leva",
+   "per_usd": 1.8
+  },
+  "serbia": {
+   "code": "RSD",
+   "symbol": "din",
+   "name": "Serbian dinars",
+   "per_usd": 108
+  },
+  "ukraine": {
+   "code": "UAH",
+   "symbol": "₴",
+   "name": "Ukrainian hryvnias",
+   "per_usd": 41
+  },
+  "russia": {
+   "code": "RUB",
+   "symbol": "₽",
+   "name": "roubles",
+   "per_usd": 90
+  },
+  "turkey": {
+   "code": "TRY",
+   "symbol": "₺",
+   "name": "Turkish lira",
+   "per_usd": 36
+  },
+  "türkiye": {
+   "code": "TRY",
+   "symbol": "₺",
+   "name": "Turkish lira",
+   "per_usd": 36
+  },
+  "israel": {
+   "code": "ILS",
+   "symbol": "₪",
+   "name": "shekels",
+   "per_usd": 3.7
+  },
+  "egypt": {
+   "code": "EGP",
+   "symbol": "E£",
+   "name": "Egyptian pounds",
+   "per_usd": 49
+  },
+  "morocco": {
+   "code": "MAD",
+   "symbol": "DH",
+   "name": "Moroccan dirhams",
+   "per_usd": 10
+  },
+  "nigeria": {
+   "code": "NGN",
+   "symbol": "₦",
+   "name": "naira",
+   "per_usd": 1550
+  },
+  "ghana": {
+   "code": "GHS",
+   "symbol": "₵",
+   "name": "Ghanaian cedis",
+   "per_usd": 15
+  },
+  "kenya": {
+   "code": "KES",
+   "symbol": "KSh",
+   "name": "Kenyan shillings",
+   "per_usd": 129
+  },
+  "south africa": {
+   "code": "ZAR",
+   "symbol": "R",
+   "name": "rand",
+   "per_usd": 18
+  },
+  "ethiopia": {
+   "code": "ETB",
+   "symbol": "Br",
+   "name": "Ethiopian birr",
+   "per_usd": 120
+  },
+  "tanzania": {
+   "code": "TZS",
+   "symbol": "TSh",
+   "name": "Tanzanian shillings",
+   "per_usd": 2600
+  },
+  "saudi arabia": {
+   "code": "SAR",
+   "symbol": "SR",
+   "name": "Saudi riyals",
+   "per_usd": 3.75
+  },
+  "uae": {
+   "code": "AED",
+   "symbol": "AED",
+   "name": "UAE dirhams",
+   "per_usd": 3.67
+  },
+  "united arab emirates": {
+   "code": "AED",
+   "symbol": "AED",
+   "name": "UAE dirhams",
+   "per_usd": 3.67
+  },
+  "qatar": {
+   "code": "QAR",
+   "symbol": "QR",
+   "name": "Qatari riyals",
+   "per_usd": 3.64
+  },
+  "kuwait": {
+   "code": "KWD",
+   "symbol": "KD",
+   "name": "Kuwaiti dinars",
+   "per_usd": 0.31
+  },
+  "jordan": {
+   "code": "JOD",
+   "symbol": "JD",
+   "name": "Jordanian dinars",
+   "per_usd": 0.71
+  },
+  "lebanon": {
+   "code": "LBP",
+   "symbol": "LL",
+   "name": "Lebanese pounds",
+   "per_usd": 89500
+  },
+  "iraq": {
+   "code": "IQD",
+   "symbol": "IQD",
+   "name": "Iraqi dinars",
+   "per_usd": 1310
+  },
+  "iran": {
+   "code": "IRR",
+   "symbol": "IRR",
+   "name": "Iranian rials",
+   "per_usd": 42000
+  },
+  "syria": {
+   "code": "SYP",
+   "symbol": "SYP",
+   "name": "Syrian pounds",
+   "per_usd": 13000
+  },
+  "pakistan": {
+   "code": "PKR",
+   "symbol": "Rs",
+   "name": "Pakistani rupees",
+   "per_usd": 280
+  },
+  "india": {
+   "code": "INR",
+   "symbol": "₹",
+   "name": "rupees",
+   "per_usd": 84
+  },
+  "bangladesh": {
+   "code": "BDT",
+   "symbol": "Tk",
+   "name": "taka",
+   "per_usd": 120
+  },
+  "sri lanka": {
+   "code": "LKR",
+   "symbol": "Rs",
+   "name": "Sri Lankan rupees",
+   "per_usd": 300
+  },
+  "nepal": {
+   "code": "NPR",
+   "symbol": "Rs",
+   "name": "Nepalese rupees",
+   "per_usd": 134
+  },
+  "china": {
+   "code": "CNY",
+   "symbol": "¥",
+   "name": "yuan",
+   "per_usd": 7.2
+  },
+  "hong kong": {
+   "code": "HKD",
+   "symbol": "HK$",
+   "name": "Hong Kong dollars",
+   "per_usd": 7.8
+  },
+  "taiwan": {
+   "code": "TWD",
+   "symbol": "NT$",
+   "name": "New Taiwan dollars",
+   "per_usd": 32
+  },
+  "japan": {
+   "code": "JPY",
+   "symbol": "¥",
+   "name": "Japanese yen",
+   "per_usd": 150
+  },
+  "south korea": {
+   "code": "KRW",
+   "symbol": "₩",
+   "name": "South Korean won",
+   "per_usd": 1380
+  },
+  "korea": {
+   "code": "KRW",
+   "symbol": "₩",
+   "name": "South Korean won",
+   "per_usd": 1380
+  },
+  "republic of korea": {
+   "code": "KRW",
+   "symbol": "₩",
+   "name": "South Korean won",
+   "per_usd": 1380
+  },
+  "korea (south)": {
+   "code": "KRW",
+   "symbol": "₩",
+   "name": "South Korean won",
+   "per_usd": 1380
+  },
+  "mongolia": {
+   "code": "MNT",
+   "symbol": "₮",
+   "name": "tögrög",
+   "per_usd": 3400
+  },
+  "vietnam": {
+   "code": "VND",
+   "symbol": "₫",
+   "name": "dong",
+   "per_usd": 25000
+  },
+  "thailand": {
+   "code": "THB",
+   "symbol": "฿",
+   "name": "baht",
+   "per_usd": 35
+  },
+  "malaysia": {
+   "code": "MYR",
+   "symbol": "RM",
+   "name": "ringgit",
+   "per_usd": 4.5
+  },
+  "singapore": {
+   "code": "SGD",
+   "symbol": "S$",
+   "name": "Singapore dollars",
+   "per_usd": 1.34
+  },
+  "indonesia": {
+   "code": "IDR",
+   "symbol": "Rp",
+   "name": "rupiah",
+   "per_usd": 15800
+  },
+  "philippines": {
+   "code": "PHP",
+   "symbol": "₱",
+   "name": "pesos",
+   "per_usd": 57
+  },
+  "cambodia": {
+   "code": "KHR",
+   "symbol": "KHR",
+   "name": "riel",
+   "per_usd": 4100
+  },
+  "australia": {
+   "code": "AUD",
+   "symbol": "$",
+   "name": "Australian dollars",
+   "per_usd": 1.52
+  },
+  "new zealand": {
+   "code": "NZD",
+   "symbol": "$",
+   "name": "New Zealand dollars",
+   "per_usd": 1.66
+  },
+  "brazil": {
+   "code": "BRL",
+   "symbol": "R$",
+   "name": "reais",
+   "per_usd": 5.6
+  },
+  "argentina": {
+   "code": "ARS",
+   "symbol": "$",
+   "name": "Argentine pesos",
+   "per_usd": 1000
+  },
+  "chile": {
+   "code": "CLP",
+   "symbol": "$",
+   "name": "Chilean pesos",
+   "per_usd": 940
+  },
+  "colombia": {
+   "code": "COP",
+   "symbol": "$",
+   "name": "Colombian pesos",
+   "per_usd": 4200
+  },
+  "peru": {
+   "code": "PEN",
+   "symbol": "S/",
+   "name": "soles",
+   "per_usd": 3.75
+  },
+  "uruguay": {
+   "code": "UYU",
+   "symbol": "$",
+   "name": "Uruguayan pesos",
+   "per_usd": 41
+  },
+  "venezuela": {
+   "code": "VES",
+   "symbol": "Bs",
+   "name": "bolívares",
+   "per_usd": 45
+  },
+  "cuba": {
+   "code": "CUP",
+   "symbol": "$",
+   "name": "Cuban pesos",
+   "per_usd": 120
+  },
+  "jamaica": {
+   "code": "JMD",
+   "symbol": "J$",
+   "name": "Jamaican dollars",
+   "per_usd": 157
+  },
+  "haiti": {
+   "code": "HTG",
+   "symbol": "G",
+   "name": "gourdes",
+   "per_usd": 131
+  },
+  "dominican republic": {
+   "code": "DOP",
+   "symbol": "RD$",
+   "name": "Dominican pesos",
+   "per_usd": 60
+  },
+  "costa rica": {
+   "code": "CRC",
+   "symbol": "₡",
+   "name": "colones",
+   "per_usd": 510
+  },
+  "guatemala": {
+   "code": "GTQ",
+   "symbol": "Q",
+   "name": "quetzales",
+   "per_usd": 7.7
+  },
+  "puerto rico": {
+   "code": "USD",
+   "symbol": "$",
+   "name": "US dollars",
+   "per_usd": 1
+  },
+  "ecuador": {
+   "code": "USD",
+   "symbol": "$",
+   "name": "US dollars",
+   "per_usd": 1
+  },
+  "el salvador": {
+   "code": "USD",
+   "symbol": "$",
+   "name": "US dollars",
+   "per_usd": 1
+  },
+  "panama": {
+   "code": "USD",
+   "symbol": "$",
+   "name": "US dollars",
+   "per_usd": 1
+  }
+ }
+}

@@ -37,6 +37,12 @@ def test_reactions_to_the_conversation_are_not_tastes():
     assert keys('i just like going to games, eating overpriced food') == [('likes', 'going to games', 'going to games')]
 
 
+def test_never_having_a_reason_or_a_chance_is_not_something_never_tried():
+    for text in ("i've never had a reason to try", "i've never had the chance", 'I have never had time for it'):
+        assert keys(text) == [], text
+    assert keys("i've never been to the ocean") == [('never', 'been to ocean', 'ocean')]
+
+
 def test_lowercase_texting_names_people_and_pets_in_lowercase():
     text = 'omg my cat juniper knocked my coffee over. my sister ashley thinks its hilarious. my cat is named miso'
     assert keys(text) == [('pet', 'cat', 'Juniper'), ('person', 'sister', 'Ashley')]

@@ -22,6 +22,14 @@ BATCH = 8
 MIN_WORDS = 4
 # "my mom" without a name: nothing to keep the same.
 NOT_PERSON_NAMES = set(self_facts.RELATIVES) | set(self_facts.NOT_LOWER_NAMES) | {'friend', 'coworker', 'neighbor'}
+# What family calls someone, not their name: "yeah, mostly ma." is no mom named Ma.
+CALLED = {'ma', 'mam', 'mama', 'mamma', 'momma', 'mommy', 'mom', 'mum', 'mummy', 'mother', 'pa', 'papa', 'pop', 'pops',
+          'da', 'dad', 'daddy', 'father', 'nan', 'nana', 'nanna', 'gran', 'granny', 'grandma', 'grandpa', 'gramps',
+          'grams', 'sis', 'bro', 'auntie', 'aunty', 'aunt', 'uncle', 'babe', 'baby', 'hon', 'honey', 'kid', 'boss',
+          'old man', 'old lady', 'the old man', 'the old lady'}
+# A detail is how something looks or what it is called; a clause ("hear fists coming before they land") is a story.
+CLAUSE = re.compile(r"\b(?:they|them|he|she|it|we|you|me|before|after|when|while|until|if|because|can|could|would|"
+                    r"should|never|always)\b", re.IGNORECASE)
 NAME = re.compile(r"[\w'’-]+(?: [\w'’-]+){0,2}")
 NOT_WORKPLACES = self_facts.NOT_WORKPLACES | {'er', 'the er', 'icu', 'hospital', 'the hospital', 'work', 'office',
                                               'school', 'clinic', 'the clinic'}
@@ -46,7 +54,9 @@ RULES = (
     '- team: the team {name} is on; works_at: the named place {name} works (not the job itself, which the app '
     'knows); grew_up: where {name} grew up; plays: what {name} plays.\n'
     '- favorite (the subject says what kind, like "band"), clear likes, dislikes and allergies.\n'
-    '- detail: anything else that must stay the same later (subject like "car" or "tattoo").\n'
+    '- detail: how something of theirs looks or what it is called, that must stay the same later (subject like '
+    '"car" or "tattoo"); never what they can do, feel or once did.\n'
+    '- A person\'s value is their name. What {name} calls them ("ma", "pops", "sis") is not a name.\n'
     'Leave out:\n'
     '- anything about the person {name} is texting: when "answering" asks about their life, people or pets '
     '("what\'s my dog\'s name?", "who\'s due in december?"), the names in the answer are theirs, not {name}\'s;\n'
@@ -60,7 +70,11 @@ RULES = (
     '"olives"}}]\n'
     '"got a tiny moon tattoo on my wrist, my mom still hates it" gives [{{"message": 1, "category": "detail", '
     '"subject": "tattoo", "value": "tiny moon on her wrist"}}]\n'
-    '"his name is Biscuit" answering "what\'s my puppy called again?" gives []'
+    '"his name is Biscuit" answering "what\'s my puppy called again?" gives []\n'
+    '"yeah, mostly ma." answering "do you call her mom or ma?" gives []\n'
+    '"never had a reason to try, my ears hear trouble coming anyway" gives []\n'
+    '"the scar? got it at fifteen, runs right through my left eyebrow" gives [{{"message": 1, "category": "detail", '
+    '"subject": "scar", "value": "through left eyebrow"}}]'
 )
 
 
@@ -104,13 +118,13 @@ def rejected(category: str, subject: str, value: str) -> bool:
     lowered = value.lower()
     if category in {'person', 'pet'}:
         return not NAME.fullmatch(value) or any(word in NOT_PERSON_NAMES for word in lowered.split()) or \
-            lowered == self_facts.SAME.get(subject, subject)
+            lowered == self_facts.SAME.get(subject, subject) or lowered in CALLED
     if category == 'plays':
         return lowered not in PLAYABLE
     if category == 'detail':
         # A short description ("short dark bob"), not a sentence about it ("bike has a flat and will be back").
         return subject in NOT_DETAILS or len(subject.split()) > 3 or len(value.split()) > 6 or \
-            bool(re.search(r"\b(?:i|i'm|i've|has|have|is|are|was|will)\b", lowered))
+            bool(re.search(r"\b(?:i|i'm|i've|has|have|is|are|was|will)\b", lowered)) or bool(CLAUSE.search(value))
     if category == 'works_at':
         return lowered in NOT_WORKPLACES or (len(value.split()) < 2 and value.islower())
     return category in {'likes', 'dislikes'} and not self_facts.taste(value)

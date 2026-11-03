@@ -750,7 +750,8 @@ def item_view(item: dict, definition: dict) -> dict:
             'place': item['place']['name'] if item['place'] else '',
             'moved_from': item['moved_from'], 'moved_reason': REASONS.get(item['moved_reason'] or '', ''),
             'moves': item['moves'], 'deadline': item['deadline'],
-            'cost_text': money.amount(cost, found.city['currency']) if found and cost else '', 'movable': True,
+            'cost_text': money.amount(cost, found.city['currency']) if found and cost else '',
+            'cost_short': money.amount(cost, found.city['currency'], short=True) if found and cost else '', 'movable': True,
             'detail': work_detail(item)}
 
 
@@ -765,13 +766,13 @@ def work_detail(item: dict) -> str:
 
 
 def shown_item(key: str, source: str, kind: str, title: str, day: str, today: date, cost_text: str = '',
-               fixed: bool = True) -> dict:
+               fixed: bool = True, cost_short: str = '') -> dict:
     """Another home feature's item, in the shape of an entry, shown read-only: it follows that feature's own draw and
     Realism setting, has no set hour here, and its cost is counted by that feature."""
     return {'id': key, 'key': key, 'source': source, 'kind': kind, 'title': title, 'line': '', 'local_date': day,
             'at_time': '', 'until': '', 'fixed': fixed, 'status': 'planned' if day >= today.isoformat() else 'done',
             'place': '', 'moved_from': None, 'moved_reason': '', 'moves': 0, 'deadline': None, 'cost_text': cost_text,
-            'movable': False, 'detail': ''}
+            'cost_short': cost_short or cost_text, 'movable': False, 'detail': ''}
 
 
 def home_items(connection, companion: dict, start: date, end: date, now=None) -> list[dict]:
@@ -789,7 +790,8 @@ def home_items(connection, companion: dict, start: date, end: date, now=None) ->
     for item in getattr(grooming, 'appointments', lambda *_args: [])(connection, timeline_id, start, end):
         cost = money.PURCHASES.get(item.get('spend') or '', 0) * money.monthly_share(profile) if profile else 0
         found.append(shown_item(f"looks:{item['kind']}:{item['date']}", 'looks', item['kind'], item['title'],
-                                item['date'], start, money.amount(cost, profile.city['currency']) if cost else ''))
+                                item['date'], start, money.amount(cost, profile.city['currency']) if cost else '',
+                                cost_short=money.amount(cost, profile.city['currency'], short=True) if cost else ''))
     runs = getattr(kitchen, 'grocery_runs', None)
     if runs and now and optional(connection, 'SELECT 1 FROM kitchen_state WHERE timeline_id=?', (timeline_id,)):
         for run in runs(connection, timeline_id, start, end, companion['version']['definition'], None, now):

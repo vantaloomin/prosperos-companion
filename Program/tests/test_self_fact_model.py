@@ -137,3 +137,16 @@ def test_an_edited_reply_is_read_again(client, app, connected, provider):
     assert edited.status_code == 200, edited.text
     assert read(app) == 1
     assert asked(provider)[-1][0]['text'] == "we're the harbor hellcats lol"
+
+
+def test_what_family_calls_someone_and_stories_are_not_her_facts(client, app, connected, provider):
+    """Tester on 1.3.0: "yeah, mostly ma." became "Their mom is named Ma", and "my ears hear fists coming before they
+    land" became a detail."""
+    provider.respond = respond('yeah, mostly ma. my ears hear fists coming before they land. the ears are pink and fluffy',
+                               [{'message': 1, 'category': 'person', 'subject': 'mom', 'value': 'Ma'},
+                                {'message': 1, 'category': 'detail', 'subject': 'ears',
+                                 'value': 'hear fists coming before they land'},
+                                {'message': 1, 'category': 'detail', 'subject': 'ears', 'value': 'pink and fluffy'}])
+    send(client, 'do you call her mom or ma?', 'self-model-20')
+    read(app)
+    assert facts(client) == [('Detail', 'pink and fluffy', 'noted')]

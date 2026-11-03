@@ -66,6 +66,7 @@ def by_name(records: list[dict]) -> dict:
 def test_a_world_map_becomes_one_city_that_loads_without_mending(made):
     city = catalog.prepare(made['city'], mend=True)
     assert 'import_notes' not in city
+    assert city['currency']['name'] == 'euros'  # Portugal's, where its time zone is
     assert (city['name'], city['timezone'], city['setting'], city['era']) == ('Lisbon', 'Europe/Lisbon', 'original',
                                                                                'modern')
     # The second top region folds in as a neighbourhood; streets fold into theirs.
