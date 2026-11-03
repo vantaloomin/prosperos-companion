@@ -44,7 +44,7 @@ export function AdminList({ items, done = false, fold = FOLD, inWorkPanel = fals
               </div>
               <div className="admin-when">
                 <p className="subtle">{adminWhen(item)}</p>
-                {!done && item.movable && <button type="button" className="text-button" disabled={busy === item.id} aria-label={`Move ${item.title} to another day`} onClick={() => void move(item.id)}><CalendarClock aria-hidden="true" />Move to another day</button>}
+                {!done && item.movable && <button type="button" className="text-button admin-move" disabled={busy === item.id} aria-label={`Move ${item.title} to another day`} title="Move to another day" onClick={() => void move(item.id)}><CalendarClock aria-hidden="true" /><span className="admin-move-words">Move to another day</span></button>}
                 {!done && item.stay && <StayButtons item={item} busy={busy === item.id} act={(action) => void stay(item, action)} />}
               </div>
               {item.detail && <p className="subtle">{item.detail}</p>}

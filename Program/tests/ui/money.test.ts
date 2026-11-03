@@ -23,7 +23,7 @@ test('money text states payday, mood and goal plainly', () => {
   assert.match(paydayText(budget), /in 11 days\.$/)
   assert.equal(paydayText({ ...budget, payday: { ...budget.payday, next: '2026-10-06' } }), 'Next payday is tomorrow.')
   assert.equal(paydayText({ ...budget, payday: { ...budget.payday, today: true } }), 'Paid today.')
-  assert.equal(moodOfMoney({ ...budget, tight: true }, 'Mara'), 'Money is tight for Mara until payday.')
+  assert.equal(moodOfMoney({ ...budget, tight: true }, 'Mara'), 'Money is tight for Mara until payday')
   assert.equal(goalText(budget), 'Saving for a new laptop: 60% there.')
   assert.equal(goalText({ ...budget, goal: { ...budget.goal, stalled: true } }), 'Saving for a new laptop, but nothing is left over to save right now.')
   assert.equal(rentText(budget), 'Rent: about $1,280 a month for a studio in Towson.')
