@@ -1,6 +1,7 @@
 """The Claude Code provider against a stand-in `claude` CLI: the real CLI and a real Claude login are not used."""
 import asyncio
 import json
+import os
 import sys
 import textwrap
 
@@ -9,6 +10,7 @@ import pytest
 from companion.errors import DomainError
 from companion.providers import claude_code
 from companion.providers.config import ProfileConfig
+from companion.providers.scheduling import resource_for
 
 # Prints the stream a `claude -p --output-format stream-json --include-partial-messages` turn writes, and
 # records what it was given in seen.json beside itself.
@@ -18,11 +20,13 @@ from pathlib import Path
 arguments = sys.argv[1:]
 if arguments[:2] == ["auth", "status"]:
     state = os.environ.get("STAND_IN_LOGIN", "in")
-    print(json.dumps({"loggedIn": state != "out", "authMethod": "api_key" if state == "key" else "claude.ai"}))
+    print(json.dumps({"loggedIn": state != "out", "authMethod": "api_key" if state == "key" else "claude.ai",
+                      "email": os.environ.get("CLAUDE_CONFIG_DIR", "usual") + "@example.com"}))
     sys.exit(1 if state == "out" else 0)
 system = Path(arguments[arguments.index("--system-prompt-file") + 1]).read_text(encoding="utf-8")
 seen = {"arguments": arguments, "system": system, "stdin": sys.stdin.read(), "cwd": os.getcwd(),
-        "api_key": os.environ.get("ANTHROPIC_API_KEY")}
+        "api_key": os.environ.get("ANTHROPIC_API_KEY"), "account": os.environ.get("CLAUDE_CONFIG_DIR"),
+        "token": os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")}
 Path(__file__).with_name("seen.json").write_text(json.dumps(seen))
 mode = os.environ.get("STAND_IN_MODE", "stream")
 print(json.dumps({"type": "system", "subtype": "init"}))
@@ -120,11 +124,44 @@ def test_the_profile_takes_a_full_cli_location_and_plan_efforts_only():
     for bad in ({'cli_path': 'claude'}, {'reasoning_effort': 'minimal'}, {'temperature': 0.5}):
         with pytest.raises(ValueError):
             ProfileConfig(provider='claude_code', model='opus', **bad)
+    assert ProfileConfig(provider='codex', model='gpt-5.5', cli_path=sys.executable).cli_path == sys.executable
     with pytest.raises(ValueError):
-        ProfileConfig(provider='codex', model='gpt-5.5', cli_path=sys.executable)
+        ProfileConfig(provider='openai', model='gpt-5.5', cli_path=sys.executable)
 
 
 def test_a_cli_location_that_does_not_exist_is_reported(tmp_path):
     with pytest.raises(DomainError) as raised:
         claude_code.executable_path({'cli_path': str(tmp_path / 'missing' / 'claude')})
     assert 'location set in this profile' in raised.value.message
+
+
+def test_a_profile_with_its_own_account_folder_runs_claude_with_that_folder(stand_in, monkeypatch):
+    monkeypatch.setenv('CLAUDE_CODE_OAUTH_TOKEN', 'a-token-for-the-usual-account')
+    reply(cli_account_dir='/home/me/.claude-second')
+    seen = json.loads((stand_in / 'seen.json').read_text())
+    # The folder's account is used, and a token in the environment, which would win over it, is left out.
+    assert seen['account'] == '/home/me/.claude-second' and seen['token'] is None
+    reply()
+    seen = json.loads((stand_in / 'seen.json').read_text())
+    assert seen['account'] is None and seen['token'] == 'a-token-for-the-usual-account'
+
+
+def test_test_connection_names_the_account_and_says_how_to_sign_in_to_its_folder(stand_in, monkeypatch):
+    provider = claude_code.ClaudeCodeProvider()
+    result = asyncio.run(provider.check(config(cli_account_dir='/home/me/.claude-second'), None))
+    assert 'signed in as /home/me/.claude-second@example.com' in result['note']
+    monkeypatch.setenv('STAND_IN_LOGIN', 'out')
+    with pytest.raises(DomainError) as raised:
+        asyncio.run(provider.check(config(cli_account_dir='/home/me/.claude-second'), None))
+    assert 'CLAUDE_CONFIG_DIR="/home/me/.claude-second"' in raised.value.message
+
+
+def test_each_account_has_its_own_places_and_the_folder_must_be_a_full_path():
+    assert resource_for(config()) == ('claude-cli', 2)
+    assert resource_for(config(cli_account_dir='/home/me/.claude-second')) == ('claude-cli:/home/me/.claude-second', 2)
+    assert ProfileConfig(provider='claude_code', model='sonnet', cli_account_dir=sys.prefix).cli_account_dir == sys.prefix
+    expanded = ProfileConfig(provider='codex', model='x', cli_account_dir='~/.codex-2').cli_account_dir
+    assert expanded == os.path.expanduser('~/.codex-2') and not expanded.startswith('~')
+    for provider, folder in (('claude_code', 'claude-second'), ('openai', sys.prefix)):
+        with pytest.raises(ValueError):
+            ProfileConfig(provider=provider, model='sonnet', cli_account_dir=folder)

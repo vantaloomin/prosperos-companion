@@ -434,6 +434,9 @@ ADDED_COLUMNS = (
     ('outings', 'longer', 'INTEGER NOT NULL DEFAULT 0'),
     # Still talking as a meetup winds down, it ran on an hour on its own (companion/life/outings.py keep_going): once.
     ('outings', 'auto_longer', 'INTEGER NOT NULL DEFAULT 0'),
+    # Settings > Models: look for the Claude Code and Codex accounts on this PC (companion/providers/cli_accounts.py) so
+    # a profile can pick one; on unless turned off.
+    ('workspace_settings', 'find_cli_accounts', 'INTEGER NOT NULL DEFAULT 1 CHECK (find_cli_accounts IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

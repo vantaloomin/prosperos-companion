@@ -1268,7 +1268,10 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 :root[data-motion='reduce'] .model-usage { animation: none; }
 .model-profile-editor { padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
 .provider-picker { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
-.provider-picker legend { margin-bottom: 8px; font-weight: 500; }
+.provider-picker legend { padding: 0; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500; color: var(--label, #d6d0c4); }
+.cli-account-list .button { max-width: 100%; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.typed-folder summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); padding: 4px 0; }
+.typed-folder[open] summary { margin-bottom: 12px; }
 .provider-picker .button.selected { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); }
 .token-entry { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .token-entry p { margin: 0; font-size: 0.875rem; }
