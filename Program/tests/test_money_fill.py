@@ -115,3 +115,22 @@ def test_a_worlds_own_coin_is_said_by_name_and_counted_whole():
     # The app's own moneys keep their symbols.
     assert money.amount(4.2, {'code': 'CR', 'symbol': 'cr', 'name': 'credits'}) == '4.20 cr'
     assert money.amount(3, {'code': 'groschen', 'symbol': 'gr.', 'name': 'silver groschen'}) == '3 gr.'
+
+
+def test_a_modern_world_outside_the_us_pays_in_its_countrys_money():
+    city = world(era='modern', prices=[], country='Portugal')
+    del city['currency']
+    data = catalog.prepare(city, mend=True)
+    assert data['currency'] == {'code': 'EUR', 'symbol': '€', 'name': 'euros'}
+    assert data['import_notes'] == ['No currency was given, so money is in euros, as in Portugal.']
+    # A money the app has a city for borrows that city's rents; another goes by rough exchange rates.
+    city = world(era='modern', prices=[], country='Britain')
+    del city['currency']
+    london = catalog.prepare(city, mend=True)
+    assert london['currency']['code'] == 'GBP' and london['neighborhoods'][1]['rent']['one_bedroom'][0] > 500
+    city = world(era='modern', prices=[], country='Country', timezone='Asia/Kolkata')
+    del city['currency']
+    india = catalog.prepare(city, mend=True)
+    assert india['currency']['name'] == 'rupees'
+    assert india['neighborhoods'][1]['rent']['one_bedroom'][0] > 20_000
+    assert money.amount(45_000, india['currency']) == '₹45,000'

@@ -101,10 +101,33 @@ def currency(data: dict, given: set[str]) -> list[str]:
     if found:
         data['currency'] = found
         return [f'No currency was given, so money is in {found["name"]}, as its own words say.']
+    local = by_country(data) if data['era'] in ('modern', 'other') else None
+    if local and local[1]['code'] != 'USD':  # Dollars are the default already, so they need no note.
+        data['currency'] = {key: local[1][key] for key in ('code', 'symbol', 'name')}
+        return [f'No currency was given, so money is in {local[1]["name"]}, as in {local[0]}.']
     if data['era'] in ERA_CURRENCY:
         data['currency'] = dict(ERA_CURRENCY[data['era']])
         return [f'No currency was given, so money is in {data["currency"]["name"]}, as in its era.']
     return []
+
+
+@cache
+def countries() -> dict[str, dict]:
+    """Each country's money (data/currencies.json), by its name in lower case."""
+    return json.loads((DATA / 'currencies.json').read_text(encoding='utf-8'))['countries']
+
+
+def by_country(data: dict) -> tuple[str, dict] | None:
+    """(country, money) for a modern city: its own country, else the one its time zone is in (a world map's)."""
+    from companion.world import naming
+    for country in (data.get('country'), naming.country_for_zone(data.get('timezone'))):
+        if country and country.casefold() in countries():
+            return country, countries()[country.casefold()]
+    return None
+
+
+def per_usd(code: str) -> float | None:
+    return next((money['per_usd'] for money in countries().values() if money['code'] == code), None)
 
 
 def words_of(data: dict) -> str:
@@ -175,7 +198,7 @@ def donor(data: dict) -> dict | None:
 
 def rate(data: dict, other: dict) -> float:
     """How many of this city's money one of `other`'s is worth: 1 for the same money, else from prices both
-    cities have under the same or a like name, else 1."""
+    cities have under the same or a like name, else from national exchange rates, else 1."""
     if code_of(data) == code_of(other):
         return 1.0
     mine, theirs = mids(data), mids(other)
@@ -185,7 +208,11 @@ def rate(data: dict, other: dict) -> float:
         b = next((theirs[key] for key in group if theirs.get(key)), None)
         if a and b:
             ratios.append(a / b)
-    return geometric_mean(ratios) if ratios else 1.0
+    if ratios:
+        return geometric_mean(ratios)
+    # No prices to compare: two national moneys go by roughly what each makes a US dollar (currencies.json).
+    mine_usd, theirs_usd = per_usd(code_of(data)), per_usd(code_of(other))
+    return mine_usd / theirs_usd if mine_usd and theirs_usd else 1.0
 
 
 def mids(city: dict) -> dict[str, float]:
