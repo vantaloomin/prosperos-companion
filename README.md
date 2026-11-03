@@ -82,7 +82,7 @@ Releases come often, usually a few a week, and each one is a full release with a
   <img src="Program/docs/images/phone-profile.png" alt="Their profile on a phone" width="260">
 </p>
 
-The screenshots come from a demo world in Baltimore. Hana's profile picture is from the 1.3 trailer; the app makes its own pictures with whichever image setup you choose.
+The screenshots come from a demo world in Baltimore, in the dark theme. Hana's profile picture is from the 1.3 trailer; the app makes its own pictures with whichever image setup you choose.
 
 ## Roadmap
 
