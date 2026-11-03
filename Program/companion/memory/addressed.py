@@ -142,6 +142,47 @@ def voiced(layer: str, value: str, message: str) -> str:
     return f"You {base_form(word)} {rest}".rstrip()
 
 
+# "not contact them" about Sett, who is he/him: "not contact him". Only when the companion is the one person named,
+# since "them" may be someone else ("Mom" or "Jo").
+SET_PRONOUNS = {'he': {'they': 'he', 'them': 'him', 'their': 'his', 'theirs': 'his', 'themselves': 'himself',
+                       'themself': 'himself'},
+                'she': {'they': 'she', 'them': 'her', 'their': 'her', 'theirs': 'hers', 'themselves': 'herself',
+                        'themself': 'herself'}}
+THEY_VERB = re.compile(r"\bthey(?:['’](re|ve|d|ll))?\b(\s+[a-z']+)?", re.IGNORECASE)
+THEY_AGREES = {'are': 'is', 'were': 'was', 'have': 'has', 'do': 'does', "don't": "doesn't", "aren't": "isn't",
+               "weren't": "wasn't", "haven't": "hasn't"}
+THEY_SHORT = {'re': "'s", 've': "'s", 'd': "'d", 'll': "'ll"}
+CAPITALISED = re.compile(r"(?<=\w\s)([A-Z][a-z'’]+)")
+
+
+def only_them(text: str, name: str) -> bool:
+    """Whether the companion is the one person the text names."""
+    from companion.memory.owners import PEOPLE
+    words = {word.casefold() for word in re.findall(r"[\w']+", text)}
+    others = {word for word in CAPITALISED.findall(text) if word.split("'")[0] not in {name, 'I'}}
+    return name in text and not others and not words & PEOPLE
+
+
+def with_pronouns(text: str, name: str, pronoun: str) -> str:
+    """They/them/their as the companion's own pronouns when the companion is the one person in the text."""
+    forms = SET_PRONOUNS.get(pronoun)
+    if not forms or not only_them(text, name):
+        return text
+
+    def they(match):
+        short, verb = match[1], match[2] or ''
+        if short:
+            return f'{forms["they"]}{THEY_SHORT[short.casefold()]}{verb}'
+        word = verb.strip()
+        if not word:
+            return forms['they']
+        agreed = THEY_AGREES.get(word.casefold()) or third_person(word)
+        return f'{forms["they"]}{verb[:len(verb) - len(word)]}{agreed}'
+    text = THEY_VERB.sub(they, text)
+    return re.sub(r"\b(them|their|theirs|themselves|themself)\b", lambda match: forms[match[1].casefold()], text,
+                  flags=re.IGNORECASE)
+
+
 def pronoun_of(companion) -> str:
     """He, she or they: the companion's pronouns as their description speaks of them."""
     from companion.world.looks import pronouns_of
@@ -166,7 +207,7 @@ def named(text: str, name: str, message: str, pronoun: str = 'they') -> str:
         if text != before:  # "afraid of the assistant as if it were dangerous": "it" was the assistant too
             text = IT.sub(lambda match: f"{pronoun} {THEY.get(match[1], match[1]) if pronoun == 'they' else match[1]}",
                           text)
-    return addressed_you(text, name)
+    return with_pronouns(addressed_you(text, name), name, pronoun)
 
 
 def fields(subject: str, value: str, name: str, message: str, pronoun: str = 'they') -> tuple[str, str]:

@@ -330,3 +330,17 @@ def test_the_companion_reads_a_voiced_plan_as_the_users():
     trust = {'layer': 'relationship', 'origin': 'automatic', 'subject': 'Trust in Sett',
              'value': 'You trust Sett more than anyone'}
     assert as_told(trust, 'Sett')['value'] == 'The user trusts you more than anyone'
+
+
+def test_them_becomes_the_companions_pronoun_only_when_they_are_the_one_named():
+    from companion.memory.addressed import named
+    assert named("will delete Sett's number and not contact them", 'Sett', 'a message', 'he') == \
+        "will delete Sett's number and not contact him"
+    assert named('Sett said they are moving and their flat is nice', 'Sett', 'a message', 'she') == \
+        'Sett said she is moving and her flat is nice'
+    assert named("will tell Mom about Sett and ask them over", 'Sett', 'a message', 'he') == \
+        "will tell Mom about Sett and ask them over"
+    assert named('will introduce Sett to Jo and see them both', 'Sett', 'a message', 'he') == \
+        'will introduce Sett to Jo and see them both'
+    assert named("will delete Sett's number and not contact them", 'Sett', 'a message') == \
+        "will delete Sett's number and not contact them"
