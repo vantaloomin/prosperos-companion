@@ -3282,8 +3282,8 @@ p.breakup-line { align-items: center; }
 .slider-row { padding-block: 8px; }
 .slider-row .slider-row-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .slider-row .slider-row-text > .info-tip { justify-self: start; }
-.step-tip-button { padding: 0; border: 0; background: none; text-align: left; cursor: help; text-decoration: underline dotted var(--faint); text-underline-offset: 3px; }
-.step-tip-button:hover { color: var(--text); }
+.step-tip-button { padding: 0; border: 0; background: none; text-align: left; cursor: help; text-decoration: underline dotted var(--faint); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.step-tip-button:is(:hover, :focus-visible, [aria-expanded='true']) { text-decoration-color: var(--muted); }
 .slider-row .step-slider { flex: 0 0 200px; width: 200px; margin: 0; }
 .setting-row.disabled .row-value { color: var(--faint); }
 .link-row { width: 100%; text-align: left; color: var(--text); font-size: 0.875rem; }

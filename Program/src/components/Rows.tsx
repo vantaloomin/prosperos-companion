@@ -127,7 +127,7 @@ export function SliderRow({ label, levels, value, fallback = 2, onChange, tip, n
     <div className={classes}>
       <span className="slider-row-text">
         <span className="setting-row-label"><label htmlFor={id}>{label}</label>{tip && <InfoTip id={`${id}-tip`} label={label} text={tip} />}</span>
-        <StepTip id={`${id}-step`} word={level.label} text={level.hint} />
+        <StepTip id={`${id}-step`} label={label} word={level.label} text={level.hint} />
       </span>
       <span id={`${id}-hint`} className="visually-hidden">{level.hint}</span>
       <input id={id} className="step-slider" type="range" min={0} max={levels.length - 1} step={1} value={value} aria-valuetext={level.label}
