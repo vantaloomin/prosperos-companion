@@ -6,7 +6,7 @@ import { paletteStyles, shownScheme } from './palette'
 const LIGHT_QUERY = '(prefers-color-scheme: light)'
 // The last colors shown, read by the script in index.html before the first paint so a Paper user never sees a dark frame.
 const CACHE = 'companion-colors'
-const BAR = { ink: '#191816', paper: '#f4f0e8' }
+const BAR = { ink: '#191816', paper: '#f7f4ee' }
 
 function subscribe(change: () => void) {
   const query = window.matchMedia(LIGHT_QUERY)

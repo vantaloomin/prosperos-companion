@@ -28,7 +28,7 @@
         if (colors.system) colors = matchMedia('(prefers-color-scheme: light)').matches ? { scheme: 'paper', styles: {} } : { scheme: 'ink', styles: {} }
         root.dataset.theme = colors.scheme
         for (var name in colors.styles || {}) root.style.setProperty(name, colors.styles[name])
-        if (colors.bar || colors.scheme === 'paper') document.querySelector('meta[name="theme-color"]').setAttribute('content', colors.bar || '#f4f0e8')
+        if (colors.bar || colors.scheme === 'paper') document.querySelector('meta[name="theme-color"]').setAttribute('content', colors.bar || '#f7f4ee')
         if (look && look.textScale >= 85 && look.textScale <= 200 && look.textScale !== 100) root.style.fontSize = look.textScale + '%'
         if (look && look.font) root.dataset.font = look.font
         if (look && look.motion) root.dataset.motion = look.motion
