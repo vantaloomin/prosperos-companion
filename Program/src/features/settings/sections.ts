@@ -116,3 +116,4 @@ export function searchSettings(query: string, hasCompanion: boolean, onPhone = f
     })
     .map((section) => ({ tab, section })))
 }
+

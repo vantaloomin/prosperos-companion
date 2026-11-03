@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { SETTINGS_KEY, useWorkspaceSettings } from '../../companion'
 import type { LifeSettings, WorkspaceSettings } from '../../types'
-import { Toggle } from '../../components/Fields'
+import { SwitchRow } from '../../components/Rows'
 import { Notice } from '../../components/Feedback'
 import { GROUPS_KEY } from '../groups/groupState'
 import { LIFE_KEY } from './useLifeSettings'
@@ -33,27 +33,25 @@ export function HiddenValues({ name }: { name: string }) {
   }
   const { who, whose, keeps } = phrases(name)
   return (
-    <section className="settings-section form-stack" aria-labelledby="hidden-values-heading">
-      <div>
-        <h2 id="hidden-values-heading">Hidden values</h2>
-        <p className="subtle">Some things stay behind the curtain so it feels like real life: you notice them from how people talk, not from a label. They still shape every reply when hidden.</p>
-      </div>
-      <Toggle label="Show how they're feeling" checked={flag('show_moods')} onChange={(checked) => void save({ show_moods: checked })}
-        hint={`On Today: how ${who} feels and why, how they're doing physically, and how they took what you did lately. In group chats: how each person seems. Off: you only find out from how they talk to you.`} />
-      <Toggle label="Show who has heard their news" checked={flag('show_news')} onChange={(checked) => void save({ show_news: checked })}
-        hint={`"Word getting around" on Today: who has heard ${whose} news so far, and from whom. Off: word still travels, you just aren't told.`} />
-      <Toggle label="Show the odds behind what happens" checked={flag('show_odds')} onChange={(checked) => void save({ show_odds: checked })}
-        hint={'"Why it went this way" under storylines, chapters and reactions on Today: the odds for each way it could have gone, and a way to make it go another way.'} />
-      <Toggle label={`Show what's on ${whose} mind`} checked={life.data?.on_her_mind !== false} disabled={!life.data} onChange={(checked) => void saveMind(checked)}
-        hint={`Each evening Today gets one private thought, worked out from what happened in ${whose} day. Folded until you open it, never part of the chat, and never anything ${keeps} secret.`} />
-      <Toggle label="Say when a secret slips out" checked={flag('show_secret_slips', true)} onChange={(checked) => void save({ show_secret_slips: checked })}
-        hint="A note under a group message when someone lets a secret slip. Off: you only find out from what they say; everyone there still knows it, and Secrets on the Groups page still shows who knows." />
-      <Toggle label="Show the numbers behind their life" checked={flag('show_home_meters')} onChange={(checked) => void save({ show_home_meters: checked })}
-        hint="On the Character page: how much laundry, dishes and clutter there is, and the numbers behind how they look lately (days since a haircut, how deep a tan is), and each pet's health out of 100 and how long its kind usually lives, and vacation days used and pay since they started. In a group chat's people panel, how long a guest stays: how close they are to staying for good and how many replies they have left. Off: you only see it in words." />
+    <section className="row-group" aria-labelledby="hidden-values-heading">
+      <div className="row-list">
+      <SwitchRow label="Show how they're feeling" checked={flag('show_moods')} onChange={(checked) => void save({ show_moods: checked })}
+        tip={`On Today: how ${who} feels and why, how they're doing physically, and how they took what you did lately. In group chats: how each person seems. Off: you only find out from how they talk to you.`} />
+      <SwitchRow label="Show who has heard their news" checked={flag('show_news')} onChange={(checked) => void save({ show_news: checked })}
+        tip={`"Word getting around" on Today: who has heard ${whose} news so far, and from whom. Off: word still travels, you just aren't told.`} />
+      <SwitchRow label="Show the odds behind what happens" checked={flag('show_odds')} onChange={(checked) => void save({ show_odds: checked })}
+        tip={'"Why it went this way" under storylines, chapters and reactions on Today: the odds for each way it could have gone, and a way to make it go another way.'} />
+      <SwitchRow label={`Show what's on ${whose} mind`} checked={life.data?.on_her_mind !== false} disabled={!life.data} onChange={(checked) => void saveMind(checked)}
+        tip={`Each evening Today gets one private thought, worked out from what happened in ${whose} day. Folded until you open it, never part of the chat, and never anything ${keeps} secret.`} />
+      <SwitchRow label="Say when a secret slips out" checked={flag('show_secret_slips', true)} onChange={(checked) => void save({ show_secret_slips: checked })}
+        tip="A note under a group message when someone lets a secret slip. Off: you only find out from what they say; everyone there still knows it, and Secrets on the Groups page still shows who knows." />
+      <SwitchRow label="Show the numbers behind their life" checked={flag('show_home_meters')} onChange={(checked) => void save({ show_home_meters: checked })}
+        tip="On the Character page: how much laundry, dishes and clutter there is, and the numbers behind how they look lately (days since a haircut, how deep a tan is), and each pet's health out of 100 and how long its kind usually lives, and vacation days used and pay since they started. In a group chat's people panel, how long a guest stays: how close they are to staying for good and how many replies they have left. Off: you only see it in words." />
       {settings.data?.adult_side && (
-        <Toggle label="Show townsfolk's adult side" checked={flag('show_adult_side')} onChange={(checked) => void save({ show_adult_side: checked })}
-          hint="Around town on Today: who each person is drawn to, how adventurous they are and what they're into. Off: you only learn who someone is drawn to once your companion knows them well." />
+        <SwitchRow label="Show townsfolk's adult side" checked={flag('show_adult_side')} onChange={(checked) => void save({ show_adult_side: checked })}
+          tip="Around town on Today: who each person is drawn to, how adventurous they are and what they're into. Off: you only learn who someone is drawn to once your companion knows them well." />
       )}
+      </div>
       {error && <Notice tone="error">{error}</Notice>}
     </section>
   )

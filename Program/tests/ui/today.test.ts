@@ -33,7 +33,7 @@ test('story dates read as the local day they name', async () => {
   const { storyDate, DRAMA_LEVELS } = await import('../../src/features/today/storyText.ts')
   assert.equal(storyDate('2026-10-05'), shortDate('2026-10-05'))
   assert.equal(storyDate('2026-10-05'), 'Mon, Oct 5')
-  assert.deepEqual(DRAMA_LEVELS.map((level) => level.label), ['Quiet', 'Realistic', 'Dramatic', 'Soap opera'])
+  assert.deepEqual(DRAMA_LEVELS.map((level) => level.label), ['Quiet', 'True to life', 'Dramatic', 'Soap opera'])
 })
 
 test('occasions read as a friend would say them', async () => {

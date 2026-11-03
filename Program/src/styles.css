@@ -400,8 +400,6 @@ a.button { color: inherit; text-decoration: none; }
 .closeness-stage { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
 .closeness-history summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
 .closeness-history ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.875rem; color: var(--muted); }
-.closeness-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 20px; }
-.closeness-steps { display: flex; flex-wrap: wrap; gap: 10px; flex-basis: 100%; }
 .closeness-nickname, .closeness-pick { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
 /* A long shared moment would size the picker past a phone screen; it shortens inside the box instead. */
 .closeness-pick .field, .closeness-pick select { max-width: 100%; }
@@ -3256,3 +3254,31 @@ p.breakup-line { align-items: center; }
 @media (max-width: 480px) { .setting-row.marker-row .marker-fields input { width: 4.25rem; } .marker-fields { gap: 6px; } }
 .motion-narrow { display: none; }
 @media (max-width: 480px) { .motion-wide { display: none; } .motion-narrow { display: block; } }
+/* Settings > Realism (v1.3 design, step 9): presets as one segmented control, a slider per row with its value word
+   under the name, and rows that open each page. */
+.realism-start { display: grid; gap: 6px; }
+.realism-start-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.realism-start-row h2 { font-family: inherit; font-size: 0.875rem; margin: 0; flex: 0 0 auto; }
+.realism-segmented { margin-left: auto; }
+.realism-segmented label > span:not(.visually-hidden) { min-height: 36px; padding: 7px 14px; font-size: 0.875rem; }
+.realism-mix { font-size: 0.8125rem; text-align: right; }
+.slider-row { padding-block: 8px; }
+.slider-row .slider-row-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.slider-row .row-value { cursor: default; }
+.slider-row .step-slider { flex: 0 0 200px; width: 200px; margin: 0; }
+.setting-row.disabled .row-value { color: var(--faint); }
+.link-row { width: 100%; text-align: left; color: var(--text); font-size: 0.875rem; }
+.link-row svg { width: 16px; height: 16px; color: var(--muted); flex: none; }
+@media (max-width: 720px) {
+  .realism-segmented { margin-left: 0; width: 100%; flex-wrap: nowrap; }
+  .realism-segmented label > span:not(.visually-hidden) { padding: 7px 6px; }
+  .realism-mix { text-align: left; }
+  .slider-row { flex-wrap: wrap; row-gap: 4px; }
+  .slider-row .step-slider { flex: 1 0 100%; width: 100%; }
+}
+.closeness-line { margin: 4px 0 0; }
+.row-group > .row-list + .row-group-label { margin-top: 12px; }
+.settings-subhead { display: grid; gap: 2px; justify-items: start; }
+.settings-back { margin-left: -6px; font-size: 0.8125rem; color: var(--muted); }
+.settings-back svg { width: 15px; height: 15px; }
+.settings-head, .settings-phone-head h1 { display: flex; align-items: center; gap: 4px; }

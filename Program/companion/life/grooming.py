@@ -53,7 +53,7 @@ TANNING = {'very fair', 'fair', 'light', 'light olive', 'olive', 'warm beige', '
 TAN_WORDS = {1: 'a light summer tan', 2: 'a deep summer tan'}
 # How often, by the Realism setting: (share of a due change that happens, days between bold changes).
 LEVELS = {1: (0.5, 2.0), 2: (1.0, 1.0), 3: (1.4, 0.6)}
-LEVEL_NAMES = {0: 'Never', 1: 'Now and then', 2: 'Like real life', 3: 'Often'}
+LEVEL_NAMES = {0: 'Never', 1: 'Now and then', 2: 'True to life', 3: 'Often'}
 # What each drawn hair style (companion/world/dating.HAIR_STYLES) is: (length stage, texture, cut, how it is worn).
 STYLES = {
     'long': (8, '', '', ''), 'shoulder-length': (6, '', '', ''), 'in a bob': (5, '', 'a bob', ''),

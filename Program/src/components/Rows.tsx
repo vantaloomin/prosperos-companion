@@ -1,5 +1,5 @@
 import { createContext, useContext, useId, useState, type ReactNode } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { InfoTip } from './InfoTip'
 
 /**
@@ -93,5 +93,53 @@ export function FoldRow({ summary, sub, value, open, onToggle, children }: FoldR
       </button>
       <div id={id} className="fold-body" hidden={!shown}>{children}</div>
     </div>
+  )
+}
+
+interface Level { label: string; hint: string }
+
+interface SliderRowProps {
+  label: string
+  /** The steps, low to high; the open one's name shows under the label and its explanation is read with the slider. */
+  levels: readonly Level[]
+  value: number
+  /** The step shown when the saved value is out of range. */
+  fallback?: number
+  onChange: (value: number) => void
+  /** Only where a value follows a rule the user can't see. */
+  tip?: string
+  nested?: boolean
+  disabled?: boolean
+}
+
+/** A stepped slider as one row (style guide: Realism): its name with the open step's word under it, the slider on the
+ * right. The step's longer explanation is the slider's description, and shows on hovering the word. */
+export function SliderRow({ label, levels, value, fallback = 2, onChange, tip, nested, disabled: own }: SliderRowProps) {
+  const id = useId()
+  const parentOff = useContext(ParentOff)
+  const disabled = own || (nested && parentOff)
+  const level = levels[value] ?? levels[Math.min(fallback, levels.length - 1)]
+  const classes = ['setting-row', 'slider-row', nested && 'nested', disabled && 'disabled'].filter(Boolean).join(' ')
+  return (
+    <div className={classes}>
+      <span className="slider-row-text">
+        <span className="setting-row-label"><label htmlFor={id}>{label}</label>{tip && <InfoTip id={`${id}-tip`} label={label} text={tip} />}</span>
+        <span className="row-value" title={level.hint} aria-hidden="true">{level.label}</span>
+      </span>
+      <span id={`${id}-hint`} className="visually-hidden">{level.hint}</span>
+      <input id={id} className="step-slider" type="range" min={0} max={levels.length - 1} step={1} value={value} aria-valuetext={level.label}
+        aria-describedby={`${id}-hint`} disabled={!!disabled} onChange={(event) => onChange(Number(event.target.value))} />
+    </div>
+  )
+}
+
+/** A row that opens a page of its own, with its current value on the right. */
+export function LinkRow({ label, value, onOpen }: { label: string; value?: ReactNode; onOpen: () => void }) {
+  return (
+    <button type="button" className="setting-row link-row" onClick={onOpen}>
+      <span className="setting-row-label">{label}</span>
+      {value && <span className="row-value">{value}</span>}
+      <ChevronRight aria-hidden="true" />
+    </button>
   )
 }
