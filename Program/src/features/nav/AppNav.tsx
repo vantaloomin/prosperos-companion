@@ -1,9 +1,8 @@
 import { Fragment, useEffect, useRef } from 'react'
-import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Lightbulb, Settings as SettingsIcon, UserPlus, UserRound } from 'lucide-react'
+import { BookHeart, BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Settings as SettingsIcon, UserPlus, UserRound } from 'lucide-react'
 import type { View } from '../../companion'
 import { badge } from '../chats/chatText'
 import { WorldButton } from '../worlds/WorldButton'
-import { toggleSidecar } from '../sidecar/toggle'
 import { chatsTarget, inChats, railCurrent } from './navText'
 import { useEraWords } from '../world/useEraWords'
 import { isActive, navLabel, percent, type ReadyView } from '../ready/readyText'
@@ -35,12 +34,10 @@ interface Props {
   /** Matchlight is a phone app to install there (not a website, the paper or the matchmaker). */
   datingApp?: boolean
   unread: { companion: number; group: number }
-  sidecarOpen: boolean
-  sidecarWaiting: boolean
   watching?: boolean
 }
 
-export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, unread, sidecarOpen, sidecarWaiting, watching }: Props) {
+export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, unread, watching }: Props) {
   // Group chats share the Chats list now, so the rail's Chats counts both, as the phone's tab does.
   const counts: Partial<Record<string, number>> = { conversation: unread.companion + unread.group }
   const ready = useSettingsMark(view)
@@ -52,10 +49,6 @@ export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, u
       <ChatsTab view={view} go={go} unread={unread.companion + unread.group} />
       {VIEWS.map((item) => watching && item.id === 'dating' ? WATCHING : item).filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon, railOnly }) => (
         <Fragment key={id}>
-          {/* The sidecar opens beside any view, so it is a toggle rather than a view. On a phone it is in the chat header. */}
-          {id === 'settings' && <button type="button" className="nav-sidecar rail-only" aria-pressed={sidecarOpen} onClick={() => toggleSidecar(sidecarOpen)}>
-            <Lightbulb aria-hidden="true" />{sidecarWaiting && <span className="nav-dot" aria-label="something waiting" />}<span>Sidecar</span>
-          </button>}
           <button type="button" className={`nav-${id}${railOnly ? ' rail-only' : ''}`} aria-current={railCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}
             aria-label={id === 'settings' ? navLabel(ready) : undefined}>
             <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <DatingBadge app={datingApp} />}

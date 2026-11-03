@@ -30,9 +30,11 @@ interface MenuProps {
   className?: string
   /** A dot on the button, for something waiting inside. */
   dot?: boolean
+  /** Pressing the button leaves focus where it is (the message box), so a phone's keyboard and layout don't jump mid-tap. */
+  keepFocus?: boolean
 }
 
-export function Menu({ label, icon: Icon, items, align = 'end', up, footer, className, dot }: MenuProps) {
+export function Menu({ label, icon: Icon, items, align = 'end', up, footer, className, dot, keepFocus }: MenuProps) {
   const [open, setOpen] = useState(false)
   const button = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -52,7 +54,7 @@ export function Menu({ label, icon: Icon, items, align = 'end', up, footer, clas
   const classes = ['menu-pop', align, up && 'up'].filter(Boolean).join(' ')
   return (
     <span className={className ? `menu-anchor ${className}` : 'menu-anchor'} onKeyDown={onKey}>
-      <button ref={button} type="button" className="icon-button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button ref={button} type="button" className="icon-button" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} onMouseDown={keepFocus ? (event) => event.preventDefault() : undefined} onClick={() => setOpen(!open)}>
         <Icon aria-hidden="true" />{dot && <span className="nav-dot" aria-hidden="true" />}
       </button>
       {open && <div ref={panel} className={classes} role="menu" aria-label={label} onClick={(event) => { if ((event.target as HTMLElement).closest('button')) close() }}>

@@ -45,6 +45,7 @@ import { pinnedIn, useSetVoicePin, useVoicePins, VoiceActions } from './voicePin
 import { useChatLook } from './useTheirLook'
 import { notesBefore, notesAfter } from './lookNotes'
 import { THEIR_LOOK_KEY } from './theirLook'
+import { AiNoticeLine } from '../../components/Safety'
 
 const PAGE = 100
 
@@ -266,6 +267,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
         {following.map((id) => <ReplyFollower key={id} id={id} onText={onText} onPhase={onPhase} onDone={onDone} onLost={onLost} />)}
         <div className="transcript" ref={transcript} onScroll={scroll.onScroll} data-start={starting ? '' : undefined} role="log" aria-label="Messages" aria-live="off" tabIndex={0}>
           <div className="reading-column">
+            <AiNoticeLine />
             {history.isPending && <Loading label="Loading the conversation" />}
             {history.isError && <ErrorNotice error={history.error} />}
             {hasEarlier && <button type="button" className="text-button load-earlier" onClick={loadEarlier}>Show earlier messages</button>}
@@ -306,12 +308,11 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
 function ConversationTop({ companion, go, onJump, timeline, stage, photoId }: { companion: Companion; go: (view: View) => void; onJump: (result: SearchResult) => Promise<boolean>; timeline: string | null; stage: boolean; photoId: string | null }) {
   const [open, setOpen] = useState<'search' | 'timelines' | null>(null)
   const searchButton = useReturnFocus<HTMLButtonElement>(open === 'search')
-  const timelinesButton = useReturnFocus<HTMLButtonElement>(open === 'timelines')
   const pick = async (result: SearchResult) => { if (await onJump(result)) setOpen(null) }
   const toggle = (panel: 'search' | 'timelines') => setOpen((current) => current === panel ? null : panel)
   return <>
     <ConversationHeader companion={companion} searching={open === 'search'} searchButton={searchButton} onSearch={() => toggle('search')}
-      timeline={timeline} browsing={open === 'timelines'} timelinesButton={timelinesButton} onTimelines={() => toggle('timelines')} onGroups={() => openNewGroup([companion.id])} onBack={() => go('chats')} />
+      timeline={timeline} onTimelines={() => toggle('timelines')} onGroups={() => openNewGroup([companion.id])} onBack={() => go('chats')} />
     {open === 'search' && <ConversationSearch name={companion.version.name} onPick={(result) => void pick(result)} onClose={() => setOpen(null)} />}
     {open === 'timelines' && <TimelinePanel name={companion.version.name} onClose={() => setOpen(null)} />}
     {stage && <NovelStage name={companion.version.name} photoId={photoId} />}

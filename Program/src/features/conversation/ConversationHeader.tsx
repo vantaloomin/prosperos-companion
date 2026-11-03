@@ -1,59 +1,92 @@
-import { useRef, useState, type RefObject } from 'react'
+import type { RefObject } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Ellipsis, GitBranch, Lightbulb, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
+import { ChevronLeft, GitBranch, Lightbulb, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
 import { api } from '../../api'
-import type { ChatStyle, Companion } from '../../types'
-import { CHAT_STYLES } from './chatStyles'
-import { useChatStyle } from './useChatStyle'
+import type { Companion } from '../../types'
+import type { MenuEntry, MenuItem } from '../../components/Menu'
+import { usePhone } from '../../components/usePhone'
 import { usePortrait } from './portrait'
 import { useLocalTime } from './clock'
 import { StatusText } from '../status/StatusLine'
 import { ListButton } from '../chats/ListButton'
-import { useFitOnScreen } from '../../components/fitOnScreen'
 import { useSidecarOpen, useSidecarWaiting } from '../sidecar/store'
 import { toggleSidecar } from '../sidecar/toggle'
-import { ExportLinks } from '../chats/ExportLinks'
 import { useEraWords, useMagicCalls } from '../world/useEraWords'
 import { say } from '../world/eraWords'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, canCall, type WhereState } from './whereText'
-import { MIX, useModelSwitch } from '../settings/models/useModelSwitch'
-import { useWorlds } from '../worlds/useWorlds'
+import { ChatMenu } from './ChatMenu'
 
-type Props = { companion: Companion; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; browsing: boolean; timelinesButton: RefObject<HTMLButtonElement | null>; onTimelines: () => void; onGroups?: () => void; onBack?: () => void }
+type Props = { companion: Companion; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; onTimelines: () => void; onGroups?: () => void; onBack?: () => void }
 
-export function ConversationHeader({ companion, searching, searchButton, onSearch, timeline, browsing, timelinesButton, onTimelines, onGroups, onBack }: Props) {
-  const { name, timezone, location } = { ...companion.version.definition, name: companion.version.name }
-  const time = useLocalTime(timezone)
+/**
+ * The chat's header (style guide: Chat header): the panel button, their picture and name, one status line, then at
+ * most four buttons: Call, Search, Sidecar and ⋯. Timelines, Start a group, Export and the chat style live under ⋯,
+ * and on a phone Call and Search move there too.
+ */
+export function ConversationHeader({ companion, searching, searchButton, onSearch, timeline, onTimelines, onGroups, onBack }: Props) {
+  const name = companion.version.name
   const portrait = usePortrait()
+  const phone = usePhone()
+  const call = useCall(name)
+  const items: MenuEntry[] = [
+    ...(phone ? phoneItems(call, onSearch) : []),
+    { label: 'Timelines', icon: GitBranch, onSelect: onTimelines },
+    ...(onGroups ? [{ label: `Start a group with ${name}`, icon: UsersRound, onSelect: onGroups }] : []),
+  ]
   return (
     <header className="conversation-header">
-      {/* On a phone the way back to the Chats list, as every messaging app has; the side list or Chats button does it on a wide screen. */}
+      {/* On a phone the way back to the Chats list, as every messaging app has; the side list does it on a wide screen. */}
       {onBack && <button type="button" className="icon-button chat-back phone-only" aria-label="Chats" onClick={onBack}><ChevronLeft aria-hidden="true" /></button>}
       <ListButton />
       {portrait ? <img className="portrait" src={portrait} alt="" aria-hidden="true" /> : <div className="portrait" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>}
       <div className="conversation-title">
         <h1>{name}</h1>
-        <p className="conversation-status"><StatusText name={name} status={companion.status} /></p>
-        <p className="subtle desktop-only">{[timeline, time && `${time} for ${name}`, location].filter(Boolean).join(' · ')}</p>
-        {/* A phone has room for one line: their time and the neighbourhood. */}
-        <p className="subtle phone-only">{[timeline, time, location?.split(',')[0]].filter(Boolean).join(' · ')}</p>
+        <StatusLine companion={companion} timeline={timeline} phone={phone} />
       </div>
-      <ChatStyleSwitch />
-      <span className="header-break phone-only" aria-hidden="true" />
-      <CallButton name={name} />
-      {onGroups && <button type="button" className="icon-button" aria-label={`Start a group with ${name}`} title={`Start a group with ${name}`} onClick={onGroups}><UsersRound aria-hidden="true" /></button>}
-      <button ref={timelinesButton} type="button" className="icon-button" aria-label="Timelines" aria-expanded={browsing} onClick={onTimelines}><GitBranch aria-hidden="true" /></button>
-      <button ref={searchButton} type="button" className="icon-button" aria-label="Search messages" aria-expanded={searching} onClick={onSearch}><Search aria-hidden="true" /></button>
+      {!phone && <WideButtons call={call} searching={searching} searchButton={searchButton} onSearch={onSearch} />}
       <SidecarButton />
-      <ChatMenu threadId={companion.active_timeline_id} />
+      <ChatMenu threadId={companion.active_timeline_id} items={items} />
     </header>
   )
 }
 
+/** On a phone, Call and Search wait under ⋯ so the name keeps its room. */
+function phoneItems(call: MenuItem | null, onSearch: () => void): MenuItem[] {
+  return [...(call ? [call] : []), { label: 'Search messages', icon: Search, onSelect: onSearch }]
+}
+
+function WideButtons({ call, searching, searchButton, onSearch }: { call: MenuItem | null; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void }) {
+  const CallIcon = call?.icon ?? Phone
+  return <>
+    {call && <button type="button" className="icon-button" aria-label={call.label} title={call.label} onClick={call.onSelect}><CallIcon aria-hidden="true" /></button>}
+    <button ref={searchButton} type="button" className="icon-button" aria-label="Search messages" title="Search messages" aria-expanded={searching} onClick={onSearch}><Search aria-hidden="true" /></button>
+  </>
+}
+
+/**
+ * One line under the name: what they're up to, their time and the neighbourhood ("just vibing · 2:22 PM their time ·
+ * Fells Point"). A phone keeps only the status and the time ("just vibing · 9:51 PM"), and the status gives way first so
+ * the time always shows. A side timeline leads, so it is never mistaken for the main one.
+ */
+function StatusLine({ companion, timeline, phone }: { companion: Companion; timeline: string | null; phone: boolean }) {
+  const { timezone, location } = companion.version.definition
+  const time = useLocalTime(timezone, phone)
+  const when = phone ? time : time && `${time} their time`
+  const place = phone ? null : location?.split(',')[0]
+  const rest = [timeline, when, place].filter(Boolean).join(' · ')
+  return (
+    <p className="conversation-status">
+      <StatusText name={companion.version.name} status={companion.status} />
+      {rest && companion.status?.text && <span className="meta-sep" aria-hidden="true">·</span>}
+      {rest && <span className="conversation-meta">{rest}</span>}
+    </p>
+  )
+}
+
 /** Call them (companion/life/calls.py): they pick up when they are free, and the strip above the composer shows the
- * call. Hidden while you are together or a call is on or ringing. */
-function CallButton({ name }: { name: string }) {
+ * call. Nothing while you are together or a call is on or ringing. */
+function useCall(name: string): MenuItem | null {
   const client = useQueryClient()
   const where = useWhere().data
   const label = say(useEraWords(), 'call_to', name)
@@ -65,60 +98,17 @@ function CallButton({ name }: { name: string }) {
     void client.invalidateQueries({ queryKey: WHERE_KEY })
     void client.invalidateQueries({ queryKey: ['chats'] })
   }
-  return <button type="button" className="icon-button" aria-label={label} title={label} onClick={() => void call()}>{magic ? <Sparkles aria-hidden="true" /> : <Phone aria-hidden="true" />}</button>
+  return { label, icon: magic ? Sparkles : Phone, onSelect: () => void call() }
 }
 
-/** On a phone the sidecar has no rail button, so it opens from here as a sheet. The side rail keeps its own. */
+/** The sidecar opens beside the chat, on a wide screen as on a phone (it left the side rail in 1.3). */
 function SidecarButton() {
   const open = useSidecarOpen()
   const waiting = useSidecarWaiting()
+  const label = waiting ? 'Sidecar, something waiting' : 'Sidecar'
   return (
-    <button type="button" className="icon-button sidecar-button phone-only" aria-label={waiting ? 'Sidecar, something waiting' : 'Sidecar'} aria-pressed={open} onClick={() => toggleSidecar(open)}>
+    <button type="button" className="icon-button sidecar-button" aria-label={label} title="Sidecar" aria-pressed={open} onClick={() => toggleSidecar(open)}>
       <Lightbulb aria-hidden="true" />{waiting && <span className="nav-dot" aria-hidden="true" />}
     </button>
-  )
-}
-
-/** The quick switch; Settings has the same choice with a description of each style and the sounds option. On a phone
- * it moves behind the header's "More" button (ChatMenu), so the header holds no form controls. */
-export function ChatStyleSwitch({ phone = false }: { phone?: boolean }) {
-  const chat = useChatStyle()
-  return (
-    <select className={`chat-style-switch${phone ? '' : ' desktop-only'}`} aria-label="Chat style" value={chat.style} onChange={(event) => void chat.save({ chat_style: event.target.value as ChatStyle })}>
-      {CHAT_STYLES.map((style) => <option key={style.id} value={style.id}>{style.label}</option>)}
-    </select>
-  )
-}
-
-/** Which model answers in chat, once there is more than one to pick: a model that fails or a style you want for a
- * while is one choice away, and the one you leave keeps its settings for later. */
-function ModelSwitch() {
-  const models = useModelSwitch()
-  const world = useWorlds().data?.world.name
-  if (models.profiles.length < 2) return null
-  return <label>Model
-    <select className="chat-style-switch" value={models.current} onChange={(event) => void models.choose(event.target.value).catch(() => undefined)}>
-      {models.canMix && <option value={MIX}>Mix ({models.mixCount} models)</option>}
-      {models.profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
-    </select>
-    <small className="subtle">{models.ownWorld && world ? `Answers in every chat in ${world}.` : 'Answers in every chat.'}</small>
-  </label>
-}
-
-/** The overflow ("More") at the end of the header's icon row: the model that answers, exporting the chat on screen,
- * and on a phone the chat style. */
-export function ChatMenu({ threadId }: { threadId: string }) {
-  const [open, setOpen] = useState(false)
-  const panel = useRef<HTMLDivElement>(null)
-  useFitOnScreen(panel, open)
-  return (
-    <span className="header-menu" onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false) }}>
-      <button type="button" className="icon-button" aria-label="More" aria-expanded={open} onClick={() => setOpen(!open)}><Ellipsis aria-hidden="true" /></button>
-      {open && <div ref={panel} className="header-menu-panel">
-        <ModelSwitch />
-        <label className="style-in-menu">Chat style<ChatStyleSwitch phone /></label>
-        <ExportLinks target={{ kind: 'chat', threadId }} onPick={() => setOpen(false)} />
-      </div>}
-    </span>
   )
 }
