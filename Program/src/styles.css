@@ -3359,3 +3359,12 @@ p.breakup-line { align-items: center; }
 .where-strip .text-button.back-to { flex: 0 1 auto; }
 .back-to-label { display: inline-flex; min-width: 0; white-space: nowrap; }
 .back-to-place { margin-left: 0.3em; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* A number box with its money inside it: a symbol before ($, £) or a name after (shillings, gold). Pay field. */
+.affix-input { position: relative; display: flex; align-items: center; }
+.affix-input input { width: 100%; }
+.affix-input .affix { position: absolute; color: var(--muted); pointer-events: none; }
+.affix-input.has-prefix .affix { left: 12px; }
+.affix-input.has-prefix input { padding-left: 28px; }
+.affix-input.has-suffix .affix { right: 12px; }
+.affix-input.has-suffix input { padding-right: 8.5em; }
