@@ -71,7 +71,7 @@ Releases come often, usually a few a week, and each one is a full release with a
 ### How it compares
 
 <p align="center">
-  <img src="Program/docs/images/compare.svg" alt="How Prospero's Companion compares with SillyTavern, Character.AI, Replika, Kindroid and Nomi as of November 2026. Only Prospero's Companion has a life that goes on without you. It and SillyTavern run on your own computer, take any model including local ones, and are free and open source. It texts you first, has group chats and pictures. It has voice notes rather than calls, runs in the phone's browser rather than an app, needs a little setup (Set it up for me helps), and has no video calls, 3D avatar or extensions." width="880">
+  <img src="Program/docs/images/compare.svg" alt="How Prospero's Companion compares with SillyTavern, Marinara Engine, Front Porch AI, Replika, Kindroid and Nomi as of November 2026. Only Prospero's Companion has a whole life that goes on without you; Marinara Engine has schedules and Front Porch AI has needs. The Companion, SillyTavern, Marinara Engine and Front Porch AI run on your own computer, take any model including local ones, and are free and open source. The Companion texts you first and has group chats and pictures. It has voice notes rather than calls, runs in the phone's browser rather than an app, needs a little setup (Set it up for me helps), and has no video calls, 3D avatar or extensions." width="880">
 </p>
 
 ### On your phone
