@@ -1563,10 +1563,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .chat-retro .message .speaker { margin-right: 6px; }
   .chat-retro .message > .prose, .chat-retro .message > .prose > p:first-child { display: inline; }
   .chat-retro .message > header > :is(.message-actions, .reply-tools) { float: right; margin-left: 8px; }
-  /* A reply with versions: its tools and pager take a line of their own under the text, so they never squeeze it (Iris). */
-  .chat-retro .message:has(.pager) { display: flex; flex-wrap: wrap; align-items: baseline; }
-  .chat-retro .message:has(.pager) > :not(header) { flex: 1 0 100%; }
-  .chat-retro .message:has(.pager) > header > .reply-tools { float: none; order: 1; flex: 1 0 100%; display: flex; margin: 2px 0 0; }
+  /* A reply with versions: its tools and pager take a line of their own under the text, so they never squeeze it,
+     and the text still starts on the stamp and name line like every other message (Iris). */
+  .chat-retro .message:has(.pager) { position: relative; padding-bottom: var(--retro-pager-row, 30px); }
+  .chat-retro .message:has(.pager) > header > .reply-tools { float: none; position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; margin: 0; }
 }
 /* Your message tools keep their row while hidden, so showing them on hover or focus moves nothing. */
 .chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }

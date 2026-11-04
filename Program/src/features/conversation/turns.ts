@@ -101,6 +101,12 @@ export function followUpAfter(turns: Turn[]): Message | undefined {
   return last && !last.user ? [...last.leads].reverse().find((lead) => !!lead.held_line) : undefined
 }
 
+/** A message the companion sent by themselves that can have other versions: the full reply after a holding text,
+ * or one they sent first (companion/life/openers.py) that is not a photo or a voice note, which keep their words. */
+export function rerollable(lead: Message): boolean {
+  return !!lead.held_line || (!!lead.first_text && !lead.photo && !lead.voice)
+}
+
 /** Every version of a lead, first one first: the lead alone unless Another reply was asked for on it. */
 export function leadVersions(turn: Turn, lead: Message): Message[] {
   return [lead, ...(turn.versions[lead.id] ?? [])]
@@ -117,12 +123,12 @@ export function mergeMessages(current: Message[], incoming: (Message | null | un
   return [...byId.values()].sort((a, b) => a.seq - b.seq)
 }
 
-/** Which reply a version is a version of (companion/reply_versions.py): the message it answers, or for the full reply
- * after a holding text, its first version. Null for a message with no other versions. */
+/** Which reply a version is a version of (companion/reply_versions.py): the message it answers, or for a message
+ * the companion sent by themselves (the full reply after a holding text, or one they sent first), its first version.
+ * Null for a message of the user's. */
 function versionGroup(message: Message): string | null {
   if (message.reply_to) return `reply:${message.reply_to}`
-  const first = message.version_of ?? (message.held_line && message.role === 'companion' ? message.id : null)
-  return first && `version:${first}`
+  return message.role === 'companion' ? `version:${message.version_of ?? message.id}` : null
 }
 
 /** A reply that finished as active replaces any earlier active version of it. */

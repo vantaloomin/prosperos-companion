@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { applyChosen, applyFinished, defaultAttempt, defaultVersion, followUpAfter, groupTurns, leadVersions } from '../../src/features/conversation/turns.ts'
+import { applyChosen, applyFinished, defaultAttempt, defaultVersion, followUpAfter, groupTurns, leadVersions, rerollable } from '../../src/features/conversation/turns.ts'
 import type { Message } from '../../src/types.ts'
 
 function message(id: string, seq: number, extra: Partial<Message> = {}): Message {
@@ -46,4 +46,20 @@ test('a finished version of the full reply leaves the holding text and other mes
 
 test('no follow-up when the newest turn is the user message', () => {
   assert.equal(followUpAfter(groupTurns([message('u1', 1), reply('a', 2, 'u1')])), undefined)
+})
+
+test('a message they sent first after your chat pages through its versions and keeps the reply above it', () => {
+  const first = (id: string, seq: number, extra: Partial<Message> = {}) => message(id, seq, { role: 'companion', first_text: true, ...extra })
+  const messages = [message('u1', 1), reply('a', 2, 'u1'), first('hey', 3), message('v2', 4, { role: 'companion', version_of: 'hey', status: 'streaming', active: false })]
+  const done = applyFinished(messages, message('v2', 4, { role: 'companion', version_of: 'hey' }))
+  assert.deepEqual(done.map((item) => [item.id, item.active]), [['u1', true], ['a', true], ['hey', false], ['v2', true]])
+  const last = groupTurns(done).at(-1)!
+  assert.deepEqual(leadVersions(last, last.leads[0]).map((version) => version.id), ['hey', 'v2'])
+  assert.equal(rerollable(last.leads[0]), true)
+})
+
+test('only the full reply after a holding text and a plain first text can have versions', () => {
+  assert.equal(rerollable(later('full', 1)), true)
+  assert.equal(rerollable(message('hey', 1, { role: 'companion', first_text: true, voice: { url: 'x' } as Message['voice'] })), false)
+  assert.equal(rerollable(message('visit', 1, { role: 'companion' })), false)
 })
