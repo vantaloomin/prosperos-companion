@@ -144,8 +144,10 @@ def ship_goals() -> list[list[str]]:
 def goals(found: 'Profile') -> list[str]:
     """The savings goals to seed one from: the era's for their pay tier, or a ship's aboard one."""
     bank = ship_goals() if ships.enclosed(found.city) else GOALS[found.era]
-    options = list(bank[min(found.tier, len(bank) - 1)])
-    return owning.owner_goals(options, found.era, found.seed) if found.tenure != 'rent' else options
+    options = bank[min(found.tier, len(bank) - 1)]
+    # Only an owner swaps house-hunting goals; a ship or station has cabins to rent (and callers may pass a bare era).
+    owner = getattr(found, 'tenure', 'rent') != 'rent' and not ships.enclosed(found.city)
+    return owning.owner_goals(list(options), found.era, found.seed) if owner else options
 
 
 def surprises(found: 'Profile') -> list[str]:
