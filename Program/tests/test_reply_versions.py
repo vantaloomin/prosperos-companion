@@ -2,7 +2,7 @@
 from datetime import timedelta
 
 import pytest
-from conftest import send
+from conftest import send, set_life
 
 from companion.clock import parse
 from companion.life import pacing
@@ -113,3 +113,61 @@ def test_only_a_full_reply_after_a_holding_text_has_versions_of_its_own(client, 
 
 def parse_wait(message, clock):
     return parse(message['held_until']) - clock.now()
+
+
+def first_text(client, provider, *, after_a_chat=True):
+    """The companion follows up on a plan by themselves once its day has passed (companion/life/openers.py)."""
+    set_life(client, texts_first=True)
+    if after_a_chat:
+        says(provider, 'Good luck on Sunday!')
+        send(client, 'Wish me luck for the interview', 'client-0001')
+    response = client.post('/api/memories', json={
+        'layer': 'plan', 'subject': 'Job interview', 'value': 'Interview at the bank on Sunday',
+        'plan_status': 'agreed', 'applies_from': '2026-10-04T09:00:00+00:00',
+        'applies_until': '2026-10-05T00:00:00+00:00'})
+    assert response.status_code == 200, response.text
+    return response
+
+
+def test_a_message_they_sent_first_has_versions(client, connected, provider, clock):
+    first_text(client, provider)
+    clock.advance(timedelta(hours=5))
+    says(provider, 'So?? How did the bank interview go?', 'Hey you. Did the bank call back yet?')
+    sent = client.post('/api/life/texts/check').json()
+    assert sent['state'] == 'sent', sent
+    message = sent['message']
+    assert messages(client)[message['id']]['first_text'] is True
+    version = again(client, message['id'])['reply']
+    assert version['text'] == 'Hey you. Did the bank call back yet?' and version['status'] == 'complete'
+    assert version['version_of'] == message['id'] and version['reply_to'] is None and version['active']
+    # Written from the same reason, from the chat as it was before their first version.
+    asked = provider.requests[-1]['messages']
+    assert 'Job interview' in asked[-1]['content'] and 'So?? How did' not in str(asked)
+    assert 'Good luck on Sunday!' in str(asked)
+    shown = messages(client)
+    assert shown[message['id']]['active'] is False
+    # Paging back keeps the first one, and a third version is another version of the same message.
+    assert client.post(f"/api/conversation/replies/{message['id']}/choose").status_code == 200
+    shown = messages(client)
+    assert shown[message['id']]['active'] is True and shown[version['id']]['active'] is False
+    says(provider, 'Third go: how did it go?')
+    third = again(client, version['id'])['reply']
+    assert third['version_of'] == message['id']
+    # Once the user answers, it is history.
+    says(provider, 'Congrats!')
+    send(client, 'I got it!', 'client-0002')
+    assert client.post(f"/api/conversation/messages/{message['id']}/alternatives").status_code == 409
+
+
+def test_a_first_text_in_a_new_chat_has_versions(client, connected, provider):
+    first_text(client, provider, after_a_chat=False)
+    says(provider, 'So, the interview?', 'How did Sunday go?')
+    message = client.post('/api/life/texts/check').json()['message']
+    version = again(client, message['id'])['reply']
+    assert version['text'] == 'How did Sunday go?' and version['version_of'] == message['id']
+
+
+def test_other_messages_they_sent_by_themselves_have_no_versions(client, connected, provider):
+    says(provider, 'Hi there.')
+    reply = send(client, 'Hi', 'client-0001')['reply']
+    assert messages(client)[reply['id']]['first_text'] is False

@@ -60,6 +60,22 @@ def test_dates_ages_and_milestones_by_the_calendar():
     assert [ages.ordinal(n) for n in (21, 22, 23, 40, 111, 112)] == ['21st', '22nd', '23rd', '40th', '111th', '112th']
 
 
+def test_their_prompt_always_says_their_birthday(client, clock):
+    # Tester, v1.3.0: Sett's form said 01-14 and he said "end of March" on every reroll; the prompt only named the
+    # day in the week before it.
+    make(client, birthday='01-14')
+    link(client)
+    reconcile(client)
+    system = client.get('/api/context/preview').json()['system']
+    assert system.count('Your birthday is 14 January.') == 1 and 'You are 34' not in system
+    revise(client, birthday='')  # Left empty, the seeded day they celebrate (Today and the occasions read it too).
+    reconcile(client)
+    companion = client.get('/api/companion').json()['companion']
+    seeded = ages.own_birthday(companion['id'], companion['version']['definition'])  # As occasions.own_birthday.
+    told = date(2001, *map(int, seeded.split('-')))
+    assert f"Your birthday is {told.day} {told:%B}." in client.get('/api/context/preview').json()['system']
+
+
 def test_a_companion_gets_older_on_their_birthday_and_their_prompt_says_so(client, clock):
     birthday = (clock.now() + timedelta(days=2)).strftime('%m-%d')
     make(client, birthday=birthday)

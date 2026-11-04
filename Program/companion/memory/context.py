@@ -444,9 +444,8 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
-    if version.get('companion_id') and (sheet := looks.text(grooming.sheet(connection, version['companion_id'],
-                                                                          definition, day))):
-        lines += [f'Looks: {sheet}', *age_lines(connection, version['companion_id'], definition, day)]
+    if version.get('companion_id'):
+        lines += looks_lines(connection, version['companion_id'], definition, day)
     if definition.get('history_together'):
         lines.append(f"How you and the user know each other: {definition['history_together']}")
     lines += list_lines(definition)
@@ -462,14 +461,19 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
     return '\n'.join(lines)
 
 
+def looks_lines(connection, companion_id: str, definition: dict, day: str | None) -> list[str]:
+    """Their looks as on `day`, then their birthday and age (`age_lines`)."""
+    sheet = looks.text(grooming.sheet(connection, companion_id, definition, day))
+    return ([f'Looks: {sheet}'] if sheet else []) + age_lines(connection, companion_id, definition, day)
+
+
 def age_lines(connection, companion_id: str, definition: dict, day: str | None) -> list[str]:
-    """"You are 35 now; you turned 35 on 3 March." once a birthday has taken them past the age their words give
-    (companion/life/ages.py; A/B 2026-10-18: without it most models answered with the age written)."""
+    """"Your birthday is 14 January.", or "You are 35 now; you turned 35 on 3 March." once a birthday has taken them
+    past the age their words give (companion/life/ages.py age_line)."""
     if connection is None:
         return []
     looked_on = grooming.day_of(connection, grooming.timeline_of(connection, companion_id), day)
-    line = ages.age_line(connection, companion_id, definition, looked_on)
-    return [line] if line else []
+    return [ages.age_line(connection, companion_id, definition, looked_on)]
 
 
 def personality_text(connection, definition: dict, seed: str) -> str | None:
@@ -650,7 +654,7 @@ def memory_text(memory, now: str | None = None) -> str:
 
 def transcript(connection, timeline_id, blocked, until_seq=None) -> list[dict]:
     rows = many(connection, "SELECT * FROM messages WHERE timeline_id=? AND active=1 AND status='complete' "
-                "AND redacted_at IS NULL AND seq<=? ORDER BY seq", (timeline_id, until_seq or 2 ** 62))
+                "AND redacted_at IS NULL AND seq<=? ORDER BY seq", (timeline_id, 2 ** 62 if until_seq is None else until_seq))
     kept = pictures.described(connection, [row for row in rows if row['id'] not in blocked])
     # A reply to a deleted or excluded message usually repeats it, so it leaves context with it (M12).
     users = {row['id'] for row in kept if row['role'] == 'user'}

@@ -20,6 +20,7 @@ from companion import (
     moods,
     observer,
     pictures,
+    prompt_library,
     reply_versions,
     safety,
     self_checks,
@@ -38,6 +39,7 @@ from companion.life import (
     calls,
     moving_in,
     occasions,
+    openers,
     outings,
     own_family,
     own_plans,
@@ -143,8 +145,9 @@ def history(database, before_seq=None, limit=100) -> dict:
                     'ORDER BY seq DESC LIMIT ?',
                     (companion['active_timeline_id'], before_seq or 2 ** 62, limit))
         return {'timeline_id': companion['active_timeline_id'],
-                'messages': voice_notes.decorate(connection, pictures.decorate(connection, photos.decorate(
-                    connection, [message_view(row) for row in reversed(rows)])))}
+                'messages': reply_versions.mark_first_texts(connection, voice_notes.decorate(
+                    connection, pictures.decorate(connection, photos.decorate(
+                        connection, [message_view(row) for row in reversed(rows)]))))}
 
 
 SEARCH_LIMIT = 50
@@ -280,6 +283,10 @@ class Conversation:
         companion who has got busy since writes it now, never "can't talk yet" (companion/reply_versions.py)."""
         with self.database.connect() as connection:
             message = one(connection, 'SELECT * FROM messages WHERE id=?', (message_id,))
+            first = reply_versions.first_text(connection, message)
+        if first is not None:
+            return await self.first_text_again(first, wait, profile_id)
+        with self.database.connect() as connection:
             follow_up = self.follow_up(connection, message)
             user = message if follow_up is None else latest_user_message(connection, message['timeline_id'])
             require(user is not None and user['role'] == 'user', 'Only a reply to your message has other versions.', 409)
@@ -359,9 +366,75 @@ class Conversation:
         return {'message': self.user_view(user), 'reply': self.reply(prepared['note']), 'follow_up': reply,
                 'connection': 'ready', 'dropped': prepared['dropped']}
 
-    def start(self, prepared) -> LiveReply:
+    async def first_text_again(self, first: dict, wait: bool, profile_id: str | None) -> dict:
+        """Another version of a message the companion sent first, written from the same reason (`first`,
+        reply_versions.first_text) and from the chat as it was before it. Like Another reply it is never paced."""
+        root = first['message']
+        with self.database.connect(write=True) as connection:
+            config = profile_config(connection, profile_id, CHAT) if profile_id else reply_config(connection, CHAT)
+            if config is None:
+                return {'message': None, 'reply': None, 'connection': 'not_configured'}
+            companion = chat_owner(connection, root['timeline_id'])
+            attempt_id = identifier()
+            connection.execute(
+                'INSERT INTO messages (id, timeline_id, seq, role, text, reply_to, status, active, '
+                'character_version_id, memory_revision, created_at, version_of) '
+                "VALUES (?, ?, ?, 'companion', '', NULL, 'streaming', 0, ?, ?, ?, ?)",
+                (attempt_id, root['timeline_id'], next_seq(connection, root['timeline_id']),
+                 companion['active_version_id'], settings(connection)['memory_revision'], self.database.now(),
+                 root['id']))
+        prepared = {'attempt_id': attempt_id, 'config': config, 'root': root, 'reason': first['reason'],
+                    'definition': companion['version']['definition']}
+        live = self.start(prepared, self.write_first_text)
+        if wait:
+            try:
+                await asyncio.shield(live.task)
+            except asyncio.CancelledError:
+                if not live.task.done():
+                    raise
+        return {'message': None, 'reply': self.reply(attempt_id), 'connection': 'ready', 'dropped': []}
+
+    async def write_first_text(self, prepared, publish=lambda _text: None, step=lambda _phase: None):
+        text, status, error = [], 'complete', None
+        try:
+            key = key_for(self.vault, prepared['config'])
+            with self.scheduler.foreground_work():
+                step('preparing')
+                packet = await asyncio.to_thread(self.first_text_packet, prepared)
+                active = in_character.applies('', prepared['definition'])
+                status, error, _dropped, _query = await self.write(prepared, key, packet, text, publish, active, step)
+        except asyncio.CancelledError:
+            status, error = 'cancelled', 'Stopped.'
+        except DomainError as failure:
+            status, error = ('incomplete' if ''.join(text) else 'failed'), model_failure(prepared['config'], failure)
+        except Exception as failure:  # noqa: BLE001 - an unexpected failure must still leave a visible state.
+            LOG.exception('Another version of a first text failed unexpectedly.')
+            status = 'incomplete' if ''.join(text) else 'failed'
+            error = troubleshoot.describe("Couldn't finish", 'the message', failure, str(logs.file_path()))
+        written = ''.join(text).strip().strip('"').strip()
+        if status == 'complete' and not written:
+            status, error = 'failed', error or 'The model returned no text.'
+        self.finish(prepared['attempt_id'], written if status == 'complete' else ''.join(text), status, error)
+
+    def first_text_packet(self, prepared) -> dict:
+        """The chat up to just before their first version, and the reason they texted (companion/life/openers.py)."""
+        root = prepared['root']
+        with self.database.connect() as connection:
+            companion = chat_owner(connection, root['timeline_id'])
+            packet = context.build(connection, companion, self.database.clock.now(),
+                                   prepared['config']['context_tokens'] - prepared['config']['max_output_tokens'],
+                                   root['seq'] - 1)
+            ask = prompt_library.text(connection, 'first-texts', reason=prepared['reason'])
+            revision = settings(connection)['memory_revision']
+        with self.database.connect(write=True) as connection:
+            connection.execute('UPDATE messages SET memory_revision=?, character_version_id=?, receipt=? WHERE id=?',
+                               (revision, companion['active_version_id'], encode(packet['receipt']),
+                                prepared['attempt_id']))
+        return {**packet, 'messages': openers.asking(packet['messages'], ask)}
+
+    def start(self, prepared, work=None) -> LiveReply:
         attempt_id, live = prepared['attempt_id'], LiveReply()
-        live.task = asyncio.create_task(self.generate(prepared, live.publish, live.step))
+        live.task = asyncio.create_task((work or self.generate)(prepared, live.publish, live.step))
         self.running[attempt_id] = live
         live.task.add_done_callback(lambda _task: self.close(attempt_id))
         return live

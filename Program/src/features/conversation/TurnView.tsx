@@ -14,7 +14,7 @@ import { lastHeld, shownAt, waitsUntilLater } from './held'
 import { LinkNotes } from './LinkNotes'
 import { SentPictures } from './SentPictures'
 import { usePortrait } from './portrait'
-import { defaultVersion, leadVersions, shownAttempt, statusDetail, unfinished, type Turn } from './turns'
+import { defaultVersion, leadVersions, rerollable, shownAttempt, statusDetail, unfinished, type Turn } from './turns'
 import { pinnedIn, VoiceActions } from './voicePins'
 import { alternatives, MIX, useModelSwitch } from '../settings/models/useModelSwitch'
 
@@ -42,8 +42,9 @@ interface Props {
   bursts: boolean
   /** A message found by search: shown even when it is not the default attempt, and marked. */
   highlight?: string | null
-  /** On the newest turn when it holds only the companion's messages: the user message they answer, for Retry. */
-  followUpOf?: string
+  /** The newest turn, holding only the companion's messages: their last one takes Another reply when it can have
+   * versions (`rerollable` in turns.ts). */
+  newest?: boolean
   /** On the newest message of the user's: the full reply sent after the holding text, once there is one. Another reply
    * moves onto it when it shows. */
   followUp?: Message
@@ -59,7 +60,7 @@ function Actions({ text }: { text: string }) {
 }
 
 /** Memoized: while a reply streams, only the turn it belongs to re-renders, however long the transcript. */
-export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onChoose, onStop, onRemember, onDecline, onEdit, onBranch, onMoment, bursts, highlight, followUpOf, followUp }: Props) {
+export const TurnView = memo(function TurnView({ turn, name, live, isLatest, busy, onRetry, onChoose, onStop, onRemember, onDecline, onEdit, onBranch, onMoment, bursts, highlight, newest, followUp }: Props) {
   const [chosen, setChosen] = useState<string | null>(null)
   const [switched, setSwitched] = useState<string | null>(null)
   const shown = shownAttempt(turn, isLatest, chosen, highlight)
@@ -69,7 +70,7 @@ export const TurnView = memo(function TurnView({ turn, name, live, isLatest, bus
     <>
       {turn.leads.map((lead, at) => (
         <LeadView key={lead.id} versions={leadVersions(turn, lead)} name={name} live={live} highlight={highlight} tools={tools} bursts={bursts} onChoose={onChoose}
-          again={followUpOf && at === turn.leads.length - 1 && lead.held_line ? { onRetry, onSwitched: setSwitched } : undefined} />
+          again={newest && at === turn.leads.length - 1 && rerollable(lead) ? { onRetry, onSwitched: setSwitched } : undefined} />
       ))}
       <TurnUser turn={turn} name={name} highlight={highlight} onRemember={onRemember} onDecline={onDecline} onEdit={onEdit} onBranch={onBranch} onMoment={onMoment} />
       {turn.user?.crisis_help && <CrisisNote />}
@@ -129,7 +130,7 @@ function TryAnotherModel({ onRetry, onSwitched }: { onRetry: (profileId?: string
 type LeadTools = Pick<ReplyProps, 'onStop' | 'onRemember' | 'onEdit' | 'onBranch' | 'onMoment'>
 
 /** A message the companion sent without a message of the user's to answer: one they sent first, or the full reply
- * after a holding text. That one pages through its versions like a reply, and while it is the newest message it
+ * after a holding text. Either pages through its versions like a reply, and while it is the newest message it
  * takes Another reply, or Retry when it failed (`again`). */
 function LeadView({ versions, name, live, highlight, tools, bursts, onChoose, again }: { versions: Message[]; name: string; live: Record<string, string>; highlight?: string | null; tools: LeadTools; bursts: boolean; onChoose: (message: Message) => void; again?: { onRetry: (messageId: string, profileId?: string) => void; onSwitched: (name: string) => void } }) {
   const [chosen, setChosen] = useState<string | null>(null)

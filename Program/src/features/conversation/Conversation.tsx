@@ -21,7 +21,7 @@ import type { Phase } from './activity'
 import { TurnView } from './TurnView'
 import { EditDialog, ReplyEditDialog, TimelinePanel } from './Timelines'
 import { useCurrentTimeline } from './useTimelines'
-import { applyChosen, applyFinished, endsOlderHistory, followUpAfter, groupTurns, lastUserMessage, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey, latestUser } from './turns'
+import { applyChosen, applyFinished, endsOlderHistory, followUpAfter, groupTurns, liveFor, mergeMessages, replyAnnouncement, streamingIds, turnKey, latestUser } from './turns'
 import { useReplyStream } from './useReplyStream'
 import { loadBack } from './search'
 import { useDraft } from './useDraft'
@@ -248,7 +248,6 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const starting = noTurnsYet(history.isSuccess, turns.length)
   const following = streamingIds(messages)
   const latestUserId = latestUser(turns)
-  const lastUserId = lastUserMessage(messages)
   const followUp = followUpAfter(turns)
   // A held reply written in the background stays out of sight: no Stop, and the user can keep writing (pacing.take_over).
   const writing = messages.filter((message) => following.includes(message.id) && !waitsUntilLater(message, appNow())).map((message) => message.id)
@@ -276,7 +275,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
             {turns.map((turn, index) => (
               <Fragment key={turnKey(turn)}>
                 <LookNotes notes={notesBefore(look.changes, turns, index)} />
-                <TurnView turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onChoose={turnActions.choose} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts && !together} highlight={found?.id} followUpOf={!turn.user && turn === turns.at(-1) ? lastUserId : undefined} followUp={turnKey(turn) === latestUserId ? followUp : undefined} />
+                <TurnView turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onChoose={turnActions.choose} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts && !together} highlight={found?.id} newest={!turn.user && turn === turns.at(-1)} followUp={turnKey(turn) === latestUserId ? followUp : undefined} />
                 {endsOlderHistory(turns, index) && <p className="history-end subtle">Older history from an old chat ends here</p>}
               </Fragment>
             ))}

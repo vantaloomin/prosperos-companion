@@ -23,7 +23,7 @@ from companion.clock import stamp, zone
 from companion.database import decode, many, optional
 from companion.life import circle, deck, money, pronouns, storylines
 from companion.memory import closeness, pairs
-from companion.world import catalog
+from companion.world import catalog, era_words, newcomers
 
 # Off in tests unless a test turns it on: a seeded dream would add context lines and first messages.
 ACTIVE = True
@@ -39,6 +39,18 @@ SLEEP_TALK = 6  # One dream night in this many, when someone lives with them.
 @cache
 def data() -> dict:
     return json.loads((catalog.DATA / 'dreams.json').read_text(encoding='utf-8'))
+
+
+def era(connection, companion) -> str:
+    """The era group of the companion's city (era_words.group): its dreams draw on that group's odd touches and
+    things, so a dream in Camelot has no airport in it. Not the Appearance switch: that only renames screen words."""
+    return era_words.group(newcomers.city_for(connection, companion['version']['definition']))
+
+
+def bank(name: str, group: str) -> list[str]:
+    """One era group's odd touches or things, today's for a group the file has no bank for."""
+    found = data()[name]
+    return found.get(group) or found['modern']
 
 
 def first_name(name: str) -> str:
@@ -119,12 +131,13 @@ def mood_line(connection, companion, day: date, chooser: random.Random) -> str:
 
 # Weaving a dream ---------------------------------------------------------------------------------------------
 
-def fitting(found: dict, used: set[str] = frozenset()) -> list[dict]:
-    """The templates the day's fragments can fill, but for ones dreamed lately; the user counts as a second person
-    only."""
+def fitting(found: dict, used: set[str] = frozenset(), group: str = 'modern') -> list[dict]:
+    """The templates the day's fragments can fill in this era group, but for ones dreamed lately; the user counts as
+    a second person only."""
     people = len(found['people'])
     return [item for item in data()['templates']
-            if item['id'] not in used and (not item['place'] or found['places']) and
+            if item['id'] not in used and group in item.get('groups', [group]) and
+            (not item['place'] or found['places']) and
             (people >= item['people'] or (item['people'] == 2 and people == 1 and found['user']))]
 
 
@@ -135,12 +148,12 @@ def recent_templates(connection, timeline_id: str, day: date) -> set[str]:
                                             (timeline_id, since, day.isoformat()))}
 
 
-def fill(template: dict, found: dict, first: str, chooser: random.Random) -> dict:
-    """{text, told, share} for a template and the day's fragments."""
+def fill(template: dict, found: dict, first: str, chooser: random.Random, group: str = 'modern') -> dict:
+    """{text, told, share} for a template and the day's fragments, with odd touches and things of the era group."""
     people = chooser.sample(found['people'], min(len(found['people']), template['people']))
     second = people[1] if len(people) > 1 else None
     values = {'first': first, 'a': people[0] if people else '', 'place': chooser.choice(found['places'] or ['']),
-              'odd': chooser.choice(data()['odd']), 'object': chooser.choice(data()['object'])}
+              'odd': chooser.choice(bank('odd', group)), 'object': chooser.choice(bank('object', group))}
     result = {}
     for field, user in (('text', 'you'), ('told', 'the user'), ('share', 'you')):
         result[field] = template[field].format(**values, b=second or user)
@@ -155,12 +168,13 @@ def weave(connection, companion, day: date, now) -> dict | None:
             data()['per_week']:
         return None
     found = fragments(connection, companion, day, now)
-    templates = fitting(found, recent_templates(connection, timeline_id, day))
+    group = era(connection, companion)
+    templates = fitting(found, recent_templates(connection, timeline_id, day), group)
     if not templates:
         return None
     first = first_name(companion['version']['definition']['name'])
     template = chooser.choice(templates)
-    dream = fill(template, found, first, chooser) | {'template': template['id']}
+    dream = fill(template, found, first, chooser, group) | {'template': template['id']}
     if tail := mood_line(connection, companion, day, chooser):
         dream['text'] += ' ' + tail.format(first=first)
     if deck.kept_quiet(connection, companion, dream['told']):
@@ -229,13 +243,13 @@ def talker(connection, row, companion) -> str | None:
         return None
     line = random.Random(f"sleep:{row['timeline_id']}:{row['night']}").choice(data()['sleep_talk'])
     return line.format(who=first_name(found['name']), first=first_name(companion['version']['definition']['name']),
-                       object=random.Random(row['night']).choice(data()['object']))
+                       object=random.Random(row['night']).choice(bank('object', era(connection, companion))))
 
 
 # Phrases about the dreamer, said with their own pronouns when those are known (companion/life/pronouns.py).
 DREAMER = (('dreamed they were', 'dreamed {they} {were}'), ('dreamed they ', 'dreamed {they} '),
            ('as long as they held', 'as long as {they} held'), ('handed them a map', 'handed {them} a map'),
-           ('teaching them a recipe', 'teaching {them} a recipe'), ('checking their wallet', 'checking {their} wallet'),
+           ('teaching them a recipe', 'teaching {them} a recipe'), ('counting their money', 'counting {their} money'),
            ('in their sleep', 'in {their} sleep'))
 
 
