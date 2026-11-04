@@ -181,7 +181,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 ## Documentation
 
 - [Models](Program/docs/models.md)
-- [Memory](Program/docs/memory.md): what they remember, how a reply finds it, and what you control ([one-page picture](Program/docs/images/memory.svg))
+- [Memory](Program/docs/memory.md): what they remember, how a reply finds it, and what you control (one-page pictures: [for players](Program/docs/images/memory.svg), [for developers](Program/docs/images/memory-technical.svg))
 - [Character drafting](Program/docs/character-drafting.md)
 - [Image generation](Program/docs/images.md)
 - [World data and building cities](Program/docs/world-data.md)
