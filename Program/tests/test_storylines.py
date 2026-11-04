@@ -125,6 +125,11 @@ def test_ending_one_takes_it_out_of_today_and_the_context(client, social, monkey
     assert item['beats'][0]['text'] not in client.get('/api/context/preview').json()['prompt']
 
 
+def test_unwanted_advances_at_work_is_soap_opera_only():
+    assert storylines.find_story('work_creep').level == 3 and not storylines.find_story('work_creep').own
+    assert storylines.find_story('credit_taker').level == 1
+
+
 def test_ending_one_takes_its_thought_and_news_with_it(client, social, clock, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
     monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('credit_taker'),))
