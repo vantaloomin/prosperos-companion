@@ -174,20 +174,25 @@ def sync_companion(connection, companion: dict, now) -> None:
         keep(connection, 'companion', companion['id'], row['held_age'], birthday, today, now, written=age)
 
 
-def age_line(connection, companion_id: str, definition: dict, day: date | None) -> str | None:
-    """"You are 35 now; you turned 35 on 3 March.", for their own prompt once a birthday has taken them past the age
-    their words give, so the model doesn't answer with the age written (A/B: /mnt/project-files/companion-ages-ab).
-    None until then."""
+def age_line(connection, companion_id: str, definition: dict, day: date | None) -> str:
+    """Their birthday and, once a birthday has taken them past the age their words give, how old that made them, for
+    their own prompt: "Your birthday is 14 January." or "You are 35 now; you turned 35 on 3 March." Without the
+    birthday most models invented one when asked (tester, v1.3.0: "end of March" for a 14 January birthday; A/B:
+    /mnt/project-files/companion-birthday-ab). Without the age, they answered with the age written (A/B:
+    /mnt/project-files/companion-ages-ab)."""
+    birthday = own_birthday(companion_id, definition)
+    month, number = map(int, birthday.split('-'))
+    told = f"Your birthday is {number} {date(2001, month, 1):%B}."
     age, written = companion_age(connection, companion_id, definition, day), written_age(companion_id, definition)
     if age is None or day is None:
-        return None
+        return told
     # A long-lived kind (companion/world/lifespans.py) also hears their age in human terms (A/B:
     # /mnt/project-files/companion-lifespan-ab), always, so the model plays an elf of 312 as someone in mid-life.
     span = companion_lifespan(connection, definition)
     life = lifespans.life_age(age, span) if span not in (None, lifespans.HUMAN_LIFESPAN) else None
     if age == written:
-        return f'You are {age}, about {life} in human terms.' if life is not None else None
-    birthday, row = own_birthday(companion_id, definition), stored(connection, 'companion', companion_id)
+        return f'You are {age}, about {life} in human terms. {told}' if life is not None else told
+    row = stored(connection, 'companion', companion_id)
     # Held at an age, the birthday that made them that age; otherwise their latest one.
     turned = birthday_in(date.fromisoformat(row['born_on']).year + age, birthday) \
         if row['held_age'] else last_birthday(birthday, day)
