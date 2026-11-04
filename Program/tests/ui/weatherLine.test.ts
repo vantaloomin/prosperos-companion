@@ -6,7 +6,8 @@ test("the Now card names today's sky, how long a spell has held, and tomorrow", 
   const day = { date: '2026-01-14', body: null,
     weather: { sky: 'rain' as const, days: 3, high_f: 48, low_f: 37, rain: true },
     tomorrow: { sky: 'storm' as const, days: 1, high_f: 52, low_f: 40, rain: true } }
-  assert.equal(weatherLine(day), 'Rain for 3 days, high 48°F · Tomorrow: storms, high 52°F')
+  assert.deepEqual(weatherLine(day), { full: 'Rain for 3 days, high 48° · Tomorrow: storms, high 52°', short: 'Rain for 3 days, high 48°F' })
+  assert.deepEqual(weatherLine({ ...day, tomorrow: null }), { full: 'Rain for 3 days, high 48°F', short: 'Rain for 3 days, high 48°F' })
 })
 
 test('sunny spells are not counted, a day planned before skies were named says wet or dry, a lookup says so', () => {
@@ -17,5 +18,5 @@ test('sunny spells are not counted, a day planned before skies were named says w
 })
 
 test('no weather (aboard a ship) is no line', () => {
-  assert.equal(weatherLine({ date: '2026-01-14', body: null, weather: null, tomorrow: null }), '')
+  assert.deepEqual(weatherLine({ date: '2026-01-14', body: null, weather: null, tomorrow: null }), { full: '', short: '' })
 })

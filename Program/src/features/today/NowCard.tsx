@@ -41,7 +41,10 @@ export function NowCard({ data, name, go, status, children }: { data: TodayData;
         <div className="now-text">
           <h2 id="now-heading" className="now-line"><span className="now-name">{firstName(name)}</span><span aria-hidden="true"> · </span><span className="visually-hidden">: </span>{line}</h2>
           <p className="row-sub">{sub}</p>
-          {weather && <p className="row-sub now-weather">{weather}</p>}
+          {weather.full && <>
+            <p className="row-sub now-weather desktop-only">{weather.full}</p>
+            <p className="row-sub now-weather phone-only">{weather.short}</p>
+          </>}
         </div>
         <button type="button" className="button primary now-message" onClick={() => go('conversation')}><MessageCircle aria-hidden="true" />{label}</button>
       </div>
