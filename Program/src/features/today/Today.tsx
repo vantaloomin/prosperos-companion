@@ -34,6 +34,7 @@ import { bodyText, moodText, pauseToFill } from './todayText'
 import { SCRAPBOOKS_KEY, featuredCard } from '../year/yearText'
 import { askForNew } from '../feed/feedState'
 import { firstName } from '../character/panelText'
+import { usePhone } from '../../components/usePhone'
 
 const TODAY_KEY = ['today']
 
@@ -43,6 +44,8 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
   const away = useAwayTrips()
   const [feedback, setFeedback] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
   const seen = useRef(false)
+  // New posts open the rail's Posts page on a desktop, and the profile's Posts tab on a phone.
+  const phone = usePhone()
   const name = companion.version.name
 
   // The user has looked at Today once it has loaded; the next visit's changes start from here.
@@ -81,7 +84,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
     <section className="page today">
       <header className="today-head">
         <h1>Today</h1>
-        {data.feed_unread > 0 && <button type="button" className="button" onClick={() => { askForNew(); go('feed') }}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
+        {data.feed_unread > 0 && <button type="button" className="button" onClick={() => { askForNew(); go(phone ? 'feed' : 'posts') }}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
         <span className="today-tools">
           <button type="button" className="icon-button" aria-label="Map" title="Map" onClick={() => go('map')}><MapIcon aria-hidden="true" /></button>
           <button type="button" className="icon-button" aria-label="Who knows who" title="Who knows who" onClick={() => go('people')}><Network aria-hidden="true" /></button>

@@ -14,7 +14,9 @@ import { isActive } from './imageState'
 import { useEraWords } from '../world/useEraWords'
 import type { EraWords } from '../world/eraWords'
 
-export function Feed({ companion, go }: { companion: Companion; go: (view: View) => void }) {
+/** The posts: on the companion's profile, or as the rail's page of their own (`page`), with a title since no profile
+ * header says whose they are there. */
+export function Feed({ companion, go, page }: { companion: Companion; go: (view: View) => void; page?: boolean }) {
   const client = useQueryClient()
   const [hidden, setHidden] = useState(false)
   const [source, setSource] = useState<FeedSource>('all')
@@ -83,8 +85,8 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
 
   return (
     <section className="page feed">
-      {/* No intro (style guide): the profile header says whose posts these are, and the chips say which are shown. */}
-      <h2 className="visually-hidden">{words.posts_tab}</h2>
+      {/* No intro (style guide): the profile header or the page title says whose posts these are, and the chips say which are shown. */}
+      <FeedTitle page={!!page} words={words} />
       <div className="feed-top">
         <OwnPost onPosted={() => {
           setError(null)
@@ -104,6 +106,10 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
       {feed.hasNextPage && <button type="button" className="button load-more" disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>Show older {words.posts}</button>}
     </section>
   )
+}
+
+function FeedTitle({ page, words }: { page: boolean; words: EraWords }) {
+  return page ? <h1 className="feed-title">{words.posts_tab}</h1> : <h2 className="visually-hidden">{words.posts_tab}</h2>
 }
 
 /** Whose posts, then Hidden: a chip of its own that shows the posts hidden from the feed, whoever's they are. */
