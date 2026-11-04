@@ -211,3 +211,32 @@ def test_a_moment_that_cast_a_stranger_is_drawn_again(client, dealt, monkeypatch
         deck.save(connection, companion['active_timeline_id'], day,
                   {'card_id': 'friend-photo', 'friend_id': ids['Nari'], 'odds': 0.01}, 'dice', '2026-01-01T00:00:00Z')
     assert moments(client)[0]['text'] == 'Ana sent Mira an old photo of the two of them from years ago.'
+
+
+def test_a_thought_about_a_moment_drawn_again_is_written_again(client, dealt, monkeypatch):
+    """On their mind kept "Nari sent Sett an old photo" after the moment was drawn again for Kaito (1.3.2 tester)."""
+    only(monkeypatch, 'friend-photo')
+    ids = circle_of(client, {'Nari': ('enthusiastic fangirl', "An obsessive fan; they haven't met."),
+                             'Ana': ('close friend', '')})
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        companion = require_current(connection)
+        day = deck.storylines.local_today(companion, database.clock.now())
+        deck.save(connection, companion['active_timeline_id'], day,
+                  {'card_id': 'friend-photo', 'friend_id': ids['Nari'], 'odds': 0.01}, 'dice', '2026-01-01T00:00:00Z')
+        stale = deck.worded(connection, deck.on_day(connection, companion, day), companion, 'text')
+        assert stale.startswith('Nari sent Mira')
+        connection.execute('INSERT INTO thoughts (timeline_id, day, topic, text, created_at) VALUES (?, ?, ?, ?, ?)',
+                           (companion['active_timeline_id'], day.isoformat(), 'moment:friend-photo', stale,
+                            '2026-01-01T00:00:00Z'))
+        deck.catch_up(connection, companion, database.clock.now())
+        thoughts.drop_stale_moments(connection, companion)
+        assert connection.execute('SELECT COUNT(*) FROM thoughts').fetchone()[0] == 0
+        # A thought that still matches its moment stays.
+        fresh = deck.worded(connection, deck.on_day(connection, companion, day), companion, 'text')
+        assert fresh.startswith('Ana sent Mira')
+        connection.execute('INSERT INTO thoughts (timeline_id, day, topic, text, created_at) VALUES (?, ?, ?, ?, ?)',
+                           (companion['active_timeline_id'], day.isoformat(), 'moment:friend-photo', fresh,
+                            '2026-01-01T00:00:00Z'))
+        thoughts.drop_stale_moments(connection, companion)
+        assert connection.execute('SELECT text FROM thoughts').fetchone()[0] == fresh

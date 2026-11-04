@@ -220,6 +220,21 @@ def began(connection, companion) -> date:
     return instant.astimezone(zone(companion['version']['timezone'])).date()
 
 
+def drop_stale_moments(connection, companion):
+    """A thought about the day's Life deck moment goes when that moment was drawn again or now reads otherwise (a fan
+    who never met them no longer "sent an old photo", tester 2026-11-04), so the day is worded again."""
+    timeline_id = companion['active_timeline_id']
+    for row in many(connection, "SELECT day, topic, text FROM thoughts WHERE timeline_id=? AND topic LIKE 'moment:%'",
+                    (timeline_id,)):
+        found = deck.on_day(connection, companion, date.fromisoformat(row['day']))
+        if found and found['friend_id'] and not optional(  # Someone removed since keeps what happened.
+                connection, "SELECT 1 FROM circle_people WHERE id=? AND status='active'", (found['friend_id'],)):
+            continue
+        if not found or row['topic'] != f"moment:{found['card_id']}" or \
+                row['text'] != deck.worded(connection, found, companion, 'text'):
+            connection.execute('DELETE FROM thoughts WHERE timeline_id=? AND day=?', (timeline_id, row['day']))
+
+
 def catch_up(connection, companion, now) -> int:
     """Write the thoughts of the last week that are due and not written yet. Returns how many were written."""
     timeline_id, latest = companion['active_timeline_id'], last_ready(companion, now)
@@ -228,6 +243,7 @@ def catch_up(connection, companion, now) -> int:
     # A storyline ended since takes its thought with it, and that day is worded again from what is left.
     connection.execute(f"DELETE FROM thoughts WHERE timeline_id=? AND {storylines.ENDED_SOURCE.format(column='topic')}",
                        (timeline_id,))
+    drop_stale_moments(connection, companion)
     kept = {row['day']: row['topic'] for row in many(connection, 'SELECT day, topic FROM thoughts WHERE timeline_id=?',
                                                      (timeline_id,))}
     while day <= latest:
