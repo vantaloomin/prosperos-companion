@@ -1,4 +1,7 @@
 import { Fragment, useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../../api'
+import type { FeedPage } from '../../types'
 import { BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Newspaper, Settings as SettingsIcon, UserPlus, UserRound } from 'lucide-react'
 import type { View } from '../../companion'
 import { badge } from '../chats/chatText'
@@ -55,7 +58,7 @@ export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, u
           <button type="button" className={`nav-${id}${railOnly ? ' rail-only' : ''}`} aria-current={railCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}
             aria-label={id === 'settings' ? navLabel(ready) : undefined}>
             <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <DatingBadge app={datingApp} />}
-            {id === 'settings' && <SettingsMark view={ready} />}
+            {id === 'settings' && <SettingsMark view={ready} />}{id === 'posts' && <PostsDot />}
             <Count count={counts[id]} /><span>{labels[id] ?? label}</span>
           </button>
         </Fragment>
@@ -74,6 +77,14 @@ function ChatsTab({ view, go, unread }: { view: View; go: (view: View) => void; 
       <MessageCircle aria-hidden="true" /><Count count={unread} /><span>Chats</span>
     </button>
   )
+}
+
+/** New posts since the page was last open: a dot, not a count, since posts are the world going on rather than
+ * messages to the user; the page itself says how many (Iris, 2026-11-04). Reading them clears it, as the feed
+ * invalidates every ['feed'] query. */
+function PostsDot() {
+  const unread = useQuery({ queryKey: ['feed', 'rail-dot'], queryFn: () => api<FeedPage>('/feed?limit=1'), refetchInterval: 60000 }).data?.unread
+  return unread ? <span className="nav-dot" aria-label="new posts" /> : null
 }
 
 function Count({ count }: { count?: number }) {
