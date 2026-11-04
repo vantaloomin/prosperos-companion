@@ -116,7 +116,7 @@ export function MoneyFields({ definition, onChange }: Props) {
           </select>
         )}
       </Field>
-      <Field label="Home" hint="Left as picked for them, their own words, age and pay decide whether they rent or own. Owners pay taxes and repairs on top, and owning outright means no rent at all.">
+      <Field label="Home" hint="Left as picked for them, their words, age and pay decide.">
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.home ?? ''} onChange={(event) => set({ home: event.target.value as HomeTenure })}>
             {homeChoices(era === 'medieval' || era === 'fantasy').map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}

@@ -111,7 +111,7 @@ test('with a pay of their own set, the Work hint says nothing about pay', () => 
 
 test('a home owned outright pays no rent, and owners pay taxes and repairs on top', () => {
   const owner = { ...budget, owned: true, tenure: 'owned' as const, rent_from: 'home' as const, owner_words: 'property tax, insurance and upkeep', text: { ...budget.text, rent: '$0', owner_costs: '$450' } }
-  assert.equal(rentText(owner), 'Owns their home outright.')
+  assert.equal(rentText(owner), 'Home: owned outright.')
   assert.equal(ownerText(owner), 'Property tax, insurance and upkeep: about $450 a month.')
   const mortgage = { ...owner, tenure: 'mortgage' as const, text: { ...owner.text, rent: '$1,280' } }
   assert.equal(rentText(mortgage), 'Mortgage: about $1,280 a month for their home.')

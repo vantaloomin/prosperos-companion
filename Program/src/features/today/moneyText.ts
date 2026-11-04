@@ -69,7 +69,7 @@ export function workText(view: Budget): string {
 export function rentText(view: Budget): string {
   const rent = `about ${view.text.rent} ${perText(view)}`
   const place = view.rent_from === 'home' ? 'their home' : `${view.housing.label} in ${view.housing.neighborhood}`
-  if (view.tenure === 'owned') return `Owns ${place} outright.`
+  if (view.tenure === 'owned') return 'Home: owned outright.'
   if (view.owned) return sentence(`${view.medieval ? 'Payments' : 'Mortgage'}: ${rent} for ${place}`)
   return sentence(`Rent: ${rent} for ${place}`)
 }
