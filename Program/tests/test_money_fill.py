@@ -134,3 +134,32 @@ def test_a_modern_world_outside_the_us_pays_in_its_countrys_money():
     assert india['currency']['name'] == 'rupees'
     assert india['neighborhoods'][1]['rent']['one_bedroom'][0] > 20_000
     assert money.amount(45_000, india['currency']) == '₹45,000'
+
+
+def test_the_budget_works_in_a_city_written_in_the_app(tmp_path):
+    from companion.database import Database
+    database = Database(tmp_path / 'companion.sqlite3')
+    city = world()
+    del city['prices']
+    custom.create(database, city)
+    wren = {'name': 'Wren', 'home_city': 'thornmere'}
+    view = money.snapshot(wren, TODAY)
+    assert view['available'] and view['text']['income'].endswith(' gold')
+    assert money.profile(wren).city['neighborhoods'][0]['rent']['studio'] != [900, 900]
+    # New rents written into the city are read afresh, not kept from before.
+    saved = custom.read(database)['thornmere']
+    rents = copy.deepcopy(saved['neighborhoods'])
+    for hood in rents:
+        hood['rent'] = {'studio': [900, 900], 'one_bedroom': [900, 900], 'two_bedroom': [900, 900]}
+    custom.update(database, 'thornmere', custom._definition(saved) | {'neighborhoods': rents}, saved['revision'])
+    assert money.profile(wren).city['neighborhoods'][0]['rent']['studio'] == [900, 900]
+
+
+def test_the_budget_works_in_a_city_brought_from_a_world_map(tmp_path):
+    from companion.database import Database
+    from companion.world import marinara
+    from tests.test_marinara_world import sample
+    database = Database(tmp_path / 'companion.sqlite3')
+    made = marinara.bring(database, sample())
+    view = money.snapshot({'name': 'Ines', 'home_city': made['id']}, TODAY)
+    assert view['available'] and view['currency']['code'] == 'EUR'
