@@ -51,7 +51,7 @@ export function storyDate(day: string): string {
 
 export const DRAMA_LEVELS = [
   { value: 0, label: 'Quiet', hint: 'Good news now and then: a promotion, an engagement.' },
-  { value: 1, label: 'True to life', hint: 'Everyday ups and downs: a creepy new coworker, a friend’s breakup.' },
+  { value: 1, label: 'True to life', hint: 'Everyday ups and downs: a coworker taking credit, a friend’s breakup.' },
   { value: 2, label: 'Dramatic', hint: 'More often, and bigger: health scares, feuds, secret romances.' },
   { value: 3, label: 'Soap opera', hint: 'Drunk kisses, separations, family secrets.' },
 ] as const

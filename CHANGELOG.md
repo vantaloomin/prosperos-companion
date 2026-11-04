@@ -82,8 +82,8 @@
   asleep, not now, a short visit at work).
 - **Memories:** fewer throwaway memories (pronoun likes, clauses as looks, "Ma" as a name, meals and chores as
   plans); a plan needs a day or an event and closes the day after it, or after 7 quiet days with no day.
-- **Money and work:** worlds written without money get a currency and rents by rule, modern cities outside the US
-  use their country's money, made-up coins are said by name; Work and money has Something else (write it in) and
+- **Money and work:** city packs written without money get a currency and rents by rule, modern pack cities outside
+  the US use their country's money, made-up coins are said by name; Work and money has Something else (write it in) and
   a Pay box.
 - **Pausing worlds:** each world keeps its own pause across a switch; a left world isn't marked Paused; Pause and
   Resume in every world's menu.
