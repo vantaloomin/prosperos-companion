@@ -59,6 +59,9 @@ UNIT_LABELS = {
               'shared': 'a shared room'},
 }
 RENT_CEILING = 0.45
+# A paid worker takes a bigger place while its rent stays within this share of their pay (`roomier`).
+ROOMY = 0.3
+SIZES = ('studio', 'one_bedroom', 'two_bedroom')
 HOOD_TIERS = (('low', 'mid'), ('mid', 'low'), ('mid', 'high'), ('high', 'very-high'))
 FIRST_FRIDAY = date(2026, 1, 2)
 
@@ -342,16 +345,30 @@ def home_hood(definition: dict, city: dict, tier: int, seed: str) -> dict:
 
 
 def housing(hood: dict, tier: int, income: float, seed: str) -> tuple[str, float]:
-    """The place they can manage: a smaller one, or a shared one, when rent would take too much."""
+    """The place they can manage: a smaller one, or a shared one, when rent would take too much; a bigger one when
+    they are paid well enough that a small place would cost them next to nothing (`roomier`)."""
     point = random.Random(f'{seed}:rent').random()
     rent = hood['rent']
     for unit in UNITS[tier]:
         low, high = rent[unit]
         amount = low + (high - low) * point
         if amount <= income * RENT_CEILING:
-            return unit, amount
+            return roomier(rent, unit, amount, income, point) if tier else (unit, amount)
     low, _high = rent['two_bedroom']
     return 'shared', min(low / 2, income * 0.5)
+
+
+def roomier(rent: dict, unit: str, amount: float, income: float, point: float) -> tuple[str, float]:
+    """A bigger place in the same neighbourhood while its rent stays within ROOMY of their pay. Someone paid well who
+    lives in a cheap quarter takes more room rather than keep a single one for a tenth of their pay (tester,
+    2026-11-04: a pit boss in The Pits paid 19 gold of 186)."""
+    for bigger in SIZES[SIZES.index(unit) + 1:]:
+        low, high = rent[bigger]
+        cost = low + (high - low) * point
+        if cost > income * ROOMY:
+            break
+        unit, amount = bigger, cost
+    return unit, amount
 
 
 def build(definition: dict) -> Profile | None:

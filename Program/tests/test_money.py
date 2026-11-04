@@ -97,7 +97,7 @@ def test_historic_cities_use_their_own_currency_and_weekly_pay():
     assert view['period'] == 'week' and view['payday']['cycle_days'] == 7
     assert date.fromisoformat(view['payday']['next']).weekday() == 5
     assert view['text']['income'].endswith(view['currency']['symbol'])
-    assert view['housing']['label'] == 'a rented room'
+    assert view['housing']['label'] in ('a rented room', 'a couple of rented rooms')
     ada = {'name': 'Ada', 'home_city': 'camelot'}
     costs = {'rent': 2, 'rent_period': 'week', 'currency': money.profile(ada).city['currency'], 'owned': True,
              'pets': [], 'vehicles': []}
@@ -276,3 +276,16 @@ def test_the_pay_field_shows_what_their_work_pays(client):
     found = client.post('/api/world/cities/baltimore/pay', json=body).json()
     assert found['currency']['code'] == 'USD' and 1000 < found['monthly'] < 5000
     assert client.post('/api/world/cities/emerald-city/pay', json=body).json() is None
+
+
+def test_a_well_paid_worker_in_a_cheap_quarter_takes_more_room():
+    """Tester 2026-11-04: a pit boss paid 186 gold a month kept a single room in The Pits for 19 gold. Paid work takes
+    a bigger place while its rent stays within ROOMY of their pay; the lowest-paid keep the smallest place."""
+    pits = {'rent': {'studio': [14, 27], 'one_bedroom': [27, 55], 'two_bedroom': [55, 82]}}
+    for seed in ('a', 'b', 'c', 'd'):
+        unit, rent = money.housing(pits, 1, 186, seed)
+        assert unit == 'one_bedroom' and 0.15 < rent / 186 <= money.ROOMY
+        assert money.housing(pits, 0, 131, seed)[0] == 'studio'
+    # Where the next size up would take more than ROOMY, they stay put (a city with dear rents keeps its studios).
+    dear = {'rent': {'studio': [1400, 1600], 'one_bedroom': [1900, 2200], 'two_bedroom': [2600, 3000]}}
+    assert money.housing(dear, 1, 4300, 'a')[0] == 'studio'
