@@ -322,6 +322,30 @@ def settle(connection, timeline_id: str, definition: dict, data: dict | None, no
         named = generators.pick(f'home:{timeline_id}', 'hood', sorted(data['neighborhoods'], key=lambda hood: hood['id']))
     if named and named is not here:
         moved(connection, row, details, data, named, 'app', now)
+        row = one(connection, 'SELECT * FROM home_items WHERE id=?', (row['id'],))
+    priced(connection, row, definition, data, now)
+
+
+def priced(connection, row: dict, definition: dict, data: dict, now):
+    """A home with no rent in its city's money (assembled before the city had money, or moved there from another
+    city) gets one, once: what the budget pays for a place in its neighbourhood. From then on the rent is the home's
+    and stays put when their pay changes, as a rent does until they move (Vanta, 2026-11-04)."""
+    details = decode(row['details'])
+    if details.get('owned') or not money.has_money(data) or data['id'] != (money.city_for(definition) or {}).get('id'):
+        return
+    if details.get('rent') and money.same_money(details.get('currency'), data['currency']) \
+            and details.get('rent_period', 'month') == data['rent_period']:
+        return
+    hood = hood_of(data, details.get('neighborhood'))
+    found = money.rent_at(definition, hood) if hood and hood.get('rent') else None
+    if not found:
+        return
+    unit, rent = found
+    details |= {'rent': int(round(rent / generators.rent_step(rent)) * generators.rent_step(rent)) or 1,
+                'rent_range': None, 'currency': data['currency'], 'rent_period': data['rent_period'],
+                'bedrooms': details.get('bedrooms') or unit, 'estimate': True}
+    connection.execute('UPDATE home_items SET details=?, revision=revision+1, updated_at=? WHERE id=?',
+                       (encode(details), stamp(now), row['id']))
 
 
 def moved(connection, row: dict, details: dict, data: dict, hood: dict, by: str, now):
@@ -335,6 +359,8 @@ def moved(connection, row: dict, details: dict, data: dict, hood: dict, by: str,
         text = f"{row['name']} in {hood['name']}"
     details |= {'neighborhood': hood['name'], 'city': data['name'], 'refs': [hood['id']], 'description': text,
                 'placed_by': by}
+    if not details.get('owned') and details.get('neighborhood') != old:  # A new place has a new rent (`priced`).
+        details['rent'] = None
     connection.execute('UPDATE home_items SET details=?, revision=revision+1, updated_at=? WHERE id=?',
                        (encode(details), stamp(now), row['id']))
 

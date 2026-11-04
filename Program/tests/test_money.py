@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+from companion.database import decode, encode
 from companion.life import composer, home, money
 from companion.life.world import Place, StaticWorld
 
@@ -289,3 +290,38 @@ def test_a_well_paid_worker_in_a_cheap_quarter_takes_more_room():
     # Where the next size up would take more than ROOMY, they stay put (a city with dear rents keeps its studios).
     dear = {'rent': {'studio': [1400, 1600], 'one_bedroom': [1900, 2200], 'two_bedroom': [2600, 3000]}}
     assert money.housing(dear, 1, 4300, 'a')[0] == 'studio'
+
+
+def test_pay_they_set_decides_how_they_live():
+    """Tester 2026-11-04: pay set to 1,000 gold still rented a 64-gold place. Set pay picks the pay tier, and the best
+    place in a cheap quarter costs at least FLOOR of their pay."""
+    pits = {'rent': {'studio': [14, 27], 'one_bedroom': [27, 55], 'two_bedroom': [55, 82]}}
+    unit, rent = money.housing(pits, 3, 1000, 'a')
+    assert unit == 'two_bedroom' and rent == 150
+    nurse = money.profile(NURSE)
+    rich = money.profile({**NURSE, 'money': {'pay': nurse.income * 4}})
+    assert rich.tier == 3 and rich.rent > nurse.rent
+    assert money.profile({**NURSE, 'money': {'pay': 100}}).tier == 0
+
+
+def test_rent_is_set_once_and_stays_when_pay_changes(client):
+    """Vanta 2026-11-04: "Just because I got a raise doesn't mean my rent goes up." A home with no rent in its city's
+    money (moved from another city, or made before the city had money) is priced once; then pay may change and the
+    rent stays, until they move."""
+    teacher = {'name': 'Mira', 'timezone': 'America/New_York', 'home_city': 'baltimore',
+               'location': 'Hampden, Baltimore', 'money': {'career': 'teacher'}}
+    created = client.post('/api/companion', json=teacher)
+    assert created.status_code == 200
+    client.get('/api/life/home')
+    with client.app.state.database.connect(write=True) as connection:
+        row = connection.execute("SELECT id, details FROM home_items WHERE kind='home'").fetchone()
+        details = {**decode(row[1]), 'currency': {'code': 'GLD', 'symbol': 'g', 'name': 'gold'}, 'rent': 19}
+        connection.execute('UPDATE home_items SET details=? WHERE id=?', (encode(details), row[0]))
+    priced = client.get('/api/today/money').json()  # Reading the home prices it once, in dollars.
+    assert priced['rent_from'] == 'home' and priced['budget']['rent'] > 100
+    raised = client.post('/api/companion/versions', json={'definition': {**teacher, 'money': {'career': 'teacher',
+                                                                                              'pay': 20000}},
+                                                              'expected_version_id': created.json()['version']['id']})
+    assert raised.status_code == 200, raised.text
+    after = client.get('/api/today/money').json()
+    assert after['budget']['rent'] == priced['budget']['rent'] and after['budget']['income'] == 20000
