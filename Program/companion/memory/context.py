@@ -650,7 +650,7 @@ def memory_text(memory, now: str | None = None) -> str:
 
 def transcript(connection, timeline_id, blocked, until_seq=None) -> list[dict]:
     rows = many(connection, "SELECT * FROM messages WHERE timeline_id=? AND active=1 AND status='complete' "
-                "AND redacted_at IS NULL AND seq<=? ORDER BY seq", (timeline_id, until_seq or 2 ** 62))
+                "AND redacted_at IS NULL AND seq<=? ORDER BY seq", (timeline_id, 2 ** 62 if until_seq is None else until_seq))
     kept = pictures.described(connection, [row for row in rows if row['id'] not in blocked])
     # A reply to a deleted or excluded message usually repeats it, so it leaves context with it (M12).
     users = {row['id'] for row in kept if row['role'] == 'user'}
