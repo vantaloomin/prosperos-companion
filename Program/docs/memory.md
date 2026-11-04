@@ -178,6 +178,8 @@ their own timeline.
 The full rules are in [architecture.md](architecture.md) (Context builder, Consolidation, Memory formation,
 People in the user's life, What the companion said about themselves, Timelines). This is the map.
 
+![Memory for developers, on one page: the write path, the read path, tables and invariants](images/memory-technical.svg)
+
 ### Where things are
 
 | Area | Files | Notes |
@@ -188,7 +190,7 @@ People in the user's life, What the companion said about themselves, Timelines).
 | Looking back | `companion/memory/look_back.py` | `[[recall: words]]` held back by `Lookout`; at most two model calls; a model that asks too often stops being offered it. |
 | Wording nudge | `companion/memory/phrases.py` | Study's phrase detection; up to three phrases named. |
 | Formation | `companion/memory/extraction.py`, `dates.py`, `formation.py` | Rules first; queue, worker, permission revision; suggestions; per-message actions. |
-| Model memory | `formation.py`, `addressed.py`, `owners.py` | Prompt `memory-suggest-6`, batches of eight, answers must quote the message and belong to someone in the user's life. |
+| Model memory | `suggest.py`, `addressed.py`, `owners.py` | Prompt `memory-suggest-6`, batches of eight, answers must quote the message and belong to someone in the user's life. |
 | Corrections | `corrections.py`, `corrected.py` | Applied at once and recorded; old words marked when recalled, nothing stored. |
 | People | `people_rules.py`, `people.py`, `user_people` | At most one question per 8 replies and 6 hours. |
 | Consolidation | `companion/memory/consolidation.py` | Hourly, no model: day summaries, merge proposals. Resurfacing window 6, limit 2; related experiences at 25% overlap, max 2. |
