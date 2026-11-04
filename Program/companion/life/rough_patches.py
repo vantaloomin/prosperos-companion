@@ -29,7 +29,11 @@ last minute (`stand_ups`), and then apologise first, in a first text.
 
 It lasts until mended: an apology the app recognises from fixed phrases (data/rough_patches/apologies.json), a
 make-up gesture (a gift or kind act in the chat, data/rough_patches/gestures.json; or an outing or visit with you
-that happens), or enough calm days. On an easy life it fades overnight; on real life an apology or a gesture mends
+that happens), or enough calm days. A gesture in the chat has a kind, big (flowers, tickets, a trip) or small (a coffee,
+a chore done, a note), and whether it wins them over is a roll in the engine (choice user:gesture, `gesture`): their
+personality sliders weigh each kind (Hit List #96), so warm, open people take a big gesture at face value and guarded
+or proud ones are won over more by a small, steady kindness. It shows under "How they took things lately" on Today,
+where the user can make it go the other way (`change_gesture`). An apology always counts. On an easy life it fades overnight; on real life an apology or a gesture mends
 it, or a few calm days; on drama it lingers for two weeks unless you make up, and something serious (a secret, being
 with someone else) needs both an apology and a gesture. When they were at fault, it mends when you accept their
 apology (data/rough_patches/accepting.json), when the next plan together happens, or after a calm day or two.
@@ -46,9 +50,9 @@ from functools import cache
 
 from companion import consequences
 from companion.clock import parse, stamp, zone
-from companion.database import identifier, many, one, optional, settings
+from companion.database import decode, encode, identifier, many, one, optional, settings
 from companion.errors import require
-from companion.life import reactions
+from companion.life import pronouns, reactions
 from companion.memory import pairs
 from companion.world import catalog
 
@@ -132,7 +136,16 @@ def level(connection) -> int:
 @cache
 def bank(name: str) -> list[str]:
     data = json.loads((catalog.DATA / 'rough_patches' / f'{name}.json').read_text(encoding='utf-8'))
+    if 'kinds' in data:
+        return [phrase for phrases in data['kinds'].values() for phrase in phrases]
     return data.get('phrases') or data.get('reasons') or data['templates']
+
+
+@cache
+def gesture_kinds() -> dict[str, str]:
+    """Each gesture phrase with its kind, big or small (data/rough_patches/gestures.json)."""
+    data = json.loads((catalog.DATA / 'rough_patches' / 'gestures.json').read_text(encoding='utf-8'))
+    return {phrase: kind for kind, phrases in data['kinds'].items() for phrase in phrases}
 
 
 @cache
@@ -154,6 +167,36 @@ def says(name: str, text: str) -> bool:
         return True
     return any(not NEGATED.search(words[:found.start()]) and not (name == 'apologies' and SYMPATHY.match(words, found.end()))
                for found in pattern(name).finditer(words))
+
+
+def gesture_found(text: str) -> tuple[str, str] | None:
+    """The make-up gesture the message makes, not negated, as (kind, phrase): a big one before a small one."""
+    words, kinds = plain(text), gesture_kinds()
+    found = [(kinds[match.group(0)], match.group(0)) for match in pattern('gestures').finditer(words)
+             if not NEGATED.search(words[:match.start()])]
+    return min(found, key=lambda item: item[0] != 'big', default=None)
+
+
+def gesture_kind(text: str) -> str | None:
+    """The kind of make-up gesture the message makes: big when it has a big one, else small, else None."""
+    found = gesture_found(text)
+    return found[0] if found else None
+
+
+# "brought you flowers" -> "the flowers you brought", for the row on Today (Iris, #96): what the user did, in their
+# own terms. A phrase that doesn't read that way (an offer, "fed your cat", "got you something") keeps the kind.
+ACT = re.compile(r"^(?:i )?(?P<verb>brought|bought|got|made|cooked|baked|sent|ordered|packed|wrote|knitted|painted|"
+                 r"booked|picked|hands|gives|makes|draws|ran) you (?:a |an |some )?(?P<what>[a-z' ]+)$")
+ACT_VERB = {'hands': 'handed over', 'gives': 'gave', 'makes': 'made', 'draws': 'drew', 'picked': 'picked'}
+NOT_AN_ACT = re.compile(r"^(?:your|something|little something|the|that|it|one|us|up)\b|\byou\b")
+
+
+def gesture_act(phrase: str) -> str | None:
+    """What the user did, said to them ("the flowers you brought"), or None when the phrase doesn't say it plainly."""
+    found = ACT.match(phrase)
+    if not found or NOT_AN_ACT.search(found.group('what')):
+        return None
+    return f"the {found.group('what')} you {ACT_VERB.get(found.group('verb'), found.group('verb'))}"
 
 
 def stings(text: str) -> str | None:
@@ -335,12 +378,105 @@ def note(connection, message: dict, companion: dict, now: datetime):
         if row['subject'] == f"words:{message['id']}":
             continue  # The message that started it doesn't also mend it.
         if row['fault'] == 'user':
-            if says('apologies', text) and not row['apologised_at']:
-                progress(connection, row, 'apologised_at', 'apology', now)
-            elif says('gestures', text) and not row['gesture_at']:
-                progress(connection, row, 'gesture_at', 'gesture', now)
+            making_up(connection, companion, row, message, now)
         elif apologised(connection, row) and (says('accepting', text) or says('gestures', text)):
             mend(connection, row, 'accepted', now)
+
+
+def making_up(connection, companion: dict, row: dict, message: dict, now: datetime):
+    """The user's message on a rough patch of their making: an apology counts; a gesture counts when it wins them over."""
+    text = message['text'] or ''
+    if says('apologies', text) and not row['apologised_at']:
+        progress(connection, row, 'apologised_at', 'apology', now)
+    elif not row['gesture_at'] and (found := gesture_found(text)):
+        gesture(connection, companion, row, found[0], message, now, gesture_act(found[1]))
+
+
+# Gestures that fit who they are (Hit List #96) ------------------------------------------------------------------
+
+GESTURE_CHOICE = 'user:gesture'
+LANDS = 1  # The option in the odds table where the gesture wins them over (last, as tests roll the last option).
+GESTURE_SHOWN = {'big': 'your grand gesture', 'small': 'your small kindness'}
+
+
+def gesture_facts(connection, companion: dict, row: dict, kind: str) -> dict:
+    """What the engine reads for a gesture: for its kind, their warmth and how social they are (personality sliders, 0
+    to 2) and whether they are proud; their own description (forgiving), the Rough patches slider and whether it is
+    over something serious."""
+    from companion.world import personality
+    definition = companion['version']['definition']
+    levels = personality.levels_of(definition.get('personality_sliders') or {})
+    sheet = [group for group in ('forgiving', 'stubborn') if consequences.sheet_has(definition, group)]
+    # Each odds rule reads one value, so the kind goes into the reader's name: big_warmth is their warmth for a big one.
+    return {f'{kind}_warmth': levels.get('warmth', 1), f'{kind}_social': levels.get('social', 1),
+            f'{kind}_proud': int('stubborn' in sheet), 'sheet': sheet, 'level': level(connection),
+            'serious': int(row['cause'] in SERIOUS)}
+
+
+def gesture(connection, companion: dict, row: dict, kind: str, message: dict, now: datetime,
+            act: str | None = None) -> dict | None:
+    """A make-up gesture in the chat: rolled once per rough patch and message; when it wins them over it counts. One of
+    a kind that didn't win them over that day is not rolled again the same day (another kind still is)."""
+    if tried_today(connection, companion, row, kind, now):
+        return None
+    names = {'name': first_name(companion), 'a': 'someone', 'b': '', 'gesture': act or GESTURE_SHOWN[kind], 'kind': kind}
+    table = consequences.tables()[GESTURE_CHOICE]
+    outcome = consequences.decide(
+        connection, timeline_id=companion['active_timeline_id'], choice=GESTURE_CHOICE,
+        subject=f"gesture:{row['id']}:{message['id']}", facts=gesture_facts(connection, companion, row, kind),
+        names=names, labels=[option['label'].format(**names) for option in table['options']],
+        day=local_day(companion, now), timestamp=stamp(now), now=now)
+    name_once(connection, outcome, companion)
+    if outcome['picked'] == LANDS:
+        progress(connection, row, 'gesture_at', 'gesture', now)
+    return outcome
+
+
+def name_once(connection, outcome: dict, companion: dict):
+    """Each group of reasons ("Less likely because ...") says their name once, then their pronouns (Iris, #96):
+    "Dana is wary of grand gestures, a grand gesture doesn't get past their guard and runs into their pride"."""
+    first = first_name(companion)
+    forms = pronouns.forms(companion['version']['definition']) or pronouns.PERSON['they/them']
+    options = decode(one(connection, 'SELECT options FROM consequences WHERE id=?', (outcome['id'],))['options'])
+    for item in options:
+        named = set()
+        for index, (reason, way) in enumerate(zip(item['reasons'], item['moves'], strict=True)):
+            if way in named:
+                item['reasons'][index] = (reason.replace(f"{first}'s", forms['their'])
+                                          .replace(f'{first} is', f"{forms['they']} {forms['are']}")
+                                          .replace(first, forms['them']))
+            if first in reason:
+                named.add(way)
+    connection.execute('UPDATE consequences SET options=? WHERE id=?', (encode(options), outcome['id']))
+
+
+def tried_today(connection, companion: dict, row: dict, kind: str, now: datetime) -> bool:
+    for found in many(connection, 'SELECT names, picked FROM consequences WHERE choice=? AND subject LIKE ? AND decided_on=?',
+                      (GESTURE_CHOICE, f"gesture:{row['id']}:%", local_day(companion, now))):
+        if found['picked'] != LANDS and decode(found['names'] or '{}').get('kind') == kind:
+            return True
+    return False
+
+
+def change_gesture(connection, companion: dict, consequence_id: str, option: int, now: datetime) -> dict:
+    """The user makes a gesture go the other way on Today: won over, it counts toward making up from when it was made;
+    not, the rough patch it mended is open again (unless something else mended it)."""
+    outcome = consequences.change(connection, consequence_id, option, stamp(now))
+    require(outcome['timeline_id'] == companion['active_timeline_id'], 'That outcome is not on this timeline.', 404)
+    made = one(connection, 'SELECT created_at FROM consequences WHERE id=?', (consequence_id,))['created_at']
+    row = optional(connection, 'SELECT * FROM rough_patches WHERE id=?', (outcome['subject'].split(':')[1],))
+    if row is None:
+        return outcome
+    if option == LANDS and not row['gesture_at'] and not row['mended_at']:
+        connection.execute('UPDATE rough_patches SET gesture_at=? WHERE id=?', (made, row['id']))
+        fresh = one(connection, 'SELECT * FROM rough_patches WHERE id=?', (row['id'],))
+        if bool(fresh['apologised_at']) + 1 >= fresh['needs']:
+            mend(connection, fresh, 'gesture', now)
+    elif option != LANDS and row['gesture_at'] == made:
+        connection.execute("UPDATE rough_patches SET gesture_at=NULL, mended_at=CASE WHEN mended_by='gesture' THEN NULL "
+                           "ELSE mended_at END, mended_by=CASE WHEN mended_by='gesture' THEN NULL ELSE mended_by END "
+                           'WHERE id=?', (row['id'],))
+    return consequences.by_id(connection, consequence_id)
 
 
 def progress(connection, row: dict, column: str, by: str, now: datetime):
