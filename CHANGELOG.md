@@ -79,7 +79,7 @@
 ## v1.3.2 (2026-11-04)
 
 - **Another reply on texts they send first:** a companion's own text (a check-in, a plan follow-up) takes Another
-  reply while it is their newest message, and the reply above it keeps its own.
+  reply while it is their newest message.
 - **Their own birthday:** the companion's birthday is in their prompt every day, so they stop inventing one.
 - **Money:** Today's budget works in cities written in the app and in imported world maps; edited rents are read
   afresh.
