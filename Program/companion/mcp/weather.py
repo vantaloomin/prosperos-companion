@@ -7,10 +7,12 @@ marked `observed` with its source and time, so the context and the Today view ne
 climate averages as a forecast or a lookup as anything other than what it is.
 """
 import re
+from datetime import date, timedelta
 
 from companion.characters import current
 from companion.clock import parse, stamp
 from companion.database import decode
+from companion.world import skies
 
 RAIN = re.compile(r'\b(rain|rainy|showers?|drizzle|thunder\w*|storms?|stormy|snow\w*|sleet|hail)\b', re.I)
 NO_RAIN = re.compile(r'\b(no|without)\s+(rain|showers?|snow)\b', re.I)
@@ -48,25 +50,44 @@ def conditions_from(content: str, structured: dict | None) -> dict | None:
         return None
     summary = next((str(structured[key]) for key in SUMMARY_KEYS if structured and isinstance(structured.get(key), str)),
                    '')
-    text = f'{summary} {content}'
+    # A named condition is today's own; the text can go on to tomorrow ("tomorrow light rain").
+    text = summary or content.split('tomorrow')[0]
     rain = bool(RAIN.search(text)) and not NO_RAIN.search(text)
     first_line = content.strip().splitlines()[0] if content.strip() else ''
-    return {'high_f': max(temperatures), 'low_f': min(temperatures), 'rain': rain,
-            'note': (summary or first_line)[:160]}
+    found = {'high_f': max(temperatures), 'low_f': min(temperatures), 'rain': rain, 'note': (summary or first_line)[:160]}
+    sky = skies.from_text(NO_RAIN.sub('', text))
+    return {**found, 'sky': sky} if sky else found
+
+
+def tomorrow_from(structured: dict | None) -> dict | None:
+    """Tomorrow's forecast the built-in server gives beside today's (companion/mcp/servers/weather.py), if any."""
+    ahead = (structured or {}).get('tomorrow')
+    return conditions_from('', ahead) if isinstance(ahead, dict) else None
+
+
+LOOKED_UP = ("SELECT * FROM context_observations WHERE category='weather' AND purpose='companion_city' AND "
+             "status='ok' AND json_extract(location, '$.city')=? AND json_extract(location, '$.date')=? "
+             'ORDER BY retrieved_at DESC, rowid DESC LIMIT 5')
 
 
 def observed_for(connection, city_id: str, local_date: str) -> dict | None:
-    """The latest readable weather lookup for the companion's city made on that local date."""
-    rows = connection.execute(
-        "SELECT * FROM context_observations WHERE category='weather' AND purpose='companion_city' AND status='ok' "
-        "AND json_extract(location, '$.city')=? AND json_extract(location, '$.date')=? "
-        'ORDER BY retrieved_at DESC, rowid DESC LIMIT 5', (city_id, local_date)).fetchall()
-    for row in rows:
+    """The latest readable weather lookup for the companion's city made on that local date, else the forecast for it
+    that a lookup the day before gave (marked `forecast`)."""
+    for row in connection.execute(LOOKED_UP, (city_id, local_date)).fetchall():
         found = conditions_from(row['content'], decode(row['structured']))
         if found:
-            return {**found, 'observed': {'observation_id': row['id'], 'source': row['service_name'],
-                                          'tool': row['tool'], 'retrieved_at': row['retrieved_at']}}
+            return {**found, 'observed': seen(row)}
+    before = (date.fromisoformat(local_date) - timedelta(days=1)).isoformat()
+    for row in connection.execute(LOOKED_UP, (city_id, before)).fetchall():
+        found = tomorrow_from(decode(row['structured']))
+        if found:
+            return {**found, 'observed': {**seen(row), 'forecast': True}}
     return None
+
+
+def seen(row) -> dict:
+    return {'observation_id': row['id'], 'source': row['service_name'], 'tool': row['tool'],
+            'retrieved_at': row['retrieved_at']}
 
 
 class ObservedWorld:
@@ -86,11 +107,11 @@ class ObservedWorld:
         if not data or data.get('setting') != 'real':
             return typical
         with self.database.connect() as connection:
-            seen = observed_for(connection, data['id'], day.isoformat())
-        if not seen:
+            found = observed_for(connection, data['id'], day.isoformat())
+        if not found:
             return typical
         season = typical['season'] if typical else None
-        return {'season': season, **seen}
+        return {'season': season, **found}
 
 
 def apply(database, observation: dict):
@@ -104,14 +125,18 @@ def apply(database, observation: dict):
             or observation['status'] != 'ok' or not location.get('date')
             or not conditions_from(observation['content'], observation.get('structured'))):
         return
+    days = [location['date']]
+    if tomorrow_from(observation.get('structured')):
+        days.append((date.fromisoformat(location['date']) + timedelta(days=1)).isoformat())
     now = stamp(database.clock.now())
     with database.connect(write=True) as connection:
         companion = current(connection)
         if companion is None:
             return
         timeline_id = companion['active_timeline_id']
-        removed = connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND local_date=? AND "
-                                     "status='upcoming' AND starts_at>?", (timeline_id, location['date'], now)).rowcount
+        marks = ','.join('?' * len(days))
+        removed = connection.execute(f"DELETE FROM life_agenda WHERE timeline_id=? AND local_date IN ({marks}) AND "
+                                     "status='upcoming' AND starts_at>?", (timeline_id, *days, now)).rowcount
         if removed:
             connection.execute('UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=?',
                                (now, timeline_id))
@@ -119,7 +144,7 @@ def apply(database, observation: dict):
 
 def label(conditions: dict) -> str:
     """How the context names observed weather: its source and when it was looked up."""
-    seen = conditions['observed']
-    when = parse(seen['retrieved_at']).strftime('%H:%M UTC')
-    return f"looked up from {seen['source']} at {when}"
+    found = conditions['observed']
+    when = parse(found['retrieved_at']).strftime('%H:%M UTC')
+    return f"{'forecast' if found.get('forecast') else 'looked up'} from {found['source']} at {when}"
 

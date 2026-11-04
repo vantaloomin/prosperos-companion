@@ -1,5 +1,5 @@
 import { appDate } from '../../appTime.ts'
-import type { BodyState, PauseRecord, Recommendation, Today } from '../../types'
+import type { BodyState, DayWeather, PauseRecord, Recommendation, Today } from '../../types'
 
 const time = (value: string, timeZone?: string) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone }).format(new Date(value))
 
@@ -58,4 +58,25 @@ export function recommendationText(item: Pick<Recommendation, 'kind' | 'state' |
  * their family's ("~family", companion/life/their_people.py). */
 export function mapPlace(place?: { id?: string } | null): string | null {
   return place?.id && !place.id.startsWith('~') ? place.id : null
+}
+
+const SKY_WORDS: Record<NonNullable<DayWeather['sky']>, string> = {
+  clear: 'Clear', cloudy: 'Some cloud', overcast: 'Overcast', fog: 'Fog', rain: 'Rain', storm: 'Storms', snow: 'Snow',
+}
+
+/** "Rain for 3 days, high 48°F": a day's sky (how long a wet or grey spell has held) and its high. A day with no sky
+ *  named says wet or dry; a looked-up day says so. */
+export function dayWeatherText(weather: DayWeather): string {
+  const sky = weather.sky ? SKY_WORDS[weather.sky] : weather.rain ? 'Rain' : 'Dry'
+  const spell = weather.sky && !['clear', 'cloudy'].includes(weather.sky) && (weather.days ?? 1) >= 2 ? ` for ${weather.days} days` : ''
+  const seen = weather.observed ? (weather.observed.forecast ? ' (forecast)' : ' (looked up)') : ''
+  return `${sky}${spell}, high ${weather.high_f}°F${seen}`
+}
+
+/** Today's weather where they live and tomorrow's, for the Now card: "Rain for 3 days, high 48°F · Tomorrow: storms,
+ *  high 52°F". Empty without weather (a ship has none). */
+export function weatherLine(day: Today['day']): string {
+  if (!day.weather) return ''
+  const ahead = day.tomorrow ? dayWeatherText(day.tomorrow) : ''
+  return [dayWeatherText(day.weather), ahead && `Tomorrow: ${ahead[0].toLowerCase()}${ahead.slice(1)}`].filter(Boolean).join(' · ')
 }

@@ -89,7 +89,7 @@ def geocode(client, location: str) -> dict:
 
 def open_meteo(client, place: dict) -> dict:
     data = get_json(client, endpoints()['forecast'], {
-        'latitude': place['latitude'], 'longitude': place['longitude'], 'timezone': 'auto', 'forecast_days': 1,
+        'latitude': place['latitude'], 'longitude': place['longitude'], 'timezone': 'auto', 'forecast_days': 2,
         'temperature_unit': 'fahrenheit', 'current': 'temperature_2m,weather_code',
         'daily': 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max'})
     daily, now = data.get('daily') or {}, data.get('current') or {}
@@ -102,7 +102,19 @@ def open_meteo(client, place: dict) -> dict:
     current = now.get('temperature_2m')
     return {'condition': CODES.get(code, 'mixed conditions'), 'high_f': high, 'low_f': low,
             'precipitation_chance': chance, 'temperature_f': round(current) if current is not None else None,
-            'source': 'Open-Meteo'}
+            'source': 'Open-Meteo', 'tomorrow': open_meteo_tomorrow(daily)}
+
+
+def open_meteo_tomorrow(daily: dict) -> dict | None:
+    """Tomorrow's forecast from the same answer (the app's simulated day uses it, companion/mcp/weather.py)."""
+    try:
+        high, low = round(daily['temperature_2m_max'][1]), round(daily['temperature_2m_min'][1])
+    except (KeyError, IndexError, TypeError):
+        return None
+    code = (daily.get('weather_code') or [None, None])[1:2] or [None]
+    chance = ((daily.get('precipitation_probability_max') or [None, None])[1:2] or [None])[0]
+    return {'condition': CODES.get(code[0], 'mixed conditions'), 'high_f': high, 'low_f': low,
+            'precipitation_chance': chance}
 
 
 def national_weather_service(client, place: dict) -> dict:
@@ -147,6 +159,8 @@ def forecast(arguments: dict, client) -> dict:
         parts.append(f"{found['precipitation_chance']}% chance of precipitation")
     if found['temperature_f'] is not None:
         parts.append(f"now {found['temperature_f']}°F")
+    if ahead := found.get('tomorrow'):
+        parts.append(f"tomorrow {ahead['condition']}, high {ahead['high_f']}°F, low {ahead['low_f']}°F")
     credit = ATTRIBUTION if found['source'] == 'Open-Meteo' else 'Forecast from the National Weather Service.'
     return {'text': ', '.join(parts) + f'. {credit}',
             'structured': {'location': place['label'], **found}}

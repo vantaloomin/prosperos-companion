@@ -59,6 +59,14 @@ const MEME_LEVELS = [
   { label: 'Often', hint: 'Memes come often when you sound down, and now and then out of the blue. Still a few pictures a day at most.' },
 ]
 
+/** Weather (companion/world/skies.py): how the city's climate comes in spells. There is no Off: the climate is always
+ * there. Kept in this world only, like its drama. */
+const WEATHER_LEVELS = [
+  { label: 'Gentle', hint: 'Weather changes every day or two. Storms are rare, and snow comes lightly.' },
+  { label: 'True to life', hint: "Rain, fog or sunshine settles in for a few days at a time, as the city's climate has it, with storms and snow in their season." },
+  { label: 'Stormy', hint: 'Long wet spells, more storms, and more snow in winter.' },
+]
+
 /** The top of Settings > Realism: one segmented control of presets; picking one moves the sliders below. */
 export function RealismIntro() {
   return <RealismPresets heading="presets-heading" title="Start from" compact />
@@ -80,6 +88,8 @@ export function PaceSettings({ name }: { name: string }) {
       <div className="row-list">
         <SliderRow label={`Drama in ${world ?? 'this world'}`} levels={DRAMA_LEVELS} fallback={1} value={data.drama} onChange={(drama) => void save({ drama })}
           tip={`Only this world. Each of your worlds keeps its own drama level.${alone}`} />
+        <SliderRow label={`Weather in ${world ?? 'this world'}`} levels={WEATHER_LEVELS} fallback={1} value={data.weather_realism} onChange={(weather_realism) => void save({ weather_realism })}
+          tip="Only this world, from tomorrow on. Their plans follow it: a stormy day keeps them in, and they know tomorrow's weather too. A companion in a real city today gets the real weather instead once you turn on their weather in Real-world lookups." />
         <SliderRow label="Their looks change" levels={LOOKS_LEVELS} value={data.looks_realism} onChange={(looks_realism) => void save({ looks_realism })}
           tip="Only looks the app picked change. Anything you wrote about how someone looks stays exactly as you wrote it." />
         <SliderRow label="Work life" levels={WORK_LEVELS} value={data.work_realism} onChange={(work_realism) => void save({ work_realism })} />

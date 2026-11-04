@@ -4,7 +4,7 @@ from typing import Sequence
 
 from companion.almanac import days as almanac_days
 from companion.life.world import Place
-from companion.world import catalog, changes, custom, destinations
+from companion.world import catalog, changes, custom, destinations, skies
 from companion.world.generators import SEASONS, conditions, unit
 
 # The composer's place kinds, answered from this data's place kinds (and tags, for waterfronts and books).
@@ -56,9 +56,16 @@ class CatalogWorld:
             return changes.known(data, day, changes.stored(connection, data['id'])) if data else []
 
     def weather(self, city: str, day: date) -> dict | None:
-        """Typical weather for the date from the city's monthly climate, the same for everyone there."""
+        """The day's weather from the city's climate, in fronts that settle in (companion/world/skies.py), the same for
+        everyone there, as this world's Weather step has it."""
         data = self.find(city)
-        return conditions(data, day) if data else None
+        return conditions(data, day, self.weather_level()) if data else None
+
+    def weather_level(self) -> int:
+        if not self.database:
+            return skies.TRUE_TO_LIFE
+        with self.database.connect() as connection:
+            return skies.level_of(connection)
 
     def happenings(self, city: str, day: date) -> list[dict]:
         """The city's annual events held on this date. The data gives only their months, so each year
