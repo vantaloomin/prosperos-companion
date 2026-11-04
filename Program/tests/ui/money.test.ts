@@ -41,9 +41,9 @@ test('a medieval kingdom has payments on a place and no pension', () => {
 
 test('a currency ending in a full stop never doubles it, and rent names its period (Camelot)', () => {
   const pennies = { ...budget, period: 'week' as const, owned: true, medieval: true, text: { ...budget.text, rent: '9 d.', essentials: '20 d.', fun: '12 d.', saving: '6 d.' } }
-  assert.equal(costsText(pennies), 'Everyday costs about 20 d., fun about 12 d., savings about 6 d.')
+  assert.equal(costsText(pennies), 'Each week: everyday costs about 20 d., fun about 12 d., savings about 6 d.')
   assert.equal(rentText(pennies), 'Payments: about 9 d. a week for the place they bought.')
-  assert.equal(costsText(budget), 'Everyday costs about $1,220, fun about $1,020, savings about $550.')
+  assert.equal(costsText(budget), 'Each month: everyday costs about $1,220, fun about $1,020, savings about $550.')
 })
 
 test('career choices follow the home city era and keep the current pick', () => {

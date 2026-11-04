@@ -59,6 +59,11 @@ UNIT_LABELS = {
               'shared': 'a shared room'},
 }
 RENT_CEILING = 0.45
+# A paid worker takes a bigger place while its rent stays within this share of their pay (`roomier`).
+ROOMY = 0.3
+# Someone paid so well that even the biggest place in their quarter is cheap pays at least this share for the best one.
+FLOOR = 0.15
+SIZES = ('studio', 'one_bedroom', 'two_bedroom')
 HOOD_TIERS = (('low', 'mid'), ('mid', 'low'), ('mid', 'high'), ('high', 'very-high'))
 FIRST_FRIDAY = date(2026, 1, 2)
 
@@ -342,16 +347,49 @@ def home_hood(definition: dict, city: dict, tier: int, seed: str) -> dict:
 
 
 def housing(hood: dict, tier: int, income: float, seed: str) -> tuple[str, float]:
-    """The place they can manage: a smaller one, or a shared one, when rent would take too much."""
+    """The place they can manage: a smaller one, or a shared one, when rent would take too much; a bigger one when
+    they are paid well enough that a small place would cost them next to nothing (`roomier`)."""
     point = random.Random(f'{seed}:rent').random()
     rent = hood['rent']
     for unit in UNITS[tier]:
         low, high = rent[unit]
         amount = low + (high - low) * point
         if amount <= income * RENT_CEILING:
-            return unit, amount
+            return roomier(rent, unit, amount, income, point) if tier else (unit, amount)
     low, _high = rent['two_bedroom']
     return 'shared', min(low / 2, income * 0.5)
+
+
+def roomier(rent: dict, unit: str, amount: float, income: float, point: float) -> tuple[str, float]:
+    """A bigger place in the same neighbourhood while its rent stays within ROOMY of their pay. Someone paid well who
+    lives in a cheap quarter takes more room rather than keep a single one for a tenth of their pay (tester,
+    2026-11-04: a pit boss in The Pits paid 19 gold of 186)."""
+    for bigger in SIZES[SIZES.index(unit) + 1:]:
+        low, high = rent[bigger]
+        cost = low + (high - low) * point
+        if cost > income * ROOMY:
+            break
+        unit, amount = bigger, cost
+    if unit == SIZES[-1]:  # The best place in the quarter: never less than FLOOR of their pay, up to twice its rent.
+        amount = max(amount, min(income * FLOOR, rent[unit][1] * 2))
+    return unit, amount
+
+
+def pay_tier(city: dict, income: float) -> int:
+    """The pay tier a take-home they set falls in (the highest whose usual take-home it reaches), so a pit boss
+    the user pays 1,000 gold lives like one, not like the job's usual pay (tester, 2026-11-04)."""
+    return max((tier for tier in range(4) if take_home(city, tier) <= income * 1.1), default=0)
+
+
+def same_money(one: dict | None, other: dict) -> bool:
+    """Whether a home's rent is in this city's money: the same currency code (its wording may have changed since)."""
+    return isinstance(one, dict) and one.get('code') == other.get('code')
+
+
+def rent_at(definition: dict, hood: dict) -> tuple[str, float] | None:
+    """The place their budget takes in this neighbourhood, and its rent per the city's rent period."""
+    found = profile(definition)
+    return housing(hood, found.tier, found.income, found.seed) if found else None
 
 
 def build(definition: dict) -> Profile | None:
@@ -366,6 +404,8 @@ def build(definition: dict) -> Profile | None:
     # Pay they set is a month's take-home; a city paid by the week gets a week's share of it.
     pay = set_pay(setup)
     income = take_home(city, tier) if pay is None else pay * (12 / 52 if city['rent_period'] == 'week' else 1)
+    if pay is not None:
+        tier = pay_tier(city, income)
     hood = home_hood(definition, city, tier, seed)
     unit, rent = housing(hood, tier, income, seed)
     era = era_of(city)
@@ -687,7 +727,7 @@ def with_home(found: Profile, costs: dict, pay: dict | None = None) -> Profile:
     if pay and pay.get('factor'):
         found = replace(found, income=found.income * pay['factor'])
     rent = found.rent
-    if costs.get('rent') and (costs.get('currency') or found.city['currency']) == found.city['currency']:
+    if costs.get('rent') and same_money(costs.get('currency') or found.city['currency'], found.city['currency']):
         rent = costs['rent'] if costs.get('rent_period', 'month') == found.period else \
             costs['rent'] * (12 / 52 if found.period == 'week' else 52 / 12)
     month = monthly_share(found)
@@ -751,7 +791,8 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
         'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
                                                                   'saving')},
-        'rent_from': 'home' if home and home['costs'].get('rent') else 'budget', 'bought': bought,
+        'rent_from': 'home' if home and home['costs'].get('rent') and same_money(
+            home['costs'].get('currency') or currency, currency) else 'budget', 'bought': bought,
         'payday': {'last': start.isoformat(), 'next': payday.isoformat(), 'cycle_days': found.cycle_days,
                    'today': day == start},
         'left': round(left, 2), 'fun_cycle': round(found.fun_cycle, 2),
