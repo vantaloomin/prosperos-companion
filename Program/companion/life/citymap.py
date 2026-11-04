@@ -68,8 +68,8 @@ def history(connection, timeline_id: str, now) -> list[dict]:
 
 
 def marks(events: list[dict], now) -> dict[str, set[str]]:
-    """Which places are their usual ones and recent ones, by place id. Companions have no set workplace yet (a lunch
-    break at a deli is not where they work), so no place is marked as work."""
+    """Which places are their usual ones and recent ones, by place id. Their work is marked from what their job names
+    (`build`, companion/life/drop_by.py), never from where they went: a lunch break at a deli is not where they work."""
     usual_since, recent_since = stamp(now - timedelta(days=USUAL_DAYS)), stamp(now - timedelta(days=RECENT_DAYS))
     counts, result = {}, {}
     for event in events:
@@ -183,6 +183,8 @@ def build(connection, companion: dict, now, story_on: bool) -> dict:
     for event in events:
         by_place.setdefault(event['place'], []).append(event)
     places = []
+    from companion.life import drop_by  # Surprise visits: their work marked, and whether Drop by is on offer.
+    job = drop_by.workplace(connection, companion)
     edits = inside.edited(connection, data['id'])
     for place in data['places']:
         hood = hoods.get(place['neighborhood'])
@@ -190,9 +192,15 @@ def build(connection, companion: dict, now, story_on: bool) -> dict:
             place = inside.with_edits(place, edits) | {'spots_set': True}
         if hood:
             pins = marked.get(place['id'], set()) | ({'scene'} if place['id'] == scene else set())
-            places.append(place_view(place, hood, pins, by_place.get(place['id'], []), people.get(place['id'], []), data.get('era')))
-    homes = [pin for pin in (home_pin(connection, companion, data, hoods, now), your_pin(connection, data, hoods))
-             if pin] + known_pins(connection, companion, data, hoods, now)
+            view = place_view(place, hood, pins, by_place.get(place['id'], []), people.get(place['id'], []), data.get('era'))
+            if job and job['id'] == place['id']:
+                view = {**view, 'pins': sorted({*view['pins'], 'work'}), 'drop_by': drop_by.offer(connection, companion, now, 'work')}
+            places.append(view)
+    theirs = home_pin(connection, companion, data, hoods, now)
+    if theirs:
+        theirs = {**theirs, 'drop_by': drop_by.offer(connection, companion, now, 'home')}
+    homes = [pin for pin in (theirs, your_pin(connection, data, hoods)) if pin] + \
+        known_pins(connection, companion, data, hoods, now)
     next_to = neighbours(list(hoods.values()))
     return {'city': {'id': data['id'], 'name': data['name'], 'lat': data['lat'], 'lon': data['lon'], 'real': real(data),
                      'enclosed': data.get('enclosed') is True},

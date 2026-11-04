@@ -2196,8 +2196,6 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .year-badge { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; font-family: inherit; font-size: 0.75rem; }
 .year-badge svg { width: 0.8rem; height: 0.8rem; }
 /* A world where life stands still: muted rather than the accent, so it reads as waiting, not as news. */
-.paused-badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-family: inherit; font-size: 0.75rem; background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
-.paused-badge svg { width: 0.75rem; height: 0.75rem; }
 .paused-note { line-height: 1.45; }
 .world-rename { flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0; }
 .world-rename input { flex: 1; min-width: 0; }
@@ -2262,7 +2260,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .chat-community .where-strip { max-width: none; }
 .chat-retro .where-strip { max-width: none; width: calc(100% - 12px); }
 @media (max-width: 720px) { .where-strip, .chat-community .where-strip { width: calc(100% - 20px); } }
-.where-strip-place { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.where-strip-place { color: inherit; text-decoration: underline dotted; text-decoration-color: var(--muted); text-underline-offset: 3px; }
+.where-strip-place:hover, .where-strip-place:focus-visible { text-decoration-style: solid; text-decoration-color: currentColor; }
 .where-strip > svg { flex: none; width: 1rem; height: 1rem; color: var(--accent); }
 .where-strip > span { flex: 1; min-width: 0; }
 .where-strip .text-button { flex: none; }
@@ -2391,6 +2390,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .map-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; } .map-card h2 { font-size: 1.05rem; }
 .map-card h3 { font-size: 0.875rem; margin-bottom: 4px; } .map-card p { margin: 0; }
 .map-history { list-style: none; padding: 0; margin: 0; } .map-history .text-button { text-align: left; }
+.map-card-tools { display: flex; gap: 2px; flex: none; }
+/* Under Drop by: the result and the reason it is off read at the same body size (Iris, 2026-11-03). */
+.map-drop-under { color: var(--muted); }
+.map-action { display: flex; align-items: center; gap: 6px; } .map-action > .button { flex: 1; justify-content: center; }
 .map-edit { width: 100%; justify-content: center; } .map-edit-form { display: grid; gap: 6px; } .map-edit-form .rename-row { margin-top: 6px; }
 .map-edit-form select, .map-edit-form textarea { width: 100%; } .map-edit-form textarea { field-sizing: content; min-height: 2lh; max-height: 6lh; }
 .map-card > .button { width: 100%; justify-content: center; }
@@ -2431,7 +2434,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 :root[data-motion='reduce'] .sketch-pin.pin-scene .sketch-badge { animation: none; }
 @media (max-width: 720px) {
   .map-bar { padding: 10px 16px; }
-  .map-card > .button, .map-edit-form .button { min-height: 44px; }
+  .map-card > .button, .map-action > .button, .map-edit-form .button { min-height: 44px; }
   .map-card { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 60%; border-radius: 14px 14px 0 0; }
 }
 .show-on-map { padding: 0 2px; font-size: 0.75rem; }
@@ -3281,7 +3284,9 @@ p.breakup-line { align-items: center; }
 .realism-mix { font-size: 0.8125rem; text-align: right; }
 .slider-row { padding-block: 8px; }
 .slider-row .slider-row-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
-.slider-row .row-value { cursor: default; }
+.slider-row .slider-row-text > .info-tip { justify-self: start; }
+.step-tip-button { padding: 0; border: 0; background: none; text-align: left; cursor: help; text-decoration: underline dotted var(--faint); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.step-tip-button:is(:hover, :focus-visible, [aria-expanded='true']) { text-decoration-color: var(--muted); }
 .slider-row .step-slider { flex: 0 0 200px; width: 200px; margin: 0; }
 .setting-row.disabled .row-value { color: var(--faint); }
 .link-row { width: 100%; text-align: left; color: var(--text); font-size: 0.875rem; }
@@ -3327,6 +3332,7 @@ p.breakup-line { align-items: center; }
   .backend-row .fold-summary { flex-wrap: wrap; }
 }
 .setting-row.stacked { flex-direction: column; align-items: stretch; gap: 6px; padding-block: 10px 12px; }
+.setting-row.stacked .style-more { align-self: flex-start; }
 .setting-row.stacked input:not([type='checkbox']):not([type='range']) { width: 100%; max-width: none; }
 .setting-row .row-link { color: var(--accent); }
 .add-button { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
@@ -3354,3 +3360,12 @@ p.breakup-line { align-items: center; }
 .where-strip .text-button.back-to { flex: 0 1 auto; }
 .back-to-label { display: inline-flex; min-width: 0; white-space: nowrap; }
 .back-to-place { margin-left: 0.3em; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* A number box with its money inside it: a symbol before ($, £) or a name after (shillings, gold). Pay field. */
+.affix-input { position: relative; display: flex; align-items: center; }
+.affix-input input { width: 100%; }
+.affix-input .affix { position: absolute; color: var(--muted); pointer-events: none; }
+.affix-input.has-prefix .affix { left: 12px; }
+.affix-input.has-prefix input { padding-left: 28px; }
+.affix-input.has-suffix .affix { right: 12px; }
+.affix-input.has-suffix input { padding-right: 8.5em; }

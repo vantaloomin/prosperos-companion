@@ -65,6 +65,11 @@ ASKS = re.compile(r"\b(?:call me(?:\s+(?:now|rn|right now|back|asap|please|pls|p
                   r"calling you now|let'?s (?:call|talk on the phone|facetime|hop on a call))\b", re.IGNORECASE)
 # "Call me" before a name or a word is not a call ("you can call me Sam", "call me crazy"); a bare "call?" is.
 BARE = re.compile(r'^\s*(?:call|phone|facetime|ring)\s*\?+\s*$', re.IGNORECASE)
+# Talking about what someone calls you is about a name, not a phone call: "the nickname you're supposed to call me?",
+# "what do you call me?", "you used to call me that".
+NAMING = re.compile(r"\b(?:nick ?name|pet name|name)\b.*\bcall me\b|\bwhat (?:do|did|does|will|would|should|shall|"
+                    r"can) (?:you|they|he|she|people|everyone) call me\b|\b(?:supposed|meant|going|have|got|used) to "
+                    r"call me\b", re.IGNORECASE)
 # A call for another time is talk, not a call now: "call me tonight after work".
 LATER = re.compile(r"\b(?:later|tonight|tomorrow|after (?:work|class|dinner|school)|this (?:evening|weekend)|"
                    r"in (?:a bit|an hour|a few)|when (?:you'?re|you are|i'?m|i am) (?:free|off|home|done|back)|"
@@ -95,7 +100,7 @@ def asked(text: str) -> bool:
     """Whether a user message asks to talk on the phone now."""
     text = own_plans.QUOTED.sub(' ', own_plans.ACTIONS.sub(' ', text)).replace('’', "'")
     for sentence in re.split(r'(?<=[.!?])\s+|\n+', text):
-        if own_plans.PAST.search(sentence) or own_plans.NEGATED.search(sentence) or not (
+        if own_plans.PAST.search(sentence) or own_plans.NEGATED.search(sentence) or NAMING.search(sentence) or not (
                 ASKS.search(sentence) or BARE.match(sentence)):
             continue
         if LATER.search(sentence) and not RIGHT_NOW.search(sentence):

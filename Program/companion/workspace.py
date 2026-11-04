@@ -94,24 +94,32 @@ def update(database, body) -> dict:
         return view(settings(connection))
 
 
+def hold(connection, timestamp: str):
+    """Pause the world `connection` is open on, from `timestamp` in its own time. Any world's connection will do: the
+    Worlds page pauses one the user is not in (companion/worlds.py `set_paused`)."""
+    if connection.execute('SELECT paused_at FROM workspace_settings WHERE id=1').fetchone()[0] is None:
+        connection.execute('UPDATE workspace_settings SET paused_at=?, permission_revision=permission_revision+1, '
+                           'updated_at=? WHERE id=1', (timestamp, timestamp))
+        connection.execute('INSERT INTO pauses (id, started_at) VALUES (?, ?)', (identifier(), timestamp))
+
+
+def release(connection, timestamp: str):
+    """Resuming skips the paused interval; nothing is generated for it automatically."""
+    if connection.execute('SELECT paused_at FROM workspace_settings WHERE id=1').fetchone()[0] is not None:
+        connection.execute('UPDATE workspace_settings SET paused_at=NULL, permission_revision=permission_revision+1, '
+                           'updated_at=? WHERE id=1', (timestamp,))
+        connection.execute('UPDATE pauses SET ended_at=? WHERE ended_at IS NULL', (timestamp,))
+
+
 def pause(database) -> dict:
     with database.connect(write=True) as connection:
-        if settings(connection)['paused_at'] is None:
-            timestamp = database.now()
-            connection.execute('UPDATE workspace_settings SET paused_at=?, permission_revision=permission_revision+1, '
-                               'updated_at=? WHERE id=1', (timestamp, timestamp))
-            connection.execute('INSERT INTO pauses (id, started_at) VALUES (?, ?)', (identifier(), timestamp))
+        hold(connection, database.now())
         return view(settings(connection))
 
 
 def resume(database) -> dict:
-    """Resuming skips the paused interval; nothing is generated for it automatically."""
     with database.connect(write=True) as connection:
-        if settings(connection)['paused_at'] is not None:
-            timestamp = database.now()
-            connection.execute('UPDATE workspace_settings SET paused_at=NULL, permission_revision=permission_revision+1, '
-                               'updated_at=? WHERE id=1', (timestamp,))
-            connection.execute('UPDATE pauses SET ended_at=? WHERE ended_at IS NULL', (timestamp,))
+        release(connection, database.now())
         return view(settings(connection))
 
 

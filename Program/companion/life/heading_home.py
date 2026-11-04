@@ -49,7 +49,8 @@ def start_hood(connection, outing: dict, data: dict | None) -> dict | None:
 def trip(connection, companion: dict, outing: dict) -> dict | None:
     """{'minutes', 'by'} for their way home from this outing, or None when there is none (at their own place)."""
     outing = onward.final(outing, companion['version']['timezone'])  # From the second place, when they moved on.
-    if outing['place']['kind'] in NO_TRIP:
+    # Dropping by at work (companion/life/drop_by.py): they stay at work.
+    if outing['place']['kind'] in NO_TRIP or outing['activity'] == 'visit-work':
         return None
     definition = companion['version']['definition']
     data = outings.city_data(connection, definition)

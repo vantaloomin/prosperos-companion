@@ -235,19 +235,59 @@ def test_a_copy_of_a_townsperson_is_not_that_townsperson_again(client, companion
     assert copy['worlds'][0]['city_id'] == data['world']['city_id']
 
 
-def test_a_world_the_user_left_shows_it_is_paused_and_since_when(client, companion, app):
-    # Only the world the user is in runs; one they left waits for them (tester, 1.2.1).
+def test_leaving_a_world_is_not_a_pause(client, companion, app):
+    # Only the world the user is in runs; one they left catches up when they go back, so it is away, not paused
+    # (tester, 1.3.0: "I can't leave a world without it being paused").
     made = ok(client.post('/api/worlds', json={'name': 'Somewhere else'}))
     data = listing(client)
     here = data['world']
-    assert not here['paused'] and here['paused_since'] is None
+    assert not here['paused'] and here['away_since'] is None
     waiting = next(world for world in data['personas'][0]['worlds'] if world['id'] == made['id'])
-    assert waiting['paused'] and not waiting['paused_in_settings']
+    assert not waiting['paused'] and not waiting['paused_in_settings']
     ok(client.post(f"/api/worlds/{made['id']}/switch"))
     data = listing(client)
     left = next(world for world in data['personas'][0]['worlds'] if world['id'] == here['id'])
-    assert left['paused'] and left['paused_since'] and not left['paused_in_settings']
+    assert not left['paused'] and left['away_since'] and left['paused_since'] is None
     assert not data['world']['paused']
+
+
+def test_a_pause_stays_with_its_world_when_the_user_switches(client, companion, app):
+    first = listing(client)['world']
+    made = ok(client.post('/api/worlds', json={'name': 'Somewhere else'}))
+    ok(client.post('/api/pause', json={}))
+    ok(client.post(f"/api/worlds/{made['id']}/switch"))
+    # The world they go to runs; the one they paused stays paused.
+    assert not client.get('/api/settings').json()['paused']
+    data = listing(client)
+    assert not data['world']['paused']
+    left = next(world for world in data['personas'][0]['worlds'] if world['id'] == first['id'])
+    assert left['paused'] and left['paused_since']
+    ok(client.post(f"/api/worlds/{first['id']}/switch"))
+    assert client.get('/api/settings').json()['paused'] and listing(client)['world']['paused']
+
+
+def test_a_world_the_user_left_can_be_paused_and_resumed_from_outside(client, companion, app):
+    first = listing(client)['world']
+    made = ok(client.post('/api/worlds', json={'name': 'Somewhere else'}))
+    ok(client.post(f"/api/worlds/{made['id']}/switch"))
+    paused = ok(client.post(f"/api/worlds/{first['id']}/pause", json={}))
+    left = next(world for world in paused['personas'][0]['worlds'] if world['id'] == first['id'])
+    assert left['paused'] and left['paused_since'] and not paused['world']['paused']
+    resumed = ok(client.post(f"/api/worlds/{first['id']}/resume", json={}))
+    left = next(world for world in resumed['personas'][0]['worlds'] if world['id'] == first['id'])
+    assert not left['paused']
+    ok(client.post(f"/api/worlds/{first['id']}/switch"))
+    assert not client.get('/api/settings').json()['paused']
+    with app.state.database.connect() as connection:
+        rows = connection.execute('SELECT started_at, ended_at FROM pauses').fetchall()
+    assert len(rows) == 1 and rows[0]['ended_at']
+
+
+def test_the_world_the_user_is_in_pauses_from_the_worlds_page_too(client, companion, app):
+    here = listing(client)['world']
+    assert ok(client.post(f"/api/worlds/{here['id']}/pause", json={}))['world']['paused']
+    assert client.get('/api/settings').json()['paused']
+    assert not ok(client.post(f"/api/worlds/{here['id']}/resume", json={}))['world']['paused']
 
 
 def test_a_world_paused_in_settings_says_so_even_while_the_user_is_in_it(client, companion, app):

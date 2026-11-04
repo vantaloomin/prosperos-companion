@@ -82,3 +82,15 @@ def test_a_plan_reopened_after_its_day_gets_two_weeks(client, companion, clock):
     clock.advance(timedelta(days=15))
     settle(client)
     assert current(client, 'Dinner')['plan_status'] == 'completed'
+
+
+def test_a_plan_the_model_found_with_no_day_goes_after_a_quiet_week(client, companion, clock):
+    plan = remember(client, layer='plan', subject='Cooking', value='boil the meat next time', plan_status='proposed')
+    with client.app.state.database.connect(write=True) as connection:  # As the memory model saves one.
+        connection.execute("UPDATE memories SET origin='automatic' WHERE id=?", (plan['id'],))
+    clock.advance(timedelta(days=6))
+    settle(client)
+    assert current(client, 'Cooking')['plan_status'] == 'proposed'
+    clock.advance(timedelta(days=1, hours=1))
+    settle(client)
+    assert current(client, 'Cooking')['plan_status'] == 'completed'

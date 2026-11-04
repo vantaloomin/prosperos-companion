@@ -100,14 +100,6 @@ STORIES = (
                 'spoke up in the meeting today. everyone knows whose work it was now', 'good'),
                ('{name} took the credit problem to their manager, who is keeping an eye on it.',
                 "talked to my manager about the credit thing. they're keeping an eye on it"))), (2, 5)),
-    # Retired in v1.2.2; kept so storylines started before then still read.
-    Story('work_creep', 1, 'work', (
-        beat('A new guy at {name}\'s work keeps hitting on them, and it is getting uncomfortable.',
-             'I hate the new guy at work. He keeps hitting on me.', 'bad'),
-        either(('{name} told the new guy to knock it off, and he finally backed off.',
-                'update on the new guy: I told him to knock it off and he actually did', 'good'),
-               ('{name} reported the new guy to their manager after he kept at it.',
-                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5), own=True),
     Story('friend_breakup', 1, 'friend', (
         beat('{a} went through a breakup, and {name} spent the evening on the phone with them.',
              'rough night. {a} got dumped and I was on the phone with them for hours', 'bad'),
@@ -151,7 +143,14 @@ STORIES = (
         either(('{name} and {a} talked it out and are okay again.', 'talked to {a}. we\'re good again', 'good'),
                ('{name} and {a} are still a bit cold with each other.',
                 "things with {a} are still weird. we're talking but it's not the same", 'bad'))), (3, 8)),
-    # Soap opera: drunk kisses, separations, family secrets.
+    # Soap opera: drunk kisses, separations, family secrets, a coworker who won't take no.
+    Story('work_creep', 3, 'work', (
+        beat('A new guy at {name}\'s work keeps hitting on them, and it is getting uncomfortable.',
+             'I hate the new guy at work. He keeps hitting on me.', 'bad'),
+        either(('{name} told the new guy to knock it off, and he finally backed off.',
+                'update on the new guy: I told him to knock it off and he actually did', 'good'),
+               ('{name} reported the new guy to their manager after he kept at it.',
+                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5)),
     Story('drunk_kiss', 3, 'best friend, single', (
         beat('{name} got drunk and kissed {a}, their best friend.', 'I got drunk and kissed my best friend. what do I do'),
         beat('{name} and {a} are being weird around each other.', "{a} and I are being so weird around each other. help"),

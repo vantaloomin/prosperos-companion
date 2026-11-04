@@ -22,6 +22,7 @@ import hashlib
 import random
 import re
 
+from companion import prompt_library
 from companion.characters import by_id
 from companion.database import identifier, optional
 from companion.images import backends, prompts
@@ -128,8 +129,10 @@ CLOSE_UP = 'Face close-up'
 
 
 def depicts_companion(inputs: dict) -> bool:
-    """Whether a picture shows the companion: a view of what they see does not, nor a meme of something else."""
-    return inputs.get('framing') != 'view' and not (inputs.get('meme') or {}).get('subject')
+    """Whether a picture shows the companion: a view of what they see does not, nor a meme of something else, nor a
+    picture of a pet or an errand's things (`pictured` false, companion/images/prompts.py)."""
+    return inputs.get('framing') not in ('view', 'things') and not (inputs.get('meme') or {}).get('subject') \
+        and inputs.get('pictured', True) is not False
 
 
 def companion_of_version(connection, version_id: str | None) -> str | None:
@@ -247,15 +250,16 @@ async def ensure(database, adapter, backend: dict, config: dict, key, raw_dir, c
         if existing is not None:
             return existing
         picture = profile_picture(database, connection, companion)
+        negative = prompt_library.text(connection, 'image-negative')
     definition = companion['version']['definition']
     appearance = ' '.join(part for part in (definition.get('appearance', ''), definition.get('in_photos') or '') if part)
     prompt = compose(text, backends.style_for(backend, general_style), picture is not None, backend['kind'])
-    classification = classify({'prompt': prompt, 'negative': prompts.NEGATIVE, 'appearance': appearance})
+    classification = classify({'prompt': prompt, 'negative': negative, 'appearance': appearance})
     if not eligible(classification, backend):
         return None
     sheet_id = identifier()
     width, height = size_for(backend['kind'], ASPECT)
-    request = ImageRequest(f'sheet-{sheet_id}', prompt, prompts.NEGATIVE, random.SystemRandom().randrange(1, 2**31),
+    request = ImageRequest(f'sheet-{sheet_id}', prompt, negative, random.SystemRandom().randrange(1, 2**31),
                            width, height, backend, config, key, raw_dir, reference=picture)
     result = None
     try:

@@ -286,11 +286,45 @@ def seen(text: str) -> str:
     return re.sub(r'\s{2,}', ' ', text)
 
 
-def picture(sheet: dict, who: str) -> str:
+# A person named in the words that follow the sheet ("tall muscular half-vastayan man, early thirties"): the sheet then
+# says "He has ..." rather than opening a second "A man with ...".
+PERSON = re.compile(r'\b(?:man|woman|person|guy|girl|boy|lady|gentleman)\b', re.IGNORECASE)
+# What a feature is of: one the following words already speak of ("pointed pink furry ears") is said once.
+FEATURE_PARTS = re.compile(r'\b(?:ears?|tail|horns?|wings?|fur|scales|antlers|fangs|tusks|canines|teeth|freckles?|'
+                           r'dimples?|moles?|scars?|tattoos?|piercings?|birthmark|glasses|eyebrows?|lips|cheeks?)\b',
+                           re.IGNORECASE)
+
+
+def parts_of(text: str) -> set[str]:
+    return {part.lower().rstrip('s') for part in FEATURE_PARTS.findall(text)}
+
+
+def unsaid(sheet: dict, said: str) -> dict:
+    """The sheet without what `said` (the In photos line, or the visible appearance, that follows it in a prompt)
+    already says: Sett's "very tall man in his mid thirties ... vastayan ears" next to his own "tall muscular
+    half-vastayan man, early thirties, pointed pink furry ears" put his size, age and ears in twice. Their own words
+    win, so the sheet keeps only what they leave out."""
+    if not said.strip():
+        return sheet
+    gone = covered(said)
+    if gone & {'height_cm', 'build'}:
+        gone |= {'height_cm', 'build'}  # "tall muscular" is their size: a sheet "very tall" beside it is a second one.
+    if LOOKS_AGE.search(said) or SPELLED_AGE.search(said) or re.search(r'\b\d{2}[- ]?(?:years?|yo)\b', said):
+        gone |= {'age', 'looks_age'}
+    # A feature goes when the words speak of the same part, not for any feature word: "taped knuckles" keeps freckles.
+    gone.discard('feature')
+    if parts_of(sheet.get('feature') or '') & parts_of(said):
+        gone.add('feature')
+    return {**sheet, **{field: None if field in NUMBERS or field == 'looks_age' else '' for field in gone}}
+
+
+def picture(sheet: dict, who: str, said: str = '') -> str:
     """The sheet as the opening of a picture's description: 'A tall, athletic woman in her early thirties with
     olive skin, an oval face, a defined jawline, a straight nose, almond-shaped hazel eyes, shoulder-length wavy
     dark brown hair and freckles.' Weight is left to the build word: an image model draws words, not numbers.
-    `who` is she, he or they."""
+    `who` is she, he or they. `said` is what follows the sheet in the prompt (`unsaid`): what it says is left out,
+    and when it names the person itself the sheet reads 'He has olive skin, ...' or is left out altogether."""
+    sheet = unsaid(sheet, said)
     noun = {'she': 'woman', 'he': 'man'}.get(who, 'person')
     possessive = {'she': 'her', 'he': 'his'}.get(who, 'their')
     build = sheet.get('build') or ''
@@ -311,6 +345,12 @@ def picture(sheet: dict, who: str) -> str:
     if 'nose' in parts[7] and parts[3]:
         parts[3] = ''  # the feature says how their nose looks
     parts = [part for part in parts if part]
+    if said and PERSON.search(said) and not size and not sheet.get('age'):
+        subject = {'she': 'She', 'he': 'He'}.get(who, 'They')
+        if not parts:
+            return ''
+        listed = parts[0] if len(parts) == 1 else f"{', '.join(parts[:-1])} and {parts[-1]}"
+        return f"{subject} {'have' if subject == 'They' else 'has'} {listed}."
     if not parts:
         return f'{opening[:1].upper()}{opening[1:]}.'
     listed = parts[0] if len(parts) == 1 else f"{', '.join(parts[:-1])} and {parts[-1]}"

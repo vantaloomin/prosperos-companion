@@ -256,10 +256,12 @@ def test_a_clock_moved_back_hides_a_call_not_yet_made(client, nearby, clock):
 
 
 def test_what_is_not_asking_to_call_or_hanging_up():
-    for text in ('you can call me Sam', 'call me crazy but I love it', 'they call me the boss', 'call me old fashioned'):
+    for text in ('you can call me Sam', 'call me crazy but I love it', 'they call me the boss', 'call me old fashioned',
+                 "do you remember the nickname you're supposed to call me?", 'what do you call me?',
+                 "what's the pet name you call me?", 'you used to call me?'):
         assert not calls.asked(text), text
     for text in ('can we talk on the phone?', 'call?', 'free for a call?', "I'll call you in a sec", 'call me rn please',
-                 'call me, I miss you'):
+                 'call me, I miss you', 'can you call me? I need to hear you', 'call me now?'):
         assert calls.asked(text), text
     for text in ('we need to go to that place sometime', 'i have to go to the bathroom brb',
                  'i gotta run to the store later haha but anyway'):
