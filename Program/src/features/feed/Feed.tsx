@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { Download } from 'lucide-react'
+import { ChevronLeft, Download } from 'lucide-react'
 import { api, newId } from '../../api'
 import { HISTORY_KEY, type View } from '../../companion'
 import type { Companion, FeedPage, FeedPost, FeedSource } from '../../types'
@@ -14,10 +14,13 @@ import { isActive } from './imageState'
 import { useEraWords } from '../world/useEraWords'
 import type { EraWords } from '../world/eraWords'
 
-export function Feed({ companion, go }: { companion: Companion; go: (view: View) => void }) {
+/** The posts: on the companion's profile, opening on their own, or as the rail's page of their own (`page`), opening on
+ * everyone's, with a title since no profile header says whose they are there (Iris, 2026-11-04). */
+export function Feed({ companion, go, page }: { companion: Companion; go: (view: View) => void; page?: boolean }) {
   const client = useQueryClient()
   const [hidden, setHidden] = useState(false)
-  const [source, setSource] = useState<FeedSource>('all')
+  const look = feedLook(!!page)
+  const [source, setSource] = useState<FeedSource>(look.start)
   const [error, setError] = useState<string | null>(null)
   const words = useEraWords()
   const key = useMemo(() => ['feed', hidden, source], [hidden, source])
@@ -82,9 +85,9 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
   })
 
   return (
-    <section className="page feed">
-      {/* No intro (style guide): the profile header says whose posts these are, and the chips say which are shown. */}
-      <h2 className="visually-hidden">{words.posts_tab}</h2>
+    <section className={look.className}>
+      {/* No intro (style guide): the profile header or the page title says whose posts these are, and the chips say which are shown. */}
+      <FeedTitle page={!!page} words={words} go={go} />
       <div className="feed-top">
         <OwnPost onPosted={() => {
           setError(null)
@@ -103,6 +106,22 @@ export function Feed({ companion, go }: { companion: Companion; go: (view: View)
       <div className="post-list">{posts.map((post) => <PostCard key={post.id} post={post} name={name} actions={actions} />)}</div>
       {feed.hasNextPage && <button type="button" className="button load-more" disabled={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>Show older {words.posts}</button>}
     </section>
+  )
+}
+
+/** Which posts each place opens on, and its class: everyone's on the rail page, the companion's on the profile. */
+function feedLook(page: boolean): { start: FeedSource; className: string } {
+  return page ? { start: 'all', className: 'page feed feed-page' } : { start: 'companion', className: 'page feed' }
+}
+
+/** The rail page's title; a phone, with no rail, gets the profile's ‹ back to where the user came from (Today, when the page opened first). */
+function FeedTitle({ page, words, go }: { page: boolean; words: EraWords; go: (view: View) => void }) {
+  if (!page) return <h2 className="visually-hidden">{words.posts_tab}</h2>
+  return (
+    <div className="feed-title">
+      <button type="button" className="icon-button feed-back phone-only" aria-label="Back" onClick={() => { if (window.history.length > 1) window.history.back(); else go('today') }}><ChevronLeft aria-hidden="true" /></button>
+      <h1>{words.posts_tab}</h1>
+    </div>
   )
 }
 

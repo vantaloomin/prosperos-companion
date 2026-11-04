@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { chatsTarget, inChats, railCurrent } from '../../src/features/nav/navText.ts'
 
 test('Chats holds the list, every chat, the profile tabs, group chats and Secrets, but not Worlds', () => {
-  for (const view of ['chats', 'conversation', 'feed', 'memories', 'character', 'portraits', 'another', 'secrets', 'group/abc']) assert.equal(inChats(view), true, view)
+  for (const view of ['chats', 'conversation', 'feed', 'posts', 'memories', 'character', 'portraits', 'another', 'secrets', 'group/abc']) assert.equal(inChats(view), true, view)
   // Worlds opens from the world avatar, so no tab is lit there (Iris).
   assert.equal(inChats('worlds'), false)
   for (const view of ['today', 'map', 'story', 'dating', 'settings/models']) assert.equal(inChats(view), false, view)
@@ -24,4 +24,10 @@ test('the side rail lights Memories on its own and Profile on the other profile 
   assert.equal(railCurrent('today', 'map/abc'), true)
   assert.equal(railCurrent('conversation', 'group/abc'), true)
   assert.equal(railCurrent('settings', 'settings/debug'), true)
+})
+
+test('the rail lights Posts on its own page, and Chats on the profile\'s Posts tab', () => {
+  assert.equal(railCurrent('posts', 'posts'), true)
+  assert.equal(railCurrent('conversation', 'posts'), false)
+  assert.equal(railCurrent('posts', 'feed'), false)
 })
