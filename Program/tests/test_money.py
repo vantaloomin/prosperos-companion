@@ -317,7 +317,8 @@ def test_rent_is_set_once_and_stays_when_pay_changes(client):
         row = connection.execute("SELECT id, details FROM home_items WHERE kind='home'").fetchone()
         details = {**decode(row[1]), 'currency': {'code': 'GLD', 'symbol': 'g', 'name': 'gold'}, 'rent': 19}
         connection.execute('UPDATE home_items SET details=? WHERE id=?', (encode(details), row[0]))
-    priced = client.get('/api/today/money').json()  # Reading the home prices it once, in dollars.
+    client.get('/api/life/home')  # Reading the home prices it once, in dollars.
+    priced = client.get('/api/today/money').json()
     assert priced['rent_from'] == 'home' and priced['budget']['rent'] > 100
     raised = client.post('/api/companion/versions', json={'definition': {**teacher, 'money': {'career': 'teacher',
                                                                                               'pay': 20000}},
