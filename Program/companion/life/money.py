@@ -18,8 +18,7 @@ from functools import cache, lru_cache
 
 from companion.characters import require_current
 from companion.clock import zone
-from companion.world import catalog, decades, intimacy, money_fill, ships
-from companion.world.source import CatalogWorld
+from companion.world import catalog, changes, custom, decades, destinations, intimacy, money_fill, ships
 
 PAY_TIERS = {'$': 0, '$$': 1, '$$$': 2, '$$$$': 3}
 DEFAULT_TIER = 1
@@ -171,9 +170,13 @@ class Profile:
 
 
 def city_for(definition: dict) -> dict | None:
-    world = CatalogWorld()
+    """Their home city: built in, from a pack, or the user's own (written in the app or brought from a world map)."""
+    yours = custom.known()
     for text in (definition.get('home_city'), definition.get('location')):
-        if text and (found := world.find(text)):
+        if not text:
+            continue
+        found = destinations.city(text) if destinations.is_stand_in(text) else changes.resolve(text, yours)
+        if found:
             return found
     return None
 
@@ -379,6 +382,7 @@ def build(definition: dict) -> Profile | None:
 def cached(key: tuple) -> Profile | None:
     definition = dict(key)
     definition.pop('year')  # Only keys the cache: a world in a past year has that year's prices.
+    definition.pop('city')  # So does the city's data_version.
     return build({**definition, 'money': dict(definition['money'])})
 
 
@@ -389,8 +393,10 @@ def profile(definition: dict) -> Profile | None:
     """The budget for this definition (cached: the composer asks once per option per slot)."""
     setup = definition.get('money') or {}
     key = tuple((name, definition.get(name) or '') for name in PROFILE_KEYS)
+    city = city_for(definition)
+    # The city's data_version keys it too, so a user's city given new rents or a new currency is read afresh.
     key += (('money', tuple(sorted((name, str(value)) for name, value in setup.items()))),
-            ('year', decades.world_year()))
+            ('year', decades.world_year()), ('city', (city or {}).get('data_version', '')))
     return cached(key)
 
 

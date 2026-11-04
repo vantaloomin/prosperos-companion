@@ -180,14 +180,15 @@ def test_a_three_digit_age_is_read_only_for_a_long_lived_kind_and_drawn_the_age_
     assert 'forties' in elf and 'three hundred' not in elf
 
 
-def test_an_elf_hears_their_age_in_human_terms_and_a_human_hears_nothing_new(client, clock):
-    companion = make(client, identity='Aerin is an elf, 312. A quiet bookbinder. They/them.')
+def test_an_elf_hears_their_age_in_human_terms_and_a_human_hears_only_their_birthday(client, clock):
+    companion = make(client, identity='Aerin is an elf, 312. A quiet bookbinder. They/them.', birthday='01-14')
     definition = companion['version']['definition']
     today = clock.now().date()
     with connect(client) as connection:
-        assert ages.age_line(connection, companion['id'], definition, today) == 'You are 312, about 49 in human terms.'
+        assert ages.age_line(connection, companion['id'], definition, today) == \
+            'You are 312, about 49 in human terms. Your birthday is 14 January.'
         human = {**definition, 'identity': 'Aerin is 34. A quiet bookbinder. They/them.'}
-        assert ages.age_line(connection, companion['id'], human, today) is None
+        assert ages.age_line(connection, companion['id'], human, today) == 'Your birthday is 14 January.'
 
 
 def test_the_user_picks_a_circle_persons_kind_and_their_life_age_follows(client):

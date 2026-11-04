@@ -44,18 +44,85 @@ def test_a_night_brings_a_dream_from_the_day(client, dreamer, clock):
     assert today(client) == found
 
 
+GROUPS = ('modern', 'historical', 'fantasy', 'future')
+
+
 def test_every_template_reads_right():
     chooser = random.Random(1)
+    for group in GROUPS:
+        for template in dreams.data()['templates']:
+            for found in (DAY, {**DAY, 'people': ['Ana'], 'user': True}):
+                if template in dreams.fitting(found, group=group):
+                    dream = dreams.fill(template, found, 'Mira', chooser, group)
+                    assert '{' not in ''.join(dream.values())
+                    assert dream['told'].startswith('Last night you dreamed')
+                    if 'you' in dream['text'].split():
+                        assert 'the user' in dream['told']
+        # Templates say "every piece was {object}" and "knew everything about them": the things are always many.
+        assert not [thing for thing in dreams.bank('object', group) if thing.split()[0] in {'a', 'an', 'one', 'the'}]
+
+
+def test_every_era_has_its_own_dream_banks():
+    for name in ('odd', 'object'):
+        assert set(dreams.data()[name]) == set(GROUPS)
+        for group in GROUPS:
+            found = dreams.bank(name, group)
+            assert len(found) >= 100 and len(found) == len(set(found)), (name, group)
+    assert dreams.bank('odd', 'nowhere') == dreams.bank('odd', 'modern')
+
+
+# Words that belong to today's world, or at least to one after the eras below. A dream in Camelot or 1895 London
+# never has an airport in it (the 1.3.1 Camelot report).
+MODERN = {'airport', 'subway', 'shopping', 'mall', 'parking', 'gas', 'escalator', 'elevator', 'highway', 'laundromat',
+          'bus', 'vending', 'drive-in', 'supermarket', 'stadium', 'phone', 'office', 'golf', 'tv', 'television',
+          'diner', 'concert', 'karaoke', 'video', 'submarine', 'car', 'cars', 'taxi', 'motorbike', 'theme',
+          'gym', 'cinema', 'film', 'coffee', 'sticky', 'rubber', 'paperclips', 'cassette', 'bulbs',
+          'traffic', 'cones', 'donuts', 'tennis', 'flashlights', 'glow', 'magnets', 'sunglasses', 'toy',
+          'crayons', 'plastic', 'computer', 'radio', 'electric', 'plane', 'jet', 'train', 'trains', 'railway',
+          'tram', 'hologram', 'drone', 'drones', 'shuttle', 'station'}
+OLDER = {'historical': MODERN - {'train', 'trains', 'railway', 'tram', 'toy', 'rubber', 'gas', 'office', 'station'},
+         'fantasy': MODERN | {'telegraph', 'telegrams', 'steam', 'steamship', 'gas', 'gaslit',
+                              'tickets', 'postcards', 'stamps', 'newspapers', 'watches', 'umbrellas', 'bicycles'},
+         'future': {'airport', 'subway', 'gas', 'laundromat', 'cassette', 'telegraph', 'telegrams', 'gaslit',
+                    'steamship', 'stagecoach', 'hansom'}}
+
+
+def words_in(group: str) -> set[str]:
+    texts = dreams.bank('odd', group) + dreams.bank('object', group)
+    return {word.strip('.,!?\'') for text in texts for word in text.lower().replace("'s", '').split()}
+
+
+def test_older_and_later_worlds_dream_in_their_own_words():
+    for group, banned in OLDER.items():
+        assert not words_in(group) & banned, (group, words_in(group) & banned)
+    assert 'airport' in words_in('modern')
+
+
+def test_trains_and_museums_stay_out_of_castle_dreams():
+    found = {**DAY, 'people': ['Ana', 'Theo']}
+    ids = {template['id'] for template in dreams.fitting(found, group='fantasy')}
+    assert 'two-train' not in ids and 'one-place-museum' not in ids
+    assert 'two-train' in {template['id'] for template in dreams.fitting(found, group='historical')}
     for template in dreams.data()['templates']:
-        for found in (DAY, {**DAY, 'people': ['Ana'], 'user': True}):
-            if template in dreams.fitting(found):
-                dream = dreams.fill(template, found, 'Mira', chooser)
-                assert '{' not in ''.join(dream.values())
-                assert dream['told'].startswith('Last night you dreamed')
-                if 'you' in dream['text'].split():
-                    assert 'the user' in dream['told']
-    # Templates say "every piece was {object}" and "knew everything about them": the things are always many.
-    assert not [thing for thing in dreams.data()['object'] if thing.split()[0] in {'a', 'an', 'one', 'the'}]
+        assert set(template.get('groups', GROUPS)) <= set(GROUPS)
+
+
+def test_a_dream_in_camelot_uses_camelot_words(client, dreamer, clock, monkeypatch):
+    from companion.world import catalog
+    camelot = catalog.city('camelot')
+    assert dreams.era_words.group(camelot) == 'fantasy'
+    monkeypatch.setattr(dreams.newcomers, 'city_for', lambda *_args: camelot)
+    monkeypatch.setitem(dreams.data(), 'per_week', 7)
+    seen = []
+    for _night in range(10):
+        morning(clock)
+        for dream in today(client):
+            seen.append(dream['text'])
+            words = {word.strip('.,!?') for word in dream['text'].lower().split()}
+            assert not words & OLDER['fantasy'] - {'game'}, dream['text']
+    assert seen and any(item in text for text in seen for item in dreams.bank('odd', 'fantasy') +
+                        dreams.bank('object', 'fantasy') if item not in dreams.bank('object', 'modern') +
+                        dreams.bank('odd', 'modern'))
 
 
 def test_the_user_only_turns_up_as_a_second_person():
@@ -128,7 +195,7 @@ def test_people_and_places_a_secret_is_about_are_left_out(client, companion, mon
 def test_dreams_are_never_romantic_or_sexual():
     banned = {'kiss', 'kissed', 'kissing', 'bed', 'naked', 'date', 'romantic', 'lover', 'sex', 'sexy', 'married'}
     texts = [template[field] for template in dreams.data()['templates'] for field in ('text', 'told', 'share')]
-    texts += dreams.data()['odd'] + dreams.data()['object']
+    texts += [item for name in ('odd', 'object') for group in GROUPS for item in dreams.bank(name, group)]
     assert not {word.strip('.,!?') for text in texts for word in text.lower().split()} & banned
 
 
@@ -151,7 +218,7 @@ def test_a_night_waits_until_the_day_has_been_lived(client, dreamer, clock):
 def test_a_dream_says_she_for_a_dreamer_described_as_she():
     from companion.life import pronouns
     she = {'name': 'Mira', 'identity': 'She is a nurse.'}
-    text = 'Mira dreamed they were on a train with Jo and you. Mira kept checking their wallet the whole time.'
+    text = 'Mira dreamed they were on a train with Jo and you. Mira kept counting their money and coming up short.'
     assert pronouns.said(text, dreams.DREAMER, she) == \
-        'Mira dreamed she was on a train with Jo and you. Mira kept checking her wallet the whole time.'
+        'Mira dreamed she was on a train with Jo and you. Mira kept counting her money and coming up short.'
     assert pronouns.said(text, dreams.DREAMER, {'name': 'Sam', 'identity': 'A nurse.'}) == text

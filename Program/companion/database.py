@@ -99,10 +99,12 @@ class Database:
         self.follow()
 
     def follow(self):
-        """Point what reads the time app-wide (bookkeeping stamps, the town's turnover) at this database's clock."""
-        from companion.world import turnover
+        """Point what reads the time app-wide (bookkeeping stamps, the town's turnover) at this database's clock, and
+        what reads the user's cities without a connection (the budget) at its cities."""
+        from companion.world import custom, turnover
         clocks.CURRENT[0] = self.clock
         turnover.load(self)
+        custom.follow(self)
 
     def now(self) -> str:
         return stamp(self.clock.now())
