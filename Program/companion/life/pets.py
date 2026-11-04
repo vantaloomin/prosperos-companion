@@ -48,6 +48,8 @@ TRAVELS_ALONG = 0.6
 # Moments at work, where pet news is not woven (companion/life/home.py WORKING_ACTIVITIES).
 WORKING = {'steady-shift', 'busy-shift', 'library', 'study-cafe'}
 LEGACY_AGE = re.compile(r',? about (\d+) years? old$')
+# The most years an old description's age counts for: "about 9999 years old" would date a birth before year 1.
+OLDEST_LEGACY = 60
 # How likely someone in the circle has a pet: about one in three on Earth (many share one with family there), and
 # about one in ten aboard a ship or station (companion/world/ships.py), where only a cabin-sized pet fits.
 CIRCLE_OWNS = 0.33
@@ -165,7 +167,7 @@ def from_home_item(item: dict, era: str, started: date) -> dict:
         born = date.fromisoformat(born)
     else:
         legacy = LEGACY_AGE.search(item.get('description') or '')
-        years = int(legacy.group(1)) if legacy else 1 + int(generators.unit(item['id'], 'age') * 6)
+        years = min(int(legacy.group(1)), OLDEST_LEGACY) if legacy else 1 + int(generators.unit(item['id'], 'age') * 6)
         born = since - timedelta(days=years * 365)
     return pet(f"home:{item['id']}", item['name'], item['variety'], looks, born, max(since, started), era,
                item.get('lifespan_days'), spared=bool(item.get('spared')), item_id=item['id'], owner='companion')

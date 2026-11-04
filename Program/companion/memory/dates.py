@@ -84,17 +84,26 @@ def weekday_span(prefix: str, name: str, today: date, past: bool) -> Span:
     return Span(day, day + timedelta(days=1))
 
 
+def on_day(year: int, month: int, number: int) -> tuple[date, bool] | None:
+    """(the day, whether it is exact): February 29 in a year without one is kept on the 28th, as not certain;
+    a day no month has ("April 31") is None."""
+    try:
+        return date(year, month, number), True
+    except ValueError:
+        return (date(year, 2, 28), False) if (month, number) == (2, 29) else None
+
+
 def month_day(month: str, number: int, today: date, past: bool) -> Span | None:
     index = MONTHS.index(month.lower()) + 1
-    try:
-        day = date(today.year, index, number)
-    except ValueError:
+    found = on_day(today.year, index, number)
+    if found is None:
         return None
-    if past and day > today:
-        day = date(today.year - 1, index, number)
-    elif not past and day < today:
-        day = date(today.year + 1, index, number)
-    return Span(day, day + timedelta(days=1))
+    if past and found[0] > today:
+        found = on_day(today.year - 1, index, number)
+    elif not past and found[0] < today:
+        found = on_day(today.year + 1, index, number)
+    day, certain = found
+    return Span(day, day + timedelta(days=1), certain)
 
 
 FIXED = {

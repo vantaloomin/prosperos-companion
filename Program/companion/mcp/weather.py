@@ -6,6 +6,7 @@ temperature can be read from it; otherwise the day keeps its typical weather. Th
 marked `observed` with its source and time, so the context and the Today view never present
 climate averages as a forecast or a lookup as anything other than what it is.
 """
+import math
 import re
 
 from companion.characters import current
@@ -17,6 +18,8 @@ NO_RAIN = re.compile(r'\b(no|without)\s+(rain|showers?|snow)\b', re.I)
 TEMPERATURE = re.compile(r'(-?\d{1,3}(?:\.\d+)?)\s*°\s*([FC])\b|(-?\d{1,3}(?:\.\d+)?)\s*(?:degrees\s+)?(F|C)\b')
 STRUCTURED_F = ('high_f', 'low_f', 'temperature_f', 'temp_f', 'max_temp_f', 'min_temp_f')
 STRUCTURED_C = ('high_c', 'low_c', 'temperature_c', 'temp_c', 'max_temp_c', 'min_temp_c')
+# The coldest and hottest air temperatures a weather lookup can report (°F).
+LOWEST_F, HIGHEST_F = -60, 135
 SUMMARY_KEYS = ('condition', 'conditions', 'summary', 'description', 'weather')
 
 
@@ -24,21 +27,26 @@ def fahrenheit(value: float, unit: str) -> int:
     return round(value * 9 / 5 + 32) if unit.upper() == 'C' else round(value)
 
 
+def plausible(values: list[float]) -> list[int]:
+    """Readings a place on Earth could have, in °F; a service's 9999, NaN or Infinity is left out."""
+    return [round(value) for value in values if math.isfinite(value) and LOWEST_F <= value <= HIGHEST_F]
+
+
 def readings(content: str, structured: dict | None) -> list[int]:
     """Temperatures in °F from structured fields named for their unit, else from the text."""
     found = []
     for key, value in (structured or {}).items():
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
             if key.lower() in STRUCTURED_F:
-                found.append(round(value))
+                found.append(value)
             elif key.lower() in STRUCTURED_C:
-                found.append(fahrenheit(value, 'C'))
-    if found:
+                found.append(value * 9 / 5 + 32)
+    if found := plausible(found):
         return found
     for match in TEMPERATURE.finditer(content):
         number, unit = (match.group(1), match.group(2)) if match.group(1) else (match.group(3), match.group(4))
         found.append(fahrenheit(float(number), unit))
-    return [value for value in found if -60 <= value <= 135]
+    return plausible(found)
 
 
 def conditions_from(content: str, structured: dict | None) -> dict | None:
