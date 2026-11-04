@@ -118,14 +118,37 @@ def draw(seed: str, level: int, has: set[str], recent: set[str], forced: bool = 
     return found, round(share if forced else happens / 100 * share, 3)
 
 
-def friends(connection, timeline_id: str) -> list[dict]:
-    return circle.people(connection, timeline_id)
+# Who has shared years with the companion, for the cards that need an `old friend` ("an old photo of the two of
+# them from years ago", "an old inside joke"): old friends, family and a spouse; a role the defaults don't know only
+# when its words or note say years (pairs.word_start). A coworker, neighbor, new friend or someone they are only
+# seeing may be too new.
+LONG_KNOWN = circle.OLD_FRIENDS | (circle.KIN - {'ex'}) | {'friend', 'roommate from years ago', 'wife', 'husband',
+                                                         'spouse', 'co-parent'}
+YEARS = 3
+
+
+def known_for_years(row: dict) -> bool:
+    role = circle.role_kind(row['role'] or '')
+    if role in LONG_KNOWN or (row['role'] or '') in LONG_KNOWN:
+        return True
+    if role in pairs.ROLE_DEFAULTS:
+        return False
+    return pairs.word_start(row['role'] or '', circle.details_of(row).get('note') or '') == YEARS
+
+
+def friends(connection, timeline_id: str, old: bool = False) -> list[dict]:
+    """Who a card may cast: someone the companion and they both know (never a fan who only knows of them, Vanta's
+    tester 2026-11-04), and with `old`, someone they have known for years."""
+    return [row for row in circle.people(connection, timeline_id) if circle.knowing(dict(row)) == 'both'
+            and (not old or known_for_years(row))]
 
 
 def needs_met(connection, companion) -> set[str]:
     has = set()
     if friends(connection, companion['active_timeline_id']):
         has.add('friend')
+    if friends(connection, companion['active_timeline_id'], old=True):
+        has.add('old friend')
     if circle.work_blocks(companion['version']['definition']):
         has.add('work')
     if love_life.may_catch_eye(connection, companion):
@@ -135,8 +158,8 @@ def needs_met(connection, companion) -> set[str]:
     return has
 
 
-def friend_for(connection, timeline_id: str, seed: str) -> str | None:
-    people = friends(connection, timeline_id)
+def friend_for(connection, timeline_id: str, seed: str, old: bool = False) -> str | None:
+    people = friends(connection, timeline_id, old)
     return people[chance.Draws(seed).die(len(people), 'deck', 'friend') - 1]['id'] if people else None
 
 
@@ -164,7 +187,8 @@ def decide(connection, companion, day: date, attempt: int = 0, avoid: frozenset 
         found, odds = draw(seed, level, has, recent, forced=attempt > 0)
         if found is None:
             return {'card_id': None, 'friend_id': None, 'odds': odds}
-        friend_id = friend_for(connection, timeline_id, seed) if 'friend' in found['needs'] else None
+        friend_id = friend_for(connection, timeline_id, seed, 'old friend' in found['needs']) \
+            if 'friend' in found['needs'] else None
         moment = {'card_id': found['id'], 'friend_id': friend_id, 'odds': odds}
         if not kept_quiet(connection, companion, worded(connection, moment, companion, 'told')):
             return moment
@@ -185,11 +209,23 @@ def began(connection, companion) -> date:
     return thoughts.began(connection, companion)
 
 
+def cast_fits(connection, timeline_id: str, row: dict) -> bool:
+    """Whether a drawn moment's person still fits its card: a moment drawn before they had to know each other (a fan
+    sending "an old photo of the two of them") is drawn again. Someone removed since keeps what happened."""
+    found = card(row['card_id'])
+    if not row['friend_id'] or not found or not optional(
+            connection, "SELECT 1 FROM circle_people WHERE id=? AND status='active'", (row['friend_id'],)):
+        return True
+    return row['friend_id'] in {person['id'] for person in friends(connection, timeline_id,
+                                                                    'old friend' in found['needs'])}
+
+
 def catch_up(connection, companion, now) -> int:
     """Draw the moments of the last week that are not drawn yet, oldest first. Returns how many were drawn."""
     timeline_id, today = companion['active_timeline_id'], storylines.local_today(companion, now)
-    kept = {row['day'] for row in many(connection, 'SELECT day FROM life_moments WHERE timeline_id=? AND day>=?',
-                                       (timeline_id, (today - timedelta(days=WEEK - 1)).isoformat()))}
+    rows = many(connection, 'SELECT * FROM life_moments WHERE timeline_id=? AND day>=?',
+                (timeline_id, (today - timedelta(days=WEEK - 1)).isoformat()))
+    kept = {row['day'] for row in rows if cast_fits(connection, timeline_id, dict(row))}
     day, written = max(today - timedelta(days=WEEK - 1), began(connection, companion)), 0
     while day <= today:
         if day.isoformat() not in kept:
