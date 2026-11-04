@@ -71,7 +71,7 @@ Releases come often, usually a few a week, and each one is a full release with a
 ### How it compares
 
 <p align="center">
-  <img src="Program/docs/images/compare.svg" alt="How Prospero's Companion compares with SillyTavern, Character.AI, Replika, Kindroid and Nomi as of November 2026. Only Prospero's Companion has a life that goes on without you. It and SillyTavern run on your own computer, take any model including local ones, and are free and open source. It texts you first, has group chats and pictures. It has voice notes rather than calls, runs in the phone's browser rather than an app, needs a little setup (Set it up for me helps), and has no video calls, 3D avatar or extensions." width="880">
+  <img src="Program/docs/images/compare.svg" alt="How Prospero's Companion compares with SillyTavern, Marinara Engine, Front Porch AI, Replika, Kindroid and Nomi as of November 2026. Only Prospero's Companion has a whole life that goes on without you; Marinara Engine has schedules and Front Porch AI has needs. The Companion, SillyTavern, Marinara Engine and Front Porch AI run on your own computer, take any model including local ones, and are free and open source. The Companion texts you first and has group chats and pictures. It has voice notes rather than calls, runs in the phone's browser rather than an app, needs a little setup (Set it up for me helps), and has no video calls, 3D avatar or extensions." width="880">
 </p>
 
 ### On your phone
@@ -82,7 +82,7 @@ Releases come often, usually a few a week, and each one is a full release with a
   <img src="Program/docs/images/phone-profile.png" alt="Their profile on a phone" width="260">
 </p>
 
-The screenshots come from a demo world in Baltimore. Hana's profile picture is from the 1.3 trailer; the app makes its own pictures with whichever image setup you choose.
+The screenshots come from a demo world in Baltimore, in the dark theme. Hana's profile picture is from the 1.3 trailer; the app makes its own pictures with whichever image setup you choose.
 
 ## Roadmap
 
@@ -181,6 +181,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 ## Documentation
 
 - [Models](Program/docs/models.md)
+- [Memory](Program/docs/memory.md): what they remember, how a reply finds it, and what you control ([one-page picture](Program/docs/images/memory.svg))
 - [Character drafting](Program/docs/character-drafting.md)
 - [Image generation](Program/docs/images.md)
 - [World data and building cities](Program/docs/world-data.md)
