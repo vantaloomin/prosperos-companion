@@ -76,6 +76,17 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.3.2 (2026-11-04)
+
+- **Another reply on texts they send first:** a companion's own text (a check-in, a plan follow-up) takes Another
+  reply while it is their newest message, and the reply above it keeps its own.
+- **Their own birthday:** the companion's birthday is in their prompt every day, so they stop inventing one.
+- **Money:** Today's budget works in cities written in the app and in imported world maps; edited rents are read
+  afresh.
+- **Dreams:** odd touches and things come from the world's era group (modern, historical, fantasy, future).
+- **Little things:** Life deck cards cast only people who know the companion both ways; old photos and old jokes
+  need someone known for years; a drawn moment whose person no longer fits is drawn again.
+
 ## v1.3.1 (2026-11-04)
 
 - **Drop by:** Map home and workplace cards have Drop by; the outcome comes from their day (let in, nobody home,
