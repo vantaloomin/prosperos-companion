@@ -79,6 +79,13 @@ def no_hold_after_replies(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def renters(monkeypatch):
+    """Companions rent unless their words say they own (companion/life/owning.py): the odds of owning by age would
+    turn some tests' renters into owners. tests/test_owning.py puts the odds back where it needs them."""
+    monkeypatch.setattr('companion.life.owning.OWNS', (0.0,) * 6)
+
+
+@pytest.fixture(autouse=True)
 def no_storylines(monkeypatch):
     """Storylines start on seeded days (companion/life/storylines.py) and would add context lines and first
     messages to unrelated tests; tests/test_storylines.py turns them back on."""

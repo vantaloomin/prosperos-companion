@@ -336,6 +336,8 @@ def plan_buy(connection, companion, world, day, seed) -> dict | None:
     found, city = money.profile(definition), money.city_for(definition)
     if age is None or age < BUY_AGE or not found or found.tier < 1 or owns(connection, timeline_id, day):
         return None
+    if (definition.get('money') or {}).get('home'):  # The user said how they live (Work and money): it stays so.
+        return None
     together = moving_in.current(connection, timeline_id)
     if together and (together['status'] != 'moved' or together['city_id'] != city['id']):
         return None  # A move in together still to come, or a shared home in another city.
@@ -365,7 +367,8 @@ def place_to_buy(companion: dict, city: dict, found, together: dict | None, seed
     # shillings or pennies stay whole (never 0).
     payment *= random.Random(f'{seed}:mortgage').uniform(*MORTGAGE)
     payment = int(round(payment, -1)) if payment >= 200 else max(1, round(payment))
-    return {**place, 'details': {**place['details'], 'owned': True, 'shared': bool(together), 'rent': payment,
+    return {**place, 'details': {**place['details'], 'owned': True, 'tenure': 'mortgage', 'shared': bool(together),
+                                 'rent': payment,
                                  'rent_from': 'mortgage', 'estimate': True, 'city': city['name'],
                                  **old_words(city)}}  # Payments on the place, not a mortgage, in a medieval city.
 

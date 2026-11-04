@@ -26,8 +26,9 @@ export function paydayText(view: Budget): string {
   return left === 1 ? 'Next payday is tomorrow.' : `Next payday is ${shortDate(view.payday.next)}, in ${left} days.`
 }
 
+/** How often they are paid; weekly pay says nothing, since "a week" and "Each week:" already do (Iris). */
 export function cycleText(view: Budget): string {
-  if (view.period === 'week') return 'Paid weekly.'
+  if (view.period === 'week') return ''
   return view.payday.cycle_days === 14 ? 'Paid every other Friday.' : `Paid every ${view.payday.cycle_days} days.`
 }
 
@@ -64,13 +65,20 @@ export function workText(view: Budget): string {
   return `${work}, taking home about ${view.text.income} ${per}.`
 }
 
-/** Rent on their home (from Home) or the budget's own estimate of where they live. */
+/** Rent on their home (from Home) or the budget's own estimate of where they live; a mortgage, or owned outright. */
 export function rentText(view: Budget): string {
   const rent = `about ${view.text.rent} ${perText(view)}`
-  if (view.owned) return `${view.medieval ? 'Payments' : 'Mortgage'}: ${rent} for the place they bought.`
-  return view.rent_from === 'home'
-    ? `Rent: ${rent} for their home.`
-    : `Rent: ${rent} for ${view.housing.label} in ${view.housing.neighborhood}.`
+  const place = view.rent_from === 'home' ? 'their home' : `${view.housing.label} in ${view.housing.neighborhood}`
+  if (view.tenure === 'owned') return `Owns ${place} outright.`
+  if (view.owned) return sentence(`${view.medieval ? 'Payments' : 'Mortgage'}: ${rent} for ${place}`)
+  return sentence(`Rent: ${rent} for ${place}`)
+}
+
+/** What an owner pays on top: "Property tax, insurance and upkeep: about $520 a month.", or null for a renter. */
+export function ownerText(view: Budget): string | null {
+  if (!view.owned || !view.owner_words || !view.text.owner_costs) return null
+  const words = view.owner_words.charAt(0).toUpperCase() + view.owner_words.slice(1)
+  return sentence(`${words}: about ${view.text.owner_costs} ${perText(view)}`)
 }
 
 /** Everyday costs, fun and savings for the whole period, ending in one full stop whatever the currency. The period

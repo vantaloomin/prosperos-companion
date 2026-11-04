@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { CareerSummary, CharacterDefinition, CitySummary, Employment, MoneySetup, SpendingStyle } from '../../types'
+import type { CareerSummary, CharacterDefinition, CitySummary, Employment, HomeTenure, MoneySetup, SpendingStyle } from '../../types'
 import { Field, TextInput } from '../../components/Fields'
 import { useWorkspaceSettings } from '../../companion'
 import { guessLabel, OWN_WORK, todayIso, workChoices, workHint } from './money'
@@ -19,6 +19,16 @@ const HOURS: { value: Employment; label: string }[] = [
   { value: 'rota', label: 'Shifts that change each week' },
   { value: 'freelance', label: 'Freelance gigs, busy and quiet spells' },
 ]
+
+/** How they hold their home (companion/life/owning.py); a medieval kingdom pays a place off, with no mortgage. */
+function homeChoices(medieval: boolean): { value: HomeTenure; label: string }[] {
+  return [
+    { value: '', label: 'Picked for them' },
+    { value: 'rent', label: 'Renting' },
+    { value: 'mortgage', label: medieval ? 'Paying it off' : 'Paying off a mortgage' },
+    { value: 'owned', label: 'Owns it outright' },
+  ]
+}
 
 // Careers whose work is coursework (companion/life/work.py STUDY).
 const STUDENTS = new Set(['undergraduate', 'graduate-student'])
@@ -41,6 +51,12 @@ function useGuess(definition: CharacterDefinition, asking: boolean) {
   })
 }
 
+/** Their home city's era, for the words the pickers use. */
+function useEra(homeCity: string): string | undefined {
+  const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
+  return cities.data?.find((city) => city.id === homeCity)?.era
+}
+
 /** The careers the Work picker offers in their home city (see `workChoices`). */
 function useWorkChoices({ money, home_city: homeCity }: CharacterDefinition): CareerSummary[] {
   const careers = useQuery({ queryKey: ['careers'], queryFn: () => api<CareerSummary[]>('/world/careers'), staleTime: Infinity })
@@ -58,6 +74,7 @@ function useWorkChoices({ money, home_city: homeCity }: CharacterDefinition): Ca
 export function MoneyFields({ definition, onChange }: Props) {
   const { money } = definition
   const listed = useWorkChoices(definition)
+  const era = useEra(definition.home_city)
   const guess = useGuess(definition, money.career === '')
   const guessed = definition.home_city ? guess.data : undefined
   // Adult work sits in its own group at the end, so the everyday list stays easy to scan.
@@ -75,7 +92,7 @@ export function MoneyFields({ definition, onChange }: Props) {
   return (
     <fieldset className="traits">
       <legend>Work and money</legend>
-      <p className="subtle">Their pay comes from their work and their rent from their home city, so some weeks are tight and some are flush. You can see their budget on Today.</p>
+      <p className="subtle">Their pay comes from their work and what their home costs from their home city, so some weeks are tight and some are flush. You can see their budget on Today.</p>
       <Field label="Work" hint={workHint(money.career ? undefined : guessed, own, paySet)}>
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.career} onChange={(event) => pick(event.target.value)}>
@@ -96,6 +113,13 @@ export function MoneyFields({ definition, onChange }: Props) {
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.employment} onChange={(event) => set({ employment: event.target.value as Employment })}>
             {HOURS.map((hours) => <option key={hours.value} value={hours.value}>{hours.label}</option>)}
+          </select>
+        )}
+      </Field>
+      <Field label="Home" hint="Left as picked for them, their own words, age and pay decide whether they rent or own. Owners pay taxes and repairs on top, and owning outright means no rent at all.">
+        {(id, hint) => (
+          <select id={id} aria-describedby={hint} value={money.home ?? ''} onChange={(event) => set({ home: event.target.value as HomeTenure })}>
+            {homeChoices(era === 'medieval' || era === 'fantasy').map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
           </select>
         )}
       </Field>

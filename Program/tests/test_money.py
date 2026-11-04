@@ -104,7 +104,8 @@ def test_historic_cities_use_their_own_currency_and_weekly_pay():
              'pets': [], 'vehicles': []}
     lines = dict(money.context_lines(ada, '2026-10-05', {'costs': costs, 'purchases': []}))
     # Never '2 d..'; payments on a place, not a mortgage, in a medieval kingdom (v0.15).
-    assert lines['money:2026-10-05:budget'].endswith('payments on your home are about 2 d.')
+    assert lines['money:2026-10-05:budget'].endswith('payments on your home are about 2 d., plus about 1 d. for dues '
+                                                     'and repairs.')
 
 
 def test_no_money_or_no_city_leaves_everything_affordable():
@@ -317,7 +318,8 @@ def test_rent_is_set_once_and_stays_when_pay_changes(client):
         row = connection.execute("SELECT id, details FROM home_items WHERE kind='home'").fetchone()
         details = {**decode(row[1]), 'currency': {'code': 'GLD', 'symbol': 'g', 'name': 'gold'}, 'rent': 19}
         connection.execute('UPDATE home_items SET details=? WHERE id=?', (encode(details), row[0]))
-    priced = client.get('/api/today/money').json()  # Reading the home prices it once, in dollars.
+    client.get('/api/life/home')  # Reading the home prices it once, in dollars.
+    priced = client.get('/api/today/money').json()
     assert priced['rent_from'] == 'home' and priced['budget']['rent'] > 100
     raised = client.post('/api/companion/versions', json={'definition': {**teacher, 'money': {'career': 'teacher',
                                                                                               'pay': 20000}},
