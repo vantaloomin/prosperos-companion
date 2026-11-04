@@ -496,7 +496,8 @@ def shared_place(seed: str, companion: dict, city: dict | None, hood: dict | Non
         details.update({'bedrooms': unit, 'rent': max(step, int(round(rent / step) * step)), 'rent_from': 'shared',
                         'description': f"{name} in {hood['name']}", 'neighborhood': hood['name']})
         place = {**place, 'name': name}
-    return {**place, 'details': {**details, 'shared': True}}
+    # A place found to move into together is rented, whatever their own home was (companion/life/owning.py).
+    return {**place, 'details': {**details, 'shared': True, 'tenure': 'rent', 'owned': False}}
 
 
 def city_changes(connection, companion: dict, row: dict) -> dict:

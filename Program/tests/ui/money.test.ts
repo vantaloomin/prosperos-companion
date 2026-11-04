@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { careersFor, guessLabel, payDraft, payPlaceholder, payText, readPay, todayIso, workChoices, workHint } from '../../src/features/character/money.ts'
 import { completeDefinition } from '../../src/features/character/definition.ts'
-import { boughtFor, costsText, goalText, moodOfMoney, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
+import { boughtFor, costsText, cycleText, goalText, moodOfMoney, ownerText, paydayText, rentText, workText } from '../../src/features/today/moneyText.ts'
 import type { MoneyView } from '../../src/types.ts'
 
 type Budget = Extract<MoneyView, { available: true }>
@@ -33,17 +33,17 @@ test('money text states payday, mood and goal plainly', () => {
 
 test('a medieval kingdom has payments on a place and no pension', () => {
   const old = { ...budget, owned: true, retired: true, medieval: true }
-  assert.equal(rentText(old), 'Payments: about $1,280 a month for the place they bought.')
+  assert.equal(rentText(old), 'Payments: about $1,280 a month for a studio in Towson.')
   assert.equal(workText(old), 'Given up work, living on what they put by: about $4,070 a month.')
-  assert.equal(rentText({ ...old, medieval: false }), 'Mortgage: about $1,280 a month for the place they bought.')
+  assert.equal(rentText({ ...old, medieval: false }), 'Mortgage: about $1,280 a month for a studio in Towson.')
   assert.equal(workText({ ...old, medieval: false }), 'Retired, living on a pension of about $4,070 a month.')
 })
 
 test('a currency ending in a full stop never doubles it, and rent names its period (Camelot)', () => {
   const pennies = { ...budget, period: 'week' as const, owned: true, medieval: true, text: { ...budget.text, rent: '9 d.', essentials: '20 d.', fun: '12 d.', saving: '6 d.' } }
-  assert.equal(costsText(pennies), 'Everyday costs about 20 d., fun about 12 d., savings about 6 d.')
-  assert.equal(rentText(pennies), 'Payments: about 9 d. a week for the place they bought.')
-  assert.equal(costsText(budget), 'Everyday costs about $1,220, fun about $1,020, savings about $550.')
+  assert.equal(costsText(pennies), 'Each week: everyday costs about 20 d., fun about 12 d., savings about 6 d.')
+  assert.equal(rentText(pennies), 'Payments: about 9 d. a week for a studio in Towson.')
+  assert.equal(costsText(budget), 'Each month: everyday costs about $1,220, fun about $1,020, savings about $550.')
 })
 
 test('career choices follow the home city era and keep the current pick', () => {
@@ -107,4 +107,19 @@ test('with a pay of their own set, the Work hint says nothing about pay', () => 
   assert.equal(workHint(undefined, false, true), 'Sets their hours and kind of work. Their pay is set below.')
   assert.match(workHint(undefined), /^Sets their pay/)
   assert.equal(workHint(undefined, true), 'Hours follow a job it names, such as nurse; otherwise office hours.')
+})
+
+test('a home owned outright pays no rent, and owners pay taxes and repairs on top', () => {
+  const owner = { ...budget, owned: true, tenure: 'owned' as const, rent_from: 'home' as const, owner_words: 'property tax, insurance and upkeep', text: { ...budget.text, rent: '$0', owner_costs: '$450' } }
+  assert.equal(rentText(owner), 'Home: owned outright.')
+  assert.equal(ownerText(owner), 'Property tax, insurance and upkeep: about $450 a month.')
+  const mortgage = { ...owner, tenure: 'mortgage' as const, text: { ...owner.text, rent: '$1,280' } }
+  assert.equal(rentText(mortgage), 'Mortgage: about $1,280 a month for their home.')
+  assert.equal(ownerText(mortgage), 'Property tax, insurance and upkeep: about $450 a month.')
+  assert.equal(ownerText(budget), null)
+})
+
+test('weekly pay is not said twice', () => {
+  assert.equal(cycleText({ ...budget, period: 'week' }), '')
+  assert.equal(cycleText(budget), 'Paid every other Friday.')
 })

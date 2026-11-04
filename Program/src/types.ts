@@ -250,7 +250,12 @@ export interface MoneySetup {
   job?: string
   /** What they take home a month in their city's money: null works it out from their work and city, 0 is unpaid. */
   pay?: number | null
+  /** How they hold their home (companion/life/owning.py); empty is the app's pick. */
+  home?: HomeTenure
 }
+
+/** Renting, paying off a mortgage, or owned outright; '' leaves it to the app. */
+export type HomeTenure = '' | 'rent' | 'mortgage' | 'owned'
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
@@ -264,7 +269,7 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   style: SpendingStyle
   career: { id: string; name: string; pay: string; guessed: boolean } | null
   housing: { unit: string; label: string; neighborhood: string }
-  budget: { income: number; rent: number; upkeep: number; essentials: number; fun: number; saving: number }
+  budget: { income: number; rent: number; owner_costs?: number; upkeep: number; essentials: number; fun: number; saving: number }
   rent_from: 'home' | 'budget'
   /** Living on a pension, and paying a mortgage on a place they bought (companion/life/big_turns.py). */
   retired?: boolean
@@ -272,7 +277,11 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   medieval?: boolean
   /** Their own business's short name ('bakery') while they run one (companion/life/business.py). */
   business?: string | null
+  /** A mortgage or owned outright: `rent` is then the mortgage, or 0 (companion/life/owning.py). */
   owned?: boolean
+  tenure?: 'rent' | 'mortgage' | 'owned'
+  /** What an owner's taxes and repairs are called there: "property tax, insurance and upkeep", "dues and repairs". */
+  owner_words?: string
   bought: MoneyHappening[]
   payday: { last: string; next: string; cycle_days: number; today: boolean }
   left: number
@@ -283,7 +292,7 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   surprise: MoneyHappening | null
   cant_afford: string[]
   goal: { label: string; amount: number; saved: number; share: number; custom: boolean; since: string; stalled: boolean }
-  text: { income: string; rent: string; upkeep: string; essentials: string; fun: string; saving: string; left: string }
+  text: { income: string; rent: string; owner_costs?: string; upkeep: string; essentials: string; fun: string; saving: string; left: string }
 })
 
 export interface CharacterVersion {
@@ -1649,8 +1658,9 @@ export interface HomeItem {
   features?: string[]
   rent?: number | null
   rent_period?: 'month' | 'week'
-  /** A place they bought: `rent` is then the mortgage (companion/life/big_turns.py). */
+  /** A place they own: `rent` is then the mortgage, or what it would rent for when owned outright (`tenure`). */
   owned?: boolean
+  tenure?: 'rent' | 'mortgage' | 'owned' | null
   /** Bought in a medieval kingdom or a fairy-tale land: payments on it, not a mortgage. */
   medieval?: boolean
   currency?: { code: string; symbol: string; name: string }
