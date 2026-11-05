@@ -27,7 +27,7 @@ from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import composer, money, onward, own_plans, routine
 from companion.memory.extraction import SENTENCE
-from companion.world import catalog, custom, generators, inside
+from companion.world import catalog, custom, generators, inside, skies
 
 # key: (words that name it, city place kinds, usual start, hours, money.COSTS key, how it reads)
 ACTIVITIES = {
@@ -810,7 +810,8 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
     place = outing['place']
     seed = f"outing:{outing['id']}:{outing['rolls']}"
     spot = generators.pick(seed, SPOT, place.get('spots') or [])
-    conditions = generators.conditions(data, date.fromisoformat(outing['local_date'])) if data else None
+    conditions = generators.conditions(data, date.fromisoformat(outing['local_date']), skies.level_of(connection)) \
+        if data else None
     if outing['activity'] in VISIT_DOING:
         return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else ())
     if outing['activity'] in MEETUPS:

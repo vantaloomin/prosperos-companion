@@ -1,5 +1,5 @@
 import { appDate } from '../../appTime.ts'
-import type { BodyState, PauseRecord, Recommendation, Today } from '../../types'
+import type { BodyState, DayWeather, PauseRecord, Recommendation, Today } from '../../types'
 
 const time = (value: string, timeZone?: string) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone }).format(new Date(value))
 
@@ -58,4 +58,34 @@ export function recommendationText(item: Pick<Recommendation, 'kind' | 'state' |
  * their family's ("~family", companion/life/their_people.py). */
 export function mapPlace(place?: { id?: string } | null): string | null {
   return place?.id && !place.id.startsWith('~') ? place.id : null
+}
+
+const SKY_WORDS: Record<NonNullable<DayWeather['sky']>, string> = {
+  clear: 'Clear', cloudy: 'Some cloud', overcast: 'Overcast', fog: 'Fog', rain: 'Rain', storm: 'Storms', snow: 'Snow',
+}
+
+/** "Rain for 3 days, high 48°F": a day's sky (how long a wet or grey spell has held) and its high. A day with no sky
+ *  named says wet or dry; a looked-up day says so. `unit` false leaves the unit off ("high 48°"). */
+export function dayWeatherText(weather: DayWeather, unit = true): string {
+  const sky = weather.sky ? SKY_WORDS[weather.sky] : weather.rain ? 'Rain' : 'Dry'
+  return `${sky}${spellText(weather)}, high ${weather.high_f}°${unit ? 'F' : ''}${seenText(weather)}`
+}
+
+/** " for 3 days" for a wet or grey spell of two days or more; sunny spells go uncounted. */
+function spellText(weather: DayWeather): string {
+  const counted = weather.sky && !['clear', 'cloudy'].includes(weather.sky)
+  return counted && (weather.days ?? 1) >= 2 ? ` for ${weather.days} days` : ''
+}
+
+const seenText = (weather: DayWeather) => (weather.observed ? (weather.observed.forecast ? ' (forecast)' : ' (looked up)') : '')
+
+/** The Now card's weather (Iris, PR #561): on desktop today and tomorrow, the unit said once by the heading's sense,
+ *  "Some cloud, high 56° · Tomorrow: some cloud, high 53°"; on phone today only, one line, "Some cloud, high 56°F".
+ *  Both empty without weather (a ship has none): the line is left out, never "Unknown". */
+export function weatherLine(day: Today['day']): { full: string; short: string } {
+  if (!day.weather) return { full: '', short: '' }
+  const short = dayWeatherText(day.weather)
+  if (!day.tomorrow) return { full: short, short }
+  const ahead = dayWeatherText(day.tomorrow, false)
+  return { full: `${dayWeatherText(day.weather, false)} · Tomorrow: ${ahead[0].toLowerCase()}${ahead.slice(1)}`, short }
 }

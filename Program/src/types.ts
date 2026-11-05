@@ -561,6 +561,8 @@ export interface LifeSettings {
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   onward_realism: number
+  /** Weather (companion/world/skies.py), kept in this world only like its drama: 0 gentle, 1 true to life, 2 stormy. */
+  weather_realism: number
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
   rough_patches_realism: number
   /** Next steps (companion/life/steps.py): how soon they bring up the next step, 0 only when you do, 1 slow, 2 true to life, 3 fast. */
@@ -815,7 +817,8 @@ export interface Today {
   /** How they feel right now (companion/moods.py); only with Hidden values > Show how they're feeling on. */
   feeling?: GroupMood | null
   last_seen_at: string | null
-  day: { date: string; body: BodyState | null }
+  /** Their day where they live: its weather and tomorrow's (companion/world/skies.py; observed where looked up). */
+  day: { date: string; body: BodyState | null; weather?: DayWeather | null; tomorrow?: DayWeather | null }
   /** Birthdays and talking milestones today or within a week (companion/life/occasions.py). */
   occasions?: Occasion[]
   /** On their mind (companion/life/thoughts.py): the last week, newest first; null when switched off. */
@@ -832,6 +835,17 @@ export interface Thought { day: string; text: string }
 /** A dream the night before `day` (companion/life/dreams.py). */
 export interface Dream { day: string; text: string; sleep_talk: string | null }
 export interface Moment { day: string; title: string; text: string; source: string; picked_by: 'dice' | 'user'; odds?: number }
+
+/** A day's weather in the companion's city: the sky and how many days it has held, high and low in °F. A day planned
+ * before skies were named, or a lookup that names none, has no sky. `observed` marks real weather looked up. */
+export interface DayWeather {
+  sky?: 'clear' | 'cloudy' | 'overcast' | 'fog' | 'rain' | 'storm' | 'snow'
+  days?: number
+  high_f: number
+  low_f: number
+  rain: boolean
+  observed?: { source: string; forecast?: boolean }
+}
 
 /** How the companion feels physically today, carried over from the day before. */
 export interface BodyState { state: 'sick' | 'hungover' | 'tired' | 'worn out' | 'sore'; because: string }

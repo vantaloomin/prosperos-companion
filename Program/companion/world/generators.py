@@ -13,7 +13,7 @@ import hashlib
 from datetime import date, timedelta
 
 from companion.errors import DomainError
-from companion.world import catalog, decades, lifespans, naming
+from companion.world import catalog, decades, lifespans, naming, skies
 from companion.world import mix as town_mix
 from companion.world.schema import HEARSAY_KINDS
 
@@ -180,15 +180,15 @@ def town_career(data: dict, seed: str, label: str = 'career', fits=None, pronoun
 
 # --- Climate and the calendar ---
 
-def conditions(data: dict, day: date, seed: str = '') -> dict | None:
-    """Typical weather for the date from monthly climate, with a seeded chance of rain; None without a climate, and
-    aboard a ship or station (companion/world/ships.py), which has no weather."""
+def conditions(data: dict, day: date, level: int = skies.TRUE_TO_LIFE) -> dict | None:
+    """The day's weather from the city's monthly climate, in fronts that settle in for a few days
+    (companion/world/skies.py; `level` is the world's Weather step); None without a climate, and aboard a ship or
+    station (companion/world/ships.py), which has no weather. `rain` is any wet day: rain, storms or snow."""
     if not data['climate'] or data.get('enclosed') is True:
         return None
     month = data['climate']['months'][day.month - 1]
-    wet = unit(seed or day.isoformat(), data['id'], 'rain') < month['rain_days'] / 30
-    return {'season': SEASONS[day.month], 'month': day.month, 'high_f': month['high_f'], 'low_f': month['low_f'],
-            'rain': wet, 'note': month['note'], 'typical': True}
+    return {'season': SEASONS[day.month], 'month': day.month, **skies.day_weather(data, day, level),
+            'note': month['note'], 'typical': True}
 
 
 @detached
@@ -361,7 +361,7 @@ def outing(data: dict, *, seed: str, day: date | None = None, day_part: str = 'a
     variety.
     """
     around = catalog.neighborhood(data, neighborhood) if neighborhood else None
-    weather = conditions(data, day, seed) if day else None
+    weather = conditions(data, day) if day else None
     pool = [place for place in data['places'] if place['id'] not in exclude and _affordable(place, budget)
             and (place['kind'] in kinds if kinds else place['kind'] not in ERRAND_KINDS)]
     season = weather['season'] if weather else None

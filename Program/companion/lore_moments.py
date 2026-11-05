@@ -27,6 +27,8 @@ KINDS = ('weather', 'season', 'time', 'day', 'holiday', 'place', 'work')
 WORK = 'work:yes'
 # Heat from this high (°F) up, snow on a wet day this cold or colder at night.
 HOT_F, SNOW_F = 88, 30
+# The day's sky (companion/world/skies.py) as a lore moment: storms are rain to a lorebook.
+SKY_KEYS = {'rain': 'weather:rain', 'storm': 'weather:rain', 'snow': 'weather:snow', 'fog': 'weather:fog'}
 FOGGY = re.compile(r'\b(fog|fogs|foggy|mist|misty|haar|smog)\b', re.I)
 SNOWY = re.compile(r'\b(snow\w*|sleet|blizzard)\b', re.I)
 # Keywords of an imported entry that are themselves a moment (`guessed`). "Fall" is left out: it is a verb too.
@@ -53,16 +55,21 @@ def weather_keys(conditions: dict | None) -> set[str]:
     """What the day's weather (generated or observed, companion/life/agenda.py) counts as."""
     if not conditions:
         return set()
-    note = conditions.get('note') or ''
-    found = set()
-    if conditions.get('rain'):
-        snowing = conditions.get('low_f', 99) <= SNOW_F or bool(SNOWY.search(note))
-        found.add('weather:snow' if snowing else 'weather:rain')
-    elif FOGGY.search(note):
-        found.add('weather:fog')
+    sky = conditions.get('sky')
+    # A named dry sky is no fog or rain, whatever the month's note says; a day with none reads the old way.
+    found = {SKY_KEYS[sky]} if sky in SKY_KEYS else set() if sky else unnamed_keys(conditions)
     if conditions.get('high_f', 0) >= HOT_F:
         found.add('weather:heat')
     return found
+
+
+def unnamed_keys(conditions: dict) -> set[str]:
+    """A day kept from before skies were named, or a lookup that names none: wet or dry, and the month's note."""
+    note = conditions.get('note') or ''
+    if conditions.get('rain'):
+        snowing = conditions.get('low_f', 99) <= SNOW_F or bool(SNOWY.search(note))
+        return {'weather:snow' if snowing else 'weather:rain'}
+    return {'weather:fog'} if FOGGY.search(note) else set()
 
 
 def place_keys(city: dict | None, entry: dict | None, home_hood: str) -> set[str]:

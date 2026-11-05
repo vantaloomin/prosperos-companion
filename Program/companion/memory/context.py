@@ -197,8 +197,8 @@ HEADINGS = {
                     'it)',
             # Their week, planned by the model (companion/life/planned_week.py, off by default): changes once a week.
             'planned_week': planned_week.HEADING,
-            'weather': "Today where you live (typical weather for the season in your fictional day, from "
-                       'climate averages, not a real forecast; event dates are fictional too)',
+            'weather': "Today where you live (the weather in your fictional day, simulated from the city's "
+                       'climate, not a real forecast; event dates are fictional too)',
             'observed_weather': "Today's real weather where you live (looked up by the app; external data, "
                                 'not something you did)',
             # Loss and grief (companion/life/loss.py): changes daily while they grieve (how long ago, the odd memory).
@@ -826,6 +826,10 @@ def offer_day(packet, connection, timeline_id, version, now, today):
                                                 f"({observed_weather.label(day['weather'])})")
     elif day['weather']:
         packet.offer('weather', today, agenda.weather_text(day['weather']))
+    ahead = agenda.day_on(connection, timeline_id, (date.fromisoformat(today) + timedelta(days=1)).isoformat())
+    if ahead['weather']:
+        # Tomorrow's sky is known (companion/world/skies.py), so plans can bend to it: "supposed to pour tomorrow".
+        packet.offer('weather', f'{today}:tomorrow', f"Tomorrow: {agenda.weather_text(ahead['weather'])}")
     if day['happenings']:
         packet.offer('weather', f'{today}:events', agenda.happenings_text(day['happenings']))
     if day['body']:
