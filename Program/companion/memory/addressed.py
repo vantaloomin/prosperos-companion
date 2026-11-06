@@ -129,17 +129,55 @@ def said_by_user(message: str) -> set[str]:
     return found
 
 
-def voiced(layer: str, value: str, message: str) -> str:
+SAID_YOU = re.compile(r"\byou(?:\s*['’]\s*(re|ve|ll|d))?\s+(?:(?:really|just|also|still|never|always|already|so|"
+                      r"actually|totally)\s+)*([\w'’]+)", re.IGNORECASE)
+YOU_AUX = {'re': 'are', 've': 'have', 'll': 'will', 'd': 'would'}
+
+
+def said_by_companion(message: str) -> set[str]:
+    """The words the user put after "you" in a message to the companion: "you were gentle" gives {"were"}."""
+    found = set()
+    for match in SAID_YOU.finditer(message):
+        if match[1]:
+            found.add(YOU_AUX[match[1].casefold()])
+        found.add(match[2].casefold().replace('’', "'"))
+    return found
+
+
+def voiced(layer: str, value: str, message: str, name: str = '') -> str:
     """A plan or a moment the two of them share with the user's dropped "I" back as "You": "won't text tomorrow
-    before Sett texts first" -> "You won't text tomorrow before Sett texts first"."""
+    before Sett texts first" -> "You won't text tomorrow before Sett texts first". When the message said it of the
+    companion ("you were gentle"), the companion gets their name back instead: "Sett was gentle"."""
     first, _, rest = value.partition(' ')
     word = first.casefold().replace('’', "'")
-    if layer not in VOICED or not word or word in {'you', "you're", "you've", "you'll", "you'd"}:
+    if layer not in VOICED or not word:
         return value
+    if word in {'you', "you're", "you've", "you'll", "you'd"}:
+        return f'{first} {also(rest, message)}'.rstrip()
     said = said_by_user(message)
+    if word not in said and base_form(word) not in said and base_form(word) in said_by_companion(message):
+        return f'{name} {value}' if name else value
     if word not in AUXILIARIES and word not in said and base_form(word) not in said:
         return value
-    return f"You {base_form(word)} {rest}".rstrip()
+    return f"You {base_form(word)} {also(rest, message)}".rstrip()
+
+
+# A second verb with no subject of its own after "You": "You like having Sett around and doesn't need gifts" ->
+# "and don't need gifts". Only a verb the message itself has in the "you" form, so "and Sett is" stays.
+# After a comma the verb gets its "you" too: ", just likes having Sett around" -> ", you just like having Sett around".
+ALSO = re.compile(r"(,|\band\b|\bbut\b)(\s+)((?:just\s+|still\s+|also\s+|always\s+)?)([a-z']+)")
+
+
+def also(rest: str, message: str) -> str:
+    words = {word.casefold().replace('’', "'") for word in re.findall(r"[\w'’]+", message)}
+
+    def agree(match):
+        joint, gap, adverb, verb = match[1], match[2], match[3], match[4]
+        mine = base_form(verb)
+        if mine == verb.casefold() or mine not in words:
+            return match[0]
+        return f"{joint}{gap}{'you ' if joint == ',' else ''}{adverb}{mine}"
+    return ALSO.sub(agree, rest)
 
 
 # "not contact them" about Sett, who is he/him: "not contact him". Only when the companion is the one person named,
@@ -183,6 +221,79 @@ def with_pronouns(text: str, name: str, pronoun: str) -> str:
                   flags=re.IGNORECASE)
 
 
+# The user, in a memory found in their own message, is "you", as everywhere on Memories (memory-suggest-8 keeps the
+# message's own "I", "me" and "my"). Older answers wrote "the user" ("helping the user feel comfortable") or a
+# pronoun for them ("short replies from Sett make him wonder if Sett is mad at him", Vanta on 1.3.2).
+THE_USER = re.compile(r"\bthe user(?:(['’]s)|(\s+[a-z']+))?", re.IGNORECASE)
+I_SAID = re.compile(r"\b[Ii](?:['’](m|ve|ll|d)|(\s+(?:am|was)\b))?(?![\w.'’])")
+I_FORMS = {'m': "you're", 've': "you've", 'll': "you'll", 'd': "you'd", 'am': 'you are', 'was': 'you were'}
+MINE = {'me': 'you', 'my': 'your', 'mine': 'yours', 'myself': 'yourself'}
+MINE_WORDS = re.compile(r"\b(me|my|mine|myself)\b", re.IGNORECASE)
+THIRD = re.compile(r"\b(?:he|him|his|she|her|hers|they|them|their|theirs|himself|herself|themselves|themself)\b",
+                   re.IGNORECASE)
+USER_WORDS = re.compile(r"\b(?:i|me|my|mine|myself|you|your|yours|yourself|the user)\b", re.IGNORECASE)
+# Object and possessive pronouns only: "won't text before they text first" may well be the companion.
+STANDS_IN = re.compile(r"\b(him|them|her|his|their|himself|herself|themselves|themself)\b(\s+[\w'’]+)?",
+                       re.IGNORECASE)
+POSSESSIVE = {'his', 'their'}
+
+
+def cased(found: str, word: str) -> str:
+    return word[:1].upper() + word[1:] if found[:1].isupper() else word
+
+
+def the_user(match, text: str) -> str:
+    if match[1]:
+        return cased(match[0], 'your')
+    after = match[2] or ''
+    word = after.strip()
+    low = word.casefold()
+    if word and subject(text, match.start()) and (low in YOU_FORMS or (low.endswith('s') and not low.endswith(
+            ('ss', 'us', "'s")) and low not in KEEP)):
+        word = base_form(word)
+    return cased(match[0], f"you{after[:len(after) - len(after.lstrip())]}{word}")
+
+
+def as_yours(text: str) -> str:
+    """The user's own words about themselves as "you": "Mira makes me laugh" -> "Mira makes you laugh", "helping the
+    user feel comfortable" -> "helping you feel comfortable"."""
+    text = THE_USER.sub(lambda match: the_user(match, text), text)
+    text = I_SAID.sub(lambda match: (cased if match.start() == 0 else lambda _found, word: word)(
+        match[0], I_FORMS.get((match[1] or match[2] or '').strip().casefold(), 'you')), text)
+    return MINE_WORDS.sub(lambda match: cased(match[0], MINE[match[1].casefold()]), text)
+
+
+def stands_for_user(text: str, name: str, message: str) -> bool:
+    """Whether a "him", "them" or "their" in the text is the user: the text names the companion and no one says
+    "you" or "I" for the user, while the message speaks of "me" or "my" and of nobody else."""
+    return bool(name and name in text and MINE_WORDS.search(message) and not THIRD.search(message)
+                and not USER_WORDS.search(text))
+
+
+def user_pronouns(text: str, message: str) -> str:
+    """'make him wonder if Sett is mad at him' -> 'make you wonder if Sett is mad at you'. A possessive turns only
+    when the message said "my" before the same word ("his sister" for "my sister")."""
+    said = message.casefold().replace('’', "'")
+
+    def turn(match):
+        word, after = match[1].casefold(), match[2] or ''
+        following = after.strip().casefold()
+        mine = bool(following) and f'my {following}' in said
+        if word.endswith(('self', 'selves')):
+            return cased(match[0], 'yourself') + after
+        if word in POSSESSIVE or (word == 'her' and mine):
+            return cased(match[0], 'your') + after if mine else match[0]
+        return cased(match[0], 'you') + after if re.search(r'\bme\b', said) else match[0]
+    return STANDS_IN.sub(turn, text)
+
+
+def yours(text: str, name: str, message: str) -> str:
+    """The user as "you" in a memory found in their message, where the companion already goes by name."""
+    if stands_for_user(text, name, message):
+        text = user_pronouns(text, message)
+    return as_yours(text)
+
+
 def pronoun_of(companion) -> str:
     """He, she or they: the companion's pronouns as their description speaks of them."""
     from companion.world.looks import pronouns_of
@@ -196,9 +307,12 @@ def first_name(companion) -> str:
 
 
 def named(text: str, name: str, message: str, pronoun: str = 'they') -> str:
-    """The text with the companion called by name wherever the model called them something else."""
-    if not name or not text:
+    """The text with the companion called by name wherever the model called them something else, and the user as
+    "you"."""
+    if not text:
         return text
+    if not name:
+        return as_yours(text)
     if not SAID.search(message):
         before = text
         text = ARTICLE.sub(name, text)
@@ -207,7 +321,10 @@ def named(text: str, name: str, message: str, pronoun: str = 'they') -> str:
         if text != before:  # "afraid of the assistant as if it were dangerous": "it" was the assistant too
             text = IT.sub(lambda match: f"{pronoun} {THEY.get(match[1], match[1]) if pronoun == 'they' else match[1]}",
                           text)
-    return with_pronouns(addressed_you(text, name), name, pronoun)
+    text = addressed_you(text, name)
+    if stands_for_user(text, name, message):
+        text = user_pronouns(text, message)  # "him" was the user; a "they" left is still the companion
+    return as_yours(with_pronouns(text, name, pronoun))
 
 
 def fields(subject: str, value: str, name: str, message: str, pronoun: str = 'they') -> tuple[str, str]:
@@ -221,31 +338,41 @@ UNTIDIED = (f"memory_candidates.source='model' AND memory_candidates.rule IN ({'
             "AND json_extract(memory_candidates.proposal, '$.named') IS NULL")
 
 
-def older(connection) -> list[dict]:
+# Every model answer once more, after the companion is named, with the user as "you" (Vanta on 1.3.2: "short replies
+# from Sett make him wonder if Sett is mad at him", "helping the user feel comfortable"); "yours" marks it done. A
+# value the user already corrected is history and stays as it was.
+UNYOURS = ("memory_candidates.source='model' AND json_extract(memory_candidates.proposal, '$.yours') IS NULL AND "
+           "NOT EXISTS (SELECT 1 FROM memories AS was WHERE was.id=memory_candidates.memory_id AND "
+           "was.status='superseded') AND "
+           f"(memory_candidates.rule NOT IN ({', '.join('?' * len(OLD_PROMPTS))}) OR "
+           "json_extract(memory_candidates.proposal, '$.named') IS NOT NULL)")
+
+
+def older(connection, where=UNTIDIED) -> list[dict]:
     """Memories and waiting suggestions an older memory prompt found in the user's messages, with the companion."""
     memories = many(connection, 'SELECT memories.id, memories.subject, memories.value, memories.layer, '
                     'memories.companion_id, messages.text, memory_candidates.id AS candidate_id, '
                     "memory_candidates.proposal, 'memory' AS kind FROM memories "
                     'JOIN memory_candidates ON memory_candidates.memory_id=memories.id '
                     'JOIN messages ON messages.id=memory_candidates.message_id '
-                    f"WHERE memories.origin='automatic' AND {UNTIDIED}", OLD_PROMPTS)
+                    f"WHERE memories.origin='automatic' AND {where}", OLD_PROMPTS)
     waiting = many(connection, 'SELECT memory_candidates.id, memory_candidates.id AS candidate_id, '
                    'memory_candidates.proposal, memory_candidates.companion_id, messages.text, '
                    "'candidate' AS kind FROM memory_candidates "
                    'JOIN messages ON messages.id=memory_candidates.message_id '
-                   f"WHERE memory_candidates.status='pending' AND {UNTIDIED}", OLD_PROMPTS)
+                   f"WHERE memory_candidates.status='pending' AND {where}", OLD_PROMPTS)
     rows = [{**row, 'proposal': json.loads(row['proposal'])} for row in memories + waiting]
     return [row if row['kind'] == 'memory' else
             {**row, **{key: row['proposal'].get(key) or '' for key in ('subject', 'value', 'layer')}} for row in rows]
 
 
-def rename(connection, row, subject, value):
-    proposal = {**row['proposal'], 'named': True}
-    if row['kind'] == 'memory':
+def rename(connection, row, subject, value, done='named'):
+    proposal = {**row['proposal'], done: True}
+    if row['kind'] == 'memory' and (subject, value) != (row['subject'], row['value']):
         connection.execute('UPDATE memories SET subject=?, subject_key=?, value=? WHERE id=?',
                            (subject, subject_key(subject), value, row['id']))
         vectors.forget(connection, 'memory', [row['id']])
-    else:
+    elif row['kind'] == 'candidate':
         proposal.update(subject=subject, subject_key=subject_key(subject), value=value)
     connection.execute('UPDATE memory_candidates SET proposal=? WHERE id=?', (encode(proposal), row['candidate_id']))
 
@@ -261,8 +388,26 @@ def tidy(database) -> int:
                 companions[row['companion_id']] = (first_name(companion), pronoun_of(companion))
             name, pronoun = companions[row['companion_id']]
             subject, value = fields(row['subject'], row['value'], name, row['text'], pronoun)
-            value = voiced(row['layer'], value, row['text'])
+            value = voiced(row['layer'], value, row['text'], name)
             rename(connection, row, subject, value)
+            changed += (subject, value) != (row['subject'], row['value'])
+        if changed:
+            bump_memory_revision(connection, database.now())
+        return changed
+
+
+def tidy_yours(database) -> int:
+    """"short replies from Sett make him wonder if Sett is mad at him" becomes "... make you wonder if Sett is mad at
+    you", and "helping the user feel comfortable" "helping you feel comfortable". Returns how many changed."""
+    with database.connect(write=True) as connection:
+        names, changed = {}, 0
+        for row in older(connection, UNYOURS):
+            if row['companion_id'] not in names:
+                names[row['companion_id']] = first_name(by_id(connection, row['companion_id']))
+            name = names[row['companion_id']]
+            subject = yours(row['subject'], name, row['text'])
+            value = voiced(row['layer'], yours(row['value'], name, row['text']), row['text'], name)
+            rename(connection, row, subject, value, 'yours')
             changed += (subject, value) != (row['subject'], row['value'])
         if changed:
             bump_memory_revision(connection, database.now())
