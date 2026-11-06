@@ -13,8 +13,11 @@ anxious, sad), an intensity from 1 to 3 and, for some, who it is about. All by r
   and it is at most one step a reply.
 - Their own day sets it when nothing else has (`day_moods`): a bad storyline beat, a mood mark from the consequence
   engine, their day going off plan. Everyday moods stay mild.
-- The user's words move it a step (`from_user`): care lifts a low mood, words that sting leave them a little hurt
-  (angry only with a temper). Their own chat gets it as a per-reply note (`chat_lines`) that colors their tone.
+- The user's words move it a step (`from_user`): care or an apology lifts a low mood, words that sting leave them a
+  little hurt (angry only with a temper). Their own chat gets it as a per-reply note (`chat_lines`) that colors their
+  tone.
+- Talking it through clears it (`from_reply`): when they are upset with the user and their own reply says it's
+  alright now ("I understand", "we're good", the phrases that accept an apology), it's made up and they're calm.
 - It fades a step every `FADE` and resets overnight, their time.
 - Only someone with a temper gets angry: a temper the user wrote into their character ("hot-tempered", "quick to
   anger"), or the temper flaw a townsperson came with. Anyone else tops out at annoyed or hurt.
@@ -32,6 +35,7 @@ Moods are a hidden value: the people panel and Today show them only with the wor
 import random
 import re
 from datetime import timedelta
+from functools import cache
 
 from companion import consequences
 from companion.characters import by_id
@@ -409,15 +413,72 @@ def from_user(connection, key: str, text: str, now) -> bool:
             return False
         save(connection, key, feeling, mood['intensity'] + 1 if same else 1, USER, 'something you said stung', now)
         return True
-    if not KIND.search(text):
-        return False
     mood = current(connection, key, now)
     if mood is None or mood['feeling'] not in LOW:
+        return False
+    if not KIND.search(text) and not (mood['target'] == USER and apologises(text)):
         return False
     if mood['intensity'] <= 1:
         save(connection, key, 'calm', 1, None, 'you cheered them up', now)
     else:
         save(connection, key, mood['feeling'], mood['intensity'] - 1, mood['target'], mood['reason'], now)
+    return True
+
+
+def apologises(text: str) -> bool:
+    from companion.life import rough_patches
+    return rough_patches.says('apologies', text)
+
+
+# A curt "Fine." or "It's fine, whatever." is still sulking: making up takes a few more words than that.
+MADE_UP_WORDS = 6
+
+
+# Phrases in the accepting bank that are about a plan called off, not about being upset: "rain check", "glad you're
+# okay". Said in an everyday reply they don't mean it's made up.
+CALLED_OFF = ('work comes first sometimes', 'you can make it up to me', 'make it up to me', 'next time then',
+              "we'll do it another time", 'we can reschedule', "let's reschedule", 'rain check', 'raincheck',
+              'another time then', "just glad you're okay", "glad you're okay", "hope everything's okay",
+              'hope everything is okay', 'go take care of it', 'family comes first', "i'd have done the same",
+              'it happens', 'things happen', 'stuff happens', 'life happens', 'these things happen')
+
+
+@cache
+def made_up_phrases() -> re.Pattern:
+    from companion.life import rough_patches
+    phrases = sorted((phrase for phrase in rough_patches.bank('accepting') if phrase not in CALLED_OFF),
+                     key=len, reverse=True)
+    return re.compile(r'(?<![\w])(?:' + '|'.join(re.escape(phrase) for phrase in phrases) + r')(?![\w])')
+
+
+def made_up(text: str) -> bool:
+    """Whether a reply says it's alright now, not negated ("it's not okay")."""
+    from companion.life import rough_patches
+    words = rough_patches.plain(text)
+    return any(not rough_patches.NEGATED.search(words[:found.start()]) for found in made_up_phrases().finditer(words))
+
+
+# Said it's alright but not all the way there yet ("we're okay, I just need a little time"): a step better, not over.
+NOT_YET = re.compile(r"\b(?:not (?:yet|quite|all the way|completely|totally|fully)|still (?:processing|thinking|turning|"
+                     r"a little|a bit|hurt|upset|mad|angry|raw|sitting with|wrapping)|(?:need|give me|want) (?:a little|"
+                     r"a bit|a minute|a moment|a second|a while|some|more)|working on it|getting there|we'll see|"
+                     r"(?:mad|angry|upset) exactly|for now|(?:that|it) stings|it stung|i'm still)\b")
+
+
+def from_reply(connection, key: str, text: str, now) -> bool:
+    """Their own reply, once written: upset with the user and saying it's alright now ("I understand, we're good"),
+    the phrases that accept an apology (world/data/rough_patches/accepting.json), they've talked it through and the
+    mood clears for the day; said with a "not yet" ("we're okay, I just need a little time"), it eases a step. By
+    rules on what they said, never another model call. Returns whether it moved."""
+    from companion.life import rough_patches
+    mood = stored(connection, key, now)
+    if (not mood or mood['target'] != USER or mood['feeling'] not in LOW
+            or len((text or '').split()) < MADE_UP_WORDS or not made_up(text)):
+        return False
+    if mood['intensity'] > 1 and NOT_YET.search(rough_patches.plain(text)):
+        save(connection, key, mood['feeling'], mood['intensity'] - 1, USER, mood['reason'], now)
+    else:
+        save(connection, key, 'calm', 1, None, 'you talked it through', now)
     return True
 
 
