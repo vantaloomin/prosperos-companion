@@ -68,6 +68,7 @@ from companion.life import (
     recommendations,
     rough_patches,
     shared_people,
+    so_far,
     stays,
     steps,
     storylines,
@@ -1084,6 +1085,8 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     packet.require('time', 'clock', clock_text(connection, companion, now, previous, group))
     if today := day_text(connection, companion, now):
         packet.offer('time', 'day', today)
+    for identity, text in so_far.lines(connection, companion, now):
+        packet.offer('time', identity, text)
     offer_hours(packet, connection, companion, now, group)
     conversation = fit_conversation(packet, recent)
     if group is None and (wording := wording_text(connection, timeline_id, version['definition'], messages)):
