@@ -281,10 +281,10 @@ def test_memories_an_earlier_prompt_called_the_assistant_get_the_name(client, ap
 
 def test_you_becomes_the_name_in_plain_english():
     from companion.memory.addressed import named
-    cases = {"you're the one I trust": 'Mira is the one I trust',
+    cases = {"you're the one I trust": 'Mira is the one you trust',
              "glad you've been honest": 'glad Mira has been honest',
              'feel safe when you are around': 'feel safe when Mira is around',
-             'you make me laugh': 'Mira makes me laugh',
+             'you make me laugh': 'Mira makes you laugh',
              "you don't judge, you never judge": "Mira doesn't judge, Mira never judges",
              'you came along to the dentist': 'Mira came along to the dentist',
              'thank you for listening': 'thank Mira for listening',
@@ -344,6 +344,75 @@ def test_them_becomes_the_companions_pronoun_only_when_they_are_the_one_named():
         'will introduce Sett to Jo and see them both'
     assert named("will delete Sett's number and not contact them", 'Sett', 'a message') == \
         "will delete Sett's number and not contact them"
+
+
+SHORT = "honestly short replies from you make me wonder if you're mad at me"
+
+
+def test_the_user_is_you_in_a_memory_from_their_message():
+    """Vanta on 1.3.2: "short replies from Sett make him wonder if Sett is mad at him", "helping the user feel
+    comfortable"; the companion's own pronoun is never put in for the user."""
+    from companion.memory.addressed import named
+    cases = {('short replies from you make them wonder if you are mad at them', SHORT):
+             'short replies from Sett make you wonder if Sett is mad at you',
+             ("short replies from you make me wonder if you're mad at me", SHORT):
+             'short replies from Sett make you wonder if Sett is mad at you',
+             ("Sett managed gently around the girls, helping the user feel comfortable", 'it helped me feel safe'):
+             'Sett managed gently around the girls, helping you feel comfortable',
+             ('the user feels safe when Sett is around', 'I feel safe when you are around'):
+             'you feel safe when Sett is around',
+             ("The user's mom likes Sett", 'my mom likes you'): 'Your mom likes Sett',
+             ("I'm proud when Sett holds my hand, I am happy", 'x'): "You're proud when Sett holds your hand, you are happy",
+             ("Sett remembered their sister's name", "you remembered my sister's name"):
+             "Sett remembered your sister's name",
+             ("will delete Sett's number and not contact them", "I'll delete your number and not contact you"):
+             "will delete Sett's number and not contact him",
+             ("won't text Sett until they text first", "I won't text you until you text me first"):
+             "won't text Sett until he texts first",
+             ('Sett said they are moving, I think', "you're moving? I think that's great"):
+             'Sett said he is moving, you think'}
+    assert {key: named(key[0], 'Sett', key[1], 'he') for key in cases} == cases
+
+
+def test_a_second_verb_after_you_agrees():
+    from companion.memory.addressed import voiced
+    said = "I don't need gifts from you to want you to stay, I just like having you around"
+    assert voiced('relationship', "You like having Sett around and doesn't need gifts", said) == \
+        "You like having Sett around and don't need gifts"
+    assert voiced('relationship', "doesn't need gifts from Sett, just likes having Sett around", said) == \
+        "You don't need gifts from Sett, just like having Sett around"
+    assert voiced('relationship', "You like Sett and Sett is kind, and gives", said) == \
+        "You like Sett and Sett is kind, and gives"
+
+
+def test_the_companion_reads_you_in_a_relationship_memory_as_the_user():
+    from companion.memory.records import as_told
+    row = {'layer': 'relationship', 'origin': 'automatic', 'subject': "Sett's short replies",
+           'value': 'short replies from Sett make you wonder if Sett is mad at you'}
+    assert as_told(row, 'Sett')['value'] == 'Short replies from you make the user wonder if you are mad at the user'
+    plan = {'layer': 'plan', 'origin': 'automatic', 'subject': 'Pick up', 'value': 'can you pick me up Friday'}
+    assert as_told(plan, 'Sett') == plan
+
+
+def test_saved_memories_get_the_user_as_you_once(client, app, connected, provider, monkeypatch):
+    from companion.memory import addressed, suggest
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'relationship', 'subject': "Mira's short replies",
+                                     'value': 'short replies from Mira make him wonder if Mira is mad at him'},
+                                    {'message': 1, 'layer': 'relationship', 'subject': 'Worry',
+                                     'value': 'Mira being mad worries the user'}])
+    send(client, f'{SHORT}, I always overthink it', 'model-0001')
+    database = app.state.database
+    monkeypatch.setattr(addressed, 'fields', lambda subject, value, *args: (subject, value))
+    monkeypatch.setattr(addressed, 'voiced', lambda layer, value, message: value)
+    run(client, app)
+    monkeypatch.undo()
+    with database.connect(write=True) as connection:
+        connection.execute("UPDATE memory_candidates SET rule='memory-suggest-7' WHERE source='model'")
+    suggest.tidy(database)
+    values = sorted(memory['value'] for memory in client.get('/api/memories').json())
+    assert values == ['Mira being mad worries you', 'short replies from Mira make you wonder if Mira is mad at you']
+    assert addressed.tidy_yours(database) == 0
 
 
 def test_a_plan_the_model_finds_takes_its_day_from_the_message(client, app, connected, provider, clock):
