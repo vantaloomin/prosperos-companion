@@ -758,6 +758,8 @@ class Conversation:
                 own_plans.note(connection, finished, companion, self.database.now())
                 outings.note(connection, finished, companion, self.database.now())
                 wedding.after_reply(connection, finished, companion, self.database.clock.now())
+                # Talking it through: their reply saying it's alright now clears being upset with the user.
+                moods.from_reply(connection, f"companion:{companion['id']}", text, self.database.clock.now())
             return status == 'complete' and spoken
 
 

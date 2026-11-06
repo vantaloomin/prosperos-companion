@@ -186,6 +186,61 @@ def test_words_that_sting_cool_her_a_little_but_jokes_do_not(client, cast, provi
     assert "- You're a little hurt with the user (why: something you said stung)" in mira_prompt(provider)
 
 
+def saying(provider, cast, reply: str):
+    """Mira's own replies in her chat say `reply`; group members still say who they are."""
+    def respond(system, messages):
+        return [Chunk(reply), Chunk('', 'stop')] if not speaker(messages) else by_speaker(system, messages)
+    provider.respond = respond
+
+
+def upset_with_user(client, companion_id, feeling, intensity):
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        moods.save(connection, key(companion_id), feeling, intensity, moods.USER, 'something you said stung',
+                   database.clock.now())
+
+
+def test_talking_it_through_clears_it(client, cast, provider):
+    send(client, "You're so boring.", 'made-up-1')
+    assert mood_of(client, cast['Mira'])['feeling'] == 'hurt'
+    saying(provider, cast, "No, I understand why you said no. Honestly, we're good now, no hard feelings.")
+    send(client, 'I just meant I am not into it, I did not mean to upset you.', 'made-up-2')
+    mood = mood_of(client, cast['Mira'])
+    assert (mood['feeling'], mood['reason']) == ('calm', 'you talked it through')
+    assert '## How you feel right now' not in mira_prompt(provider) or "You're " not in mira_prompt(provider).split(
+        '## How you feel right now')[-1][:20]
+
+
+def test_still_turning_it_over_eases_a_step(client, cast, provider):
+    upset_with_user(client, cast['Mira'], 'hurt', 2)
+    saying(provider, cast, "Yeah, we're okay. I just need a little time with it, that's all.")
+    send(client, 'Hey, you there?', 'made-up-3')
+    mood = mood_of(client, cast['Mira'])
+    assert (mood['feeling'], mood['intensity'], mood['target']) == ('hurt', 1, moods.USER)
+
+
+def test_a_curt_fine_or_a_no_is_still_sulking(client, cast, provider):
+    upset_with_user(client, cast['Mira'], 'hurt', 1)
+    saying(provider, cast, "It's fine.")
+    send(client, 'You okay?', 'made-up-4')
+    saying(provider, cast, "No, it's not okay, and I don't understand why you would say that.")
+    send(client, 'Talk to me.', 'made-up-5')
+    assert mood_of(client, cast['Mira'])['feeling'] == 'hurt'
+
+
+def test_a_mood_about_her_own_day_is_not_made_up_with_the_user(client, cast, provider, clock, monkeypatch):
+    bad_day(monkeypatch, clock)
+    saying(provider, cast, "Thanks, honestly it's fine, I'll get over it, we're good.")
+    send(client, 'Want to talk about it?', 'made-up-6')
+    assert mood_of(client, cast['Mira'])['feeling'] == 'sad'
+
+
+def test_an_apology_eases_being_upset_with_the_user(client, cast, provider):
+    upset_with_user(client, cast['Mira'], 'hurt', 2)
+    send(client, 'My bad, I apologize for earlier.', 'made-up-7')
+    assert mood_of(client, cast['Mira'])['intensity'] == 1
+
+
 def test_how_she_feels_shows_on_today_only_when_turned_on(client, cast, clock, monkeypatch):
     bad_day(monkeypatch, clock)
     today = ok(client.get('/api/today'))
