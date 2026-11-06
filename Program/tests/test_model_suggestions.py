@@ -267,7 +267,7 @@ def test_memories_an_earlier_prompt_called_the_assistant_get_the_name(client, ap
     send(client, MEETUP, 'model-0001')
     database = app.state.database
     monkeypatch.setattr(addressed, 'fields', lambda subject, value, *args: (subject, value))
-    monkeypatch.setattr(addressed, 'voiced', lambda layer, value, message: value)
+    monkeypatch.setattr(addressed, 'voiced', lambda layer, value, message, name='': value)
     run(client, app)
     monkeypatch.undo()
     with database.connect(write=True) as connection:
@@ -380,7 +380,11 @@ def test_a_second_verb_after_you_agrees():
     assert voiced('relationship', "You like having Sett around and doesn't need gifts", said) == \
         "You like having Sett around and don't need gifts"
     assert voiced('relationship', "doesn't need gifts from Sett, just likes having Sett around", said) == \
-        "You don't need gifts from Sett, just like having Sett around"
+        "You don't need gifts from Sett, you just like having Sett around"
+    gentle = "you were so gentle around the girls tonight, it helped me feel comfortable"
+    assert voiced('relationship', 'was gentle around the girls, helped you feel comfortable', gentle, 'Sett') == \
+        'Sett was gentle around the girls, helped you feel comfortable'
+    assert voiced('relationship', 'was gentle around the girls', gentle) == 'was gentle around the girls'
     assert voiced('relationship', "You like Sett and Sett is kind, and gives", said) == \
         "You like Sett and Sett is kind, and gives"
 
@@ -404,7 +408,7 @@ def test_saved_memories_get_the_user_as_you_once(client, app, connected, provide
     send(client, f'{SHORT}, I always overthink it', 'model-0001')
     database = app.state.database
     monkeypatch.setattr(addressed, 'fields', lambda subject, value, *args: (subject, value))
-    monkeypatch.setattr(addressed, 'voiced', lambda layer, value, message: value)
+    monkeypatch.setattr(addressed, 'voiced', lambda layer, value, message, name='': value)
     run(client, app)
     monkeypatch.undo()
     with database.connect(write=True) as connection:

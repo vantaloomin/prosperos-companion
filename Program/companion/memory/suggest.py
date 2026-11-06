@@ -177,7 +177,7 @@ def candidate(item, batch) -> tuple[dict, Candidate, dict | None] | None:
         return None
     subject, value = addressed.fields(subject, value, message.get('to') or '', message['text'],
                                       message.get('pronoun') or 'they')
-    value = addressed.voiced(layer, value, message['text'])
+    value = addressed.voiced(layer, value, message['text'], message.get('to') or '')
     if not owners.belongs(subject, message['text'], message.get('names') or ()):
         return None
     corrected = None

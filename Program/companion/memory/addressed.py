@@ -129,9 +129,25 @@ def said_by_user(message: str) -> set[str]:
     return found
 
 
-def voiced(layer: str, value: str, message: str) -> str:
+SAID_YOU = re.compile(r"\byou(?:\s*['’]\s*(re|ve|ll|d))?\s+(?:(?:really|just|also|still|never|always|already|so|"
+                      r"actually|totally)\s+)*([\w'’]+)", re.IGNORECASE)
+YOU_AUX = {'re': 'are', 've': 'have', 'll': 'will', 'd': 'would'}
+
+
+def said_by_companion(message: str) -> set[str]:
+    """The words the user put after "you" in a message to the companion: "you were gentle" gives {"were"}."""
+    found = set()
+    for match in SAID_YOU.finditer(message):
+        if match[1]:
+            found.add(YOU_AUX[match[1].casefold()])
+        found.add(match[2].casefold().replace('’', "'"))
+    return found
+
+
+def voiced(layer: str, value: str, message: str, name: str = '') -> str:
     """A plan or a moment the two of them share with the user's dropped "I" back as "You": "won't text tomorrow
-    before Sett texts first" -> "You won't text tomorrow before Sett texts first"."""
+    before Sett texts first" -> "You won't text tomorrow before Sett texts first". When the message said it of the
+    companion ("you were gentle"), the companion gets their name back instead: "Sett was gentle"."""
     first, _, rest = value.partition(' ')
     word = first.casefold().replace('’', "'")
     if layer not in VOICED or not word:
@@ -139,6 +155,8 @@ def voiced(layer: str, value: str, message: str) -> str:
     if word in {'you', "you're", "you've", "you'll", "you'd"}:
         return f'{first} {also(rest, message)}'.rstrip()
     said = said_by_user(message)
+    if word not in said and base_form(word) not in said and base_form(word) in said_by_companion(message):
+        return f'{name} {value}' if name else value
     if word not in AUXILIARIES and word not in said and base_form(word) not in said:
         return value
     return f"You {base_form(word)} {also(rest, message)}".rstrip()
@@ -146,16 +164,19 @@ def voiced(layer: str, value: str, message: str) -> str:
 
 # A second verb with no subject of its own after "You": "You like having Sett around and doesn't need gifts" ->
 # "and don't need gifts". Only a verb the message itself has in the "you" form, so "and Sett is" stays.
-ALSO = re.compile(r"((?:,|\band\b|\bbut\b)\s+(?:just\s+|still\s+|also\s+|always\s+)?)([a-z']+)")
+# After a comma the verb gets its "you" too: ", just likes having Sett around" -> ", you just like having Sett around".
+ALSO = re.compile(r"(,|\band\b|\bbut\b)(\s+)((?:just\s+|still\s+|also\s+|always\s+)?)([a-z']+)")
 
 
 def also(rest: str, message: str) -> str:
     words = {word.casefold().replace('’', "'") for word in re.findall(r"[\w'’]+", message)}
 
     def agree(match):
-        verb = match[2]
+        joint, gap, adverb, verb = match[1], match[2], match[3], match[4]
         mine = base_form(verb)
-        return f'{match[1]}{mine}' if mine != verb.casefold() and mine in words else match[0]
+        if mine == verb.casefold() or mine not in words:
+            return match[0]
+        return f"{joint}{gap}{'you ' if joint == ',' else ''}{adverb}{mine}"
     return ALSO.sub(agree, rest)
 
 
@@ -367,7 +388,7 @@ def tidy(database) -> int:
                 companions[row['companion_id']] = (first_name(companion), pronoun_of(companion))
             name, pronoun = companions[row['companion_id']]
             subject, value = fields(row['subject'], row['value'], name, row['text'], pronoun)
-            value = voiced(row['layer'], value, row['text'])
+            value = voiced(row['layer'], value, row['text'], name)
             rename(connection, row, subject, value)
             changed += (subject, value) != (row['subject'], row['value'])
         if changed:
@@ -385,7 +406,7 @@ def tidy_yours(database) -> int:
                 names[row['companion_id']] = first_name(by_id(connection, row['companion_id']))
             name = names[row['companion_id']]
             subject = yours(row['subject'], name, row['text'])
-            value = voiced(row['layer'], yours(row['value'], name, row['text']), row['text'])
+            value = voiced(row['layer'], yours(row['value'], name, row['text']), row['text'], name)
             rename(connection, row, subject, value, 'yours')
             changed += (subject, value) != (row['subject'], row['value'])
         if changed:
