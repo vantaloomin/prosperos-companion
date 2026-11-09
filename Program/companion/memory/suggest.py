@@ -26,7 +26,7 @@ from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import MAINTENANCE, BackgroundInterrupted
 from companion.text_models import config_for
 
-PROMPT_VERSION = 'memory-suggest-7'
+PROMPT_VERSION = 'memory-suggest-8'
 BATCH = 8
 MIN_WORDS = 6
 NAMED = re.compile(r"\b[A-Z][a-z']+")
@@ -47,7 +47,9 @@ RULES = (
     '- A "plan" is only something on a day or at an event the companion could ask about afterwards ("my interview is '
     'Friday", "flying to Lisbon in June"). Leave out meals, cooking, chores, errands, what the user is about to do '
     'today, "next time" ideas and maybes.\n'
-    '- "value" is the fact in a few of the user\'s own words, without "I", "I\'m" or "my" in front.\n'
+    '- "value" is the fact in a few of the user\'s own words, without "I", "I\'m" or "my" in front. Inside it, keep '
+    'the user\'s own "I", "me" and "my" as they wrote them; never write the user as "the user", "he", "she" or '
+    '"they".\n'
     '- "subject" says whose fact it is when it is about someone else ("Mom\'s home", "Sister\'s job").\n'
     '- In a message, "you" is the companion in "to". Call them by that name, never "the assistant", "the AI", '
     '"the bot" or "you".\n'
@@ -71,6 +73,9 @@ RULES = (
     '"subject": "Ana\'s fears", "value": "scared of bats"}]\n'
     '"I feel safe with you" with "to": "Mira" gives [{"message": 1, "layer": "relationship", "subject": '
     '"Trust in Mira", "value": "feel safe with Mira"}]\n'
+    '"you always notice when I\'m tired, it makes me feel looked after" with "to": "Mira" gives [{"message": 1, '
+    '"layer": "relationship", "subject": "Mira noticing", "value": "Mira notices when I\'m tired, makes me feel '
+    'looked after"}]\n'
     '"my dog is snoring lol" gives []\n'
     '"I like it a lot, tomorrow I\'ll add sausages to the pasta" gives []\n'
     '"my sister Ana is visiting on the 14th, I\'ll make soup" gives [{"message": 1, "layer": "plan", "subject": '
@@ -174,12 +179,12 @@ def candidate(item, batch) -> tuple[dict, Candidate, dict | None] | None:
     if type(index) is not int or not 1 <= index <= len(batch) or layer not in LAYERS or not subject or not value:
         return None
     message = batch[index - 1]
-    # The companion's name counts as the message's own word: "you" in it is them.
-    if not supported(value, f"{message['text']} {message.get('to') or ''}") or not sentences(message['text']):
+    # The companion's name counts as the message's own word: "you" in it is them; "the user" is the writer's "I".
+    if not supported(value, f"{message['text']} {message.get('to') or ''} user") or not sentences(message['text']):
         return None
     subject, value = addressed.fields(subject, value, message.get('to') or '', message['text'],
                                       message.get('pronoun') or 'they')
-    value = addressed.voiced(layer, value, message['text'])
+    value = addressed.voiced(layer, value, message['text'], message.get('to') or '')
     if not owners.belongs(subject, message['text'], message.get('names') or ()):
         return None
     corrected = None
@@ -387,6 +392,7 @@ def tidy(database) -> int:
     """Remove the strays left by earlier prompts and name the companion where they wrote "the assistant". Returns
     how many went."""
     addressed.tidy(database)
+    addressed.tidy_yours(database)
     with database.connect() as connection:
         found = strays(connection)
     gone = set()

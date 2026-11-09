@@ -1,7 +1,7 @@
 """Status messages (Hit List #51): a line the companion "sets" for themselves, like an old AIM away message.
 
-The app writes it from their life with rules and templates, and no model: a new chapter or a storyline
-beat they would share, payday, how they feel, a plan coming up, else an everyday line drawn from who
+The app writes it from their life with rules and templates, and no model: a new chapter they would share, a vague
+line for a storyline beat, payday, how they feel, a plan coming up, else an everyday line drawn from who
 they are. It is drawn once per half day (local morning and afternoon), so it changes at most twice a day,
 except when something big happens.
 
@@ -13,6 +13,12 @@ There are still no online or idle dots, read receipts or typing indicators.
 The user can set the status. Their line stays until something big happens in the companion's life (a new
 chapter or a storyline beat after it was set); a cleared line lets the app pick again. Lines only use what
 the companion would share, so a secret never shows.
+
+A status is public, like a profile line, so it never repeats what they would text a friend about someone else
+(tester, 2026-11-09: "Rough night. Kaito got dumped and I sat up with them for hours"). A storyline beat is someone's
+private news (a friend's breakup, a parent's health scare, a drunk kiss), so its status is a vague line by how the beat
+felt ("been a day"), never naming anyone. A chapter of their own life shows as they would share it, unless that line
+talks to the user ("Hear me out: what if we stopped renting?"), which gets the vague line too.
 
 While the chat style is Retro IM, the everyday and away lines come from a bank of 2000s away messages instead
 (world/data/retro_status.json): fake-deep lines, a song on repeat, sparkly emo when they feel low, random
@@ -40,6 +46,12 @@ MOODS = {'happy': ('good day ☀️', 'in a good mood, ask me anything', 'today 
          'angry': ('do not.', 'not today', 'deep breaths'),
          'anxious': ('overthinking again', 'brain on spin cycle', 'one thing at a time'),
          'sad': ('rainy brain 🌧️', 'low key day', 'could use a hug')}
+# What a storyline beat shows as a status, by its tone: how the day felt, with no names and nothing that happened.
+NEWS = {'good': ('good news day ✨', 'smiling today', 'some days are just good', 'good things happening'),
+        'bad': ('been a day', 'long day 😮‍💨', 'a lot going on', 'heavy day, early night'),
+        'mixed': ('a lot on my mind', 'eventful week', 'so much going on', 'life, man')}
+# A chapter's share line that talks to the user, not to the world.
+TO_YOU = re.compile(r"\b(?:you|your|hear me out|what if we)\b", re.IGNORECASE)
 PAYDAY = ('payday 💸', 'treat yourself day', 'rich (for about a day)')
 PLANS = ('plans {day} 🗓️', 'looking forward to {day}', '{day} cannot come soon enough')
 EVERYDAY = ('coffee first ☕', 'living the dream', 'currently: {interest}', 'thinking about {interest} again',
@@ -185,13 +197,25 @@ def retro_away(definition: dict, kind: str) -> list[str]:
 
 
 def big_events(connection, companion: dict, now) -> list[tuple[str, str, object]]:
-    """(local date, line, when it came to be) for chapters and storyline beats they would share, from the last two
-    days, newest first. A beat came to be at the start of its day, or when its outcome was decided."""
-    found = [(chapters.since(row), row['share'], parse(row['created_at']))
-             for row in chapters.fresh(connection, companion, now) if row['share']]
-    found += [(beat['on'], beat['share'], beat_since(connection, companion, beat))
-              for _key, beat in storylines.fresh_beats(connection, companion, now) if beat.get('share')]
+    """(local date, status line, when it came to be) for chapters and storyline beats they would share, from the last
+    two days, newest first. A beat came to be at the start of its day, or when its outcome was decided. The line is
+    public (`public_chapter`, `news_line`)."""
+    found = [(chapters.since(row), public_chapter(row['share'], f"{companion['id']}:chapter:{row['id']}"),
+              parse(row['created_at'])) for row in chapters.fresh(connection, companion, now) if row['share']]
+    found += [(beat['on'], news_line(beat.get('tone'), f"{companion['id']}:{key}"),
+               beat_since(connection, companion, beat))
+              for key, beat in storylines.fresh_beats(connection, companion, now) if beat.get('share')]
     return sorted(found, key=lambda item: (item[0], item[2]), reverse=True)
+
+
+def news_line(tone: str | None, seed: str) -> str:
+    """A storyline beat as a status: how it felt, never who or what ('been a day', not 'Kaito got dumped')."""
+    return generators.pick(seed, 'news', list(NEWS.get(tone or '', NEWS['mixed'])))
+
+
+def public_chapter(share: str, seed: str) -> str:
+    """A chapter of their own life as they would share it, unless the line talks to the user."""
+    return news_line('good', seed) if TO_YOU.search(share) else share
 
 
 def beat_since(connection, companion: dict, beat: dict):

@@ -370,3 +370,50 @@ def test_a_life_admin_cost_says_what_they_did_not_its_title(client, mira, clock)
                      'went to their asthma review': 'went to your asthma review'}
     from companion.life import money
     assert money.SPENT_ON['admin'] == 'on errands and paperwork'
+
+
+SUNDAY_WITH_MA = [{'key': 'day', 'label': 'Free time', 'kind': 'leisure', 'start': '09:00', 'end': '18:00'},
+                  {'key': 'ma', 'label': 'Sunday with ma', 'kind': 'social', 'start': '10:00', 'end': '13:00',
+                   'days': [6]},
+                  {'key': 'night', 'label': 'Asleep', 'kind': 'sleep', 'start': '23:00', 'end': '07:00'}]
+SUNDAY = date(2026, 10, 11)
+
+
+def test_an_entry_keeps_all_its_length_clear_of_time_promised_to_people():
+    from companion.life import routine
+    schedule = routine.blocks({'schedule': SUNDAY_WITH_MA})[0]
+    spans = admin.kept_clear(schedule, SUNDAY)
+    assert (600, 780) in spans  # Sunday with ma, 10:00 to 13:00.
+    assert admin.runs_into(spans, '11:00', 180) and admin.runs_into(spans, '09:30', 60)
+    assert not admin.runs_into(spans, '09:00', 60) and not admin.runs_into(spans, '13:00', 180)
+    assert admin.runs_into(spans, '22:30', 60)  # Into sleep.
+    assert (600, 780) not in admin.kept_clear(schedule, SUNDAY - timedelta(days=1))  # Only on Sundays.
+    # The seeded time comes first and every other half hour in the block follows, once each.
+    times = admin.times_in({'start': '09:00', 'end': '18:00'}, None, False, 0.3)
+    assert times[0] == admin.time_in({'start': '09:00', 'end': '18:00'}, None, False, 0.3)
+    assert sorted(times) == [admin.clock(570 + step * 30) for step in range(15)]
+
+
+@pytest.fixture
+def sett(client, monkeypatch, provider):
+    monkeypatch.setattr(body, 'state_on', lambda *_args: None)
+    response = client.post('/api/companion', json={'name': 'Sett', 'timezone': 'UTC', 'schedule': SUNDAY_WITH_MA,
+                                                    'home_city': 'Baltimore'})
+    assert response.status_code == 200, response.text
+    set_life(client, automatic_events=False, pets_realism=0)
+    return response.json()
+
+
+def test_a_big_clean_never_lands_on_sunday_with_ma_and_an_old_clash_moves(client, sett):
+    clean = add(client, key='upkeep:big-clean:2026-W41', source='upkeep', kind='big-clean', title='Big clean',
+                done='did a big clean', minutes=180, day=SUNDAY, out=False)
+    assert clean['local_date'] == '2026-10-11' and '13:00' <= clean['at_time'] <= '16:30'
+    # One planned on top of it before this check (the tester's Sunday at 11:00) moves off it on the next plan ahead.
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        connection.execute("UPDATE life_admin SET at_time='11:00' WHERE id=?", (clean['id'],))
+        from companion.characters import require_current
+        assert admin.reflow(connection, require_current(connection), date(2026, 10, 5), database.clock.now()) == 1
+        moved = admin.get(connection, clean['id'])
+    assert moved['moved_reason'] == 'clash' and moved['at_time'] != '11:00'
+    assert not admin.runs_into([(600, 780)], moved['at_time'], 180) or moved['local_date'] != '2026-10-11'

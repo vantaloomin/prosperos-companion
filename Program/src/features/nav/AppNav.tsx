@@ -1,5 +1,8 @@
 import { Fragment, useEffect, useRef } from 'react'
-import { BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Settings as SettingsIcon, UserPlus, UserRound } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../../api'
+import type { FeedPage } from '../../types'
+import { BookOpen, CalendarDays, Download, Eye, Heart, MessageCircle, Newspaper, Settings as SettingsIcon, UserPlus, UserRound } from 'lucide-react'
 import type { View } from '../../companion'
 import { badge } from '../chats/chatText'
 import { WorldButton } from '../worlds/WorldButton'
@@ -12,13 +15,16 @@ import { useReady, useReadyActions } from '../ready/useReady'
  * The views. The desktop side rail shows all of them; the phone's tab bar (`rail-only` hidden) keeps Today, Story,
  * Matchlight and Settings, with its own Chats tab (navText.ts). Group chats are in the Chats list on both. The rail's
  * Chats opens the companion's chat; their profile (Posts, Memories, Character) opens from their name and keeps Chats
- * lit, so Memories left the rail in 1.3. While the user is just
+ * lit, so Memories left the rail in 1.3. Posts is on the rail too (1.3.3, a tester's ask): the posts are the whole town's,
+ * not only the companion's, so on a desktop they open as a page of their own, in the era's words ("Chronicle" in
+ * Camelot). The phone keeps them on the profile, since its tab bar holds five at most. While the user is just
  * watching, Watching takes Matchlight's place (Matchlight waits meanwhile), so the phone still has five tabs.
  */
 type NavView = { id: View; label: string; icon: typeof UserRound; railOnly?: boolean }
 const WATCHING: NavView = { id: 'watch', label: 'Watching', icon: Eye }
 const VIEWS: NavView[] = [
   { id: 'conversation', label: 'Chats', icon: MessageCircle, railOnly: true },
+  { id: 'posts', label: 'Posts', icon: Newspaper, railOnly: true },
   { id: 'dating', label: 'Matchlight', icon: Heart },
   { id: 'story', label: 'Story', icon: BookOpen },
   { id: 'today', label: 'Today', icon: CalendarDays },
@@ -41,7 +47,8 @@ export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, u
   const counts: Partial<Record<string, number>> = { conversation: unread.companion + unread.group }
   const ready = useSettingsMark(view)
   // Matchlight goes by the era's name: the Personals in 1895, the Matchmaker in Camelot (eraWords.ts).
-  const dating = useEraWords().dating_tab
+  const words = useEraWords()
+  const labels: Partial<Record<string, string>> = { dating: words.dating_tab, posts: words.posts_tab }
   return (
     <nav className="app-nav" aria-label="Views">
       <WorldButton current={view === 'worlds'} onOpen={() => go('worlds')} />
@@ -51,8 +58,8 @@ export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, u
           <button type="button" className={`nav-${id}${railOnly ? ' rail-only' : ''}`} aria-current={railCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}
             aria-label={id === 'settings' ? navLabel(ready) : undefined}>
             <Icon aria-hidden="true" />{id === 'dating' && !datingInstalled && <DatingBadge app={datingApp} />}
-            {id === 'settings' && <SettingsMark view={ready} />}
-            <Count count={counts[id]} /><span>{id === 'dating' ? dating : label}</span>
+            {id === 'settings' && <SettingsMark view={ready} />}{id === 'posts' && <PostsDot />}
+            <Count count={counts[id]} /><span>{labels[id] ?? label}</span>
           </button>
         </Fragment>
       ))}
@@ -70,6 +77,14 @@ function ChatsTab({ view, go, unread }: { view: View; go: (view: View) => void; 
       <MessageCircle aria-hidden="true" /><Count count={unread} /><span>Chats</span>
     </button>
   )
+}
+
+/** New posts since the page was last open: a dot, not a count, since posts are the world going on rather than
+ * messages to the user; the page itself says how many (Iris, 2026-11-04). Reading them clears it, as the feed
+ * invalidates every ['feed'] query. */
+function PostsDot() {
+  const unread = useQuery({ queryKey: ['feed', 'rail-dot'], queryFn: () => api<FeedPage>('/feed?limit=1'), refetchInterval: 60000 }).data?.unread
+  return unread ? <span className="nav-dot" aria-label="new posts" /> : null
 }
 
 function Count({ count }: { count?: number }) {

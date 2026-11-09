@@ -301,9 +301,18 @@ to 3 and, for some, who it's about. All rules, no model calls:
   annoyed; something came up: a bit on edge; a surprise visit: a bit happy). Everyday moods stay mild.
 - **The user's words move it, one step a message.** Care ("sorry", "that sucks", "here for you", "proud of you",
   "how are you") lifts a low mood a step, and from 1 it becomes calm for the rest of the day ("you cheered them
-  up"). Words that sting ("shut up", "you're so boring", "whatever", "leave me alone") leave them a little hurt by
-  the user (1), or angry up to 2 with a temper; without a temper they never sulk or ignore the user. Jokes ("lol",
-  quotes) and negations don't count.
+  up"). Words that sting ("shut up", "you're so boring", "whatever", "leave me alone", "I don't care.") build up
+  by the Rough patches slider: off, they never upset them; easy, a bit irritable at most; true to life, the first
+  leaves them a bit irritable (a warning sign) and a second that day leaves them a little hurt (1), or angry up to
+  2 with a temper; dramatic, hurt or angry at once. Without a temper they never sulk or ignore the user. Jokes
+  ("lol", quotes), negations and teasing don't count: a wink, grin or laugh in the message ("😜", ":P", "*grins*",
+  "dummy"), or the same words in a joke or moment you share (a shared or relationship memory, or one about joking
+  or teasing). The same teasing check keeps those words from starting a rough patch. An apology ("my bad", "I
+  apologize") also lifts being upset with the user.
+- **Talking it through clears it.** Upset with the user, a reply of their own that says it's alright now ("I
+  understand", "we're good", the phrases that accept an apology in world/data/rough_patches/accepting.json, six
+  words or more, not negated) makes them calm for the rest of the day ("you talked it through"). Said with a "not
+  yet" ("we're okay, I just need a little time") it eases a step instead. A curt "It's fine." doesn't count.
 - **It fades** a step every three hours and resets overnight, their time.
 - **Only a temper gets angry**: one the user wrote into their character ("hot-tempered", "short temper", "quick to
   anger"), or the temper flaw a townsperson came with. Anyone else is hurt instead, at most 2. There is no
