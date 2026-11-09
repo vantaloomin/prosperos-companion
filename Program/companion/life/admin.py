@@ -46,9 +46,9 @@ MOVE_DAYS = 14  # How far an entry may move to find a free time.
 LATER = 365  # How far the Character page looks for what comes due later.
 OFFICE = ('08:00', '18:00')  # Appointments out happen in opening hours.
 BUSY = {'work', 'study', 'sleep'}
-# Routine time an entry's whole length keeps clear of, not just its start: the busy kinds plus time already promised to
-# people (a weekly "Sunday with ma"), which nobody spends on a big clean.
-KEPT_CLEAR = BUSY | {'social'}
+# Routine time an entry's whole length keeps clear of, not just its start: the busy kinds, and time set aside for seeing
+# people (a weekly "Sunday with ma") whenever there is any other free time in the two weeks it may move.
+PEOPLE = 'social'
 # The home features' shared realism scale: 0 off, 1 light (only what comes due), 2 true to life, 3 dramatic.
 LEVELS = (0, 1, 2, 3)
 DEFAULT_LEVEL = 2
@@ -168,10 +168,10 @@ def times_in(block: dict, at: str | None, office: bool, jitter: float = 0.0) -> 
     return [clock(first)] + [clock(step) for step in steps if step != first]
 
 
-def kept_clear(schedule, day: date, study: bool = False) -> list[tuple[int, int]]:
+def kept_clear(schedule, day: date, study: bool = False, people: bool = True) -> list[tuple[int, int]]:
     """The spans (minutes from the day's midnight, running into the next day) that routine blocks an entry keeps clear
-    of take on this day and the next: work, class, sleep and time promised to people (`KEPT_CLEAR`)."""
-    kinds = KEPT_CLEAR - {'study'} if study else KEPT_CLEAR
+    of take on this day and the next: work, class, sleep and, with `people`, time set aside for seeing people."""
+    kinds = (BUSY - {'study'} if study else BUSY) | ({PEOPLE} if people else set())
     spans = []
     for offset in (-1, 0, 1):
         on = day + timedelta(days=offset)
@@ -202,6 +202,7 @@ class Taken:
     user, their own plans and other entries take the block their time falls in, and public holidays close offices."""
     study = False  # An exam, which goes in class time (big_turns.py).
     minutes = 60  # How long the entry being placed takes, so all of it keeps clear (`kept_clear`).
+    people = True  # Whether time for seeing people is kept clear too (`place` tries with it first).
     clear = True  # False for a late night at work, which runs on from work by design (`keeps_clear`).
 
     def __init__(self, connection, companion: dict, start: date, days: int, skip: str | None = None):
@@ -244,7 +245,7 @@ class Taken:
         if self.blocked(day, out):
             return None
         office = out and (fixed or self.daylight)
-        spans = kept_clear(self.schedule, day, self.study) if self.clear else []
+        spans = kept_clear(self.schedule, day, self.study, self.people) if self.clear else []
         for block in free_blocks(self.schedule, day, self.study):
             if fixed and at and not own_plans.holds(block, at) or self.held(day, block):
                 continue
@@ -256,7 +257,20 @@ class Taken:
 
 
 def place(taken: Taken, day: date, at: str | None, out: bool, fixed: bool, earliest: date,
-          deadline: date | None = None) -> tuple[date, str] | None:
+          deadline: date | None = None, strict: bool = False) -> tuple[date, str] | None:
+    """The nearest free time from `day` on that keeps clear of time for seeing people (`kept_clear`), and only when
+    there is none, the nearest that may use it; `strict` never does."""
+    taken.people = True
+    spot = nearest(taken, day, at, out, fixed, earliest, deadline)
+    if spot is None and not strict and taken.clear:
+        taken.people = False
+        spot = nearest(taken, day, at, out, fixed, earliest, deadline)
+    taken.people = True
+    return spot
+
+
+def nearest(taken: Taken, day: date, at: str | None, out: bool, fixed: bool, earliest: date,
+            deadline: date | None = None) -> tuple[date, str] | None:
     """The nearest free time from `day` on (a booked time keeps its hour if it can), never after a deadline: then the
     days before it, back to `earliest`."""
     days = [day + timedelta(days=offset) for offset in range(MOVE_DAYS + 1)]
@@ -270,7 +284,7 @@ def place(taken: Taken, day: date, at: str | None, out: bool, fixed: bool, earli
             if found:
                 return candidate, found
     if fixed and at:  # Nowhere at that hour: any free time with the office open.
-        return place(taken, day, None, out, True, earliest, deadline)
+        return nearest(taken, day, None, out, True, earliest, deadline)
     return None
 
 
@@ -384,7 +398,7 @@ def make_room(connection, companion: dict, day: date, at: str, now: datetime) ->
 
 
 def move(connection, companion: dict, item: dict, reason: str, now: datetime, after: date | None = None,
-         days: int = 0) -> int:
+         days: int = 0, strict: bool = False) -> int:
     """Move an entry to the nearest free time, `days` on from `after` (its own day). 0 when nowhere is free: it
     stays where it is rather than going."""
     today = local_now(companion, now).date()
@@ -395,7 +409,7 @@ def move(connection, companion: dict, item: dict, reason: str, now: datetime, af
     start = max((after or current) + timedelta(days=days), today)
     deadline = date.fromisoformat(item['deadline']) if item['deadline'] else None
     keep = item['at_time'] if item['fixed'] else None
-    spot = place(taken, start, keep, item['out_of_home'], item['fixed'], today, deadline)
+    spot = place(taken, start, keep, item['out_of_home'], item['fixed'], today, deadline, strict)
     if spot is None or (spot[0].isoformat(), spot[1]) == (item['local_date'], item['at_time']):
         return 0
     connection.execute('UPDATE life_admin SET local_date=?, at_time=?, moved_from=COALESCE(moved_from, ?), '
@@ -659,10 +673,13 @@ def reflow(connection, companion: dict, today: date, now) -> int:
         block = next((block for block in free_blocks(taken.schedule, day, study)
                       if own_plans.holds(block, item['at_time'])), None)
         away = day.isoformat() in taken.away
-        clashes = keeps_clear(item['source']) and runs_into(kept_clear(taken.schedule, day, study), item['at_time'],
-                                                           item['minutes'])
-        if away or block is None or clashes or taken.held(day, block, by_user_only=True):
+        clear = keeps_clear(item['source'])
+        busy = clear and runs_into(kept_clear(taken.schedule, day, study, False), item['at_time'], item['minutes'])
+        if away or block is None or busy or taken.held(day, block, by_user_only=True):
             moved += move(connection, companion, item, 'away' if away else 'clash', now, day)
+        elif clear and runs_into(kept_clear(taken.schedule, day, study), item['at_time'], item['minutes']):
+            # On time for seeing people: moves only to time clear of it, so it never hops from one such block to another.
+            moved += move(connection, companion, item, 'clash', now, day, strict=True)
     return moved
 
 
