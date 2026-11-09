@@ -4,10 +4,11 @@ from datetime import timedelta
 from types import SimpleNamespace
 
 import pytest
-from conftest import send, show
+from conftest import send, set_life, show
 from test_groups import by_speaker, companion_named, messages, ok, say, speaker, start
 
 from companion import moods
+from companion.database import identifier
 from companion.memory import pairs
 from companion.providers.chat import Chunk
 
@@ -202,7 +203,7 @@ def upset_with_user(client, companion_id, feeling, intensity):
 
 def test_talking_it_through_clears_it(client, cast, provider):
     send(client, "You're so boring.", 'made-up-1')
-    assert mood_of(client, cast['Mira'])['feeling'] == 'hurt'
+    assert mood_of(client, cast['Mira'])['feeling'] == 'annoyed'
     saying(provider, cast, "No, I understand why you said no. Honestly, we're good now, no hard feelings.")
     send(client, 'I just meant I am not into it, I did not mean to upset you.', 'made-up-2')
     mood = mood_of(client, cast['Mira'])
@@ -249,3 +250,61 @@ def test_how_she_feels_shows_on_today_only_when_turned_on(client, cast, clock, m
     show(client, show_moods=True)
     feeling = ok(client.get('/api/today'))['feeling']
     assert (feeling['text'], feeling['reason']) == ('Seems sad', 'Mira lost the promotion to Dana')
+
+
+def stings_billy(client, cast, text) -> tuple | None:
+    """Billy (who has a temper) hears `text` from the user; how he feels after."""
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        moods.from_user(connection, key(cast['Billy']), text, database.clock.now())
+    mood = mood_of(client, cast['Billy'])
+    return mood and (mood['feeling'], mood['intensity'])
+
+
+def test_on_true_to_life_anger_builds_up_with_a_warning_first(client, cast):
+    # Tester 2026-11-09: one line on a date and Sett was suddenly angry. A first sting now leaves them a bit
+    # irritable, a warning sign; only a second one that day angers someone with a temper.
+    assert stings_billy(client, cast, "You're so boring.") == ('annoyed', 1)
+    assert stings_billy(client, cast, 'Whatever.') == ('angry', 1)
+    assert stings_billy(client, cast, 'Shut up.') == ('angry', 2)
+    assert stings_billy(client, cast, 'Shut up.') == ('angry', 2)
+
+
+def test_the_rough_patches_slider_sets_how_far_words_go(client, cast):
+    set_life(client, rough_patches_realism=0)
+    assert stings_billy(client, cast, "You're so boring.") is None
+    set_life(client, rough_patches_realism=1)
+    assert stings_billy(client, cast, "You're so boring.") == ('annoyed', 1)
+    assert stings_billy(client, cast, 'Whatever.') == ('annoyed', 1)
+    set_life(client, rough_patches_realism=3)
+    assert stings_billy(client, cast, 'Whatever.') == ('angry', 1)
+
+
+def remember(client, companion_id, layer, subject, value):
+    database = client.app.state.database
+    with database.connect(write=True) as connection:
+        now = database.now()
+        timeline_id = connection.execute('SELECT active_timeline_id FROM companions WHERE id=?',
+                                         (companion_id,)).fetchone()[0]
+        connection.execute(
+            "INSERT INTO memories (id, companion_id, timeline_id, layer, subject, value, reality, authority, status, "
+            "stated_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'real', 'confirmed', 'active', ?, ?, ?)",
+            (identifier(), companion_id, timeline_id, layer, subject, value, now, now, now))
+
+
+def test_a_shared_joke_or_a_wink_is_teasing_not_a_sting(client, cast):
+    for text in ("You're such a dummy 😜", '*grins* oh shut up', "You're so annoying :P", "*laughs* you're so dumb"):
+        assert stings_billy(client, cast, text) is None, text
+    # The words of a joke you share since day one.
+    remember(client, cast['Billy'], 'shared_experience', 'the goose', "We laugh that Billy is a useless goose guard")
+    assert stings_billy(client, cast, "You're so useless.") is None
+    # A fact about you that happens to hold the word is not a joke between you.
+    remember(client, cast['Billy'], 'user_fact', 'museums', 'You find museums boring')
+    assert stings_billy(client, cast, "You're so boring.") == ('annoyed', 1)
+
+
+def test_i_dont_care_stings_only_on_its_own():
+    for text in ("Honestly I don't care, both sound great.", "I don't care, you pick!"):
+        assert moods.hurtful(text) is None, text
+    for text in ("I don't care.", "I don't care about you", "i dont care anymore"):
+        assert moods.hurtful(text), text
