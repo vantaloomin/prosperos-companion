@@ -809,7 +809,8 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
     data = city_data(connection, definition)
     place = outing['place']
     seed = f"outing:{outing['id']}:{outing['rolls']}"
-    spot = generators.pick(seed, SPOT, place.get('spots') or [])
+    # Where they sat at the start, until a while in: then they may have moved about (the bench, not "the front steps").
+    spot = generators.pick(seed, SPOT, place.get('spots') or []) if not settled(outing, companion, now) else None
     conditions = generators.conditions(data, date.fromisoformat(outing['local_date'])) if data else None
     if outing['activity'] in VISIT_DOING:
         return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else ())
@@ -823,7 +824,6 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
         from companion.life import big_days
         return big_days.scene(connection, companion, outing, now)
     if outing['activity'] == 'dinner-in':
-        spot = generators.pick(seed, SPOT, place.get('spots') or [])
         return '- ' + ' '.join(part for part in (
             f"Right now the user is over at your place, in person, for {what(outing).replace(' at your place', '')}, "
             f"until about {outing['until_time']}.", f'You are {spot}.' if spot else '',
@@ -946,9 +946,10 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
         found = state(outing, version['timezone'], now)
         if found == 'now':
             # Where they are right now: the first place, or the second once they moved on (companion/life/onward.py).
-            result.append((f"outing:{outing['id']}:now", scene(connection, companion,
-                                                                onward.here(outing, version['timezone'], now), now)))
-            result += onward.lines(connection, companion, outing, now, fresh_ids)
+            current = onward.here(outing, version['timezone'], now)
+            result.append((f"outing:{outing['id']}:now", scene(connection, companion, current, now)))
+            result += [*since_lines(current, version['timezone'], now),
+                       *onward.lines(connection, companion, outing, now, fresh_ids)]
             if ending := ending_line(connection, companion, outing, now):
                 result.append((f"outing:{outing['id']}:ending", ending))
         elif found == 'planned':
@@ -968,6 +969,61 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     if on_way := heading_home.context_line(connection, companion, now):
         result.append(on_way)  # On their way home from it (companion/life/heading_home.py).
     return result
+
+
+# How long they have been out together, and where, once a while has passed: two hours into a date the turns where they
+# arrived and ate had left the conversation, and Sett "took" them to the wall they had stood at all evening and they
+# ate the same skewers again, "still warm" (tester, 2026-11-09).
+SINCE_AFTER = timedelta(minutes=30)
+SINCE_HERE = ("- You met up here at {start}, {ago} ago, and have been at {place} together ever since. You are not "
+              'arriving: what you have done, seen and eaten here so far already happened.')
+SINCE_MOVED = ("- You met up at {start} at {first} and have since come on here to {place}{moved}. {earlier} and what "
+               'you had there are behind you.')
+SINCE_TOGETHER = '- You have been together since {start}, {ago} ago: what you have done and eaten so far already happened.'
+
+
+def span_text(delta: timedelta) -> str:
+    """'25 minutes', 'an hour and a half', '2 hours and a quarter' (to the nearest quarter hour past an hour)."""
+    minutes = max(round(delta.total_seconds() / 60), 1)
+    if minutes < 60:
+        return f"{minutes} minute{'s' if minutes != 1 else ''}"
+    hours, quarters = divmod(round(minutes / 15), 4)
+    part = ('', ' and a quarter', ' and a half', ' and three quarters')[quarters]
+    return f"{'an hour' if hours == 1 else f'{hours} hours'}{part}"
+
+
+def moved_text(outing: dict, timezone: str, now: datetime) -> str:
+    """' at 20:30, 40 minutes ago' for the move just made (onward.here's `moved_at`), else ''."""
+    if not outing.get('came_from'):
+        return ''
+    tz = zone(timezone)
+    day = date.fromisoformat(outing['local_date'])
+    moved = datetime.combine(day, datetime.strptime(outing['moved_at'], '%H:%M').time(), tz)
+    return f" at {outing['moved_at']}, {span_text(max(now - moved, timedelta(minutes=1)))} ago"
+
+
+def settled(outing: dict, companion: dict, now: datetime | None) -> bool:
+    """They have been together SINCE_AFTER or more."""
+    return bool(now) and now - window(outing, companion['version']['timezone'])[0] >= SINCE_AFTER
+
+
+def since_lines(outing: dict, timezone: str, now: datetime) -> list[tuple[str, str]]:
+    """The 'since' line for an outing under way (as onward.here gives it), from SINCE_AFTER in."""
+    start = window(outing, timezone)[0]
+    if now - start < SINCE_AFTER:
+        return []
+    tz = zone(timezone)
+    found = {'start': hhmm(start.astimezone(tz)), 'ago': span_text(now - start), 'place': outing['place']['name']}
+    earlier = [item['name'] for item in (outing.get('onward') or {}).get('before') or ()]
+    earlier += [outing['came_from']['name']] if outing.get('came_from') else []
+    if earlier:
+        text = SINCE_MOVED.format(**found, first=earlier[0], earlier=' and '.join(earlier),
+                                  moved=moved_text(outing, timezone, now))
+    elif outing['activity'] in ('dinner-in', 'wedding', 'big-day', *VISIT_DOING, *MEETUPS):
+        text = SINCE_TOGETHER.format(**found)
+    else:
+        text = SINCE_HERE.format(**found)
+    return [(f"outing:{outing['id']}:since", text)]
 
 
 def done_line(connection, companion: dict, outing: dict, now: datetime) -> str:
