@@ -892,7 +892,7 @@ SLAMMED = ('{name} put in a long {label} on {project}.', '{name} spent the {labe
            '{name} raced through the {label} to keep {project} on track.')
 SLOW = ('A slow {label}: {name} caught up on small things and left on time.',
         '{name} had a quiet {label}, with time to tidy up loose ends.',
-        'Not much happened during the {label}, and {name} did not mind.')
+        'Not much happened during the {label}, which suited {name} fine.')
 STEADY = ('{name} worked on {project} during the {label}.', '{name} made steady progress on {project}.')
 HUNT = ('{name} spent the morning on job applications.', '{name} sent out a few applications and followed up on one.',
         '{name} had a phone call about a job that might go somewhere.', '{name} went over their résumé again.',
