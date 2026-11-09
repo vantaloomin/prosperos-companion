@@ -8,12 +8,12 @@ from fastapi.testclient import TestClient
 
 from companion.identity import CLIENT_HEADER
 from companion.images import memes, prompts
-from companion.images.photos import asked_kind, asks_for_photo, moment_text, yours
+from companion.images.photos import asked_kind, asks_for_photo, described, moment_text, yours
 from companion.main import create_app
 from companion.memory import context
 from companion.providers.chat import Chunk
 from companion.providers.vault import MemoryVault
-from tests.conftest import reconcile, send, set_life
+from tests.conftest import life_reply, reconcile, send, set_life
 from tests.test_images import FakeAdapter, add_backend, local_comfy
 
 
@@ -501,3 +501,66 @@ def test_a_scene_with_the_user_drawn_beside_them_is_seen_from_a_little_way_off()
     assert 'She is the only person in the picture.' in alone
     assert 'two people spending time together, seen from a little way off' in both
     assert 'Shot at eye level from a few steps away' in alone and 'Shot at eye level from a few steps away' in both
+
+
+STALL = ("quick photo: two crates by the closed drink stall, half-empty bottle between them, kaito's boots sticking out "
+         "in the dark, my hands wrapped around a cup")
+
+
+@pytest.mark.parametrize(('text', 'said'), [
+    (f'{STALL}\n\nyeah, we\'re doing the drink and talk thing.', STALL.split(': ', 1)[1]),
+    ('*quick photo: two crates by the stall*', 'two crates by the stall'),
+    ('*sends a blurry photo of the empty arena after close*', 'the empty arena after close'),
+    ('[pic: the view from the roof at dusk]', 'the view from the roof at dusk'),
+    ('📸 me and kaito grinning at the stall', 'me and kaito grinning at the stall'),
+    ('Photo attached: the sunset over the docks.', 'the sunset over the docks'),
+    ("the photo didn't come out great: blurry mess", ''),
+    ('photo: lol', ''),
+    ('here, look at this', ''),
+])
+def test_what_the_reply_says_its_picture_shows(text, said):
+    assert described(text) == said
+
+
+def test_their_words_about_a_photo_are_said_of_them():
+    assert prompts.told_of("my hands wrapped around a cup, I'm half asleep", 'he') == \
+        "his hands wrapped around a cup, he's half asleep"
+    assert prompts.told_of('me and Jo at the stall', 'they') == 'them and Jo at the stall'
+    assert prompts.said_framing('two crates by the stall, my hands around a cup', 'moment') == 'photo'
+    assert prompts.said_framing('me and kaito at the stall', 'moment') == 'selfie'
+    assert prompts.said_framing('the stall at night', 'selfie') == 'selfie'
+
+
+def test_the_picture_shows_what_the_reply_says_it_shows(client, life, provider, adapters):
+    """Sett sent "quick photo: two crates by the closed drink stall, … my hands wrapped around a cup" and the picture
+    was a portrait of him reading at home, the slot his day held: the reply had moved on to drinks with a friend. The
+    picture now follows the reply's own words, on a post of its own that never joins the feed under the slot's event."""
+    def reply(system, messages):
+        if 'Rephrase one ordinary moment' in system:
+            return life_reply(system, messages)
+        return [Chunk(f'{STALL}\n\nyeah, we\'re doing the drink and talk thing.'), Chunk('', 'stop')]
+    local_comfy(client)
+    plain = ask(client)['photo']
+    provider.respond = reply
+    sent = ask(client, 'send me a pic!', 'ask-0002')
+    drain(client)
+    prompt = adapters['comfyui'].requests[-1].prompt
+    assert 'snapshot they just took, seen through their own eyes' in prompt
+    assert "two crates by the closed drink stall" in prompt and 'their hands wrapped around a cup' in prompt
+    assert 'only person' not in prompt
+    photo = client.get(f"/api/images/photos/{sent['id']}").json()
+    assert photo['status'] == 'completed' and photo['summary'] == STALL.split(': ', 1)[1]
+    assert photo['post_id'] != plain['post_id'] and photo['ref'] != plain['ref']
+    assert [post for post in client.get('/api/feed').json()['posts'] if post['id'] == photo['post_id']] == []
+
+
+def test_a_reply_that_never_finished_sends_no_picture(client, life, provider, adapters):
+    def fails(system, messages):
+        if 'Rephrase one ordinary moment' in system:
+            return life_reply(system, messages)
+        raise RuntimeError('model down')
+    local_comfy(client)
+    provider.respond = fails
+    sent = send(client, 'send me a pic!', 'ask-0001')['reply']
+    drain(client)
+    assert sent['photo'] is None and adapters['comfyui'].requests == []

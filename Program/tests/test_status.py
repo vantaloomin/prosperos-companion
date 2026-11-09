@@ -156,3 +156,28 @@ def test_retro_work_lines_fit_their_job_and_their_era():
     assert boatbuilder and not [line for line in boatbuilder if 'email' in line or 'office' in line or 'mall' in line]
     assert any('email' in line for line in lines('accountant'))
     assert lines('boatbuilder', 'pellmouth') == list(status.AWAY['work'])
+
+
+def test_a_storyline_beat_shows_as_a_vague_line_never_someone_elses_news(client, clock, monkeypatch):
+    """A status is public (tester, 2026-11-09: "Rough night. Kaito got dumped and I sat up with them for hours"), so a
+    beat shows how the day felt, never who or what."""
+    make(client, 'Warm and curious.')
+    at(clock, 20)
+    beats = [('storyline:s1:0', {'on': '2026-10-05', 'text': 'Kaito went through a breakup.', 'tone': 'bad',
+                                 'share': 'rough night. Kaito got dumped and I sat up with them for hours'})]
+    monkeypatch.setattr(status.storylines, 'fresh_beats', lambda *_args: beats)
+    found = read(client)['text']
+    assert found in {status.decades.without_emoji(line) for line in status.NEWS['bad']}, found
+    for tone in ('good', 'mixed', '', None):
+        beats[0][1]['tone'] = tone
+        assert read(client)['text'] in {status.decades.without_emoji(line) for line in status.NEWS[tone or 'mixed']}
+    for lines in status.NEWS.values():
+        assert len(set(lines)) >= 4 and all(len(line) <= status.LIMIT for line in lines)
+
+
+def test_a_chapter_shows_as_shared_unless_it_talks_to_the_user():
+    assert status.public_chapter('I did it, I moved! New place in Fells Point.', 'x') == \
+        'I did it, I moved! New place in Fells Point.'
+    assert status.public_chapter("We're open!! Day one of the bakery.", 'x') == "We're open!! Day one of the bakery."
+    talking = status.public_chapter("Hear me out: what if we stopped renting? I found a place, a row house.", 'x')
+    assert talking in status.NEWS['good']

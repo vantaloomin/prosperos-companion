@@ -73,7 +73,9 @@ export function rentText(view: Budget): string {
     : `Rent: ${rent} for ${view.housing.label} in ${view.housing.neighborhood}.`
 }
 
-/** Everyday costs, fun and savings for the period, ending in one full stop whatever the currency. */
+/** Everyday costs, fun and savings for the whole period, ending in one full stop whatever the currency. The period
+ * leads the line, so "Everyday costs" is never read as a cost each day (tester, 2026-11-04). */
 export function costsText(view: Budget): string {
-  return sentence(`Everyday costs about ${view.text.essentials}, fun about ${view.text.fun}, savings about ${view.text.saving}`)
+  const each = view.period === 'month' ? 'Each month' : 'Each week'
+  return sentence(`${each}: everyday costs about ${view.text.essentials}, fun about ${view.text.fun}, savings about ${view.text.saving}`)
 }

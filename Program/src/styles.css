@@ -3205,6 +3205,11 @@ p.breakup-line { align-items: center; }
 /* Step 5: Posts without an intro; Memories led by how close you are, a five-step meter and Adjust rows. */
 .feed-top { display: flex; align-items: flex-start; gap: 8px; }
 .feed-top .own-post { flex: 1; min-width: 0; }
+.feed-title { display: flex; align-items: center; gap: 4px; margin: 0 0 16px; }
+.feed-title h1 { margin: 0; }
+.feed-back { min-width: 44px; min-height: 44px; margin-left: -12px; color: var(--muted); }
+/* The rail's Posts page: the post column (680) and the export button, centred as Today is. */
+@media (min-width: 1200px) { .page.feed-page { padding-inline: max(40px, calc((100% - 732px) / 2)); } }
 .feed-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .feed-new { font-size: 0.8125rem; color: var(--muted); }
 .closeness-now { display: grid; gap: 8px; max-width: 760px; }

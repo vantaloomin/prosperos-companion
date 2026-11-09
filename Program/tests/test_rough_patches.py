@@ -490,3 +490,10 @@ def test_while_strained_an_outing_together_no_longer_mends_it_by_itself(client, 
         rough_patches.daily(connection, companion, clock.now())
         assert rough_patches.one(connection, 'SELECT mended_by FROM rough_patches WHERE id=?', (row['id'],))['mended_by'] \
             == 'gesture'
+
+
+def test_teasing_does_not_start_one(client, patches, provider):
+    says(provider)
+    send(client, '*grins* oh shut up', 'client-patch-tease')
+    assert not patch(client)['open']
+    assert not [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:rough_patch']

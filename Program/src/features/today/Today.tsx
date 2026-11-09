@@ -81,7 +81,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
     <section className="page today">
       <header className="today-head">
         <h1>Today</h1>
-        {data.feed_unread > 0 && <button type="button" className="button" onClick={() => { askForNew(); go('feed') }}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
+        {data.feed_unread > 0 && <button type="button" className="button" onClick={() => { askForNew(); go('posts') }}><Newspaper aria-hidden="true" />{data.feed_unread} new in Feed</button>}
         <span className="today-tools">
           <button type="button" className="icon-button" aria-label="Map" title="Map" onClick={() => go('map')}><MapIcon aria-hidden="true" /></button>
           <button type="button" className="icon-button" aria-label="Who knows who" title="Who knows who" onClick={() => go('people')}><Network aria-hidden="true" /></button>
