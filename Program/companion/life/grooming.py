@@ -66,7 +66,7 @@ WHO = {'she/her': 'f', 'he/him': 'm', 'they/them': 'n'}
 APPOINTMENTS = {'trim': 'Haircut', 'touch-up': 'Haircut and color', 'colour': 'Hair color', 'cut': 'Haircut',
                 'nails': 'Nails', 'glasses': 'New glasses'}
 # Free time a salon visit can take the place of; plans, work, occasions and anything with someone else stay.
-KEPT_ACTIVITIES = {'birthday', 'own-birthday', 'festival', 'tradition', 'gathering', 'sick-day'}
+KEPT_ACTIVITIES = {'birthday', 'own-birthday', 'festival', 'tradition', 'gathering', 'sick-day', 'own-block'}
 OPEN_BLOCKS = {'errand', 'leisure', 'rest'}
 WORKING = {'steady-shift', 'busy-shift', 'library', 'study-cafe', 'lunch-out'}
 PICTURE_ACTIVITY = {'nails': 'nail-salon'}
@@ -635,7 +635,8 @@ def swappable(entry: dict | None, block: dict) -> bool:
         return False
     if entry is None:
         return True
-    planned = any(entry.get(key) for key in ('outing', 'own_plan', 'trip', 'recommendation', 'with', 'hobby'))
+    planned = any(entry.get(key) for key in ('outing', 'own_plan', 'trip', 'recommendation', 'with', 'hobby',
+                                                  'planned'))
     return not planned and entry.get('activity') not in KEPT_ACTIVITIES
 
 

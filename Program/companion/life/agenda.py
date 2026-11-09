@@ -232,7 +232,7 @@ def extend_subject(connection, timeline_id, timezone, subject, definition, basis
     plans, away, arrivals = {}, {}, {}
     if subject == COMPANION:
         plans, away, arrivals, repinned = companion_days(connection, timeline_id, companion, now)
-        stale += repinned
+        stale += repinned + named_again(connection, timeline_id, now)
     cursor = optional(connection, 'SELECT through FROM agenda_cursors WHERE timeline_id=? AND subject=?',
                       (timeline_id, subject))
     # A timeline's days begin when it last became active: nothing is filled in for time it spent
@@ -387,11 +387,27 @@ def slot_entry(connection, scope: dict, slot, view: dict, pinned: dict, company:
     if slot.block.key in pinned:
         plan = pinned[slot.block.key]
         block = outings.marked(block, plan)
-        return (None if plan and plan.get('continues') else plan and plan_entry(plan, block, definition)), block
+        entry = None if plan and plan.get('continues') else plan and plan_entry(plan, block, definition)
+        # Planned: a pastime or a salon visit never takes its place (hobbies.swappable, grooming.swappable).
+        return entry and {**rest_of(entry, plan, block), 'planned': True}, block
+    if scope['subject'] == COMPANION and composer.named(block):
+        # A block named for what it holds ("Bathhouse and cards") is that, as the chat already says.
+        return disruptions.entry_with(composer.own_block(view, definition), shift, definition['name']), block
     entry = compose_entry(connection, scope, slot, view, company, recent, seed)
     if scope['subject'] == COMPANION:
         entry = work.touch(connection, scope['companion'], entry, block, slot.local_date, seed)
     return disruptions.entry_with(entry, shift, definition['name']), block
+
+
+def rest_of(entry: dict, plan: dict, block: dict) -> dict:
+    """An errand or a late night at work that takes only the start of a block named for what it holds
+    ("Bathhouse and cards"), then the rest of it as usual."""
+    if 'admin' not in plan or not composer.named(block):
+        return entry
+    until, end = entry['admin'].get('until') or '', block.get('end') or ''
+    if not until or not (until < end or end < block.get('start', '')):
+        return entry
+    return {**entry, 'summary': f"{entry['summary'].rstrip()} After that, the rest of the {composer.usual(block)}"}
 
 
 def plan_entry(plan: dict, block: dict, definition: dict) -> dict:
@@ -468,6 +484,20 @@ def compose_entry(connection, scope: dict, slot, view: dict, company: list, rece
     entry = entry or composer.compose(view, definition, world, seed, recent[-3:], company, celebrants)
     entry = network.run_in(connection, timeline_id, entry, view, block, seed)
     return encounters.meet(connection, scope['companion'], entry, view, block, seed)
+
+
+def named_again(connection, timeline_id, now) -> int:
+    """Remove the companion's upcoming entries the composer or a pastime filled in a block named for what it holds,
+    drawn before such a block kept to its name (1.3.4), so they are composed again."""
+    removed = 0
+    for row in many(connection, "SELECT id, block, entry FROM life_agenda WHERE timeline_id=? AND subject=? AND "
+                    "status='upcoming' AND starts_at>? AND entry IS NOT NULL AND json_extract(entry, '$.activity')!='own-block' "
+                    "AND json_extract(entry, '$.composer_version') IN (?, 'hobby-1')",
+                    (timeline_id, COMPANION, stamp(now), composer.COMPOSER_VERSION)):
+        if composer.named(decode(row['block'])) and not decode(row['entry']).get('joint'):
+            connection.execute('DELETE FROM life_agenda WHERE id=?', (row['id'],))
+            removed += 1
+    return removed
 
 
 def tradition_done(connection, timeline_id, view: dict) -> bool:
