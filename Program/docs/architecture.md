@@ -554,7 +554,9 @@ only moves forward.
 message, written by rules and templates with no model. A chapter or storyline beat from the last two days
 that they would share comes first, then payday, a sick day or a day off, their mood, a plan in the next three
 days, else an everyday line from their interests. It is drawn once per local half day, so it changes at most
-twice a day unless something big happens. While a sleep, work, study, errand or social block is on (the
+twice a day unless something big happens. A status is public, so a storyline beat (someone's private news)
+shows only as a vague line by its tone ("been a day", "good news day"), never naming anyone, and a chapter
+line that talks to the user ("Hear me out: what if we stopped renting?") gets the vague good line too. While a sleep, work, study, errand or social block is on (the
 agenda's, else the routine's, as for paced replies), an away line from that block shows instead ("at work
 till 6", "zzz") with a moon, briefcase or pin glyph. It never locks the chat and never reflects the user;
 there are still no online dots, read receipts or typing indicators. The user can write their own

@@ -76,6 +76,27 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.3.3 (2026-11-09)
+
+- **Moods:** stinging words build up by the Rough patches slider (True to life: a warning first, hurt on the second);
+  teasing, emoji winks and shared jokes never sting; "I don't care" only on its own or about them. The companion's
+  own "we're okay" after talking it through calms a mood about the user for the day; more apologies are heard.
+- **Long dates:** in person, the date's opening turns stay in context beside the latest ones; from 30 minutes in a
+  line says how long they have been out and where; memories and recalled turns carry the time of day.
+- **Day so far:** chat replies and first texts see today's slots that have begun and today's sent photos.
+- **Errands:** calendar entries keep their whole length clear of work, class and sleep, and of "Seeing people" time
+  when anything else is free; existing clashes move on the next plan-ahead.
+- **Said photos:** a reply that says what its photo shows ("quick photo: ...") gets a picture drawn from those words
+  (snapshot, or a selfie when they are in it) on its own post that never joins the feed.
+- **Posts:** Posts (in the era's words) is back on the desktop rail under Chats; the profile tab opens on their own posts.
+- **Status lines:** storyline beats show as a vague line by tone, never naming anyone.
+- **Day posts:** a lone companion's "he"/"she" reads "I"; late starts and changed plans read as sentences.
+- **Memories:** saved memories call the user "you", never "the user" or the companion's pronoun (prompt
+  memory-suggest-8 plus a code rewrite); existing automatic memories are repaired once.
+- **On their mind:** a thought about a Life deck moment that was drawn again is written again.
+- **Money:** the costs line names its period; rent is set at move-in and kept through pay changes; pay picks how roomy
+  a place is.
+
 ## v1.3.2 (2026-11-04)
 
 - **Another reply on texts they send first:** a companion's own text (a check-in, a plan follow-up) takes Another

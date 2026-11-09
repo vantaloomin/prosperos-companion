@@ -379,17 +379,53 @@ OBJECT_AFTER = {'home', 'to', 'up', 'down', 'out', 'in', 'off', 'back', 'over', 
                 'at', 'about', 'a', 'an', 'the', 'some', 'that', 'this', 'how', 'what', 'when', 'again'}
 
 
-def own_pronouns(text: str, forms: str | None) -> str:
-    """Sentences that start with the companion's own pronoun, said as "I" (see SUBJECTS)."""
+# Words for another person, whom a "he" or "she" later in the line could mean instead of the companion.
+SOMEONE = re.compile(r"\b(?:friends?|coworkers?|co-workers?|colleagues?|boss|clients?|customers?|neighbou?rs?|someone|"
+                     r"somebody|strangers?|man|woman|guy|girl|boy|kid|child|mother|father|mom|mum|dad|brother|sister|"
+                     r"partner|manager|owner|teacher|trainer|coach|opponent|landlord|landlady)\b", re.IGNORECASE)
+# Words a sentence can start with that are not someone's name.
+OPENERS = {'a', 'an', 'the', 'not', 'later', 'then', 'after', 'afterwards', 'afterward', 'before', 'during', 'by',
+           'it', 'there', 'this', 'that', 'today', 'tonight', 'still', 'even', 'most', 'much', 'all', 'some', 'when',
+           'while', 'so', 'but', 'and', 'at', 'in', 'on', 'with', 'for', 'once', 'nothing', 'something', 'no', 'one',
+           'traffic', 'work', 'everything', 'long', 'quiet', 'home', 'back', 'lunch', 'dinner', 'breakfast'}
+OTHER_PRONOUNS = {'he/him': r'she|her|hers|herself', 'she/her': r'he|him|his|himself'}
+
+
+def alone(text: str, name: str, forms: str) -> bool:
+    """Whether the companion is the only person in the line, so a "he" or "she" anywhere in it can only be them: no
+    other name (a capitalized word other than theirs, "I" or a sentence's first word; a place's "Lou's" does not
+    count), nobody else's pronoun and no other person ("a coworker")."""
+    if forms not in OTHER_PRONOUNS or re.search(rf'\b(?:{OTHER_PRONOUNS[forms]})\b', text, re.IGNORECASE) \
+            or SOMEONE.search(text):
+        return False
+    names = set(name.split()) | {'I', 'He', 'She'}
+    for sentence in re.split(r'(?<=[.!?]) ', text.strip()):
+        first = re.match(r"[A-Z][\w-]*", sentence)
+        if first and first.group(0) not in names and first.group(0).lower() not in OPENERS:
+            return False  # "Henry came by" could be anyone; only a plain opener ("Not much happened") is safe.
+        if any(word not in names for word in re.findall(r"\b[A-Z][\w-]*\b(?!'s)", sentence[1:])):
+            return False
+    return True
+
+
+def own_pronouns(text: str, forms: str | None, name: str = '') -> str:
+    """Sentences that start with the companion's own pronoun, said as "I" (see SUBJECTS). When the companion is the
+    only person in the line (`alone`), a "he" or "she" further in ("Not much happened, and he did not mind") is them
+    too: there is nobody else it could be. "They" stays, since it can mean everyone there."""
     found = SUBJECTS.get(forms or '')
     if not found or forms == 'they/them' and THEY_SHARED.search(text):
         return text
     subject, possessives, reflexive = found
+    anywhere = bool(name) and alone(text, name, forms or '')
     adverbs = '|'.join(ADVERBS)
     sentences = re.split(r'(?<=[.!?]) ', text)
     for index, sentence in enumerate(sentences):
         if not re.match(rf"{subject}(?:'\w+)?\b", sentence):
-            continue
+            if not anywhere or not re.search(rf'\b{subject.lower()}\b', sentence):
+                continue
+            sentence = re.sub(rf"\b{subject.lower()} ((?:(?:{adverbs}) )?)([\w']+)\b",
+                              lambda word: f"I {word.group(1)}"
+                                           f"{THEY_VERBS.get(word.group(2), first_person(word.group(2)))}", sentence)
         sentence = re.sub(rf"^{subject}'\w+\b", lambda word: CONTRACTED.get(word.group(0), word.group(0)), sentence)
         sentence = re.sub(rf"^{subject} ((?:(?:{adverbs}) )?)([\w']+)\b",
                           lambda word: f"I {word.group(1)}"
@@ -429,7 +465,7 @@ def mine(text: str | None, name: str, own: str | None = None) -> str | None:
     that starts "He ..." about them reads "I ..." too."""
     if not text or not name:
         return text
-    text = own_pronouns(text, own)
+    text = own_pronouns(text, own, name)
     text = said(text, {}, pronouns.FIRST)
     names = sorted({name.strip(), name.strip().split()[0]}, key=len, reverse=True)
     who = '(?:' + '|'.join(re.escape(each) for each in names if each) + ')'

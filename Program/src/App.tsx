@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { createElement, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { Companion } from './types'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
@@ -196,10 +196,10 @@ function NewMain({ view, companion, go }: { view: View; companion: Companion; go
 
 function CompanionView({ view, companion, go }: { view: View; companion: Companion; go: (view: View) => void }) {
   if (isNewMain(view)) return <NewMain view={view} companion={companion} go={go} />
-  if (view === 'appearance') return <Appearance companion={companion} go={go} />
-  if (view === 'portraits') return <Portraits companion={companion} go={go} />
-  if (view === 'today') return <Today companion={companion} go={go} />
-  if (view === 'feed') return <Feed companion={companion} go={go} />
+  const page = { appearance: Appearance, portraits: Portraits, today: Today, feed: Feed }[view as string]
+  if (page) return createElement(page, { companion, go })
+  // The rail's Posts page: the same posts as the profile's tab, as a page of their own.
+  if (view === 'posts') return <Feed companion={companion} go={go} page />
   if (fromToday(view)) return view === 'people' ? <WhoKnowsWho go={go} /> : <CityMap companion={companion} place={view.startsWith('map/') ? decodeURIComponent(view.slice(4)) : null} go={go} />
   if (profileTab(view) === 'memories') return <MemoriesView view={view} companion={companion} go={go} />
   return <Conversation companion={companion} go={go} />

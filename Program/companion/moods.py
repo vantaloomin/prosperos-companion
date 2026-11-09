@@ -13,8 +13,12 @@ anxious, sad), an intensity from 1 to 3 and, for some, who it is about. All by r
   and it is at most one step a reply.
 - Their own day sets it when nothing else has (`day_moods`): a bad storyline beat, a mood mark from the consequence
   engine, their day going off plan. Everyday moods stay mild.
-- The user's words move it a step (`from_user`): care lifts a low mood, words that sting leave them a little hurt
-  (angry only with a temper). Their own chat gets it as a per-reply note (`chat_lines`) that colors their tone.
+- The user's words move it a step (`from_user`): care or an apology lifts a low mood, words that sting build up by
+  the Rough patches slider (`stung`: a bit irritable first on true to life, then a little hurt, angry only with a
+  temper), and teasing never stings (`teasing`). Their own chat gets it as a per-reply note (`chat_lines`) that
+  colors their tone.
+- Talking it through clears it (`from_reply`): when they are upset with the user and their own reply says it's
+  alright now ("I understand", "we're good", the phrases that accept an apology), it's made up and they're calm.
 - It fades a step every `FADE` and resets overnight, their time.
 - Only someone with a temper gets angry: a temper the user wrote into their character ("hot-tempered", "quick to
   anger"), or the temper flaw a townsperson came with. Anyone else tops out at annoyed or hurt.
@@ -32,6 +36,7 @@ Moods are a hidden value: the people panel and Today show them only with the wor
 import random
 import re
 from datetime import timedelta
+from functools import cache
 
 from companion import consequences
 from companion.characters import by_id
@@ -348,6 +353,9 @@ NOT_AIMED = {
     "don't care": re.compile(r"\s+(?:what|which|where|when|how|who|if|whether|as long|either|for|much)\b", re.IGNORECASE),
     'hate you': re.compile(r"\s+(?:have|had|got|guys|to|can'?t|couldn'?t|need|missing|being|'re|are|were)\b", re.IGNORECASE),
 }
+# "I don't care" stings only on its own or about them: "I don't care.", "I don't care about you", "... anymore".
+CARE_AIMED = re.compile(r"(?:\s+(?:about (?:you|us|this|that|it|any of (?:this|it))|any ?more|at all))*\s*(?:[.!]+\s*)?$",
+                        re.IGNORECASE)
 # Excited, not hurtful: "shut up, you got the job?!"
 SURPRISED = re.compile(r"\?|\bno way\b|\bcongrat|\bamazing\b|\bomg\b", re.IGNORECASE)
 
@@ -360,6 +368,8 @@ def aimed(sentence: str, found: re.Match, text: str) -> bool:
         return False
     if key == 'shut up' and SURPRISED.search(text):
         return False
+    if key == "don't care" and not CARE_AIMED.match(sentence, found.end()):
+        return False  # "I don't care, both sound great": only "I don't care." or "... about you" stings.
     after = NOT_AIMED.get(key)
     return not (after and after.match(sentence, found.end()))
 
@@ -396,28 +406,147 @@ STYLE = {
 
 def from_user(connection, key: str, text: str, now) -> bool:
     """The user's message nudges the companion's mood, by rules: words that sting hurt (anger needs a temper),
-    care lifts a low mood a step back toward calm. At most one step a message; jokes and negations don't count.
-    Returns whether it moved."""
+    care lifts a low mood a step back toward calm. At most one step a message; jokes, teasing and negations don't
+    count. Returns whether it moved."""
     if not text or JOKING.search(text):
         return False
-    if hurtful(text):
-        has_temper = temper(connection, key) > 0
-        feeling, limit = ('angry', NUDGE_LIMIT) if has_temper else ('hurt', USER_LIMIT)
-        mood = stored(connection, key, now)
-        same = mood and mood['feeling'] == feeling and mood['target'] == USER
-        if same and mood['intensity'] >= limit:
+    if sentence := hurtful(text):
+        if teasing(connection, key, text, sentence):
             return False
-        save(connection, key, feeling, mood['intensity'] + 1 if same else 1, USER, 'something you said stung', now)
-        return True
-    if not KIND.search(text):
-        return False
+        return stung(connection, key, now)
     mood = current(connection, key, now)
     if mood is None or mood['feeling'] not in LOW:
+        return False
+    if not KIND.search(text) and not (mood['target'] == USER and apologises(text)):
         return False
     if mood['intensity'] <= 1:
         save(connection, key, 'calm', 1, None, 'you cheered them up', now)
     else:
         save(connection, key, mood['feeling'], mood['intensity'] - 1, mood['target'], mood['reason'], now)
+    return True
+
+
+# Teasing, not stinging (Vanta's tester, 2026-11-09: a shared joke from day one made Sett angry halfway through a date).
+# A wink, a grin or a laugh in the message ("you're such a dummy 😜", "*grins* shut up"), or the same words living in
+# a joke or moment they share (memories), make it banter.
+PLAYFUL = re.compile(r"[\U0001F602\U0001F606\U0001F923\U0001F61C\U0001F61D\U0001F61B\U0001F60F\U0001F609\U0001F643"
+                     r"\U0001F618\U0001F970\U0001F60A\U0001F601\U0001F604\u2764\U0001F495\U0001F496]|"
+                     r"(?<!\w)(?:[:;]-?[pPD)]|xD|XD|<3)(?!\w)|"
+                     r"\*[^*\n]{0,40}\b(?:grin|smirk|wink|laugh|giggl|chuckl|snort|teas|nudg|bump|poke|tongue|smil|"
+                     r"kiss|ruffl|boop)\w*[^*\n]{0,40}\*|\b(?:teasing|kidding|joking|dork|dummy|silly|goof|you know i love you)\b",
+                     re.IGNORECASE)
+# The words that carry the sting, as a shared joke would hold them: "dumb" in "you're so dumb", "shut up".
+CORE = re.compile(r"shut up|go away|whatever|stupid|dumb|pathetic|annoying|boring|useless|idiot|loser|selfish|clingy|"
+                  r"exhausting", re.IGNORECASE)
+JOKE_WORDS = re.compile(r"\b(?:joke|joking|jokes|laugh|laughs|laughed|laughing|tease|teases|teased|teasing|banter|"
+                        r"running|nickname|calls? (?:each other|you|him|her|them)|kidding|funny)\b", re.IGNORECASE)
+
+
+def teasing(connection, key: str, text: str, sentence: str) -> bool:
+    """Whether words that would sting are banter: said with a wink or a laugh, or words a joke or moment you share
+    is made of (a running joke, a shared moment or anything they remember about you two joking)."""
+    if PLAYFUL.search(text):
+        return True
+    words = {found.group(0).casefold() for found in CORE.finditer(sentence)}
+    companion_id = key.removeprefix('companion:') if key.startswith('companion:') else None
+    if not words or not companion_id:
+        return False
+    companion = by_id(connection, companion_id)
+    if not companion or not companion.get('active_timeline_id'):
+        return False
+    for row in many(connection, "SELECT layer, subject, value FROM memories WHERE companion_id=? AND timeline_id=? "
+                    "AND status='active'", (companion_id, companion['active_timeline_id'])):
+        said = f"{row['subject']} {row['value']}"
+        if not any(re.search(rf'\b{re.escape(word)}\b', said, re.IGNORECASE) for word in words):
+            continue
+        if row['layer'] in ('shared_experience', 'relationship') or JOKE_WORDS.search(said):
+            return True
+    return False
+
+
+# How the user's words build up, by the Rough patches slider (life_settings.rough_patches_realism): off, they never
+# upset them; easy, a bit irritable at most; true to life, a first sting leaves them a bit irritable (a warning sign
+# they can talk through) and only a second one that day hurts, or angers someone with a temper; dramatic, it hurts or
+# angers at once, as before.
+BUILD_UP = {1: ('annoyed',), 2: ('annoyed', 'hurt'), 3: ('hurt',)}
+
+
+def stung(connection, key: str, now) -> bool:
+    """Words that sting move them one step along the slider's ladder. Returns whether it moved."""
+    from companion.life import rough_patches
+    ladder = BUILD_UP.get(rough_patches.level(connection))
+    if not ladder:
+        return False
+    has_temper = temper(connection, key) > 0
+    top = ('angry', NUDGE_LIMIT) if has_temper else ('hurt', USER_LIMIT)
+    steps = [(feeling, 1) for feeling in ladder[:-1]]
+    if ladder[-1] == 'hurt':
+        steps += [(top[0], level) for level in range(1, top[1] + 1)]
+    else:
+        steps.append((ladder[-1], 1))
+    mood = stored(connection, key, now)
+    at = (mood['feeling'], mood['intensity']) if mood and mood['target'] == USER else None
+    nxt = steps[steps.index(at) + 1] if at in steps[:-1] else (None if at in steps else steps[0])
+    if nxt is None:
+        return False
+    save(connection, key, nxt[0], nxt[1], USER, 'something you said stung', now)
+    return True
+
+
+def apologises(text: str) -> bool:
+    from companion.life import rough_patches
+    return rough_patches.says('apologies', text)
+
+
+# A curt "Fine." or "It's fine, whatever." is still sulking: making up takes a few more words than that.
+MADE_UP_WORDS = 6
+
+
+# Phrases in the accepting bank that are about a plan called off, not about being upset: "rain check", "glad you're
+# okay". Said in an everyday reply they don't mean it's made up.
+CALLED_OFF = ('work comes first sometimes', 'you can make it up to me', 'make it up to me', 'next time then',
+              "we'll do it another time", 'we can reschedule', "let's reschedule", 'rain check', 'raincheck',
+              'another time then', "just glad you're okay", "glad you're okay", "hope everything's okay",
+              'hope everything is okay', 'go take care of it', 'family comes first', "i'd have done the same",
+              'it happens', 'things happen', 'stuff happens', 'life happens', 'these things happen')
+
+
+@cache
+def made_up_phrases() -> re.Pattern:
+    from companion.life import rough_patches
+    phrases = sorted((phrase for phrase in rough_patches.bank('accepting') if phrase not in CALLED_OFF),
+                     key=len, reverse=True)
+    return re.compile(r'(?<![\w])(?:' + '|'.join(re.escape(phrase) for phrase in phrases) + r')(?![\w])')
+
+
+def made_up(text: str) -> bool:
+    """Whether a reply says it's alright now, not negated ("it's not okay")."""
+    from companion.life import rough_patches
+    words = rough_patches.plain(text)
+    return any(not rough_patches.NEGATED.search(words[:found.start()]) for found in made_up_phrases().finditer(words))
+
+
+# Said it's alright but not all the way there yet ("we're okay, I just need a little time"): a step better, not over.
+NOT_YET = re.compile(r"\b(?:not (?:yet|quite|all the way|completely|totally|fully)|still (?:processing|thinking|turning|"
+                     r"a little|a bit|hurt|upset|mad|angry|raw|sitting with|wrapping)|(?:need|give me|want) (?:a little|"
+                     r"a bit|a minute|a moment|a second|a while|some|more)|working on it|getting there|we'll see|"
+                     r"(?:mad|angry|upset) exactly|for now|(?:that|it) stings|it stung|i'm still)\b")
+
+
+def from_reply(connection, key: str, text: str, now) -> bool:
+    """Their own reply, once written: upset with the user and saying it's alright now ("I understand, we're good"),
+    the phrases that accept an apology (world/data/rough_patches/accepting.json), they've talked it through and the
+    mood clears for the day; said with a "not yet" ("we're okay, I just need a little time"), it eases a step. By
+    rules on what they said, never another model call. Returns whether it moved."""
+    from companion.life import rough_patches
+    mood = stored(connection, key, now)
+    if (not mood or mood['target'] != USER or mood['feeling'] not in LOW
+            or len((text or '').split()) < MADE_UP_WORDS or not made_up(text)):
+        return False
+    if mood['intensity'] > 1 and NOT_YET.search(rough_patches.plain(text)):
+        save(connection, key, mood['feeling'], mood['intensity'] - 1, USER, mood['reason'], now)
+    else:
+        save(connection, key, 'calm', 1, None, 'you talked it through', now)
     return True
 
 

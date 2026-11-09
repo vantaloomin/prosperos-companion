@@ -391,7 +391,10 @@ def as_told(row: dict, name: str) -> dict:
         return row
     # A plan or a moment of the two of them found in the user's words says "You ..." for the user
     # (memory/addressed.voiced): "You won't text before Sett does" is "The user won't text before you do".
-    voiced = row.get('layer') in VOICED and row['value'].startswith('You ')
+    # A relationship memory says "you" for the user anywhere in it ("short replies from Sett make you wonder"); rule-found
+    # plans keep the user's own sentence, where "you" is the companion, so only a plan opening on "You" turns.
+    voiced = row.get('layer') in VOICED and (row['value'].startswith('You ') or (
+        row.get('layer') == 'relationship' and YOURS.search(row['value']) is not None))
     if row.get('layer') != 'shared_experience' and not voiced:
         return row
     named = re.compile(rf'\b{re.escape(name)}\b')
@@ -399,7 +402,9 @@ def as_told(row: dict, name: str) -> dict:
                       if named.search(row[key]) or (key == 'value' and voiced)}}
 
 
-TURNS = ((r"\byour\b", "the user's"), (r'\byou\b', 'the user'))
+YOURS = re.compile(r"\byou(?:r|rs|rself)?\b", re.IGNORECASE)
+TURNS = ((r"\byourself\b", 'themselves'), (r"\byours\b", "the user's"), (r"\byour\b", "the user's"),
+         (r'\byou\b', 'the user'))
 
 
 def turned(text: str, name: str) -> str:
