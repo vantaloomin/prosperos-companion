@@ -44,7 +44,7 @@ import re
 from datetime import datetime, time, timedelta
 from functools import cache
 
-from companion import consequences
+from companion import consequences, moods
 from companion.clock import parse, stamp, zone
 from companion.database import identifier, many, one, optional, settings
 from companion.errors import require
@@ -325,7 +325,7 @@ def note(connection, message: dict, companion: dict, now: datetime):
         return
     text = message['text'] or ''
     lapsed(connection, companion, now)
-    if sentence := stings(text):
+    if (sentence := stings(text)) and not moods.teasing(connection, f"companion:{companion['id']}", text, sentence):
         sentence = sentence.rstrip('.')  # Quoted mid-sentence: 'over what you said: "go away".'
         consider(connection, companion, 'words', f"words:{message['id']}", f'the user said to you: "{sentence}"',
                  now, shown=f'over what you said: "{quoted(sentence)}"')
