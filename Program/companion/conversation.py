@@ -618,8 +618,16 @@ class Conversation:
             error = troubleshoot.describe("Couldn't finish", 'the reply', failure, str(logs.file_path()))
         if status == 'complete' and not ''.join(text).strip():
             status, error = 'failed', error or 'The model returned no reply text.'
-        if self.finish(prepared['attempt_id'], ''.join(text), status, error):
-            await self.read_aloud(prepared['attempt_id'])
+        await self.done(prepared['attempt_id'], ''.join(text), status, error)
+
+    async def done(self, attempt_id, text, status, error):
+        """Save the reply, make its picture from what it says it shows (companion/images/photos.py), and read it
+        aloud on a call."""
+        spoken = self.finish(attempt_id, text, status, error)
+        if self.photos:
+            await asyncio.to_thread(self.photos.settle, attempt_id, text)
+        if spoken:
+            await self.read_aloud(attempt_id)
 
     async def read_aloud(self, attempt_id):
         """On a call, a reply is also heard in their voice when one is set up for voice notes (companion/voice/notes.py,
