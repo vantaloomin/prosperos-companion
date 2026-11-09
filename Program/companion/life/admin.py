@@ -259,10 +259,11 @@ class Taken:
 def place(taken: Taken, day: date, at: str | None, out: bool, fixed: bool, earliest: date,
           deadline: date | None = None, strict: bool = False) -> tuple[date, str] | None:
     """The nearest free time from `day` on that keeps clear of time for seeing people (`kept_clear`), and only when
-    there is none, the nearest that may use it; `strict` never does."""
-    taken.people = True
+    there is none, the nearest that may use it; `strict` never does. An exam keeps to its class's own time, which
+    may be carved out of time for seeing people."""
+    taken.people = not taken.study
     spot = nearest(taken, day, at, out, fixed, earliest, deadline)
-    if spot is None and not strict and taken.clear:
+    if spot is None and not strict and taken.clear and taken.people:
         taken.people = False
         spot = nearest(taken, day, at, out, fixed, earliest, deadline)
     taken.people = True
@@ -677,7 +678,7 @@ def reflow(connection, companion: dict, today: date, now) -> int:
         busy = clear and runs_into(kept_clear(taken.schedule, day, study, False), item['at_time'], item['minutes'])
         if away or block is None or busy or taken.held(day, block, by_user_only=True):
             moved += move(connection, companion, item, 'away' if away else 'clash', now, day)
-        elif clear and runs_into(kept_clear(taken.schedule, day, study), item['at_time'], item['minutes']):
+        elif clear and not study and runs_into(kept_clear(taken.schedule, day), item['at_time'], item['minutes']):
             # On time for seeing people: moves only to time clear of it, so it never hops from one such block to another.
             moved += move(connection, companion, item, 'clash', now, day, strict=True)
     return moved
