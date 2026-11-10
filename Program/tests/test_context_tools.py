@@ -438,9 +438,10 @@ def test_no_model_connection_means_no_lookup(client, companion, standin_log):
 def test_conditions_are_read_from_structured_fields_or_text():
     from companion.mcp.weather import conditions_from
     assert conditions_from('', {'high_f': 61, 'low_f': 52, 'condition': 'light rain'}) == {
-        'high_f': 61, 'low_f': 52, 'rain': True, 'note': 'light rain'}
+        'high_f': 61, 'low_f': 52, 'rain': True, 'note': 'light rain', 'sky': 'rain'}
     assert conditions_from('Sunny. High 30°C, low 21 °C. No rain expected.', None) == {
-        'high_f': 86, 'low_f': 70, 'rain': False, 'note': 'Sunny. High 30°C, low 21 °C. No rain expected.'}
+        'high_f': 86, 'low_f': 70, 'rain': False, 'note': 'Sunny. High 30°C, low 21 °C. No rain expected.',
+        'sky': 'clear'}
     assert conditions_from('Thunderstorms, 75 F', None)['rain'] is True
     assert conditions_from('Partly cloudy and pleasant.', None) is None
 
@@ -476,7 +477,7 @@ def test_a_city_lookup_gives_the_rest_of_the_day_real_weather(client, app, conne
     send(client, 'How is your day going?', 'lw1')
     system = provider.requests[-1]['prompt']
     assert "Today's real weather where you live (looked up by the app" in system
-    assert 'High 61°F, low 52°F, with rain. (looked up from Stand-in at 12:00 UTC)' in system
+    assert 'High 61°F, low 52°F, rain. (looked up from Stand-in at 12:00 UTC)' in system
     assert 'typical weather for the season' not in system
 
 

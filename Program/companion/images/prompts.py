@@ -193,6 +193,13 @@ def visible(appearance: str, name: str, who: str) -> str:
     return '. '.join(f'{sentence[:1].upper()}{sentence[1:]}' for sentence in kept)
 
 
+# Snow, fog and storms (companion/world/skies.py) in the picture's light, by day and by night.
+SKY_LIGHT = {'snow': ('a snowy day, falling snow and white rooftops', 'snow falling through the streetlights'),
+             'storm': ('a dark, stormy sky and driving rain', 'a stormy night, rain lashing the streets'),
+             'fog': ('thick fog, soft muted light', 'fog haloing the streetlights'),
+             'rain': ('a grey, rainy day with wet surfaces', 'rain-wet streets')}
+
+
 def light(hour, weather, indoor=None) -> str:
     """The light of the moment's hour and weather, or '' when neither is known. Indoors (`indoor`, from the place's
     city entry, companion/images/places.py) a night is lamplight with no streetlights, and the weather stays outside."""
@@ -211,13 +218,23 @@ def light(hour, weather, indoor=None) -> str:
         parts = ['low golden evening light']
     else:
         parts = ['night, lit by warm lamps' if indoor else 'night, lit by warm lamps and streetlights']
-    if weather.get('rain'):
-        parts.append('a grey, rainy day with wet surfaces' if hour is None or 6 <= hour < 20 else 'rain-wet streets')
-    elif isinstance(weather.get('high_f'), (int, float)) and weather['high_f'] <= 38:
-        parts.append('a cold winter day')
-    elif isinstance(weather.get('high_f'), (int, float)) and weather['high_f'] >= 90:
-        parts.append('a hot, hazy summer day')
+    parts += weather_light(hour, weather)
     return f"{', '.join(parts)[:1].upper()}{', '.join(parts)[1:]}." if parts else ''
+
+
+def weather_light(hour, weather: dict) -> list[str]:
+    """The day's weather in the picture: its sky (snow, storms, fog, rain), else a hard cold or heat."""
+    daytime = hour is None or 6 <= hour < 20
+    high = weather.get('high_f')
+    if weather.get('sky') in SKY_LIGHT:
+        return [SKY_LIGHT[weather['sky']][0 if daytime else 1]]
+    if weather.get('rain'):
+        return [SKY_LIGHT['rain'][0 if daytime else 1]]
+    if isinstance(high, (int, float)) and high <= 38:
+        return ['a cold winter day']
+    if isinstance(high, (int, float)) and high >= 90:
+        return ['a hot, hazy summer day']
+    return []
 
 
 # Aboard a ship or station (companion/world/ships.py) the light is the ship's own, on its day and night cycle.

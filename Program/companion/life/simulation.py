@@ -53,7 +53,7 @@ from companion.models import EventProposal
 from companion.providers.scheduling import BackgroundInterrupted
 from companion.text_models import config_for, key_for
 from companion.workspace import overlapping_pause
-from companion.world import turnover
+from companion.world import skies, turnover
 
 LOG = logging.getLogger(__name__)
 REPEAT_LOG_AFTER = timedelta(hours=1)
@@ -91,7 +91,7 @@ def with_world(connection, view: dict) -> dict:
     """Drama as this world runs it (its own level, kept in this world only: companion/life/world_drama.py), its own
     level or None while it still follows the one carried from world to world, and whether its companion is alone."""
     return {**view, 'drama': world_drama.level(connection), 'world_drama': world_drama.own(connection),
-            'alone': world_drama.alone(connection)}
+            'alone': world_drama.alone(connection), 'weather_realism': skies.level_of(connection)}
 
 
 def update_world(database, drama: int | None) -> dict:
@@ -103,11 +103,13 @@ def update_world(database, drama: int | None) -> dict:
 def update_settings(database, body) -> dict:
     """Allowing or revoking automatic events advances the permission revision (T3, T7)."""
     changes = body.model_dump(exclude_none=True)
-    drama = changes.pop('drama', None)
+    drama, weather = changes.pop('drama', None), changes.pop('weather_realism', None)
     with database.connect(write=True) as connection:
         if drama is not None and drama != world_drama.level(connection):
             # Drama stays in the world it was set in (tester, 2026-10-31: "dramatic" for Sett changed Givardon too).
             world_drama.change(connection, drama, database.now())
+        if weather is not None and weather != skies.level_of(connection):
+            weather_changed(connection, weather, database)
         row = life_settings(connection)
         changed = {key: int(value) if isinstance(value, bool) else value
                    for key, value in changes.items() if row[key] != value}
@@ -121,19 +123,43 @@ def update_settings(database, body) -> dict:
             if 'automatic_events' in changed:
                 connection.execute('UPDATE workspace_settings SET permission_revision=permission_revision+1, '
                                    'updated_at=? WHERE id=1', (timestamp,))
-            if {'pets_realism', 'pets_can_die'} & set(changed):
-                pets.settings_changed(connection, database.clock.now())
-            if 'upkeep_realism' in changed:
-                upkeep.settings_changed(connection, database.clock.now())
-            if 'hobbies_realism' in changed:
-                hobbies.settings_changed(connection, database.clock.now(), row['hobbies_realism'])
-            if {'people_pass_away', 'loss'} & set(changed):
-                from companion.life import loss
-                loss.settings_changed(connection)
+            settings_changed(connection, row, set(changed), database.clock.now())
         found = with_world(connection, settings_view(life_settings(connection)))
     if {'life_turns', 'growing_families', 'people_pass_away', 'loss'} & set(changed):
         turnover.load(database)  # The town follows Life's big turns, babies (companion/world/couples.py) and Loss.
     return found
+
+
+def settings_changed(connection, row: dict, changed: set, now):
+    """What follows a slider or switch: the days and things it shapes are drawn again under it."""
+    if {'pets_realism', 'pets_can_die'} & changed:
+        pets.settings_changed(connection, now)
+    if 'upkeep_realism' in changed:
+        upkeep.settings_changed(connection, now)
+    if 'hobbies_realism' in changed:
+        hobbies.settings_changed(connection, now, row['hobbies_realism'])
+    if {'people_pass_away', 'loss'} & changed:
+        from companion.life import loss
+        loss.settings_changed(connection)
+
+
+def weather_changed(connection, level: int, database):
+    """This world's Weather step changed (kept in this world only, like its drama): from tomorrow, the companions' days
+    are planned again under the new skies, so Today, the chat and their plans agree. Today keeps the weather it has."""
+    skies.set_level(connection, level, database.now())
+    now = stamp(database.clock.now())
+    for row in many(connection, 'SELECT active_timeline_id AS timeline_id FROM companions'):
+        current = optional(connection, "SELECT local_date FROM life_agenda WHERE timeline_id=? AND subject='companion' "
+                           'AND starts_at<=? ORDER BY starts_at DESC LIMIT 1', (row['timeline_id'], now))
+        ahead = (row['timeline_id'], current['local_date'] if current else now[:10])
+        first = optional(connection, "SELECT MIN(starts_at) AS starts_at FROM life_agenda WHERE timeline_id=? AND "
+                         "subject='companion' AND status='upcoming' AND local_date>?", ahead)
+        if not first or not first['starts_at']:
+            continue
+        connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND subject='companion' AND status='upcoming' "
+                           'AND local_date>?', ahead)
+        connection.execute("UPDATE agenda_cursors SET through=MIN(through, ?) WHERE timeline_id=? AND "
+                           "subject='companion'", (first['starts_at'], row['timeline_id']))
 
 
 # Cursor and runs --------------------------------------------------------------------------------

@@ -66,7 +66,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.workspace import overlapping_pause
-from companion.world import generators, inside, ships
+from companion.world import generators, inside, ships, skies
 
 HORIZON = timedelta(days=7)
 BACKFILL = timedelta(days=30)
@@ -660,10 +660,14 @@ def happenings_text(events) -> str:
 
 
 def weather_text(conditions: dict) -> str:
+    """'High 48°F, low 37°F, rain, the third day of it.' A day from before skies were named (or a lookup that names
+    none) says only wet or dry."""
     text = f"High {conditions['high_f']}°F, low {conditions['low_f']}°F, "
-    text += 'with rain.' if conditions['rain'] else 'dry.'
-    # The month's note can describe sunshine, so it is left out on a rainy day.
-    return text if conditions['rain'] else f"{text} {conditions['note']}"
+    sky = skies.sky_words(conditions)
+    text += f'{sky}.' if sky else 'with rain.' if conditions['rain'] else 'dry.'
+    # The month's note can describe sunshine (or snow), so it is said only on a dry day, and never on a looked-up one.
+    return text if conditions['rain'] or conditions.get('observed') or not conditions.get('note') \
+        else f"{text} {conditions['note']}"
 
 
 def forget_person(connection, timeline_id, person_id, now):

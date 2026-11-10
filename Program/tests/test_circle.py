@@ -9,7 +9,7 @@ from conftest import life_reply, reconcile, set_life
 from companion.clock import parse, stamp, zone
 from companion.database import decode
 from companion.life import agenda, body, circle, composer
-from companion.world import catalog, generators
+from companion.world import catalog, generators, skies
 from companion.world.source import CatalogWorld
 
 EVENING_OUT = [{'key': 'day', 'label': 'Day', 'kind': 'leisure', 'start': '09:00', 'end': '17:00'},
@@ -315,7 +315,7 @@ def test_everyone_in_the_city_shares_the_days_weather(client, baltimore, clock):
     by_date = {}
     for row in rows(client):
         weather = decode(row['block']).get('weather')
-        assert weather and set(weather) == {'season', 'high_f', 'low_f', 'rain', 'note'}
+        assert weather and set(weather) == {'season', 'sky', 'days', 'high_f', 'low_f', 'rain', 'note'}
         by_date.setdefault(row['local_date'], []).append(weather)
     assert all(len({str(item) for item in items}) == 1 for items in by_date.values())
     assert CatalogWorld().weather('baltimore', datetime(2026, 7, 4).date())['high_f'] > 80
@@ -339,14 +339,15 @@ def test_bad_weather_keeps_the_day_indoors(monkeypatch):
     assert 'walk' in activities
 
 
-def test_chat_knows_todays_typical_weather(client, baltimore, provider, clock):
+def test_chat_knows_todays_weather(client, baltimore, provider, clock):
     client.put('/api/connection', json={'base_url': 'http://127.0.0.1:1234/v1', 'model': 'local-model',
                                         'api_key': 'secret-key'})
     reconcile(client)
     client.post('/api/conversation/messages', json={'text': 'Nice out?', 'client_id': 'weather-0001'})
     system = provider.requests[-1]['prompt']
     assert 'not a real forecast' in system
-    assert '°F' in system and ('with rain.' in system or 'dry.' in system)
+    assert '°F' in system and any(f'°F, {words}' in system for words in skies.WORDS.values())
+    assert 'Tomorrow: High' in system
 
 
 def test_without_climate_data_there_is_no_weather():

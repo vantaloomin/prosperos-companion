@@ -106,7 +106,12 @@ readable lookup, that day's schedule entries that have not started are removed a
 with the same seeds, so only the weather (and whether an outdoor plan moves indoors) can change.
 Entries already under way keep their weather. The day's weather then carries `observed` (source,
 tool, time), and the reply's context gives it under "Today's real weather where you live (looked up
-by the app…)" with its source and time, instead of the typical-weather heading.
+by the app…)" with its source and time, instead of the simulated-weather heading. The sky (rain,
+storm, snow, fog, overcast, cloudy or clear) is read from the service's words.
+
+The built-in weather server also gives tomorrow's forecast (`structured.tomorrow`, Open-Meteo only).
+Tomorrow's simulated day then takes it, marked `observed.forecast`, until a lookup made on that day
+replaces it; tomorrow's schedule entries are composed again with it as today's are.
 
 ## Real events in the companion's city
 

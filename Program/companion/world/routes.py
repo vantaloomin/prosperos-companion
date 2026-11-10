@@ -10,7 +10,7 @@ from companion.clock import zone
 from companion.errors import require
 from companion.life import money, network
 from companion.models import Input, MoneySetup, WorldMapImport
-from companion.world import catalog, changes, check, custom, draft, era_words, generators, marinara, townsfolk
+from companion.world import catalog, changes, check, custom, draft, era_words, generators, marinara, skies, townsfolk
 from companion.world.draft import fill, polish
 from companion.world.schema import PlaceKind
 from companion.world.source import CatalogWorld
@@ -303,9 +303,11 @@ def neighborhood_people(request: Request, city_id: str, hood_id: str, on: date |
 
 
 @router.get('/cities/{city_id}/conditions')
-def read_conditions(request: Request, city_id: str, day: date, seed: str = ''):
+def read_conditions(request: Request, city_id: str, day: date):
     data = city(request, city_id)
-    return {'conditions': generators.conditions(data, day, seed), 'annual_events': generators.annual_events(data, day),
+    with request.app.state.database.connect() as connection:
+        level = skies.level_of(connection)
+    return {'conditions': generators.conditions(data, day, level), 'annual_events': generators.annual_events(data, day),
             'holidays': generators.holidays(data, day)}
 
 
