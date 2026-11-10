@@ -91,6 +91,7 @@ from companion.mcp import weather as observed_weather
 from companion.memory import (
     closeness,
     corrected,
+    earlier,
     history,
     look_back,
     pairs,
@@ -270,7 +271,10 @@ HEADINGS = {
             'city_news': 'Changes around your city (fictional unless marked as a real listing; you know them as a '
                          'local would, they are not things you did)',
             # Local politics (companion/life/politics.py): changes when an issue moves on, about weekly.
-            'politics': politics.HEADING}
+            'politics': politics.HEADING,
+            # Earlier in this talk (companion/memory/earlier.py): the turns that left the window, last so it sits
+            # right before the conversation. Changes only when the window steps.
+            'earlier': earlier.HEADING}
 # The 'library' heading (A/B 2026-10-21, /mnt/project-files/companion-library/ab/report.md).
 LIBRARY_HEADING = ('What you know that bears on this (passages from your library; true in your world. Use them as your own '
                    'knowledge, in your own words: never quote them or say where they come from)')
@@ -672,25 +676,24 @@ def transcript(connection, timeline_id, blocked, until_seq=None) -> list[dict]:
     return [row for row in kept if row['role'] == 'user' or row['reply_to'] is None or row['reply_to'] in users]
 
 
-def recall_pool(memories, older, summaries=(), stories=()) -> tuple[list, dict]:
+def recall_pool(memories, older, summaries=(), stories=(), spare=()) -> tuple[list, dict]:
+    # Lines of Earlier in this talk that its budget left out (companion/memory/earlier.py) go under their turn's own
+    # identity: a turn surfaces once, as its bridge line or as itself.
+    sources = [
+        *(('earlier', item, f"earlier:{item['id']}", item['role'], item['text'], 'earlier') for item in spare),
+        *(('storyline', story, f"storyline:{story['id']}", story['day'], story['text'], 'storyline')
+          for story in stories),
+        *(('summary', summary, f"summary:{summary['id']}", summary['day'], summary['text'], 'summary')
+          for summary in summaries),
+        *(('memory', memory, f"memory:{memory['id']}", memory['subject'], f"{memory['subject']}: {memory['value']}",
+           'memory') for memory in memories),
+        *(('message', message, f"message:{message['id']}", message['role'], message['text'], 'message')
+          for message in older)]
     chunks, owners = [], {}
-    for story in stories:
-        for chunk in compile_chunks(f"storyline:{story['id']}", story['day'], story['text'], 'storyline'):
+    for kind, owner, source_id, title, text, chunk_kind in sources:
+        for chunk in compile_chunks(source_id, title, text, chunk_kind):
             chunks.append(chunk)
-            owners[chunk.id] = ('storyline', story)
-    for summary in summaries:
-        for chunk in compile_chunks(f"summary:{summary['id']}", summary['day'], summary['text'], 'summary'):
-            chunks.append(chunk)
-            owners[chunk.id] = ('summary', summary)
-    for memory in memories:
-        for chunk in compile_chunks(f"memory:{memory['id']}", memory['subject'],
-                                    f"{memory['subject']}: {memory['value']}", 'memory'):
-            chunks.append(chunk)
-            owners[chunk.id] = ('memory', memory)
-    for message in older:
-        for chunk in compile_chunks(f"message:{message['id']}", message['role'], message['text']):
-            chunks.append(chunk)
-            owners[chunk.id] = ('message', message)
+            owners[chunk.id] = (kind, owner)
     return chunks, owners
 
 
@@ -737,6 +740,8 @@ def recall_text(kind, owner, hit, notes=None, timezone=None) -> str:
         return memory_text(owner, timezone=timezone)
     if kind == 'storyline':
         return f"- Something that happened in your life, settled on {owner['day']}: {owner['text']}"
+    if kind == 'earlier':
+        return f"- Earlier in this talk ({stated_text(owner['created_at'], timezone)}): {owner['text']}"
     # Words of a memory the user corrected since carry the correction, so the old value isn't taken as current.
     note = f" [{notes[owner['id']]}]" if notes and owner['id'] in notes else ''
     if kind == 'summary':
@@ -746,13 +751,14 @@ def recall_text(kind, owner, hit, notes=None, timezone=None) -> str:
 
 
 def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozenset(),
-             when=None, stories=(), notes=None, timezone=None) -> list[tuple[str, str]]:
+             when=None, stories=(), notes=None, timezone=None, spare=()) -> list[tuple[str, str]]:
     """Pinned memories first, then keyword, semantic and time recall fused over eligible memories, older turns,
     episode summaries and settled storylines past their pinned window. An anecdote that keeps resurfacing needs the user's own words to come back.
     `when` is (span, timezone) for a time the query names (companion/memory/time_recall.py); `timezone`, the
     companion's, puts the time of day beside each date."""
     result = [(memory['id'], memory_text(memory, timezone=timezone)) for memory in memories if memory['pinned']]
-    chunks, owners = recall_pool([memory for memory in memories if not memory['pinned']], older, summaries, stories)
+    chunks, owners = recall_pool([memory for memory in memories if not memory['pinned']], older, summaries, stories,
+                                 spare)
     rankings = [list(ranking)] if ranking else []
     if when:
         rankings.append(time_recall.ranking(chunks, owners, *when))
@@ -1070,9 +1076,12 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     messages = transcript(connection, timeline_id, blocked_messages(connection, companion['id']), until_seq)
     start = window_start(len(messages))
     recent, older = messages[start:], messages[:start]
+    talk = []
     if group is not None:
         recent, older = [], messages + group['older']
-    elif opening := date_opening(connection, companion, now, older, budget):
+    else:
+        opening = date_opening(connection, companion, now, older, budget)
+        talk = earlier.talk(older, recent[0] if recent else None, opening)
         kept = {message['id'] for message in opening}
         recent, older = [*opening, *recent], [message for message in older if message['id'] not in kept]
     # With the adult side on, the family lines or the adult side's, never both (companion/memory/sides.py).
@@ -1081,7 +1090,8 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     packet = Packet(budget, hidden=sides.hidden(connection, timeline_id, family))
     with families.family_reply(family):
         built = fill(packet, connection, companion, now, (messages, recent, older, groups),
-                     {'semantic': semantic, 'outside': outside, 'photo': photo, 'group': group, 'adult': adult})
+                     {'semantic': semantic, 'outside': outside, 'photo': photo, 'group': group, 'adult': adult,
+                      'talk': (talk, start)})
     return {**built, 'family': family}
 
 
@@ -1146,8 +1156,24 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     lore.offer(packet, connection, companion, recent, query, now)
     library.offer(packet, connection, companion, recent, query, semantic)
     voice.offer(packet, connection, companion, messages, messages[:window_start(len(messages))], group)
-    offer_recalled(packet, connection, companion, now, groups['recallable'], (messages, older), query, semantic)
+    known = earlier.known_names(connection, companion) if group is None else None
+    spare = offer_earlier(packet, extra['talk'], known, groups, version['timezone'])
+    offer_recalled(packet, connection, companion, now, groups['recallable'], (messages, older, spare, known), query,
+                   semantic)
     return render(packet, conversation)
+
+
+def offer_earlier(packet, talk: tuple, known: set[str] | None, groups: dict, timezone: str) -> list[dict]:
+    """Earlier in this talk (companion/memory/earlier.py): the bridge of the turns that left the window, and what it
+    left out for recall."""
+    turns, start = talk
+    if not turns or known is None:
+        return []
+    memories = [memory for key, items in groups.items() if key != 'boundaries' for memory in items]
+    built = earlier.bridge(turns, start, WINDOW_STEP, known, memories, timezone)
+    for identity, text in built.shown:
+        packet.offer('earlier', identity, text)
+    return built.spare
 
 
 # Together in person, the conversation keeps the turns from when they met up (where they arrived, what they ate, what
@@ -1182,7 +1208,7 @@ def window_start(count: int) -> int:
 def offer_recalled(packet, connection, companion, now, recallable, turns, query, semantic):
     """Memories, older turns, summaries and settled storylines that fit the message being answered.
     `turns` is the timeline's transcript and the part of it (or a group's) left out of the recent turns."""
-    timeline_id, (messages, older) = companion['active_timeline_id'], turns
+    timeline_id, (messages, older, spare, known) = companion['active_timeline_id'], turns
     stories = storylines.recall_items(connection, companion, now)
     ranking = semantic_ranking(connection, semantic, recallable, older, stories)
     summaries = usable_summaries(connection, timeline_id, excluded_sources(connection, companion['id']))
@@ -1193,12 +1219,12 @@ def offer_recalled(packet, connection, companion, now, recallable, turns, query,
     notes = marked | corrected.summary_notes(summaries, marked)
     own = companion['version']['timezone']
     found = recalled(recallable, older, query, ranking, summaries, surfaced, (span, timezone) if span else None,
-                     stories, notes, own)
-    if thin(found, recallable) and look_back.points_back(query):
+                     stories, notes, own, spare)
+    if thin(found, recallable) and look_back.points_back(query, known):
         # They can ask to remember more (memory/look_back.py): first, with no model call, a wider search.
         wider = ' '.join([query, *widening(messages)])
         found += [item for item in recalled(recallable, older, wider, ranking, summaries, frozenset(),
-                                            (span, timezone) if span else None, stories, notes, own)
+                                            (span, timezone) if span else None, stories, notes, own, spare)
                   if item[0] not in {identity for identity, _text in found}]
         packet.widened = True
     for identity, text in found:
