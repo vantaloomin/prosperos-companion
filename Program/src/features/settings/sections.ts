@@ -64,6 +64,7 @@ export const SETTINGS_TABS: SettingsTabInfo[] = [
   {
     id: 'memory', label: 'Memory', sections: [
       { heading: 'memory-heading', title: 'Memory', keywords: 'memory remember automatic sensitive suggestions timelines privacy' },
+      { heading: 'own-words-heading', title: 'Their own words', keywords: 'words wording phrases phrase repeat repeating repeats repetition ai-isms aiisms slop cliches cliche stock catchphrase catchphrases drop swap replace em dash dashes ban banned list caught keep dismiss' },
     ],
   },  {
     id: 'pictures', label: 'Pictures', sections: [

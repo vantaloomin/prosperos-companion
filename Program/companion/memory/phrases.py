@@ -139,16 +139,22 @@ def filler(passages, names=frozenset()) -> list[dict]:
             for word, count in seen.items() if count >= WORD_SHARE and word not in skip and not word.isdigit()]
 
 
-def repeats_line(passages, names=frozenset()) -> str | None:
-    """One context line naming the companion's most repeated wording in their last replies, or None."""
+def repeated(passages, names=frozenset(), shown=SHOWN) -> list[dict]:
+    """The companion's most repeated wording in their last replies, most used first, at most `shown`."""
     phrases = [item for item in detect(passages)[0] if item['passage_count'] >= 3]
     found = []
     for item in sorted(phrases + filler(passages, names), key=lambda item: (-item['passage_count'], -item['words'],
                                                                             item['phrase'])):
         # A word inside a phrase already named adds nothing.
-        if len(found) < SHOWN and not (item['words'] == 1 and any(item['phrase'] in chosen['phrase'].split()
+        if len(found) < shown and not (item['words'] == 1 and any(item['phrase'] in chosen['phrase'].split()
                                                                   for chosen in found)):
             found.append(item)
+    return found
+
+
+def repeats_line(passages, names=frozenset()) -> str | None:
+    """One context line naming the companion's most repeated wording in their last replies, or None."""
+    found = repeated(passages, names)
     if not found:
         return None
     listed = ', '.join(f'"{item["phrase"]}" ({item["passage_count"]} of your last {len(passages)} messages)'

@@ -3376,3 +3376,19 @@ p.breakup-line { align-items: center; }
 .affix-input.has-prefix input { padding-left: 28px; }
 .affix-input.has-suffix .affix { right: 12px; }
 .affix-input.has-suffix input { padding-right: 8.5em; }
+
+/* Their own words (Settings > Memory, Hit List #97): caught phrases and the user's list as rows; the add row wraps on
+   a phone. */
+.own-words-row { justify-content: space-between; }
+.own-words-phrase { flex-direction: column; align-items: flex-start; gap: 0; padding-block: 6px; }
+.own-words-text { font-size: 0.875rem; color: var(--text); overflow-wrap: anywhere; }
+.own-words-note { font-size: 0.8125rem; color: var(--muted); }
+.own-words-actions { display: inline-flex; gap: 16px; flex: none; }
+.own-words-count { margin-left: 6px; color: var(--faint); }
+.own-words-remove { flex: none; width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; color: var(--muted); }
+.own-words-remove svg { width: 15px; height: 15px; }
+.own-words-add { flex-wrap: wrap; gap: 8px 10px; padding-block: 8px; }
+.setting-row.own-words-add input:not([type='checkbox']) { flex: 1 1 10rem; max-width: none; }
+.setting-row.own-words-add select { width: auto; max-width: none; }
+.own-words h3 + .row-list, .own-words .row-list + h3 { margin-top: 8px; }
+.own-words-submit { margin-left: auto; }
