@@ -18,26 +18,29 @@ def turns(texts: list[str], gap=timedelta(minutes=1), first: int = 0) -> list[di
             for index, text in enumerate(texts)]
 
 
-def test_the_users_key_sentences_are_picked_by_rule():
+def test_the_users_key_messages_are_picked_by_rule():
     known = {'mira', 'sam'}
-    step = turns(['ok so my day was long. lol ok new rule, from now on you have to call me Captain Crumbs',
+    step = turns(['lol ok new rule, from now on you have to call me Captain Crumbs',
                   'Haha deal. *salutes* What movie for saturday?',
                   'I vote Paddington 2, or Arrival if you insist. the weather is nice',
-                  '*grins* Arrival it is.'])
-    said = earlier.picked(step, known)
-    assert len(said) == earlier.PICKED
-    assert 'Captain Crumbs' in said[0][1] and said[0][0] == 'm0'
-    assert 'Paddington 2' in said[1][1], 'a number, a name the app does not know and an answer to their question'
-    assert all('weather' not in text and 'day was long' not in text for _id, text in said)
-    assert earlier.picked(turns(['how was your shift today?', 'Long!', 'ok same']), known) == []
-    long = earlier.picked(turns(['My favourite thing is ' + 'very ' * 60 + 'long']), known)
+                  '*grins* Arrival it is.',
+                  'I finally got my first tattoo today, a tiny fox on my wrist',
+                  'Show me!',
+                  'my neighbor is vacuuming again, so annoying'])
+    said, extra = earlier.picked(step, known)
+    assert [identity for identity, _text in said] == ['m0', 'm2'], 'top two, in the order said'
+    assert 'Captain Crumbs' in said[0][1] and said[1][1].startswith('I vote Paddington 2, or Arrival')
+    assert [identity for identity, _text in extra] == ['m4'], 'the rest are offered to recall only'
+    assert earlier.picked(turns(['how was your shift today?', 'Long!', 'ok same']), known) == ([], [])
+    long, _extra = earlier.picked(turns(['My favourite thing is ' + 'very ' * 60 + 'long']), known)
     assert len(long[0][1]) <= earlier.CUT and long[0][1].endswith('…')
 
 
 def test_known_names_do_not_count_and_actions_are_the_first_and_last():
-    step = turns(['Sam said hi', '*waves* hey. *sits down* ok. *laughs*', 'Mira you are funny', '*blushes*'])
-    assert earlier.picked(step, {'sam', 'mira'}) == []
-    assert [text for _id, text in earlier.actions(step)] == ['waves', 'blushes']
+    step = turns(['Sam said hi', '*waves at you* hey. *sits down next to you* ok. *really* *Where the Crawdads Sing*', 'Mira you are funny',
+                  '*blushes a little bit*'])
+    assert earlier.picked(step, {'sam', 'mira'}) == ([], [])
+    assert [text for _id, text in earlier.actions(step)] == ['waves at you', 'blushes a little bit']
 
 
 def test_the_talk_stops_at_a_long_gap_and_after_a_dates_opening():
@@ -53,7 +56,7 @@ def test_the_talk_stops_at_a_long_gap_and_after_a_dates_opening():
 
 
 def test_one_entry_per_step_with_saved_memories_and_the_budget_shrinks_the_oldest_first():
-    texts = [f'call me Captain {index}' if index % 2 == 0 else f'*nods {index}* sure' for index in range(48)]
+    texts = [f'call me Captain {index}' if index % 2 == 0 else f'*nods at you {index}* sure' for index in range(48)]
     talk = turns(texts)
     memories = [{'id': 'k1', 'subject': 'Nickname', 'value': 'Captain 0', 'source_message_ids': ['m0']},
                 {'id': 'k2', 'subject': 'Rule', 'value': 'none', 'source_message_ids': ['m30'], 'boundary': True}]
@@ -62,9 +65,9 @@ def test_one_entry_per_step_with_saved_memories_and_the_budget_shrinks_the_oldes
                                                              'earlier:m36']
     first = built.shown[0][1].splitlines()
     assert first[0].startswith('- Tue 18:00: The user said: "call me Captain 0"') and len(first) == 3
-    assert first[1] == '  You: *nods 1* … *nods 11*' and first[2] == '  Saved: Nickname: Captain 0'
+    assert first[1] == '  You: *nods at you 1* … *nods at you 11*' and first[2] == '  Saved: Nickname: Captain 0'
     assert 'none' not in '\n'.join(text for _id, text in built.shown), 'boundaries are in the prompt already'
-    assert built.spare == []
+    assert [item['id'] for item in built.spare][:4] == ['m4', 'm6', 'm8', 'm10'], 'past the top two, for recall'
     tight = earlier.bridge(talk, 48, 12, set(), memories, 'UTC', budget=120)
     assert tight.shown[-1] == built.shown[-1], 'the newest entry keeps all its lines'
     assert sum(context.token_estimate(text) for _id, text in tight.shown) <= 120

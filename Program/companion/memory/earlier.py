@@ -29,7 +29,7 @@ TALK_GAP = timedelta(hours=3)
 TALK_TURNS = 150
 BUDGET = 350
 PICKED = 2
-# A sentence scoring less than this (a number alone, say) is small talk.
+# A message scoring less than this (a number alone, say) is small talk.
 LEAST = 2
 CUT = 160
 HEADING = ('Earlier in this talk (what was said before the conversation below, oldest first, from the app; the '
@@ -39,11 +39,16 @@ SENTENCE = re.compile(r'[^.!?…\n]+(?:[.!?…]+["\'’”)]*|$)')
 QUOTED = re.compile(r'["“][^"”]{2,60}["”]|(?<![\w])\'[^\']{2,60}\'(?![\w])')
 NUMBER = re.compile(r'\d')
 ACTION = re.compile(r'\*([^*\n]{3,200})\*')
+# An action has a few words; "*really*" and "*Adolescence*" are emphasis and titles.
+ACTION_WORDS = 3
 # What people say when they hand over something to keep: a name to use, a favourite, a rule, an answer.
 MARKED = re.compile(
     r"\b(?:call me|my (?:name|nickname) is|nickname|my fav(?:ou)?rite|from now on|new rule|the answer is|answer is|"
     r"my (?:birthday|address|number)|don'?t forget|remember (?:this|that)|i(?:'m| am) (?:allergic|scared|afraid)|"
-    r"i (?:love|hate|can'?t stand)|we (?:need|should|could)|i vote|you (?:pick|choose|have to))\b", re.IGNORECASE)
+    r"i (?:love|hate|can'?t stand)|we (?:need|should|could)|i vote|you (?:pick|choose|have to)|my first|"
+    # News about themselves: what they did, got or tried.
+    r"i (?:just |finally |accidentally )?(?:got|made|tried|burned|burnt|bought|started|quit|broke|lost|won|adopted|"
+    r"booked|signed|passed|failed|finished|moved|met|ate)|riddle|guess what)\b", re.IGNORECASE)
 
 
 @dataclass
@@ -52,6 +57,8 @@ class Entry:
     line came from."""
     first: dict
     lines: list[tuple[str, str]] = field(default_factory=list)  # (message id, text)
+    # The user's other key messages past the top PICKED: never shown, offered to recall only.
+    extra: list[tuple[str, str]] = field(default_factory=list)
 
     def text(self, timezone: str, short: bool = False) -> str:
         lines = self.lines[:1] if short else self.lines
@@ -91,20 +98,27 @@ def score(sentence: str, known: set[str], answers: bool) -> int:
             + bool(NUMBER.search(sentence)) + bool(answers))
 
 
-def picked(step: list[dict], known: set[str]) -> list[tuple[str, str]]:
-    """The user's key sentences of a step, by rule: the top PICKED that score at all, in the order said."""
+def picked(step: list[dict], known: set[str]) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    """The user's key messages of a step, by rule, each cut to CUT characters: the top PICKED that score at least
+    LEAST, in the order said, and the rest that score. A message scores as its best sentence, plus one for each other
+    sentence that scores too."""
     scored, asked = [], False
     for message in step:
         if message['role'] != 'user':
             asked = '?' in ACTION.sub(' ', message['text'] or '')
             continue
-        for index, sentence in enumerate(sentences(message['text'])):
-            if (points := score(sentence, known, asked and index == 0)) >= LEAST:
-                scored.append((points, message['seq'], index, message['id'], sentence))
+        points = sorted((score(sentence, known, asked and index == 0)
+                         for index, sentence in enumerate(sentences(message['text']))), reverse=True)
+        total = points[0] + sum(1 for point in points[1:] if point >= LEAST) if points else 0
+        if total >= LEAST:
+            text = ' '.join(ACTION.sub(' ', message['text']).split())
+            scored.append((total, message['seq'], message['id'], cut(text)))
         asked = False
-    best = sorted(scored, key=lambda item: (-item[0], item[1], item[2]))[:PICKED]
-    return [(identity, cut(sentence)) for _points, _seq, _index, identity, sentence in sorted(
-        best, key=lambda item: (item[1], item[2]))]
+    ranked = sorted(scored, key=lambda item: (-item[0], item[1]))
+
+    def said(items):
+        return [(identity, text) for _points, _seq, identity, text in sorted(items, key=lambda item: item[1])]
+    return said(ranked[:PICKED]), said(ranked[PICKED:])
 
 
 def cut(text: str, limit: int = CUT) -> str:
@@ -114,8 +128,14 @@ def cut(text: str, limit: int = CUT) -> str:
 def actions(step: list[dict]) -> list[tuple[str, str]]:
     """The companion's first and last actions of the step (*like this*)."""
     found = [(message['id'], ' '.join(match.split())) for message in step if message['role'] == 'companion'
-             for match in ACTION.findall(message['text'] or '')]
+             for match in ACTION.findall(message['text'] or '') if action(match)]
     return found[:1] + found[-1:] if len(found) > 1 and found[0][1] != found[-1][1] else found[:1]
+
+
+def action(text: str) -> bool:
+    """Whether starred text is something done: a few words, not a title in capitals ("*Where the Crawdads Sing*")."""
+    words = text.split()
+    return len(words) >= ACTION_WORDS and not all(word[:1].isupper() or len(word) <= 3 for word in words)
 
 
 def saved(step: list[dict], memories: list[dict]) -> list[tuple[str, str]]:
@@ -126,7 +146,7 @@ def saved(step: list[dict], memories: list[dict]) -> list[tuple[str, str]]:
 
 
 def entry(step: list[dict], known: set[str], memories: list[dict]) -> Entry | None:
-    said, done, kept = picked(step, known), actions(step), saved(step, memories)
+    (said, extra), done, kept = picked(step, known), actions(step), saved(step, memories)
     lines = []
     if said:
         lines.append((said[0][0], 'The user said: ' + ' / '.join(f'"{text}"' for _id, text in said)))
@@ -134,7 +154,8 @@ def entry(step: list[dict], known: set[str], memories: list[dict]) -> Entry | No
         lines.append((done[0][0], 'You: ' + ' … '.join(f'*{cut(text, 100)}*' for _id, text in done)))
     if kept:
         lines.append((kept[0][0], 'Saved: ' + '; '.join(cut(text, 120) for _id, text in kept[:2])))
-    return Entry(step[0], lines) if lines else None
+    return Entry(step[0], lines, [(identity, f'The user said: "{text}"') for identity, text in extra]) \
+        if lines or extra else None
 
 
 def steps(turns: list[dict], start: int, step: int) -> list[list[dict]]:
@@ -156,7 +177,7 @@ class Bridge:
 def bridge(turns: list[dict], start: int, step: int, known: set[str], memories: list[dict], timezone: str,
            budget: int = BUDGET) -> Bridge:
     entries = [found for group in steps(turns, start, step) if (found := entry(group, known, memories))]
-    every = [line for found in entries for line in found.lines]
+    every = [line for found in entries for line in (*found.lines, *found.extra)]
     short = 0
     while entries and fits(entries, short, timezone) > budget:
         if short < len(entries) and len(entries[short].lines) > 1:
@@ -165,7 +186,7 @@ def bridge(turns: list[dict], start: int, step: int, known: set[str], memories: 
             entries.pop(0)
             short = max(0, short - 1)
     shown = [(f"earlier:{found.first['id']}", found.text(timezone, index < short))
-             for index, found in enumerate(entries)]
+             for index, found in enumerate(entries) if found.lines]
     kept = {line for index, found in enumerate(entries) for line in (found.lines[:1] if index < short else found.lines)}
     by_id = {message['id']: message for message in turns}
     # Saved memories are recallable already; only the turns' own lines are added.
