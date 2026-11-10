@@ -27,7 +27,7 @@ from datetime import date, time, timedelta
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, pronouns, world_drama
+from companion.life import casting, circle, pronouns, world_drama
 from companion.world import lifespans, perception
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
@@ -70,8 +70,11 @@ def either(*beats):
 
 STORIES = (
     # Quiet and up: good news.
-    Story('parent_promotion', 0, 'working parent', (
+    Story('parent_promotion', 0, 'employed parent', (
         beat('{a}, {name}\'s {a_rel}, got a promotion at work.', 'Omg, my {a_rel} just got a promotion!!', 'good'),)),
+    # A parent who works for themselves (from home, their own shop) has their good news instead (v1.3.4).
+    Story('parent_big_order', 0, 'independent parent', (
+        beat('{a}, {name}\'s {a_rel}, landed a big order.', 'My {a_rel} just landed a huge order!!', 'good'),)),
     Story('sibling_engaged', 0, 'unmarried sibling', (
         beat('{name}\'s {a_rel} {a} got engaged.', 'BIG news: {a} just got engaged!!', 'good'),
         beat('{a} set a wedding date for next year.', "{a} set a date! I'm already stressing about what to wear lol",
@@ -80,7 +83,7 @@ STORIES = (
     Story('cousin_baby', 0, 'cousin', (
         beat('{name}\'s cousin {a} announced they are expecting a baby.',
              "My cousin {a} is having a baby!! What does that make me, a second cousin? idk", 'good'),), own=True),
-    Story('friend_new_job', 0, 'friend', (
+    Story('friend_new_job', 0, 'friend with a job', (
         beat('{a} got a job offer and keeps asking {name} whether to take it.',
              "{a} got a job offer and won't stop asking me what to do"),
         either(('{a} took the new job.', '{a} took the job!! so proud of them', 'good'),
@@ -100,7 +103,7 @@ STORIES = (
                 'spoke up in the meeting today. everyone knows whose work it was now', 'good'),
                ('{name} took the credit problem to their manager, who is keeping an eye on it.',
                 "talked to my manager about the credit thing. they're keeping an eye on it"))), (2, 5)),
-    Story('friend_breakup', 1, 'friend', (
+    Story('friend_breakup', 1, 'friend seeing someone', (
         beat('{a} went through a breakup, and {name} spent the evening on the phone with them.',
              'rough night. {a} got dumped and I was on the phone with them for hours', 'bad'),
         beat('{a} is doing better after the breakup.', "{a}'s doing a lot better btw. bounced back fast",
@@ -131,7 +134,7 @@ STORIES = (
         either(('{a} and {b} made up.', '{a} and {b} made up! peace has returned', 'good'),
                ("{a} and {b} still aren't speaking; {name} is seeing them separately.",
                 "{a} and {b} are STILL not talking. I'm doing everything twice now"))), (3, 9)),
-    Story('secret_couple', 2, 'two friends', (
+    Story('secret_couple', 2, 'two single friends', (
         beat('{name} found out {a} and {b} have been secretly seeing each other.', 'WAIT. {a} and {b}?? since WHEN'),
         either(('{a} and {b} made it official.', "{a} and {b} are official now lol. called it (I did not call it)",
                 'good'),
@@ -163,7 +166,7 @@ STORIES = (
              "my parents are separating. I did not see that coming", 'bad'),
         beat('{name} had a long dinner with {a} about the separation.',
              'long dinner with {a} about everything. it helped, I think')), (3, 8)),
-    Story('love_triangle', 3, 'two friends', (
+    Story('love_triangle', 3, 'two single friends', (
         beat('{a} and {b} have both fallen for the same person, and it is turning into a whole thing.',
              "{a} and {b} like the SAME person. this is a soap opera"),
         either(('The person picked {a}, and {b} is not taking it well.', 'they picked {a}. {b} is NOT okay', 'bad'),
@@ -208,39 +211,38 @@ def working(person: dict) -> bool:
 
 
 FRIENDLY = {'friends', 'old friends', 'coworkers'}
+# Casts about someone's work, for people under retirement age.
+WORKING_CASTS = {'employed parent', 'independent parent'}
 # Someone the companion is seeing, in their circle (companion/life/love_life.py, or named on their sheet).
 PARTNERS = {'partner', 'spouse', 'wife', 'husband', 'girlfriend', 'boyfriend', 'fiancée', 'fiancé'}
-SINGLE_CASTS = {
-    'working parent': lambda person: kind(person) == 'parent' and working(person),
-    'parent': lambda person: kind(person) == 'parent',
-    'sibling': lambda person: kind(person) == 'sibling',
-    # A sibling the circle records as married never gets engaged (companion/life/circle.py married_sibling).
-    'unmarried sibling': lambda person: kind(person) == 'sibling' and not decode(person['details']).get('married'),
-    'cousin': lambda person: kind(person) == 'cousin',
-    'coworker': lambda person: kind(person) == 'coworker',
-    'friend': lambda person: kind(person) not in circle.FAMILY and kind(person) not in {'coworker', 'neighbor', 'mentor'},
-    'close friend': lambda person: kind(person) in circle.OLD_FRIENDS,
-    'best friend, single': lambda person: kind(person) in circle.OLD_FRIENDS,
-}
 
 
-def casts(story: Story, people: list[dict], definition: dict) -> list[tuple[str, ...]]:
-    """Every cast this story could have from these people (ids), in circle order."""
-    works = bool(circle.work_blocks(definition))
+def casts(story: Story, people: list[dict], definition: dict, known: casting.Facts | None = None) -> list[tuple[str, ...]]:
+    """Every cast this story could have from these people (ids), in circle order: only people the story can be true
+    for (companion/life/casting.py). `known` is what the rules know of the world (casting.facts)."""
+    known = known or casting.Facts(people=people)
     if story.cast == 'work':
-        return [()] if works else []
+        return [()] if circle.work_blocks(definition) and known.companion_employed else []
     if story.cast == 'best friend, single' and (definition.get('relationship') == 'romance' or
                                                  any(person['role'] in PARTNERS for person in people)):
         return []
-    if story.cast in SINGLE_CASTS:
-        return [(person['id'],) for person in people if SINGLE_CASTS[story.cast](person)]
+    if story.cast in casting.SINGLE:
+        rule = casting.SINGLE[story.cast]
+        return [(person['id'],) for person in people if rule(person, known) and
+                (story.cast not in WORKING_CASTS or working(person))]
+    return [cast for cast in pair_casts(story.cast, people) if casting.PAIRS[story.cast](
+        *(next(person for person in people if person['id'] == person_id) for person_id in cast), known)]
+
+
+def pair_casts(cast: str, people: list[dict]) -> list[tuple[str, str]]:
+    """Two people a story could be about by how they know each other: married parents, or two friends."""
     pairs = []
     for index, first in enumerate(people):
         for second in people[index + 1:]:
             how = circle.tie(first, second)
-            if story.cast == 'parents' and how == 'married':
+            if cast == 'parents' and how == 'married':
                 pairs.append((first['id'], second['id']))
-            elif story.cast == 'two friends' and how in FRIENDLY and not {kind(first), kind(second)} & circle.FAMILY:
+            elif cast != 'parents' and how in FRIENDLY and not {kind(first), kind(second)} & circle.FAMILY:
                 pairs.append((first['id'], second['id']))
     return pairs
 
@@ -263,11 +265,11 @@ def start(connection, companion, people, day: date, level: int, lone: bool = Fal
                   (timeline_id, since))
     used = {row['story'] for row in recent}
     busy = {person for row in running(connection, timeline_id, day.isoformat()) for person in decode(row['cast_ids'])}
-    options = []
+    options, known = [], casting.facts(connection, companion, people, day)
     for story in STORIES:
         if story.own or story.level > level or story.key in used:
             continue
-        free = [cast for cast in casts(story, people, definition) if not set(cast) & busy]
+        free = [cast for cast in casts(story, people, definition, known) if not set(cast) & busy]
         if free:
             options.append((story, free, 3 if story.level == level else 1))
     if not options:
