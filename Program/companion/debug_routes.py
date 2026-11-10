@@ -8,6 +8,7 @@ from pydantic import Field
 
 from companion import debug_time, model_calls, townsfolk_mix
 from companion.database import settings
+from companion.memory import look_back
 from companion.models import Input
 
 router = APIRouter(prefix='/api/debug-time')
@@ -62,10 +63,15 @@ class Recording(Input):
     recording: bool
 
 
+def call_log(database) -> dict:
+    """Whether model calls are being recorded and how much is kept, and how often a reply was offered a second look
+    through memory and asked for one since the app started (companion/memory/look_back.py)."""
+    return {**model_calls.summary(database), 'look_back': look_back.RATES.totals()}
+
+
 @calls_router.get('')
 def calls(request: Request):
-    """Whether model calls are being recorded, and how much is kept."""
-    return model_calls.summary(request.app.state.database)
+    return call_log(request.app.state.database)
 
 
 @calls_router.put('')
@@ -74,7 +80,7 @@ def record_calls(request: Request, body: Recording):
     with database.connect(write=True) as connection:
         connection.execute('UPDATE workspace_settings SET record_model_calls=?, updated_at=? WHERE id=1',
                            (int(body.recording), database.now()))
-    return model_calls.summary(database)
+    return call_log(database)
 
 
 @calls_router.get('/download')
@@ -88,7 +94,7 @@ def download_calls(request: Request):
 @calls_router.delete('')
 def clear_calls(request: Request):
     model_calls.clear(request.app.state.database)
-    return model_calls.summary(request.app.state.database)
+    return call_log(request.app.state.database)
 
 
 class MixChange(Input):

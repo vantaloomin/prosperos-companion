@@ -13,6 +13,17 @@ function size(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
+function times(count: number): string {
+  return count === 1 ? 'once' : `${count} times`
+}
+
+/** How often a reply could ask to look further back in memory since the app started, and how often it did
+ * (companion/memory/look_back.py). */
+function lookBackText({ offered, asked }: { offered: number; asked: number }): string {
+  if (!offered) return 'Looking further back, since the app started: not offered yet.'
+  return `Looking further back, since the app started: offered ${times(offered)}, ${asked ? `used ${times(asked)}` : 'not used yet'}.`
+}
+
 /** Settings > Data: write every model request and response down in full, to find out why a reply came out
  * strange (companion/model_calls.py). Off by default; the files hold the chats word for word. PC only. */
 export function ModelCalls() {
@@ -39,6 +50,7 @@ export function ModelCalls() {
           <button type="button" className="button" onClick={() => void change()}><Trash2 aria-hidden="true" />Delete recorded calls</button>
         </div>
       )}
+      {data?.look_back && <p className="subtle">{lookBackText(data.look_back)}</p>}
       {error && <Notice tone="error">{error}</Notice>}
     </section>
   )

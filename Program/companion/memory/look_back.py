@@ -18,16 +18,30 @@ that asks in more than a quarter of the replies it is offered this stops being o
 import logging
 import re
 
+from companion.library import names
+
 LOG = logging.getLogger(__name__)
 
 PAST = re.compile(
     r"\b(?:remember(?:s|ed)?|recall|back when|that time|the time (?:we|you|i)|last (?:year|summer|winter|spring|"
     r"fall|autumn|month|week|time)|(?:years?|months?|weeks?) ago|used to|you (?:said|told me|mentioned|promised)|"
     r"i (?:told|said to|mentioned to) you|when we|we (?:went|had|did|talked)|forgot|forget)\b", re.IGNORECASE)
+# The wider gate (Feature Hit List #99): questions about something said only in chat rarely say "remember". "That
+# film", "the nickname", "what was the" point back too, and so does a capitalised name the app does not know (`known`,
+# companion/memory/earlier.py `known_names`): "what did Priyanka bring in?".
+WIDER = re.compile(
+    r"\b(?:that (?:film|movie|show|book|song|album|game|place|restaurant|riddle|puzzle|joke|story|name|guy|girl)|"
+    r"the (?:nickname|pet name|riddle|puzzle)|my (?:nickname|pet name)|what (?:was|were) (?:the|that|those|my)|"
+    r"what did (?:i|we) (?:say|tell|call)|(?:earlier|before) (?:tonight|today))\b", re.IGNORECASE)
 # Fewer recalled items than this (besides pinned ones) is a thin first recall.
 THIN = 2
 # The user's own recent messages added to a widened search.
 WIDEN_MESSAGES = 3
+# Capitalised words that are not names of anything said before.
+IGNORED = frozenset(('i', "i'm", "i'll", "i've", "i'd", 'ok', 'okay', 'lol', 'omg', 'god', 'oh', 'ooc', 'monday',
+                     'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'january', 'february',
+                     'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november',
+                     'december', 'christmas', 'halloween', 'easter', 'tv', 'dm', 'dms'))
 # A request, matched loosely because small models get it slightly wrong: "[[recall: x]]", "[recall x]", "[[Recall: x]".
 MARKER = re.compile(r'\[\[?\s*recall\b\s*:?\s*([^\]\n]{0,200}?)\s*\]\]?', re.IGNORECASE)
 # The start of one, still arriving.
@@ -53,8 +67,16 @@ NOTHING = ("You asked to remember more about «{query}», but nothing more was f
            "don't remember, say so the way a person would. Do not ask to look anything up again.")
 
 
-def points_back(text: str) -> bool:
-    return bool(PAST.search(text or ''))
+def points_back(text: str, known: set[str] | None = None) -> bool:
+    """Whether the message points at the past. With `known` (the name words the app knows), the wider gate too."""
+    if PAST.search(text or ''):
+        return True
+    return known is not None and bool(WIDER.search(text or '') or unknown_name(text or '', known))
+
+
+def unknown_name(text: str, known: set[str]) -> bool:
+    return any(not all(part.casefold() in known for part in name.split()) for name in names(text)
+               if name.casefold() not in IGNORED)
 
 
 def found_note(query: str, lines: list[str]) -> str:
@@ -157,6 +179,11 @@ class Rates:
     def count(self, model: str, asked: bool):
         self.offered[model] = self.offered.get(model, 0) + 1
         self.asked[model] = self.asked.get(model, 0) + int(asked)
+        LOG.info('Offered a second look through memory; the reply %s.', 'asked for one' if asked else 'did not ask')
+
+    def totals(self) -> dict:
+        """Since the app started, for Debug: how often the second look was offered and how often a reply asked."""
+        return {'offered': sum(self.offered.values()), 'asked': sum(self.asked.values())}
 
 
 RATES = Rates()

@@ -2082,7 +2082,10 @@ export interface GuestOption {
 }
 
 /** Record model calls (companion/model_calls.py), Settings > Data. */
-export interface ModelCallLog { recording: boolean; folder: string; keep_days: number; files: number; bytes: number }
+export interface ModelCallLog {
+  recording: boolean; folder: string; keep_days: number; files: number; bytes: number
+  look_back: { offered: number; asked: number }
+}
 
 export interface GroupMood {
   feeling: 'calm' | 'happy' | 'excited' | 'annoyed' | 'hurt' | 'angry' | 'anxious' | 'sad'

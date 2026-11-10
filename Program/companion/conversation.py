@@ -51,7 +51,7 @@ from companion.life import (
     together,
     wedding,
 )
-from companion.memory import context, formation, look_back
+from companion.memory import context, earlier, formation, look_back
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
@@ -682,11 +682,15 @@ class Conversation:
 
     def may_look_back(self, prepared) -> bool:
         user_text = prepared['user']['text']
-        if in_character.out_of_character(user_text) or not look_back.points_back(user_text) or \
-                not look_back.RATES.allowed(model_of(prepared)):
+        if in_character.out_of_character(user_text) or not look_back.RATES.allowed(model_of(prepared)):
             return False
         with self.database.connect() as connection:
-            return bool(settings(connection)['recall_more'])
+            if not settings(connection)['recall_more']:
+                return False
+            # The wider gate needs the names the app knows (companion/memory/earlier.py); only for a 1:1 chat.
+            companion = for_timeline(connection, prepared['user']['timeline_id'])
+            known = earlier.known_names(connection, companion) if companion else None
+            return look_back.points_back(user_text, known)
 
     def look_back(self, prepared, query: str, packet: dict) -> list[str]:
         user = prepared['user']
