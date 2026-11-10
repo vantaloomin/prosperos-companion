@@ -161,10 +161,11 @@ def far_crowd(connection, companion: dict, circle_people: list[dict], seen: set[
     found, data, taken = [], network.city(connection, companion), network.names_taken(connection, companion)
     for friend in circle_people:
         reach = friend.pop('reach') * FAR
-        root = network.root(friend.pop('row'))
+        root = network.rooted(connection, friend.pop('row'))
         for person in network.their_people(root, data, taken):
-            # Their given name alone could be someone already here (a circle person, a companion): only once.
-            if person['full'] in seen or person['name'] in seen:
+            # Their given name alone could be someone already here (a circle person, a companion): only once. An ex
+            # (companion/life/circle_love.py) is not around to comment.
+            if person['full'] in seen or person['name'] in seen or person.get('ex'):
                 continue
             seen.add(person['full'])
             found.append({'key': person['key'], 'name': person['full'], 'kind': 'person', 'style': '', 'far': True,

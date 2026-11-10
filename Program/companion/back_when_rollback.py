@@ -27,7 +27,7 @@ from datetime import date, timedelta
 from companion import characters
 from companion.clock import parse, stamp
 from companion.database import decode, encode, many, optional
-from companion.life import ages, chapters, circle, home, steps
+from companion.life import ages, chapters, circle, happenings, home, steps
 from companion.world_year import same_day
 
 # Coworkers belong to the job they have now; people the app added this long after it met them came later.
@@ -124,6 +124,7 @@ def roll_back(connection, companion_id: str, day: date, real: date, pair: dict |
     companion = characters.by_id(connection, companion_id)
     timeline_id = companion['active_timeline_id']
     undo_chapters(connection, timeline_id, day, now)
+    happenings.roll_back(connection, timeline_id, day, now)
     revive(connection, timeline_id, day, now)
     not_born(connection, timeline_id, day)
     partners(connection, timeline_id, day)
