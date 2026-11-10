@@ -4,6 +4,7 @@ A user city is validated exactly like a built-in one, so every generator works o
 shared with the built-in cities and cannot shadow them.
 """
 import logging
+import sqlite3
 
 from pydantic import ValidationError
 
@@ -16,6 +17,12 @@ from companion.world import catalog, mend
 TEMPLATE_SOURCE = 'user'
 LOG = logging.getLogger(__name__)
 _reported: set[tuple[str, str]] = set()
+# The world open now (Database.follow), so code that runs without a connection, such as the budget
+# (companion/life/money.py), still finds the user's own cities and the cities that came from a world map.
+FOLLOWED: list = [None]
+# Its cities as last read, by database file: kept while no city was added, changed or deleted, and no pack
+# reloaded.
+_known: dict = {}
 
 
 def _invalid(error: Exception) -> DomainError:
@@ -75,6 +82,27 @@ def all_cities(connection) -> dict[str, dict]:
             _reported.add((item['id'], item['error']))
             LOG.warning('Your city %r no longer loads and was skipped: %s', item['id'], item['error'])
     return cities
+
+
+def follow(database) -> None:
+    FOLLOWED[0] = database
+
+
+def known() -> dict[str, dict]:
+    """The open world's own cities, read again only after one changes. Read-only, like catalog.cities()."""
+    database = FOLLOWED[0]
+    if database is None or not database.path.exists():
+        return {}
+    try:
+        with database.connect() as connection:
+            rows = connection.execute('SELECT id, revision, updated_at FROM world_cities ORDER BY id').fetchall()
+            mark = (tuple(tuple(row) for row in rows), id(catalog.cities()))
+            path = database.path
+            if _known.get(path, (None,))[0] != mark:
+                _known[path] = (mark, all_cities(connection))
+    except sqlite3.Error:  # A world being made or removed: no cities of its own yet.
+        return {}
+    return _known[path][1]
 
 
 def broken(database) -> list[dict]:

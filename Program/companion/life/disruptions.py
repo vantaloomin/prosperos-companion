@@ -10,6 +10,7 @@ the shift's wording is fixed text the model only phrases from.
 
 The Life setting `day_shifts` (on by default) turns it off for new slots.
 """
+import re
 from datetime import timedelta
 
 from companion.clock import parse, stamp
@@ -163,8 +164,36 @@ def entry_with(entry: dict | None, shift: dict | None, name: str) -> dict | None
     """The composed entry with the shift told first, so the day's account says what changed."""
     if not entry or not shift:
         return entry
-    summary = f"{name} {shift['text']}. {entry['summary']}"
+    summary = f"{told(shift, name)} {entry['summary']}"
     return {**entry, 'summary': summary, 'shift': shift['key'], 'with': entry.get('with') or shift['friend']}
+
+
+# A reason that is a whole clause ("traffic was a mess") rather than something they did ("overslept").
+CLAUSE = re.compile(r'^(?:the|a|an|traffic|everyone)\b')
+
+
+def told(shift: dict, name: str) -> str:
+    """The shift as a sentence about `name` for the day's account, with the reason worked in rather than in brackets:
+    "Sam overslept and ran 12 minutes late.", "A meeting ran long, so Sam stayed 20 minutes late." A post says it as
+    "I" (composer.mine)."""
+    reason, minutes, key = shift.get('reason') or '', shift.get('minutes'), shift['key']
+    if not reason:
+        return f"{name} {shift['text']}."
+    clause = CLAUSE.match(reason)
+    opening = reason[0].upper() + reason[1:]
+    if key == 'late':
+        if clause:
+            return f'{opening}, so {name} ran {minutes} minutes late.'
+        return f"{name} {reason.replace(' and ', ', ')}{',' if ' and ' in reason else ''} and ran {minutes} minutes late."
+    if key == 'over':
+        if clause:
+            return f'{opening}, so {name} stayed {minutes} minutes late.'
+        return f'{name} stayed {minutes} minutes late, {reason}.'
+    if key == 'cancelled':
+        return f"{opening}, so {name}'s plans fell through and it was a quiet night in."
+    if key == 'came_up':
+        return f'Something came up for {name}: {reason}.'
+    return f"{name} {shift['text']}."
 
 
 def context_lines(connection, timeline_id, subject, local_date, now) -> list[tuple[str, str]]:

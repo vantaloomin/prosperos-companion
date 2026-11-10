@@ -99,7 +99,7 @@ def test_running_late_starts_later_and_the_night_runs_on(client, mira, monkeypat
     assert parse(work['ends_at']).hour == 17
     assert night['block']['kind'] == 'sleep'
     if work['entry']:
-        assert work['entry']['summary'].startswith(f'Mira ran {late} minutes late (')
+        assert f'ran {late} minutes late' in work['entry']['summary'].split('. ')[0] and '(' not in work['entry']['summary']
 
 
 def test_staying_late_pushes_the_evening(client, mira, monkeypatch):
@@ -131,3 +131,26 @@ def test_turning_it_off_keeps_new_days_as_planned(client, mira, monkeypatch):
     set_life(client, day_shifts=False)
     assert all('shift' not in row['block'] for row in build(client))
     assert client.get('/api/life/settings').json()['day_shifts'] is False
+
+
+def test_the_day_works_the_reason_in_instead_of_brackets():
+    from companion.life import composer
+    entry = {'summary': 'Not much happened during the shift, which suited Sett fine.'}
+
+    def told(key, reason, minutes=12):
+        return disruptions.entry_with(entry, {'key': key, 'reason': reason, 'minutes': minutes, 'text': '',
+                                              'friend': None}, 'Sett')['summary']
+    assert told('late', 'overslept').startswith('Sett overslept and ran 12 minutes late. ')
+    assert told('late', 'traffic was a mess').startswith('Traffic was a mess, so Sett ran 12 minutes late. ')
+    assert told('late', 'spilled coffee and had to change').startswith(
+        'Sett spilled coffee, had to change, and ran 12 minutes late. ')
+    assert told('over', 'a meeting ran long', 20).startswith('A meeting ran long, so Sett stayed 20 minutes late. ')
+    assert told('over', 'helping a coworker with a problem', 20).startswith(
+        'Sett stayed 20 minutes late, helping a coworker with a problem. ')
+    assert told('cancelled', 'everyone was too tired').startswith(
+        "Everyone was too tired, so Sett's plans fell through and it was a quiet night in. ")
+    assert told('came_up', 'a package had to be picked up').startswith(
+        'Something came up for Sett: a package had to be picked up. ')
+    assert composer.mine(told('late', 'got caught in a long conversation'), 'Sett', 'he/him') == (
+        'I got caught in a long conversation and ran 12 minutes late. Not much happened during the shift, which '
+        'suited me fine.')

@@ -111,6 +111,14 @@ def test_a_post_says_what_happened_as_i(summary, said):
     ('Sett ate. Henry came by and he stayed.', 'he/him', 'I ate. Henry came by and he stayed.'),
     ('Rosa ate. He came by.', 'she/her', 'I ate. He came by.'),
     ('Sett ate. He settled in.', None, 'I ate. He settled in.'),
+    # With nobody else in the line, a "he" further in can only be the companion (a tester's "and he did not mind").
+    ('Sett ran 12 minutes late. Not much happened during the fight night, and he did not mind.', 'he/him',
+     'I ran 12 minutes late. Not much happened during the fight night, and I did not mind.'),
+    ('Rosa read for a while, and later she made tea.', 'she/her', 'I read for a while, and later I made tea.'),
+    # Anyone else in it, and the "he" stays theirs.
+    ('Sett helped a coworker, and he did not mind.', 'he/him', 'I helped a coworker, and he did not mind.'),
+    ('Sett waited for Henry, and he did not mind.', 'he/him', 'I waited for Henry, and he did not mind.'),
+    ('Rosa ate, and he stayed.', 'she/her', 'I ate, and he stayed.'),
 ])
 def test_a_post_says_the_companions_own_pronoun_as_i(summary, own, said):
     assert composer.mine(summary, summary.split()[0], own) == said

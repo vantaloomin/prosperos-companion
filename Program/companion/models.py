@@ -102,6 +102,8 @@ class MoneySetup(Input):
     # What they take home a month in their city's money: None works it out from their work and city, 0 is unpaid
     # (a volunteer, a carer).
     pay: float | None = Field(default=None, ge=0, le=1_000_000_000)
+    # How they hold their home (companion/life/owning.py): empty is the app's pick, from their words, age and pay.
+    home: Literal['', 'rent', 'mortgage', 'owned'] = ''
 
 
 class Looks(Input):

@@ -17,6 +17,7 @@ export function rentText(item: HomeItem): string | null {
   if (item.rent === null || item.rent === undefined) return null
   const amount = `${item.rent_text ?? `${item.currency?.symbol ?? '$'}${item.rent.toLocaleString('en-US')}`} a ${item.rent_period ?? 'month'}`
   if (!item.owned) return `Rent about ${amount} (an estimate)`
+  if (item.tenure === 'owned') return 'Theirs, owned outright'
   // No mortgage in a medieval kingdom: payments on the place.
   return item.medieval ? `Theirs, paying about ${amount} on it (an estimate)` : `Theirs, with a mortgage of about ${amount} (an estimate)`
 }

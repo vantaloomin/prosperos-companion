@@ -60,3 +60,15 @@ def test_the_conversation_starts_at_the_same_turn_for_several_replies():
     assert starts[:20] == [0] * 20
     assert all(count - start >= min(count, 20) for count, start in zip(range(1, 60), starts))
     assert len(set(starts)) == 4 and all(start % 12 == 0 for start in starts)
+
+
+def test_memories_say_the_time_of_day_they_were_said_in_the_companions_time():
+    """A rule from the start of a date and a scene from an hour later both read "(stated 2026-11-07)", so they read as
+    said together (tester, 2026-11-09)."""
+    from companion.memory.context import memory_text, stated_text
+    memory = {'boundary': 0, 'layer': 'user_fact', 'subject': 'dogs', 'value': 'feed both at the same time',
+              'applies_from': None, 'applies_until': None, 'plan_status': None,
+              'stated_at': '2026-11-07T18:12:00.000000+00:00'}
+    assert memory_text(memory).endswith('(stated 2026-11-07)')
+    assert memory_text(memory, timezone='Europe/Paris').endswith('(stated 2026-11-07 19:12)')
+    assert stated_text('2026-11-07', 'Europe/Paris') == '2026-11-07'

@@ -68,6 +68,7 @@ from companion.life import (
     recommendations,
     rough_patches,
     shared_people,
+    so_far,
     stays,
     steps,
     storylines,
@@ -444,9 +445,8 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
     for key in ('identity', 'personality', 'voice', 'background', 'appearance', 'routine', 'location'):
         if definition.get(key):
             lines.append(f'{key.capitalize()}: {definition[key]}')
-    if version.get('companion_id') and (sheet := looks.text(grooming.sheet(connection, version['companion_id'],
-                                                                          definition, day))):
-        lines += [f'Looks: {sheet}', *age_lines(connection, version['companion_id'], definition, day)]
+    if version.get('companion_id'):
+        lines += looks_lines(connection, version['companion_id'], definition, day)
     if definition.get('history_together'):
         lines.append(f"How you and the user know each other: {definition['history_together']}")
     lines += list_lines(definition)
@@ -462,14 +462,19 @@ def character_text(version, connection=None, intimate: bool = False, day: str | 
     return '\n'.join(lines)
 
 
+def looks_lines(connection, companion_id: str, definition: dict, day: str | None) -> list[str]:
+    """Their looks as on `day`, then their birthday and age (`age_lines`)."""
+    sheet = looks.text(grooming.sheet(connection, companion_id, definition, day))
+    return ([f'Looks: {sheet}'] if sheet else []) + age_lines(connection, companion_id, definition, day)
+
+
 def age_lines(connection, companion_id: str, definition: dict, day: str | None) -> list[str]:
-    """"You are 35 now; you turned 35 on 3 March." once a birthday has taken them past the age their words give
-    (companion/life/ages.py; A/B 2026-10-18: without it most models answered with the age written)."""
+    """"Your birthday is 14 January.", or "You are 35 now; you turned 35 on 3 March." once a birthday has taken them
+    past the age their words give (companion/life/ages.py age_line)."""
     if connection is None:
         return []
     looked_on = grooming.day_of(connection, grooming.timeline_of(connection, companion_id), day)
-    line = ages.age_line(connection, companion_id, definition, looked_on)
-    return [line] if line else []
+    return [ages.age_line(connection, companion_id, definition, looked_on)]
 
 
 def personality_text(connection, definition: dict, seed: str) -> str | None:
@@ -630,7 +635,16 @@ def offer_hours(packet, connection, companion, now: datetime, group):
             packet.require('time', key, text)
 
 
-def memory_text(memory, now: str | None = None) -> str:
+def stated_text(at: str, timezone: str | None = None) -> str:
+    """When something was said: the day, and with `timezone` (the companion's) the time too, so two things said the
+    same day keep their order (tester, 2026-11-09: a rule from the start of a date and a scene from an hour later
+    read as if said together)."""
+    if not timezone or len(at) <= 10:
+        return at[:10]
+    return parse(at).astimezone(zone(timezone)).strftime('%Y-%m-%d %H:%M')
+
+
+def memory_text(memory, now: str | None = None, timezone: str | None = None) -> str:
     label = 'Boundary' if memory['boundary'] else memory['layer'].replace('_', ' ').capitalize()
     timing = ''
     if memory['applies_from'] or memory['applies_until']:
@@ -645,12 +659,13 @@ def memory_text(memory, now: str | None = None) -> str:
     if now and memory['plan_status'] in OPEN_PLANS and (memory['applies_from'] or '~') < now:
         notes.append('date has passed; outcome not confirmed')
     status = f" [{'; '.join(notes)}]" if notes else ''
-    return f"- {label}: {memory['subject']}: {memory['value']}{status}{timing} (stated {memory['stated_at'][:10]})"
+    return f"- {label}: {memory['subject']}: {memory['value']}{status}{timing} " \
+           f"(stated {stated_text(memory['stated_at'], timezone)})"
 
 
 def transcript(connection, timeline_id, blocked, until_seq=None) -> list[dict]:
     rows = many(connection, "SELECT * FROM messages WHERE timeline_id=? AND active=1 AND status='complete' "
-                "AND redacted_at IS NULL AND seq<=? ORDER BY seq", (timeline_id, until_seq or 2 ** 62))
+                "AND redacted_at IS NULL AND seq<=? ORDER BY seq", (timeline_id, 2 ** 62 if until_seq is None else until_seq))
     kept = pictures.described(connection, [row for row in rows if row['id'] not in blocked])
     # A reply to a deleted or excluded message usually repeats it, so it leaves context with it (M12).
     users = {row['id'] for row in kept if row['role'] == 'user'}
@@ -717,9 +732,9 @@ def recently_surfaced(connection, timeline_id) -> set[str]:
     return {identity for identity, count in counts.items() if count >= RESURFACE_LIMIT}
 
 
-def recall_text(kind, owner, hit, notes=None) -> str:
+def recall_text(kind, owner, hit, notes=None, timezone=None) -> str:
     if kind == 'memory':
-        return memory_text(owner)
+        return memory_text(owner, timezone=timezone)
     if kind == 'storyline':
         return f"- Something that happened in your life, settled on {owner['day']}: {owner['text']}"
     # Words of a memory the user corrected since carry the correction, so the old value isn't taken as current.
@@ -727,15 +742,16 @@ def recall_text(kind, owner, hit, notes=None) -> str:
     if kind == 'summary':
         return (f"- Your conversation on {owner['day']} (your own words, quoted; a reminder, not confirmation): "
                 f"{owner['text']}{note}")
-    return f"- Earlier ({owner['created_at'][:10]}, {owner['role']}): {hit.chunk.text.strip()}{note}"
+    return f"- Earlier ({stated_text(owner['created_at'], timezone)}, {owner['role']}): {hit.chunk.text.strip()}{note}"
 
 
 def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozenset(),
-             when=None, stories=(), notes=None) -> list[tuple[str, str]]:
+             when=None, stories=(), notes=None, timezone=None) -> list[tuple[str, str]]:
     """Pinned memories first, then keyword, semantic and time recall fused over eligible memories, older turns,
     episode summaries and settled storylines past their pinned window. An anecdote that keeps resurfacing needs the user's own words to come back.
-    `when` is (span, timezone) for a time the query names (companion/memory/time_recall.py)."""
-    result = [(memory['id'], memory_text(memory)) for memory in memories if memory['pinned']]
+    `when` is (span, timezone) for a time the query names (companion/memory/time_recall.py); `timezone`, the
+    companion's, puts the time of day beside each date."""
+    result = [(memory['id'], memory_text(memory, timezone=timezone)) for memory in memories if memory['pinned']]
     chunks, owners = recall_pool([memory for memory in memories if not memory['pinned']], older, summaries, stories)
     rankings = [list(ranking)] if ranking else []
     if when:
@@ -748,8 +764,8 @@ def recalled(memories, older, query, ranking=(), summaries=(), surfaced=frozense
         if owner['id'] in seen or (owner['id'] in surfaced and not hit.matched):
             continue
         seen.add(owner['id'])
-        result.append((owner['id'], recall_text(kind, owner, hit, notes)))
-    return result + linked(memories, seen, surfaced)
+        result.append((owner['id'], recall_text(kind, owner, hit, notes, timezone)))
+    return result + linked(memories, seen, surfaced, timezone)
 
 
 def overlap(left, right) -> float:
@@ -758,7 +774,7 @@ def overlap(left, right) -> float:
     return len(a & b) / len(a | b) if a and b else 0.0
 
 
-def linked(memories, seen, surfaced) -> list[tuple[str, str]]:
+def linked(memories, seen, surfaced, timezone=None) -> list[tuple[str, str]]:
     """Up to RELATED_LIMIT eligible experiences that share most of their words with a recalled one.
 
     Built from the eligible pool on every reply, so exclusion, correction and deletion apply to links
@@ -773,7 +789,7 @@ def linked(memories, seen, surfaced) -> list[tuple[str, str]]:
         score, best = max(scored, key=lambda item: item[0], default=(0.0, None))
         if best is not None and score >= RELATED and len(result) < RELATED_LIMIT:
             seen.add(best['id'])
-            result.append((best['id'], f"{memory_text(best)} (related to: {anchor['subject']})"))
+            result.append((best['id'], f"{memory_text(best, timezone=timezone)} (related to: {anchor['subject']})"))
     return result
 
 
@@ -1056,6 +1072,9 @@ def build(connection, companion, now: datetime, budget: int, until_seq: int | No
     recent, older = messages[start:], messages[:start]
     if group is not None:
         recent, older = [], messages + group['older']
+    elif opening := date_opening(connection, companion, now, older, budget):
+        kept = {message['id'] for message in opening}
+        recent, older = [*opening, *recent], [message for message in older if message['id'] not in kept]
     # With the adult side on, the family lines or the adult side's, never both (companion/memory/sides.py).
     family = sides.family_reply(connection, companion, recent, group, photo)
     adult = sides.adult_lines(connection, companion, recent, group, photo, family)
@@ -1084,6 +1103,8 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     packet.require('time', 'clock', clock_text(connection, companion, now, previous, group))
     if today := day_text(connection, companion, now):
         packet.offer('time', 'day', today)
+    for identity, text in so_far.lines(connection, companion, now):
+        packet.offer('time', identity, text)
     offer_hours(packet, connection, companion, now, group)
     conversation = fit_conversation(packet, recent)
     if group is None and (wording := wording_text(connection, timeline_id, version['definition'], messages)):
@@ -1106,7 +1127,7 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     for section in ('profile', 'commitments', 'temporary'):
         for memory in groups[section]:
             packet.offer(f'{section}+' if fresh(memory, since) else section, memory['id'],
-                         memory_text(memory, stamp(now)))
+                         memory_text(memory, stamp(now), version['timezone']))
     offer_daily(packet, connection, version, now)
     people.offer(packet, connection, companion, groups['people'], groups['boundaries'], now, since)
     offer_life(packet, connection, companion, now)
@@ -1129,6 +1150,29 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     return render(packet, conversation)
 
 
+# Together in person, the conversation keeps the turns from when they met up (where they arrived, what they ate, what
+# the user asked of them) beside the latest ones, up to OPENING_SHARE of the budget. Two hours into a date those turns
+# had stepped out of the window: Sett narrated arriving at the wall they had stood at all evening, ate the skewers
+# again and forgot "always feed both dogs" (tester, 2026-11-09). The opening stays put, so the prompt still caches.
+OPENING_SHARE = 0.3
+OPENING_LEAD = timedelta(minutes=15)  # "Just got here, where are you?" before the start.
+
+
+def date_opening(connection, companion, now: datetime, older: list[dict], budget: int) -> list[dict]:
+    """The first turns of the time together under way that the window left out, oldest first, within the share."""
+    outing = together.together_now(connection, companion, now) if older else None
+    if not outing:
+        return []
+    begun = outings.window(outing, companion['version']['timezone'])[0] - OPENING_LEAD
+    kept, used = [], 0
+    for message in (message for message in older if parse(message['created_at']) >= begun):
+        used += token_estimate(message['text'])
+        if used > budget * OPENING_SHARE:
+            break
+        kept.append(message)
+    return kept
+
+
 def window_start(count: int) -> int:
     """Where the conversation sent with a reply starts: RECENT_MESSAGES to RECENT_MESSAGES + WINDOW_STEP - 1 turns
     from the end, moving WINDOW_STEP turns at a time."""
@@ -1147,13 +1191,14 @@ def offer_recalled(packet, connection, companion, now, recallable, turns, query,
     span = time_recall.query_span(query, now, timezone)
     marked = corrected.notes(connection, companion, timeline_id, messages)
     notes = marked | corrected.summary_notes(summaries, marked)
+    own = companion['version']['timezone']
     found = recalled(recallable, older, query, ranking, summaries, surfaced, (span, timezone) if span else None,
-                     stories, notes)
+                     stories, notes, own)
     if thin(found, recallable) and look_back.points_back(query):
         # They can ask to remember more (memory/look_back.py): first, with no model call, a wider search.
         wider = ' '.join([query, *widening(messages)])
         found += [item for item in recalled(recallable, older, wider, ranking, summaries, frozenset(),
-                                            (span, timezone) if span else None, stories, notes)
+                                            (span, timezone) if span else None, stories, notes, own)
                   if item[0] not in {identity for identity, _text in found}]
         packet.widened = True
     for identity, text in found:
@@ -1185,7 +1230,8 @@ def looked_back(connection, companion, now: datetime, query: str, until_seq: int
     timezone = settings(connection)['user_timezone']
     span = time_recall.query_span(query, now, timezone)
     found = recalled([memory for memory in recallable if not memory['pinned']], older, query, (), summaries,
-                     frozenset(), (span, timezone) if span else None, storylines.recall_items(connection, companion, now))
+                     frozenset(), (span, timezone) if span else None, storylines.recall_items(connection, companion, now),
+                     timezone=companion['version']['timezone'])
     hidden = sides.hidden(connection, timeline_id, family)
     return [text for identity, text in found if identity not in skip and not (hidden and hidden.search(text))
             ][:RECALL_LIMIT]

@@ -645,12 +645,7 @@ class Openers:
             ask = prompt_library.text(connection, 'first-texts', reason=trigger.reason)
             if voice:
                 ask += ' ' + prompt_library.text(connection, 'voice-notes')
-            ask = '(' + ask + ')'
-        messages = list(packet['messages'])
-        if messages and messages[-1]['role'] == 'user':
-            messages[-1] = {'role': 'user', 'content': messages[-1]['content'] + '\n\n' + ask}
-        else:
-            messages.append({'role': 'user', 'content': ask})
+        messages = asking(packet['messages'], ask)
         text = []
         try:
             async with self.scheduler.reserve(config, OPENER) as lease:
@@ -731,6 +726,16 @@ def settle(connection, companion, row, trigger, timestamp):
     for module in (together, steps, their_people, wedding, big_days, breakups, moving_in, own_family):
         if trigger.kind in module.SETTLES:
             module.settle(connection, companion, row, trigger, timestamp)
+
+
+def asking(messages: list[dict], ask: str) -> list[dict]:
+    """The chat with the reason to text first added as a note in brackets after its last message."""
+    messages, ask = list(messages), '(' + ask + ')'
+    if messages and messages[-1]['role'] == 'user':
+        messages[-1] = {'role': 'user', 'content': messages[-1]['content'] + '\n\n' + ask}
+    else:
+        messages.append({'role': 'user', 'content': ask})
+    return messages
 
 
 def plain(text: str) -> str:

@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, money, named, pets, upkeep
+from companion.life import ages, circle, money, named, owning, pets, upkeep
 from companion.world import catalog, generators, ships
 
 COMPANION = 'companion'
@@ -120,7 +120,7 @@ def article(text: str) -> str:
     return f"{'an' if text[:1] in 'aeiou' else 'a'} {text}"
 
 
-def place_item(seed: str, definition: dict, data: dict | None) -> dict:
+def place_item(seed: str, definition: dict, data: dict | None, age: int | None = None) -> dict:
     """The home: from the city's housing and rents when the world knows the city, else a plain apartment."""
     kind = 'aboard' if ships.enclosed(data) else modern(data)
     features = sorted({generators.pick(seed, f'feature{index}', list(FEATURES[kind])) for index in range(2)})
@@ -129,7 +129,8 @@ def place_item(seed: str, definition: dict, data: dict | None) -> dict:
                 'details': {'description': 'an apartment', 'features': features, 'city': definition.get('location', '')}}
     budget = money.profile(definition) if data['id'] == (money.city_for(definition) or {}).get('id') else None
     if budget:
-        return budgeted(seed, data, budget, features, money.where_they_live(definition))
+        return budgeted(seed, data, budget, features, money.where_they_live(definition),
+                        held(seed, definition, data, budget, age))
     match = catalog.resolve(definition.get('location') or '')
     near = match['neighborhood'] if match and match['city'] == data['id'] else None
     bedrooms = generators.pick(seed, 'bedrooms', list(SIZES), [3, 5, 2])
@@ -154,7 +155,19 @@ def home_name(housing: str, bedrooms: str, data: dict) -> str:
     return f'{SIZES[bedrooms]} in {article(text)}' if modern(data) else article(text)
 
 
-def budgeted(seed: str, data: dict, budget, features: list[str], lived: str = '') -> dict:
+def held(seed: str, definition: dict, data: dict, budget, age: int | None) -> tuple[str, float]:
+    """How they hold their home (companion/life/owning.py) and what the home item keeps as its rent: the rent, the
+    mortgage payment, or for a place owned outright the rent it would fetch, which its taxes and repairs follow."""
+    tenure = owning.decide(definition, budget.era, budget.tier, age, seed, budget.unit == 'shared',
+                           ships.enclosed(data))
+    value = budget.rent if budget.tenure == 'rent' else budget.value
+    if tenure == 'mortgage' and budget.tenure != 'mortgage':
+        value = owning.payment(value, seed)
+    return tenure, value
+
+
+def budgeted(seed: str, data: dict, budget, features: list[str], lived: str = '',
+             holding: tuple[str, float] = ('rent', 0.0)) -> dict:
     """The home the budget (companion/life/money.py) already pays rent on: its neighbourhood, size and
     rent, so chat, the budget and this panel agree. Only the kind of building and its quirks are new,
     and the building is the one the draft names ("a small rowhouse"): one the neighbourhood has, else one
@@ -165,10 +178,13 @@ def budgeted(seed: str, data: dict, budget, features: list[str], lived: str = ''
              if re.search(rf"\b{re.escape(housing_text(kind))}s?\b", lived, re.IGNORECASE)]
     housing = named[0] if named else generators.pick(seed, 'housing', hood['housing'])
     name = home_name(housing, budget.unit, data)
-    step = generators.rent_step(budget.rent)
+    tenure, value = holding
+    value = value or budget.rent
+    step = generators.rent_step(value)
     return {'kind': 'home', 'name': name, 'variety': housing, 'details': {
         'description': f"{name} in {hood['name']}", 'neighborhood': hood['name'], 'city': data['name'],
-        'bedrooms': budget.unit, 'rent': int(round(budget.rent / step) * step), 'rent_range': None,
+        'bedrooms': budget.unit, 'rent': int(round(value / step) * step) or 1, 'rent_range': None,
+        'tenure': tenure, 'owned': tenure != 'rent',
         'currency': data['currency'], 'rent_period': data['rent_period'], 'estimate': True, 'rent_from': 'budget',
         'features': features, 'refs': [hood['id']], 'sources': [hood['source']], 'data_version': data['data_version']}}
 
@@ -234,10 +250,11 @@ HAS_PET = 0.55
 HAS_PET_ABOARD = 1 / 6
 
 
-def assemble(seed: str, definition: dict, data: dict | None, day: date | None = None) -> list[dict]:
-    """Everything they start with: the same for the same seed, definition, city data and start day."""
+def assemble(seed: str, definition: dict, data: dict | None, day: date | None = None,
+             age: int | None = None) -> list[dict]:
+    """Everything they start with: the same for the same seed, definition, city data, start day and age."""
     era_modern = modern(data)
-    items = [place_item(seed, definition, data)]
+    items = [place_item(seed, definition, data, age)]
     # The pets the sheet names are their pets; only a sheet that names none leaves it to chance.
     items += sheet_pets(definition)
     aboard = ships.enclosed(data)
@@ -274,13 +291,19 @@ def ensure(connection, timeline_id: str, definition: dict, world, now) -> dict:
         return state
     seed, start = f'home:{timeline_id}', started_on(connection, timeline_id, definition.get('timezone'))
     data = circle.city_data(definition, world)
-    for item in assemble(seed, definition, data, start):
+    for item in assemble(seed, definition, data, start, age_at(connection, timeline_id, definition, start)):
         insert_item(connection, timeline_id, item, 'generated', start, now)
     connection.execute('INSERT INTO home_state (timeline_id, seed, started, era, next_period, created_at, updated_at) '
                        'VALUES (?, ?, ?, ?, 1, ?, ?)', (timeline_id, seed, start.isoformat(),
                                                         'modern' if modern(data) else data['era'], stamp(now),
                                                         stamp(now)))
     return one(connection, 'SELECT * FROM home_state WHERE timeline_id=?', (timeline_id,))
+
+
+def age_at(connection, timeline_id: str, definition: dict, day: date) -> int | None:
+    """The companion's age on the day their home is assembled, which sways whether they own it."""
+    row = optional(connection, 'SELECT companion_id FROM timelines WHERE id=?', (timeline_id,))
+    return ages.companion_age(connection, row['companion_id'], definition, day) if row else None
 
 
 def refit_quirks(connection, timeline_id: str, data: dict | None):
@@ -322,6 +345,30 @@ def settle(connection, timeline_id: str, definition: dict, data: dict | None, no
         named = generators.pick(f'home:{timeline_id}', 'hood', sorted(data['neighborhoods'], key=lambda hood: hood['id']))
     if named and named is not here:
         moved(connection, row, details, data, named, 'app', now)
+        row = one(connection, 'SELECT * FROM home_items WHERE id=?', (row['id'],))
+    priced(connection, row, definition, data, now)
+
+
+def priced(connection, row: dict, definition: dict, data: dict, now):
+    """A home with no rent in its city's money (assembled before the city had money, or moved there from another
+    city) gets one, once: what the budget pays for a place in its neighbourhood. From then on the rent is the home's
+    and stays put when their pay changes, as a rent does until they move (Vanta, 2026-11-04)."""
+    details = decode(row['details'])
+    if details.get('owned') or not money.has_money(data) or data['id'] != (money.city_for(definition) or {}).get('id'):
+        return
+    if details.get('rent') and money.same_money(details.get('currency'), data['currency']) \
+            and details.get('rent_period', 'month') == data['rent_period']:
+        return
+    hood = hood_of(data, details.get('neighborhood'))
+    found = money.rent_at(definition, hood) if hood and hood.get('rent') else None
+    if not found:
+        return
+    unit, rent = found
+    details |= {'rent': int(round(rent / generators.rent_step(rent)) * generators.rent_step(rent)) or 1,
+                'rent_range': None, 'currency': data['currency'], 'rent_period': data['rent_period'],
+                'bedrooms': details.get('bedrooms') or unit, 'estimate': True}
+    connection.execute('UPDATE home_items SET details=?, revision=revision+1, updated_at=? WHERE id=?',
+                       (encode(details), stamp(now), row['id']))
 
 
 def moved(connection, row: dict, details: dict, data: dict, hood: dict, by: str, now):
@@ -335,6 +382,8 @@ def moved(connection, row: dict, details: dict, data: dict, hood: dict, by: str,
         text = f"{row['name']} in {hood['name']}"
     details |= {'neighborhood': hood['name'], 'city': data['name'], 'refs': [hood['id']], 'description': text,
                 'placed_by': by}
+    if not details.get('owned') and details.get('neighborhood') != old:  # A new place has a new rent (`priced`).
+        details['rent'] = None
     connection.execute('UPDATE home_items SET details=?, revision=revision+1, updated_at=? WHERE id=?',
                        (encode(details), stamp(now), row['id']))
 
@@ -715,6 +764,7 @@ def monthly_costs(connection, timeline_id: str, day: date) -> dict | None:
         return None
     return {'rent': home.get('rent'), 'rent_period': home.get('rent_period', 'month'),
             'currency': home.get('currency'), 'estimate': True, 'owned': bool(home.get('owned')),
+            'tenure': home.get('tenure'),
             'pets': [item['variety'] for item in items if item['kind'] == 'pet'],
             'vehicles': [item['variety'] for item in items if item['kind'] == 'vehicle']}
 

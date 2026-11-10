@@ -1,5 +1,5 @@
 """Second location: a meetup in town moves on to a second place nearby when the first one ends."""
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from conftest import reconcile, send, set_life
@@ -49,6 +49,10 @@ def stored(client, outing_id):
 
 def preview(client):
     return client.get('/api/context/preview').json()['prompt']
+
+
+def history(client):
+    return ' '.join(turn['content'] for turn in client.get('/api/context/preview').json()['history'])
 
 
 def dinner_tonight(client, provider, key):
@@ -192,3 +196,30 @@ def test_a_walk_after_dark_only_on_a_warm_evening():
     assert onward.options('dinner', '21:00', date(2026, 10, 5)) == ('drinks',)
     assert onward.options('dinner', '21:00', date(2026, 7, 5)) == ('drinks', 'walk')
     assert onward.options('walk', '15:00', date(2026, 1, 5)) == ('coffee', 'lunch-out')
+
+
+def test_a_long_date_keeps_its_opening_turns_and_says_how_long_they_have_been_there(client, mira, provider, clock,
+                                                                                     monkeypatch):
+    """Two hours into a date the turns where they arrived had left the conversation, and the companion arrived at the
+    same place again and ate the same skewers (tester, 2026-11-09)."""
+    monkeypatch.setattr(onward, 'CHANCE', (0.0, 0.0, 0.0, 0.0))
+    outing = dinner_tonight(client, provider, 'long-date-1')
+    start = datetime.combine(date.fromisoformat(outing['local_date']),
+                             datetime.strptime(outing['at_time'], '%H:%M').time(), UTC)
+    clock.advance(start - clock.now() + timedelta(minutes=2))
+    send(client, 'Here! Feed both dogs at the same time or they fight.', 'long-date-open')
+    for turn in range(30):
+        clock.advance(timedelta(minutes=3))
+        send(client, f'Small talk number {turn}.', f'long-date-{turn}')
+    text = preview(client)
+    assert 'Feed both dogs at the same time' in history(client)  # Left of the window, kept as the date's opening.
+    assert f"You met up here at {outing['at_time']}, an hour and a half ago, and have been at " \
+           f"{outing['place']['name']} together ever since." in text
+    clock.advance(timedelta(hours=3))  # Over: the window is the usual one again.
+    assert 'Feed both dogs at the same time' not in history(client)
+
+
+def test_how_long_reads_like_a_person_would_say_it():
+    assert [outings.span_text(timedelta(minutes=minutes)) for minutes in (0, 1, 25, 60, 88, 95, 130, 172)] == [
+        '1 minute', '1 minute', '25 minutes', 'an hour', 'an hour and a half', 'an hour and a half',
+        '2 hours and a quarter', '2 hours and three quarters']

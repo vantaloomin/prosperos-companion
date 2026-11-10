@@ -91,6 +91,7 @@ a.button { color: inherit; text-decoration: none; }
 .text-button:hover { color: var(--accent); }
 .eyebrow { font-size: 0.6875rem; letter-spacing: 1.4px; text-transform: uppercase; color: var(--accent); font-weight: 500; }
 .subtle { color: var(--muted); font-size: 0.8125rem; line-height: 1.6; }
+.reaction-date { color: var(--muted); margin-right: 0.5em; }
 .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px; color: var(--muted); font-size: 0.875rem; }
 .loading svg { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1563,10 +1564,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
   .chat-retro .message .speaker { margin-right: 6px; }
   .chat-retro .message > .prose, .chat-retro .message > .prose > p:first-child { display: inline; }
   .chat-retro .message > header > :is(.message-actions, .reply-tools) { float: right; margin-left: 8px; }
-  /* A reply with versions: its tools and pager take a line of their own under the text, so they never squeeze it (Iris). */
-  .chat-retro .message:has(.pager) { display: flex; flex-wrap: wrap; align-items: baseline; }
-  .chat-retro .message:has(.pager) > :not(header) { flex: 1 0 100%; }
-  .chat-retro .message:has(.pager) > header > .reply-tools { float: none; order: 1; flex: 1 0 100%; display: flex; margin: 2px 0 0; }
+  /* A reply with versions: its tools and pager take a line of their own under the text, so they never squeeze it,
+     and the text still starts on the stamp and name line like every other message (Iris). */
+  .chat-retro .message:has(.pager) { position: relative; padding-bottom: var(--retro-pager-row, 30px); }
+  .chat-retro .message:has(.pager) > header > .reply-tools { float: none; position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; margin: 0; }
 }
 /* Your message tools keep their row while hidden, so showing them on hover or focus moves nothing. */
 .chat-retro .message-actions .text-button, .chat-retro .reply-tools .text-button, .chat-retro .turn-actions .text-button { padding: 2px 0; font-size: 0.6875rem; }
@@ -3205,6 +3206,11 @@ p.breakup-line { align-items: center; }
 /* Step 5: Posts without an intro; Memories led by how close you are, a five-step meter and Adjust rows. */
 .feed-top { display: flex; align-items: flex-start; gap: 8px; }
 .feed-top .own-post { flex: 1; min-width: 0; }
+.feed-title { display: flex; align-items: center; gap: 4px; margin: 0 0 16px; }
+.feed-title h1 { margin: 0; }
+.feed-back { min-width: 44px; min-height: 44px; margin-left: -12px; color: var(--muted); }
+/* The rail's Posts page: the post column (680) and the export button, centred as Today is. */
+@media (min-width: 1200px) { .page.feed-page { padding-inline: max(40px, calc((100% - 732px) / 2)); } }
 .feed-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .feed-new { font-size: 0.8125rem; color: var(--muted); }
 .closeness-now { display: grid; gap: 8px; max-width: 760px; }

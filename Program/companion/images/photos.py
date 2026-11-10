@@ -16,6 +16,11 @@ The companion also sends pictures nobody asked for, like a person would: now and
 first, a photo text of something they are out doing (`share`). Both go through the same rules and
 are capped, and the first-message rules (`openers.held`) decide when a photo text may go out.
 
+A reply's picture is made once the reply is written: when the companion says what it shows ("quick photo: two
+crates by the closed drink stall, my hands around a cup"), the picture shows that (`described`,
+`prompts.build_said`), on a post of its own that never joins the feed, since the chat may have moved on from the
+slot the day holds. Said nothing of it, the picture is the slot as above.
+
 Every picture goes through the same classification and routing as any other image (F6): NSFW only
 to a backend that accepts it, the prohibited tier nowhere, and anything uncertain counts as NSFW. A request
 with nowhere to go sends nothing, and nothing here ever holds up the reply.
@@ -94,6 +99,17 @@ SHARE_KINDS = {'social', 'leisure', 'errand'}
 SHARE_CHANCE = 0.35
 SHARE_SELFIE_SHARE = 0.4
 SHARE_DAILY = 1
+# The companion's own words for the picture in their reply: "quick photo: two crates by the closed stall", "[pic: the
+# view]", "*sends a blurry photo of the crates*", "📸 the view". A line that only speaks of a photo is not one.
+PHOTO_WORD = r"(?:photo|pic|picture|selfie|snap(?:shot)?|shot|image)s?"
+SAID_LINE = re.compile(rf"^[\s*_\[(>]*(?:[\w'-]+\s+){{0,3}}?{PHOTO_WORD}(?:\s+(?:attached|incoming|sent|below))?"
+                       r"\s*(?::|\s[—–-]\s)\s*(?P<said>.+)$", re.IGNORECASE)
+SAID_ACTION = re.compile(r"[*_\[(]\s*(?:[\w'-]+\s+)?(?:sends?|snaps?|takes?|attach(?:es)?|shares?|texts?)\s+(?:you\s+)?"
+                         rf"(?:a|an|the|another)?\s*(?:[\w'-]+\s+){{0,2}}?{PHOTO_WORD}\s+(?:of\s+)?(?P<said>[^*_\])]+)",
+                         re.IGNORECASE)
+CAMERA = re.compile(r'^\s*[*_]*\s*[\U0001F4F7\U0001F4F8]\ufe0f?\s*(?P<said>.+)$')
+SAID_WORDS = 3
+SAID_LENGTH = 300
 
 
 def asked_kind(text: str, before: str = '') -> str | None:
@@ -145,6 +161,16 @@ def memes_fit(text: str) -> bool:
     return not content.matches(content.normalize(text or '')) & NOT_FOR_MEMES
 
 
+def described(text: str) -> str:
+    """What the companion said the picture in their reply shows, or ''."""
+    for line in (text or '').splitlines():
+        found = CAMERA.match(line) or SAID_LINE.match(line) or SAID_ACTION.search(line)
+        said = found and found.group('said').strip().strip('*_[]()"“”').strip().rstrip('.')
+        if said and len(said.split()) >= SAID_WORDS:
+            return said[:SAID_LENGTH]
+    return ''
+
+
 def place_text(place) -> str:
     return place.get('name', '') if isinstance(place, dict) else ''
 
@@ -168,6 +194,8 @@ class ChatPhotos:
         self.openers = openers
         # Holds the user's GIPHY key, if any (gifs.py).
         self.vault = vault
+        # A reply's picture until the reply is written (`settle`): its moment, framing and whether it was asked for.
+        self.pending: dict[str, tuple[dict, str, bool]] = {}
 
     def for_message(self, user, attempt_id) -> dict | None:
         """The picture this reply sends, recorded against the reply, or None. Never raises."""
@@ -237,13 +265,48 @@ class ChatPhotos:
             return 'scene' if together.in_person(connection, require_current(connection), now) else kind
 
     def send_moment(self, attempt_id, moment, kind, unasked=False) -> dict | None:
-        post_id, job_id = self.picture(moment, kind)
-        if job_id is None:
+        """The picture this reply will send, told to the reply; it is made once the reply is written (`settle`)."""
+        with self.database.connect() as connection:
+            inputs = prompts.build_moment(connection, moment, jobs.image_settings(connection), kind)
+        post = self.post_for(moment['timeline_id'], feed.PHOTO_KEY + moment['event_key'], moment['ends_at'])
+        if post['status'] == 'removed' or not jobs.routable(self.database, inputs):
             return None
-        # A scene is kept as a plain photo of the moment; its framing is in the job's inputs.
-        self.record(attempt_id, post_id, job_id, 'moment' if kind == 'scene' else kind, moment['event_key'],
-                    moment['summary'], unasked=unasked)
-        return {'post_id': post_id, 'text': moment_text(moment, kind, unasked)}
+        self.pending[attempt_id] = (moment, kind, unasked)
+        return {'post_id': post['id'], 'text': moment_text(moment, kind, unasked)}
+
+    def settle(self, attempt_id, text) -> dict | None:
+        """Make the picture of a reply that was written: what the reply says it shows, else its moment. A reply that
+        failed, was stopped or gave way to a newer one sends none. Never raises."""
+        found = self.pending.pop(attempt_id, None)
+        if found is None or not (text or '').strip():
+            return None
+        moment, kind, unasked = found
+        try:
+            with self.database.connect() as connection:
+                if not optional(connection, "SELECT id FROM messages WHERE id=? AND superseded_at IS NULL AND status IN "
+                                "('complete', 'incomplete')", (attempt_id,)):
+                    return None
+            said = described(text) if kind != 'scene' else ''
+            if said:
+                post_id, job_id = self.said_picture(attempt_id, moment, said, kind)
+            else:
+                post_id, job_id = self.picture(moment, kind)
+            if job_id is None:
+                return None
+            # A scene is kept as a plain photo of the moment; its framing is in the job's inputs.
+            self.record(attempt_id, post_id, job_id, 'moment' if kind == 'scene' else kind, moment['event_key'],
+                        said or moment['summary'], unasked=unasked)
+            return get(self.database, attempt_id)
+        except Exception:  # noqa: BLE001 - the reply stands without its picture.
+            return None
+
+    def said_picture(self, attempt_id, moment, said, kind) -> tuple[str | None, str | None]:
+        """The picture the reply described, on a post of its own: the slot's post would carry it into the feed under
+        an event it does not show."""
+        with self.database.connect() as connection:
+            inputs = prompts.build_said(connection, moment, said, jobs.image_settings(connection), kind)
+        post = self.post_for(moment['timeline_id'], f'said:{attempt_id}', self.database.now())
+        return post['id'], self.make(post['id'], inputs)
 
     def picture(self, moment, kind) -> tuple[str | None, str | None]:
         """The post and job showing this moment in this framing, reusing one already made."""

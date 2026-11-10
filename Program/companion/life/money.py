@@ -18,8 +18,8 @@ from functools import cache, lru_cache
 
 from companion.characters import require_current
 from companion.clock import zone
-from companion.world import catalog, decades, intimacy, money_fill, ships
-from companion.world.source import CatalogWorld
+from companion.life import owning
+from companion.world import catalog, changes, custom, decades, destinations, intimacy, money_fill, ships
 
 PAY_TIERS = {'$': 0, '$$': 1, '$$$': 2, '$$$$': 3}
 DEFAULT_TIER = 1
@@ -59,7 +59,21 @@ UNIT_LABELS = {
     'other': {'studio': 'a rented room', 'one_bedroom': 'a couple of rented rooms', 'two_bedroom': 'a small house',
               'shared': 'a shared room'},
 }
+# A place they own, as the budget says it when no home names it (an older past rents "rooms" but owns a house).
+OWNED_LABELS = {
+    'modern': {'studio': 'a studio condo', 'one_bedroom': 'a one-bedroom condo', 'two_bedroom': 'a small house',
+               'shared': 'a share in a family house'},
+    'jazz-age': {'studio': 'a little bungalow', 'one_bedroom': 'a small house', 'two_bedroom': 'a house',
+                 'shared': 'a share in a family house'},
+    'other': {'studio': 'a cottage', 'one_bedroom': 'a small house', 'two_bedroom': 'a house',
+              'shared': 'a share in a family house'},
+}
 RENT_CEILING = 0.45
+# A paid worker takes a bigger place while its rent stays within this share of their pay (`roomier`).
+ROOMY = 0.3
+# Someone paid so well that even the biggest place in their quarter is cheap pays at least this share for the best one.
+FLOOR = 0.15
+SIZES = ('studio', 'one_bedroom', 'two_bedroom')
 HOOD_TIERS = (('low', 'mid'), ('mid', 'low'), ('mid', 'high'), ('high', 'very-high'))
 FIRST_FRIDAY = date(2026, 1, 2)
 
@@ -130,7 +144,10 @@ def ship_goals() -> list[list[str]]:
 def goals(found: 'Profile') -> list[str]:
     """The savings goals to seed one from: the era's for their pay tier, or a ship's aboard one."""
     bank = ship_goals() if ships.enclosed(found.city) else GOALS[found.era]
-    return bank[min(found.tier, len(bank) - 1)]
+    options = bank[min(found.tier, len(bank) - 1)]
+    # Only an owner swaps house-hunting goals; a ship or station has cabins to rent (and callers may pass a bare era).
+    owner = getattr(found, 'tenure', 'rent') != 'rent' and not ships.enclosed(found.city)
+    return owning.owner_goals(list(options), found.era, found.seed) if owner else options
 
 
 def surprises(found: 'Profile') -> list[str]:
@@ -159,6 +176,12 @@ class Profile:
     seed: str
     # Pets and vehicles from their home (companion/life/home.py), per budget period.
     upkeep: float = 0
+    # Renting, paying off a mortgage or owning outright (companion/life/owning.py); `rent` is the mortgage payment on
+    # a mortgage and 0 when owned outright, and `owner_costs` the taxes and repairs an owner pays on top.
+    tenure: str = 'rent'
+    tenure_set: bool = False  # The user picked it (MoneySetup.home), so it wins over the home's.
+    owner_costs: float = 0
+    value: float = 0  # What the place costs before how it is held: its rent, or the payment on a mortgage.
 
     @property
     def per_cycle(self) -> float:
@@ -171,9 +194,13 @@ class Profile:
 
 
 def city_for(definition: dict) -> dict | None:
-    world = CatalogWorld()
+    """Their home city: built in, from a pack, or the user's own (written in the app or brought from a world map)."""
+    yours = custom.known()
     for text in (definition.get('home_city'), definition.get('location')):
-        if text and (found := world.find(text)):
+        if not text:
+            continue
+        found = destinations.city(text) if destinations.is_stand_in(text) else changes.resolve(text, yours)
+        if found:
             return found
     return None
 
@@ -339,16 +366,49 @@ def home_hood(definition: dict, city: dict, tier: int, seed: str) -> dict:
 
 
 def housing(hood: dict, tier: int, income: float, seed: str) -> tuple[str, float]:
-    """The place they can manage: a smaller one, or a shared one, when rent would take too much."""
+    """The place they can manage: a smaller one, or a shared one, when rent would take too much; a bigger one when
+    they are paid well enough that a small place would cost them next to nothing (`roomier`)."""
     point = random.Random(f'{seed}:rent').random()
     rent = hood['rent']
     for unit in UNITS[tier]:
         low, high = rent[unit]
         amount = low + (high - low) * point
         if amount <= income * RENT_CEILING:
-            return unit, amount
+            return roomier(rent, unit, amount, income, point) if tier else (unit, amount)
     low, _high = rent['two_bedroom']
     return 'shared', min(low / 2, income * 0.5)
+
+
+def roomier(rent: dict, unit: str, amount: float, income: float, point: float) -> tuple[str, float]:
+    """A bigger place in the same neighbourhood while its rent stays within ROOMY of their pay. Someone paid well who
+    lives in a cheap quarter takes more room rather than keep a single one for a tenth of their pay (tester,
+    2026-11-04: a pit boss in The Pits paid 19 gold of 186)."""
+    for bigger in SIZES[SIZES.index(unit) + 1:]:
+        low, high = rent[bigger]
+        cost = low + (high - low) * point
+        if cost > income * ROOMY:
+            break
+        unit, amount = bigger, cost
+    if unit == SIZES[-1]:  # The best place in the quarter: never less than FLOOR of their pay, up to twice its rent.
+        amount = max(amount, min(income * FLOOR, rent[unit][1] * 2))
+    return unit, amount
+
+
+def pay_tier(city: dict, income: float) -> int:
+    """The pay tier a take-home they set falls in (the highest whose usual take-home it reaches), so a pit boss
+    the user pays 1,000 gold lives like one, not like the job's usual pay (tester, 2026-11-04)."""
+    return max((tier for tier in range(4) if take_home(city, tier) <= income * 1.1), default=0)
+
+
+def same_money(one: dict | None, other: dict) -> bool:
+    """Whether a home's rent is in this city's money: the same currency code (its wording may have changed since)."""
+    return isinstance(one, dict) and one.get('code') == other.get('code')
+
+
+def rent_at(definition: dict, hood: dict) -> tuple[str, float] | None:
+    """The place their budget takes in this neighbourhood, and its rent per the city's rent period."""
+    found = profile(definition)
+    return housing(hood, found.tier, found.income, found.seed) if found else None
 
 
 def build(definition: dict) -> Profile | None:
@@ -363,22 +423,36 @@ def build(definition: dict) -> Profile | None:
     # Pay they set is a month's take-home; a city paid by the week gets a week's share of it.
     pay = set_pay(setup)
     income = take_home(city, tier) if pay is None else pay * (12 / 52 if city['rent_period'] == 'week' else 1)
+    if pay is not None:
+        tier = pay_tier(city, income)
     hood = home_hood(definition, city, tier, seed)
     unit, rent = housing(hood, tier, income, seed)
     era = era_of(city)
     essentials = income * ESSENTIALS[era]
-    spare = max(income - rent - essentials, 0)
     weekly = city['rent_period'] == 'week'
-    return Profile(city=city, era=era, career=career, guessed=guessed, tier=tier, style=style,
-                   period=city['rent_period'], cycle_days=7 if weekly else 14, income=income, rent=rent, unit=unit,
-                   neighborhood=hood['name'], essentials=essentials, fun=spare * STYLES[style],
-                   saving=spare * (1 - STYLES[style]), seed=seed)
+    found = Profile(city=city, era=era, career=career, guessed=guessed, tier=tier, style=style,
+                    period=city['rent_period'], cycle_days=7 if weekly else 14, income=income, rent=rent, unit=unit,
+                    neighborhood=hood['name'], essentials=essentials, fun=0, saving=0, seed=seed)
+    chosen = setup.get('home') if setup.get('home') in owning.TENURES and not ships.enclosed(city) else ''
+    value = owning.payment(rent, seed) if chosen == 'mortgage' else rent
+    return housed(replace(found, tenure_set=bool(chosen)), value, chosen or 'rent', 0.0)
+
+
+def housed(found: Profile, value: float, tenure: str, upkeep: float) -> Profile:
+    """The budget once its place is paid for: `value` is the rent (the payment, on a mortgage), and what is left after
+    the place, owning it, essentials and upkeep goes on fun and savings by their style."""
+    rent, extra = owning.costs(value, tenure, found.era, found.city.get('era') in MEDIEVAL)
+    spare = max(found.income - rent - extra - found.essentials - upkeep, 0)
+    share = STYLES[found.style]
+    return replace(found, rent=rent, owner_costs=extra, upkeep=upkeep, tenure=tenure, value=value, fun=spare * share,
+                   saving=spare * (1 - share))
 
 
 @lru_cache(maxsize=256)
 def cached(key: tuple) -> Profile | None:
     definition = dict(key)
     definition.pop('year')  # Only keys the cache: a world in a past year has that year's prices.
+    definition.pop('city')  # So does the city's data_version.
     return build({**definition, 'money': dict(definition['money'])})
 
 
@@ -389,8 +463,10 @@ def profile(definition: dict) -> Profile | None:
     """The budget for this definition (cached: the composer asks once per option per slot)."""
     setup = definition.get('money') or {}
     key = tuple((name, definition.get(name) or '') for name in PROFILE_KEYS)
+    city = city_for(definition)
+    # The city's data_version keys it too, so a user's city given new rents or a new currency is read afresh.
     key += (('money', tuple(sorted((name, str(value)) for name, value in setup.items()))),
-            ('year', decades.world_year()))
+            ('year', decades.world_year()), ('city', (city or {}).get('data_version', '')))
     return cached(key)
 
 
@@ -680,16 +756,19 @@ def with_home(found: Profile, costs: dict, pay: dict | None = None) -> Profile:
     raises, or what they live on between jobs (`pay`, from work.pay)."""
     if pay and pay.get('factor'):
         found = replace(found, income=found.income * pay['factor'])
-    rent = found.rent
-    if costs.get('rent') and (costs.get('currency') or found.city['currency']) == found.city['currency']:
+    rent = found.value
+    if costs.get('rent') and same_money(costs.get('currency') or found.city['currency'], found.city['currency']):
         rent = costs['rent'] if costs.get('rent_period', 'month') == found.period else \
             costs['rent'] * (12 / 52 if found.period == 'week' else 52 / 12)
     month = monthly_share(found)
     upkeep = sum(UPKEEP.get(kind, 0) for kind in [*costs.get('pets', ()), *costs.get('vehicles', ())]) * month
     upkeep *= 1 if found.period == 'month' else 12 / 52
-    spare = max(found.income - rent - found.essentials - upkeep, 0)
-    share = STYLES[found.style]
-    return replace(found, rent=rent, upkeep=upkeep, fun=spare * share, saving=spare * (1 - share))
+    return housed(found, rent, found.tenure if found.tenure_set else home_tenure(costs), upkeep)
+
+
+def home_tenure(costs: dict) -> str:
+    """How their home is held: as it says, else a place bought on a big turn (big_turns.py) has a mortgage."""
+    return costs.get('tenure') if costs.get('tenure') in owning.TENURES else 'mortgage' if costs.get('owned') else 'rent'
 
 
 def spent_at_home(found: Profile, purchases: list[dict]) -> list[dict]:
@@ -740,12 +819,16 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'between_jobs': bool(home and (home.get('pay') or {}).get('between_jobs')),
         'retired': bool(home and (home.get('pay') or {}).get('retired')),
         'business': (home.get('pay') or {}).get('business') if home else None,
-        'owned': bool(home and home['costs'].get('owned')),
+        # A mortgage or owned outright (companion/life/owning.py); `owned` is either, as the screens read it.
+        'owned': found.tenure != 'rent', 'tenure': found.tenure,
+        'owner_words': owning.words(found.era, found.city.get('era') in MEDIEVAL),
         'medieval': found.city.get('era') in MEDIEVAL,  # No mortgage or pension there.
-        'housing': {'unit': found.unit, 'label': UNIT_LABELS[found.era][found.unit], 'neighborhood': found.neighborhood},
-        'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'upkeep', 'essentials', 'fun',
-                                                                  'saving')},
-        'rent_from': 'home' if home and home['costs'].get('rent') else 'budget', 'bought': bought,
+        'housing': {'unit': found.unit, 'neighborhood': found.neighborhood,
+                    'label': (UNIT_LABELS if found.tenure == 'rent' else OWNED_LABELS)[found.era][found.unit]},
+        'budget': {key: round(getattr(found, key), 2) for key in ('income', 'rent', 'owner_costs', 'upkeep',
+                                                                  'essentials', 'fun', 'saving')},
+        'rent_from': 'home' if home and home['costs'].get('rent') and same_money(
+            home['costs'].get('currency') or currency, currency) else 'budget', 'bought': bought,
         'payday': {'last': start.isoformat(), 'next': payday.isoformat(), 'cycle_days': found.cycle_days,
                    'today': day == start},
         'left': round(left, 2), 'fun_cycle': round(found.fun_cycle, 2),
@@ -755,7 +838,7 @@ def snapshot(definition: dict, local_date: str, home: dict | None = None) -> dic
         'goal': goal(found, setup, day, home.get('drawn', 0.0) if home else 0.0),
         'text': {'income': amount(found.income, currency), 'rent': amount(found.rent, currency),
                  'essentials': amount(found.essentials, currency), 'fun': amount(found.fun, currency),
-                 'upkeep': amount(found.upkeep, currency),
+                 'upkeep': amount(found.upkeep, currency), 'owner_costs': amount(found.owner_costs, currency),
                  'saving': amount(found.saving, currency), 'left': amount(max(left, 0), currency)},
     }
 
@@ -770,10 +853,7 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     work = f" as {'an' if job[:1] in 'aeiou' else 'a'} {job}" if job else ''
     place = 'your home' if view['rent_from'] == 'home' else \
         f"{view['housing']['label']} in {view['housing']['neighborhood']}"
-    # A place they bought has a mortgage instead of rent (companion/life/big_turns.py).
-    loan = 'payments on' if view.get('medieval') else 'the mortgage on'
-    housing = f"{loan} {place} {'are' if view.get('medieval') else 'is'} about {text['rent']}" if view.get('owned') \
-        else f"rent is about {text['rent']} for {place}"
+    housing = housing_line(view, place)
     lines = [('budget', f"- You take home about {text['income']} {per}{work}; {housing}.")]
     if view.get('between_jobs'):
         lines = [('budget', f"- Between jobs, you have about {text['income']} {per} to live on; {housing}.")]
@@ -800,6 +880,19 @@ def context_lines(definition: dict, local_date: str, home: dict | None = None) -
     lines.append(('goal', f"- Saving for {found['label']}: {progress}."))
     # An amount in pennies or shillings ends in its own stop ('2 d.'): one stop at the end of the line, not two.
     return [(f'money:{local_date}:{key}', re.sub(r'(?<=[a-z])\.\.$', '.', line)) for key, line in lines]
+
+
+def housing_line(view: dict, place: str) -> str:
+    """What their place costs them, for the chat's budget line: rent, a mortgage (payments on a place in a medieval
+    city) and an owner's taxes and repairs, or owned outright with only those (companion/life/owning.py)."""
+    text, words = view['text'], view['owner_words']
+    if view['tenure'] == 'owned':
+        return f"you own {place} outright and pay about {text['owner_costs']} for {words}"
+    if view['tenure'] == 'mortgage':
+        loan = 'payments on' if view.get('medieval') else 'the mortgage on'
+        return (f"{loan} {place} {'are' if view.get('medieval') else 'is'} about {text['rent']}, plus about "
+                f"{text['owner_costs']} for {words}")
+    return f"rent is about {text['rent']} for {place}"
 
 
 SPENT_ON = {'clothes': 'on clothes', 'outing': 'going out', 'trip': 'on a trip', 'food': 'on takeout',

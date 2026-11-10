@@ -30,7 +30,7 @@ from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import decades, looks, newcomers, ships
 
-PROMPT_VERSION = 9
+PROMPT_VERSION = 10
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
 
@@ -282,6 +282,7 @@ CAMERAS = {'moment': 'Shot at eye level on a phone camera, natural colours, real
                     'focus around them.'}
 CAMERAS['scene_both'] = CAMERAS['scene']
 CAMERAS['things'] = 'Phone-camera look, natural colours, sharp focus on the things themselves.'
+CAMERAS['photo'] = 'Phone-camera look, natural colours, everything in the scene in focus.'
 
 
 # A style that is not a photograph, though it may say the word ("non-photorealistic", "photo-bashed concept art").
@@ -378,7 +379,7 @@ def alone(event, action, subject, who, framing) -> str:
     """Says they are the only one in a moment of their own, so the picture shows them once (adapters/comfyui.py
     turns it into a tag-model's "solo"); nothing for a view or company. In a crowded activity (a rush at work, a show)
     there are other people, but never a second of them: told nothing, Krea drew the same face again behind them."""
-    if framing == 'view' or event.get('with') or event.get('user') or COMPANY.search(action or ''):
+    if framing in ('view', 'photo') or event.get('with') or event.get('user') or COMPANY.search(action or ''):
         return ''
     if event.get('activity') in CROWDED:
         return f"{subject} {'appear' if who == 'they' else 'appears'} only once in the picture."
@@ -714,6 +715,11 @@ FRAMINGS = {
              '{object}, {object} a few steps away and unposed, with the place all around',
     'scene_both': 'a wide, atmospheric candid scene of two people spending time together, seen from a little way off, '
                   'unposed, with the place all around',
+    # The photo they said they took ("quick photo: two crates by the closed stall, my hands around a cup",
+    # `build_said`): taken by them, so it shows what they saw and only as much of them as they said.
+    # Said "phone photo", the image model drew the phone and its screen around the picture.
+    'photo': 'a fictional snapshot {subject} just took, seen through {possessive} own eyes, showing exactly what '
+             '{subject} described, with no phone or screen in the picture',
 }
 OBJECT = {'she': 'her', 'he': 'him', 'they': 'them'}
 # The openings as Settings > Advanced > Prompts lists them: a plain moment's own words in place of its empty framing.
@@ -763,6 +769,59 @@ def build_moment(connection, moment, image_settings, framing='moment') -> dict:
             'moment': moment, **likeness,
             **children(connection, companion['active_timeline_id'],
                        [moment.get(key) for key in ('summary', 'caption', 'label', 'place')])}
+
+
+# The companion's own words, said of them: "my hands around a cup" is "his hands around a cup".
+FIRST_PERSON = re.compile(r"\b(I'm|I am|I've|I'd|I'll|I|me|my|mine|myself)\b", re.IGNORECASE)
+TOLD = {'he': {"i'm": "he's", 'i am': 'he is', "i've": "he's", "i'd": "he'd", "i'll": "he'll", 'i': 'he', 'me': 'him',
+               'my': 'his', 'mine': 'his', 'myself': 'himself'},
+        'she': {"i'm": "she's", 'i am': 'she is', "i've": "she's", "i'd": "she'd", "i'll": "she'll", 'i': 'she',
+                'me': 'her', 'my': 'her', 'mine': 'hers', 'myself': 'herself'},
+        'they': {"i'm": "they're", 'i am': 'they are', "i've": "they've", "i'd": "they'd", "i'll": "they'll",
+                 'i': 'they', 'me': 'them', 'my': 'their', 'mine': 'theirs', 'myself': 'themselves'}}
+# Words that put them in their own picture, which then is a selfie: "me and kaito at the stall".
+IN_IT = re.compile(r"\b(?:selfies?|me|myself|us|we|my face)\b", re.IGNORECASE)
+
+
+def told_of(said: str, who: str) -> str:
+    """Their words about the photo said of them, for the image model."""
+    forms = TOLD.get(who, TOLD['they'])
+    return FIRST_PERSON.sub(lambda m: forms[m.group(1).lower()], said)
+
+
+def said_framing(said: str, kind: str) -> str:
+    """A selfie when they asked for one or the words put them in it, else the photo as they took it."""
+    return 'selfie' if kind == 'selfie' or IN_IT.search(said) else 'photo'
+
+
+@own_words
+def build_said(connection, moment, said, image_settings, kind='moment') -> dict:
+    """The frozen inputs of the chat photo the companion described in their reply (`photos.described`): what they said
+    it shows, not the routine slot it was first meant to show, which the chat may have moved on from (they were out
+    at a drink stall with a friend while the day had them reading at home). The slot gives only the hour, the weather
+    and the year; a selfie keeps their looks, and a photo they took leaves them out but for what they said of
+    themselves."""
+    companion = require_current(connection)
+    definition = companion['version']['definition']
+    framing = said_framing(said, kind)
+    sheet, who = sheet_for(companion, definition, connection, moment.get('local_date'))
+    selfie = framing == 'selfie'
+    wearing = '' if not selfie else moment.get('wearing') or ('' if own_outfit(definition) else wardrobe.image_hint(
+        connection, companion['active_timeline_id'], moment))
+    look = in_photos(definition, who, bool(wearing)) if selfie else ''
+    words = told_of(said.strip().rstrip('.'), who)
+    event = {'summary': f"The {'selfie' if selfie else 'photo'} shows {words}.", 'place': '', 'with': 'said',
+             'hour': moment.get('hour'), 'weather': moment.get('weather')}
+    period = period_of(connection, definition)
+    prompt = compose(definition['name'], '', [event], image_settings['style'], wearing, bool(wearing), framing, who,
+                     sheet if selfie else '', look, ships.aboard(connection, definition), period)
+    likeness = current_for_images(connection)
+    if not selfie:
+        likeness = {**likeness, 'lora': None}
+    return {**base_inputs(companion, definition, image_settings), 'prompt': prompt, 'framing': framing,
+            'pictured': selfie, 'period': period, 'with_user': False, 'captions': [said], 'said': said,
+            'moment': moment, **likeness,
+            **children(connection, companion['active_timeline_id'], [said])}
 
 
 def user_shown(connection) -> str:

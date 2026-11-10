@@ -35,9 +35,12 @@ def patch(client):
 def test_every_bank_has_a_hundred_entries_and_no_gendered_words():
     for name in ('apologies', 'gestures', 'accepting', 'stand_up_reasons', 'companion_apologies', 'companion_confessions'):
         data = json.loads((BANKS / f'{name}.json').read_text(encoding='utf-8'))
-        entries = data.get('phrases') or data.get('reasons') or data['templates']
-        assert len(entries) >= 100 and len(set(entries)) == len(entries), name
-        for entry in entries:
+        groups = data['kinds'].values() if 'kinds' in data else [data.get('phrases') or data.get('reasons') or data['templates']]
+        for entries in groups:  # Gestures: each kind has a hundred.
+            assert len(entries) >= 100 and len(set(entries)) == len(entries), name
+        everything = [entry for entries in groups for entry in entries]
+        assert len(set(everything)) == len(everything), name
+        for entry in everything:
             assert not any(word in f' {entry.lower()} ' for word in (' he ', ' she ', ' his ', ' her ', ' him ')), entry
 
 
@@ -490,3 +493,10 @@ def test_while_strained_an_outing_together_no_longer_mends_it_by_itself(client, 
         rough_patches.daily(connection, companion, clock.now())
         assert rough_patches.one(connection, 'SELECT mended_by FROM rough_patches WHERE id=?', (row['id'],))['mended_by'] \
             == 'gesture'
+
+
+def test_teasing_does_not_start_one(client, patches, provider):
+    says(provider)
+    send(client, '*grins* oh shut up', 'client-patch-tease')
+    assert not patch(client)['open']
+    assert not [item for item in client.get('/api/life/reactions').json() if item['choice'] == 'user:rough_patch']

@@ -135,7 +135,7 @@ def fact(item, batch) -> tuple[dict, self_facts.Fact] | None:
     index, category = item.get('message'), item.get('category')
     subject = re.sub(r'\s+', ' ', str(item.get('subject') or '')).strip().lower()[:40]
     value = re.sub(r'^(?:the|a|an|my) ', '', str(item.get('value') or '').strip().strip('"\'“”.!'), flags=re.I)[:50]
-    if not isinstance(index, int) or not 1 <= index <= len(batch) or category not in CATEGORIES or not value:
+    if type(index) is not int or not 1 <= index <= len(batch) or category not in CATEGORIES or not value:
         return None
     message = batch[index - 1]
     if not supported(value, message['text']):
