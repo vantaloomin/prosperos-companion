@@ -2265,6 +2265,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip-place:hover, .where-strip-place:focus-visible { text-decoration-style: solid; text-decoration-color: currentColor; }
 .where-strip > svg { flex: none; width: 1rem; height: 1rem; color: var(--accent); }
 .where-strip > span { flex: 1; min-width: 0; }
+.where-strip > .where-strip-clip { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .where-strip .text-button { flex: none; }
 .msg-action { font-style: italic; color: var(--muted); }
 /* In your own bubble the muted colour can sit on the accent: body colour at 80% keeps it readable (Iris, 2026-11-02). */

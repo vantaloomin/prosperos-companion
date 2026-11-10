@@ -9,7 +9,7 @@ export interface OutingHobby { id: string; label: string; session: string; toget
 /** Meeting their people (companion/life/their_people.py): who comes, and whether it is the first time you meet them. */
 export interface OutingPerson { id: string; name: string; role: string }
 /** A big day in their circle (companion/life/big_days.py): `title` names it ("Leo's wedding"), `gift` is what they bring, `own` marks their own day (their wedding, graduation or retirement party), and `standing_up` their own wedding, where the user stands up with them. */
-export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; kids?: Pick<OutingPerson, 'name' | 'role'>[]; first?: boolean; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean; own?: boolean; quiet?: boolean }
+export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; kids?: Pick<OutingPerson, 'name' | 'role'>[]; first?: boolean; label?: string; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean; own?: boolean; quiet?: boolean }
 export interface Outing {
   id: string; local_date: string; at_time: string; until_time: string; activity: string; asked_date: string | null
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
@@ -22,7 +22,11 @@ export interface Outing {
    * where they came from once they moved on; `undo_move` just after an automatic move. */
   next?: OutingNext | null; came_from?: { name: string; activity: string; neighborhood: string } | null; undo_move?: boolean
   /** When they moved on to where they are now ('21:00'). */ moved_at?: string
+  /** The scene keeps up (companion/life/scene_now.py): the chat took them somewhere ('place', 'yours', 'theirs', or on
+   * the move: 'transit', 'way', 'there', 'outside'); `back` for a minute or two after, to be back at `to`. */
+  scene?: OutingScene | null
 }
+export interface OutingScene { back: boolean; to: string; kind: string }
 export interface OutingNext { place: OutingPlace; activity: string; at: string; asked: boolean }
 /** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; 'together' for a trip away together (companion/life/away_together.py); '' for a trip of their own. `undo` is true for a visit called off a little while ago, `home_undo` for a trip together just cut short. `away` says how a trip together travels ('plane', 'steamship', 'tram') and its preposition ('in Lisbon', 'on the garden deck'). */
 export interface Trip {

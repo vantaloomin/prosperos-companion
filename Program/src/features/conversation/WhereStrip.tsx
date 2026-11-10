@@ -9,7 +9,7 @@ import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
 import { useEraWords, useMagicCalls } from '../world/useEraWords'
 import { say, type EraWords } from '../world/eraWords'
-import { WHERE_KEY, callActions, canGoBack, canStayLonger, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
+import { WHERE_KEY, callActions, canBeBackAt, canGoBack, canStayLonger, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
 const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
 // On their way home after a meetup, by how they travel (companion/life/heading_home.py).
@@ -60,13 +60,13 @@ function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLi
   const outing = where.outing
   if (!outing) return null
   const action = stripAction(where)
-  const act = async (verb: StripAction['action'] | 'longer') => {
+  const act = async (verb: StripAction['action'] | 'longer' | 'scene-back') => {
     await api(`/life/outings/${outing.id}/${verb}`, {}).catch(() => undefined)
     void client.invalidateQueries({ queryKey: TOGETHER_KEY })
     onDone()
   }
   const Glyph = where.kind === 'out' && outing.state !== 'done' ? MapPin : Home  // Headed home is always the house.
-  const two = canStayLonger(where) || canGoBack(where)
+  const two = canStayLonger(where) || canGoBack(where) || canBeBackAt(where)
   return (
     // With two buttons the phone puts them on a row of their own under the text (Iris, 2026-11-02).
     <aside className={two ? 'where-strip two-actions' : 'where-strip'} aria-label="Where you are" aria-live="polite">
@@ -80,14 +80,23 @@ function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLi
   )
 }
 
-/** Stay longer; or, just after they moved on to a second place by themselves, Undo to go back (companion/life/onward.py). */
-function StayOrBack({ where, act }: { where: WhereState; act: (verb: 'back' | 'longer') => Promise<void> }) {
+/** Stay longer; or, just after they moved on to a second place by themselves, Undo to go back (companion/life/onward.py);
+ * or, just after the chat took them somewhere, Back to where they were (companion/life/scene_now.py). */
+function StayOrBack({ where, act }: { where: WhereState; act: (verb: 'back' | 'longer' | 'scene-back') => Promise<void> }) {
+  if (canBeBackAt(where)) return <BackAt where={where} onClick={() => void act('scene-back')} />
   if (canGoBack(where)) return <button type="button" className="text-button back-to" aria-label={`Back to ${where.outing?.came_from?.name ?? 'where you were'}`} onClick={() => void act('back')}><Undo2 aria-hidden="true" /><BackTo name={where.outing?.came_from?.name ?? 'where you were'} /></button>
   return <button type="button" className="text-button" onClick={() => void act('longer')}><Hourglass aria-hidden="true" />Stay longer</button>
 }
 
+/** Back to the place they were before the chat took them somewhere, worded like Second location (companion/life/scene_now.py). */
+function BackAt({ where, onClick }: { where: WhereState; onClick: () => void }) {
+  const to = where.outing?.scene?.to ?? 'where you were'
+  return <button type="button" className="text-button back-to" aria-label={`Back to ${to}`} onClick={onClick}><Undo2 aria-hidden="true" /><BackTo name={to} /></button>
+}
+
 /** Where, until when, and where next: places link to the map. */
 function StripText({ line }: { line: StripLine }) {
+  if (line.clip) return <span className="where-strip-clip" title={`${line.lead}${line.tail}`}>{line.lead}{line.tail}</span>
   return <span>{line.lead}{line.place && <StripPlace place={line.place} />}{line.tail}{line.then && <StripPlace place={line.then} />}</span>
 }
 
