@@ -408,7 +408,7 @@ class ChatPhotos:
                 or families.childs_day(connection, [(composed.get('outing') or {}).get('id')]):
             return None  # Children in their circle (companion/life/families.py) are told in words only.
         until = parse(shown['ends_at']).astimezone(zone(version['timezone'])).strftime('%H:%M')
-        return {'event_key': key, 'summary': words['summary'], 'caption': words['post'], 'name': version['definition']['name'],
+        return in_scene(connection, companion, now, {'event_key': key, 'summary': words['summary'], 'caption': words['post'], 'name': version['definition']['name'],
                 'mood': composed.get('mood', ''), 'place': place_text(composed.get('place')),
                 'neighborhood': place_area(composed.get('place')), 'place_id': place_key(composed.get('place')),
                 'label': shown['block']['label'], 'kind': shown['block']['kind'], 'until': until,
@@ -416,13 +416,33 @@ class ChatPhotos:
                 'ends_at': shown['ends_at'], 'activity': composed.get('activity'), 'block_kind': shown['block']['kind'],
                 'local_date': slot.local_date.isoformat(), 'weather': composed.get('weather') or shown['block'].get('weather'),
                 'hour': now.astimezone(zone(version['timezone'])).hour, 'with': composed.get('with'),
-                'hobby': composed.get('hobby')}
+                'hobby': composed.get('hobby')})
 
     def post_for(self, timeline_id, key, occurs_at) -> dict:
         """The post a picture is made on, made once: for a moment, the one its event will join."""
         with self.database.connect(write=True) as connection:
             post_id = feed.create(connection, timeline_id, 'event', key, [], occurs_at, self.database.now())
             return one(connection, 'SELECT * FROM feed_posts WHERE id=?', (post_id,))
+
+
+def in_scene(connection, companion: dict, now, moment: dict) -> dict:
+    """A picture taken while out together shows where the chat has taken them and what they have on now
+    (companion/life/scene_now.py): the riverwalk they walked to, the user's jacket round their shoulders."""
+    from companion.life import onward, scene_now, together, wardrobe
+    raw = together.together_now(connection, companion, now)
+    if not raw or raw['ended_at']:
+        return moment
+    current, seen = scene_now.applied(connection, companion, raw, onward.here(raw, companion['version']['timezone'],
+                                                                                now), now)
+    found = dict(moment)
+    if current.get('scene'):
+        place = current['place']
+        found.update(place=place.get('label') or place['name'], neighborhood=place.get('neighborhood'),
+                     place_id=None if place['id'].startswith('~') else place['id'])
+    hint = scene_now.wearing_hint(seen)
+    if hint and not prompts.own_outfit(companion['version']['definition']):
+        found['wearing'] = f"{wardrobe.image_hint(connection, companion['active_timeline_id'], moment)} {hint}".strip()
+    return found
 
 
 MEME_KINDS = ('meme', 'gif')

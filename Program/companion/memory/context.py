@@ -67,6 +67,7 @@ from companion.life import (
     reactions,
     recommendations,
     rough_patches,
+    scene_now,
     shared_people,
     so_far,
     stays,
@@ -615,7 +616,9 @@ def day_text(connection, companion, now: datetime) -> str:
         lines.append('You have no work or classes today.')
     now_block = next(((block, ends_at) for block, starts_at, ends_at in ahead if starts_at <= now < ends_at), None)
     if now_block:
-        lines.append(f'Right now you are: {block_name(now_block[0])}, until {clock_time(now_block[1], tz)}.')
+        # Out together, where the chat has taken them since (companion/life/scene_now.py).
+        moved = scene_now.right_now(connection, companion, now)
+        lines.append(f'Right now you are: {moved or block_name(now_block[0])}, until {clock_time(now_block[1], tz)}.')
     else:
         lines.append('Right now you are: free.')
     following = next(((block, starts_at, ends_at) for block, starts_at, ends_at in working if starts_at > now), None)

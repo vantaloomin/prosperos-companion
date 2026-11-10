@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canGoBack, canStayLonger, homeLine, inPerson, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
+import { canBeBackAt, canGoBack, canStayLonger, homeLine, inPerson, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
 import { shown } from '../../src/features/status/statusText.ts'
 
 const outing: WhereOuting = {
@@ -38,7 +38,7 @@ test('apart shows no strip, and just after heading home it offers Undo', () => {
 
 test('while together, their status line says where', () => {
   const status = { text: 'coffee first', set_by: 'app' as const, away: null, where: { state: 'together' as const, kind: 'yours', text: 'At your place' } }
-  assert.deepEqual(shown(status), { text: 'At your place', away: 'pin' })
+  assert.deepEqual(shown(status), { text: 'At your place', away: 'home' })
   assert.deepEqual(shown({ ...status, where: { state: 'apart', kind: 'long-distance', text: 'Long distance, Lisbon' } }), { text: 'coffee first', away: null })
   assert.deepEqual(shown({ ...status, where: { state: 'together', kind: 'staying', text: 'Staying with you until Sunday' } }), { text: 'Staying with you until Sunday', away: 'luggage' })
 })
@@ -119,4 +119,24 @@ test('moving on to a second place: the strip names it, and Undo replaces Stay lo
   const moved: WhereState = { ...out, outing: { ...outing, place: next.place, longer_ok: true, undo_move: true } }
   assert.equal(stripLine(moved, 'Mira')?.then, null)
   assert.ok(canGoBack(moved) && !canStayLonger(moved))
+})
+
+test('the chat took them somewhere: the strip follows, and Back to replaces Stay longer for a minute or two', () => {
+  const bus: WhereState = { ...out, text: 'On the bus', outing: { ...outing, longer_ok: true, place: { ...outing.place, id: '~scene', name: 'on the bus', kind: 'scene', label: 'on the bus' }, scene: { back: true, to: 'Ouzo Bay', kind: 'transit' } } }
+  const line = stripLine(bus, 'Mira')
+  assert.equal(line?.lead, 'On the bus')
+  assert.equal(line?.place, null)
+  assert.equal(line?.tail, '')  // No "until" while on the move.
+  assert.ok(line?.clip)
+  assert.ok(canBeBackAt(bus) && !canStayLonger(bus) && !canGoBack(bus))
+  const later: WhereState = { ...bus, outing: { ...bus.outing!, scene: { back: false, to: 'Ouzo Bay', kind: 'transit' } } }
+  assert.ok(!canBeBackAt(later) && canStayLonger(later))
+  const walked: WhereState = { ...out, outing: { ...outing, place: { ...outing.place, id: 'harbor-promenade', name: 'Harbor East waterfront promenade', kind: 'landmark' }, scene: { back: true, to: 'Ouzo Bay', kind: 'place' } } }
+  assert.equal(stripLine(walked, 'Mira')?.place?.name, 'Harbor East waterfront promenade')
+})
+
+test('somewhere again, the strip says until when; and first names only', () => {
+  const walked: WhereState = { ...out, outing: { ...outing, scene: { back: false, to: 'Ouzo Bay', kind: 'place' } } }
+  assert.match(stripLine(walked, 'Mira')?.tail ?? '', /^ until 9:00/)
+  assert.equal(stripLine(yours, 'Dana Reyes')?.lead, 'Dana is at your place')
 })

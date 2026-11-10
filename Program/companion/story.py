@@ -14,7 +14,7 @@ from companion.characters import current
 from companion.clock import zone
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
-from companion.life import agenda, ages, encounters, network
+from companion.life import agenda, ages, encounters, network, scene_now
 from companion.memory.context import NOTE_CLOSE
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
@@ -24,6 +24,7 @@ from companion.world import catalog, changes, custom, generators, inside, life_d
 JOB = 'story'
 DEFAULT_CITY = 'baltimore'
 HISTORY_LIMIT = 200
+MOVES_READ = 60  # The latest story lines read for a move (companion/life/scene_now.py).
 CHARS_PER_TOKEN = 4
 # The kinds a story starts at when nothing else is chosen: somewhere people sit and talk.
 OPENING_KINDS = ('cafe', 'tavern', 'bar', 'restaurant', 'market', 'park')
@@ -124,7 +125,10 @@ def present(connection, data: dict, place_id: str, moment: datetime) -> list[dic
 def scene(connection, now: datetime) -> dict:
     row = scene_row(connection)
     data = city_data(connection, row['city_id'])
-    place = inside.with_edits(catalog.find(data, row['place_id']), inside.edited(connection, data['id']))
+    place = catalog.find(data, row['place_id'])
+    # Where the story's own lines have walked them since the place was picked (companion/life/scene_now.py).
+    place = scene_now.story_place(data, place, messages(connection, MOVES_READ))
+    place = inside.with_edits(place, inside.edited(connection, data['id']))
     moment = local_moment(data, now)
     weather = generators.conditions(data, moment.date(), skies.level_of(connection))
     hood = townsfolk.neighborhood_name(data, place['neighborhood'])
@@ -266,7 +270,11 @@ def move(database, city_id: str, place_id: str | None) -> dict:
         data = city_data(connection, city_id)
         place = catalog.find(data, place_id) if place_id else opening_place(data)
         require(place is not None and place in data['places'], 'No such place in this city.', 404)
-        if scene_row(connection) != {'city_id': data['id'], 'place_id': place['id']}:
+        row = scene_row(connection)
+        # Picking the place the story walked them away from takes them back there (companion/life/scene_now.py).
+        walked = row['city_id'] == data['id'] and scene_now.story_place(
+            data, catalog.find(data, row['place_id']), messages(connection, MOVES_READ))['id'] != place['id']
+        if row != {'city_id': data['id'], 'place_id': place['id']} or walked:
             connection.execute(
                 'INSERT INTO story_scene (id, city_id, place_id, updated_at) VALUES (1, ?, ?, ?) ON CONFLICT(id) DO '
                 'UPDATE SET city_id=excluded.city_id, place_id=excluded.place_id, updated_at=excluded.updated_at',
