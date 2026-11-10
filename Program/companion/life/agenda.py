@@ -32,6 +32,7 @@ from companion.life import (
     expecting,
     families,
     grooming,
+    happenings,
     hobbies,
     home,
     joint,
@@ -659,6 +660,11 @@ def diary(connection, timeline_id, subject, limit=20, before=None) -> list[dict]
                            'ends_at': event['ends_at'], 'local_date': None, 'block': None,
                            'entry': {'summary': event['summary']}, 'status': 'happened',
                            'with_companion': {'event_id': event['id'], 'summary': event['summary']}})
+    # What happened to them in a storyline (companion/life/happenings.py): a line of its own.
+    result += [{'subject': subject, 'slot': None, 'starts_at': item['starts_at'], 'ends_at': item['starts_at'],
+                'local_date': item['local_date'], 'block': None, 'status': 'happened', 'with_companion': None,
+                'entry': {'summary': item['text'], 'happening': item['kind']}}
+               for item in happenings.for_person(connection, timeline_id, subject, before, limit)]
     return sorted(result, key=lambda item: item['starts_at'], reverse=True)[:limit]
 
 

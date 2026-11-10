@@ -27,7 +27,7 @@ from datetime import date, time, timedelta
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import casting, circle, pronouns, world_drama
+from companion.life import casting, circle, happenings, pronouns, world_drama
 from companion.world import lifespans, perception
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
@@ -187,6 +187,26 @@ STORIES += tuple(Story(key, 0, 'family', (beat('{name} heard some family news fr
                  for key in ('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
 FAMILY = frozenset(('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
 OWN = frozenset(story.key for story in STORIES if story.own)
+
+
+# What each beat (story, beat, the alternative it took) does to the people in it (companion/life/happenings.py), and
+# whom: 'a', or 'ab' for both.
+EFFECTS = {
+    ('parent_promotion', 0, 0): ('promoted', 'a'), ('parent_big_order', 0, 0): ('big_order', 'a'),
+    ('friend_new_job', 0, 0): ('job_offer', 'a'), ('friend_new_job', 1, 0): ('new_job', 'a'),
+    ('friend_new_job', 1, 1): ('stayed_put', 'a'),
+    ('coworker_leaving', 0, 0): ('gave_notice', 'a'), ('coworker_leaving', 1, 0): ('left_job', 'a'),
+    ('friend_breakup', 0, 0): ('broke_up', 'a'), ('friend_breakup', 1, 0): ('doing_better', 'a'),
+    ('friends_feud', 0, 0): ('fell_out', 'ab'), ('friends_feud', 1, 0): ('made_up', 'ab'),
+    ('friends_feud', 1, 1): ('not_speaking', 'ab'),
+    ('secret_couple', 1, 0): ('together', 'ab'), ('secret_couple', 1, 1): ('apart', 'ab'),
+    ('love_triangle', 1, 0): ('picked', 'a'),
+    ('sibling_engaged', 0, 0): ('engaged', 'a'),
+    ('parents_separating', 0, 0): ('separated', 'ab'),
+    ('parent_health', 0, 0): ('health_scare', 'a'), ('parent_health', 1, 0): ('results_fine', 'a'),
+    ('parent_health', 1, 1): ('treatment', 'a'),
+    ('drunk_kiss', 2, 1): ('dating_companion', 'a'),
+}
 
 
 def find_story(key) -> Story:
@@ -390,7 +410,7 @@ def local_today(companion, now) -> date:
 def advance(connection, companion, now) -> int:
     """Decide the storylines that started on each day since the last check (cheap, no model)."""
     timeline_id, today = companion['active_timeline_id'], local_today(companion, now)
-    end_removed(connection, timeline_id, today)
+    end_removed(connection, timeline_id, today, now)
     level, lone = drama(connection), world_drama.alone(connection)
     cursor = optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (timeline_id,))
     first = today - timedelta(days=CATCH_UP_DAYS)
@@ -410,14 +430,51 @@ def advance(connection, companion, now) -> int:
     connection.execute('INSERT INTO storyline_days (timeline_id, through) VALUES (?, ?) ON CONFLICT(timeline_id) '
                        'DO UPDATE SET through=excluded.through', (timeline_id, today.isoformat()))
     settle(connection, companion, today, now)
+    record_due(connection, companion, now)
     return started
+
+
+def effect_of(row: dict, index: int, stage: dict) -> tuple[str, str] | None:
+    """(happenings kind, who) for a beat that has its outcome, or None."""
+    story = find_story(row['story'])
+    if stage.get('pending') or index >= len(story.stages):
+        return None
+    chosen = next((number for number, item in enumerate(story.stages[index]) if item.text == stage['text']), None)
+    return EFFECTS.get((row['story'], index, chosen)) if chosen is not None else None
+
+
+def record_due(connection, companion, now) -> int:
+    """Every beat that has happened is written into the lives of the people in it (companion/life/happenings.py): a
+    line in their diary and the change it describes. Once each, so it also fills in beats from before v1.3.4, for
+    storylines still within the two months they stay in mind (SETTLED_DAYS)."""
+    local = now.astimezone(zone(companion['version']['timezone']))
+    today, clock = local.date().isoformat(), local.strftime('%H:%M')
+    since = (local.date() - timedelta(days=SETTLED_DAYS)).isoformat()
+    recorded = 0
+    for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running' AND started_on>=? "
+                    'ORDER BY started_on', (companion['active_timeline_id'], (local.date() - timedelta(
+                        days=SETTLED_DAYS * 3)).isoformat())):
+        stages, cast = decode(row['stages']), decode(row['cast_ids'])
+        if row['story'] in OWN or stages[-1]['on'] < since and not stages[-1].get('pending'):
+            continue
+        for index, stage in enumerate(stages):
+            found = effect_of(row, index, stage)
+            if not found or not happened(stage, row['id'], index, today, clock):
+                continue
+            kind, who = found
+            for position, subject in enumerate(cast[:len(who)]):
+                other = cast[1 - position] if len(cast) > 1 else None
+                recorded += happenings.record(connection, companion, subject=subject, source=f"storyline:{row['id']}:{index}",
+                                              kind=kind, day=stage['on'], at=beat_time(row['id'], index),
+                                              other=other if who == 'ab' else None, now=now)
+    return recorded
 
 
 # A thought or a piece of news about an ended storyline: its topic or source is `storyline:<id>:<beat>`.
 ENDED_SOURCE = ("EXISTS (SELECT 1 FROM storylines s WHERE s.status='ended' AND {column} LIKE 'storyline:' || s.id || ':%')")
 
 
-def end_removed(connection, timeline_id, today: date):
+def end_removed(connection, timeline_id, today: date, now):
     """Someone removed from the circle takes their unfinished storylines with them; settled ones stay told."""
     removed = {row['id'] for row in many(connection, "SELECT id FROM circle_people WHERE timeline_id=? "
                                          "AND status='removed'", (timeline_id,))}
@@ -427,6 +484,7 @@ def end_removed(connection, timeline_id, today: date):
         settled = last['on'] <= today.isoformat() and not last.get('pending')
         if set(decode(row['cast_ids'])) & removed and not settled:
             connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (row['id'],))
+            happenings.take_back(connection, timeline_id, f"storyline:{row['id']}:", now)
 
 
 # The chat context speaks to the companion: a template's third person becomes "you" before it is filled.
@@ -573,6 +631,8 @@ def end(database, storyline_id) -> list[dict]:
         require(row['timeline_id'] == companion['active_timeline_id'], 'That storyline is not on this timeline.', 404)
         require(row['status'] == 'running', 'This storyline has already ended.', 409)
         connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (storyline_id,))
+        # What it changed in their lives goes back: the diary line, the breakup, the new job (happenings.py).
+        happenings.take_back(connection, row['timeline_id'], f'storyline:{storyline_id}:', database.clock.now())
         return visible(connection, companion, database.clock.now(), shown=True)
 
 
@@ -596,6 +656,9 @@ def change_outcome(database, consequence_id: str, option: int) -> dict:
         chosen = find_story(row['story']).stages[index][option]
         stages[index] = outcome_stage(stages[index]['on'], chosen, consequence_id)
         connection.execute('UPDATE storylines SET stages=? WHERE id=?', (encode(stages), row['id']))
+        # The other way's change replaces the first's (companion/life/happenings.py).
+        happenings.take_back(connection, row['timeline_id'], f"storyline:{row['id']}:{index}", now, forget=True)
+        record_due(connection, companion, now)
         return outcome
 
 

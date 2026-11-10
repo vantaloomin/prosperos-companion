@@ -83,3 +83,72 @@ def single_by_event_since(row: dict, days: int, today: date | None = None) -> st
         return None
     today = today or date.today()
     return recorded['since'] if recorded['since'] >= (today - timedelta(days=days)).isoformat() else None
+
+
+# Changing it (companion/life/happenings.py) -------------------------------------------------------------------------
+
+# States with a partner now; the rest have none.
+WITH_PARTNER = ('seeing', 'engaged', 'married', 'separated')
+
+
+def change(connection, row: dict, to: str, day: str, source: str, now, partner: dict | None = None,
+           people: list[dict] | None = None) -> dict | None:
+    """Their love life becomes `to` from `day`: the partner they had (when it is not `partner`) becomes an ex. Written
+    as `details.partner`, with `married` kept in step for the readers that look at it. Returns the undo
+    (records.write), or None when nothing changed."""
+    from companion.life import records
+    now_state = state(connection, row, people)
+    old = now_state['partner']
+    keeps = to in WITH_PARTNER
+    partner = (partner or old) if keeps else None
+    exes = [ex for ex in now_state['exes'] if not partner or ex.get('key') != partner.get('key')]
+    if old and old.get('key') != 'companion' and (not partner or old.get('key') != partner.get('key')):
+        exes.append({**old, 'until': day, **({'married': True} if now_state['state'] in ('married', 'separated')
+                                             else {})})
+    record = {'state': to, **(partner or {}), 'since': day, 'source': source, 'exes': exes}
+    record = {key: value for key, value in record.items() if value not in (None, '', [])} | {'state': to}
+    return records.write(connection, row['id'], now, {'partner': record,
+                                                      'married': True if to in ('married', 'separated') else None})
+
+
+def tie_between(connection, first: dict, second: dict, how: str | None, now) -> list[dict]:
+    """How two circle people stand now by a life event (`details.ties`, by seed, both ways), '' for not speaking and
+    None for the app's own reading again. Returns the undos."""
+    from companion.life import records
+    undos = []
+    for one_side, other in ((first, second), (second, first)):
+        ties = dict(circle.details_of(one_side).get('ties') or {})
+        if how is None:
+            ties.pop(other['seed'], None)
+        else:
+            ties[other['seed']] = how
+        if undo := records.write(connection, one_side['id'], now, {'ties': ties or None}):
+            undos.append(undo)
+    return undos
+
+
+def named(connection, companion: dict, row: dict, partner: dict | None) -> dict | None:
+    """The partner with their name: as recorded, the circle person, the companion, or found among the person's own
+    people (network.find)."""
+    if not partner or partner.get('name'):
+        return partner
+    if partner.get('key') == 'companion':
+        return {**partner, 'name': companion['version']['definition']['name'].split()[0]}
+    found = network.find(connection, companion, partner['key']) if partner.get('key') else None
+    return {**partner, **{key: found[key] for key in ('name', 'full', 'pronouns')}} if found else partner
+
+
+def new_partner(connection, companion: dict, row: dict) -> dict:
+    """Someone new for them, who is not one of their seeded people: keyed `<their key>/p<n>` so network.find still
+    finds them, named for their city and era."""
+    found = state(connection, row)
+    taken = [item.get('key') or '' for item in [*found['exes'], found['partner'] or {}]]
+    index = sum('/p' in key for key in taken)
+    key = f'{key_of(row)}/p{index}'
+    details = circle.details_of(row)
+    full = details.get('full_name') or row['name']
+    person = network.made({'key': key_of(row), 'name': row['name'], 'age': details.get('age') or 33, 'depth': 1,
+                           'family': full.split()[-1] if ' ' in full else '', 'circle_id': row['id']},
+                          {'key': key}, network.city(connection, companion),
+                          network.names_taken(connection, companion) | {row['name']})
+    return {'key': key, 'name': person['name'], 'full': person['full'], 'pronouns': person['pronouns']}

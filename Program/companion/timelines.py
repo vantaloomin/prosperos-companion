@@ -17,6 +17,7 @@ import re
 
 from companion import consequences, pictures, reply_versions
 from companion.characters import require_current
+from companion.clock import parse
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import (
@@ -30,6 +31,7 @@ from companion.life import (
     family_tree,
     feed,
     grooming,
+    happenings,
     hobbies,
     home,
     kids,
@@ -263,6 +265,7 @@ def copy_history(connection, parent_id, new_id, through_seq, cutoff) -> dict:
     insert(connection, 'recommendations', [{**row, 'id': ids[row['id']], 'timeline_id': new_id,
                                             'message_id': ids[row['message_id']]} for row in recommended])
     copy_storylines(connection, parent_id, new_id, ids, cutoff[:10])
+    happenings.copy(connection, parent_id, new_id, ids, cutoff, parse(cutoff))  # After the storylines it names.
     families.copy(connection, parent_id, new_id, ids, cutoff[:10])
     own_family.copy(connection, parent_id, new_id, ids)
     kids.copy(connection, parent_id, new_id, ids)
@@ -296,7 +299,7 @@ def copy_storylines(connection, parent_id, new_id, ids, cutoff_date):
             if all(person in ids for person in decode(row['cast_ids']))]
     copies = []
     for row in rows:
-        copy_id = identifier()
+        copy_id = ids[row['id']] = identifier()
         copies.append({**row, 'id': copy_id, 'timeline_id': new_id,
                        'cast_ids': encode([ids[person] for person in decode(row['cast_ids'])]),
                        'stages': encode(storylines.fork_stages(connection, row, copy_id, new_id, cutoff_date))})
