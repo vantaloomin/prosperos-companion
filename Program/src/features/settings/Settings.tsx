@@ -18,6 +18,7 @@ import { PhoneSettings } from './PhoneSettings'
 import { PromptSettings } from './PromptSettings'
 import { usePhone } from '../../components/usePhone'
 import { MemorySettings, RestoredReview } from './WorkspaceSettings'
+import { OwnWords } from './OwnWords'
 import { GeneralSettings } from './GeneralSettings'
 import { BuiltinRecall } from './models/BuiltinRecall'
 import { VoiceSettings } from './models/VoiceSettings'
@@ -172,7 +173,7 @@ function TabContent({ tab, companion, pages }: { tab: SettingsTab; companion: Co
     models: <>{!remote && <HardwareCheck />}<ModelSettings />{!remote && <LocalPrograms />}{!remote && <BuiltinRecall />}<VoiceSettings /></>,
     world: <WorldPage name={name} sub={pages.sub as WorldSub | null} open={pages.open} />,
     realism: <RealismPage name={name} sub={pages.sub as RealismSub | null} open={pages.open} />,
-    memory: <MemorySettings />,
+    memory: <><MemorySettings /><OwnWords name={name} /></>,
     pictures: <ImageSettings />,
     devices: <><NotificationSettings /><PhoneSettings /></>,
     data: <>{!remote && <DataFolder />}<Backups /><DebugSettings name={name} />{!remote && <><ModelCalls /><TownsfolkMix /><DebugMatches /></>}</>,

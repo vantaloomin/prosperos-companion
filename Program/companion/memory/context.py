@@ -95,9 +95,9 @@ from companion.memory import (
     earlier,
     history,
     look_back,
+    own_words,
     pairs,
     people,
-    phrases,
     sides,
     time_recall,
     vectors,
@@ -348,6 +348,8 @@ class Packet:
     widened: bool = False
     # With the adult side on, lines naming a child in their circle (companion/life/families.py `hidden`).
     hidden: re.Pattern | None = None
+    # What to change in the finished reply (companion/memory/own_words.py `plan`).
+    tidy: dict | None = None
 
     def require(self, section, identity, text):
         self.used += token_estimate(text)
@@ -536,14 +538,6 @@ def person_now_text(person) -> str | None:
         parts.append(f"Recently, with you: {shared['summary']}" if shared
                      else f"Recently: {latest['entry']['summary']}")
     return f"- {person['name']}: {' '.join(parts)}" if parts else None
-
-
-def wording_text(connection, timeline_id, definition, messages) -> str | None:
-    """A nudge when the companion's last replies keep reaching for the same words (companion/memory/phrases.py)."""
-    replies = [message for message in messages if message['role'] == 'companion'][-phrases.RECENT_REPLIES:]
-    names = {word for row in circle.people(connection, timeline_id, include_removed=True)
-             for word in row['name'].split()} | set(definition['name'].split())
-    return phrases.repeats_line(replies, names)
 
 
 def local_time(instant: datetime, timezone: str) -> str:
@@ -1120,8 +1114,7 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
         packet.offer('time', identity, text)
     offer_hours(packet, connection, companion, now, group)
     conversation = fit_conversation(packet, recent)
-    if group is None and (wording := wording_text(connection, timeline_id, version['definition'], messages)):
-        packet.offer('wording', 'wording', wording)
+    own_words.offer(packet, connection, timeline_id, version['definition'], messages, group)
     if mood := moods.active(connection, companion, now):
         packet.offer('relationship_mood', mood['id'], moods.mood_text(mood))
     since = recent[0]['created_at'] if recent else None
@@ -1315,4 +1308,4 @@ def render(packet, conversation) -> dict:
                'included': packet.included, 'omitted': packet.omitted, 'semantic_recall': packet.semantic,
                'widened_recall': packet.widened}
     return {'system': system, 'note': note, 'history': chat, 'messages': with_note(chat, note),
-            'receipt': receipt}
+            'receipt': receipt, 'tidy': packet.tidy or {}}
