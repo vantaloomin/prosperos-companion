@@ -30,6 +30,7 @@ from companion.clock import AppClock, parse, stamp, zone
 from companion.database import Database, identifier, optional
 from companion.errors import require
 from companion.life import ages, narrator, pets, where
+from companion.memory import own_words
 from companion.models import PERSONA_AGES, CharacterDefinition
 from companion.world import catalog, changes, custom, generators, lifespans, mix, townsfolk
 
@@ -382,6 +383,8 @@ def carry_settings(target: Path, source: Path, timestamp: str):
     try:
         # Lore of a city deleted in another world goes with it (companion/lore.py).
         lore.drop_orphaned(connection)
+        # Their own words: the user's rules for every world (companion/memory/own_words.py).
+        own_words.carry(connection, Path(source).resolve())
         assignments = ', '.join(f'{column}=MAX({column}, ?) + 1' for column in REVISIONS)
         connection.execute(f'UPDATE workspace_settings SET {assignments} WHERE id=1', tuple(before or (0, 0)))
         # Memories still waiting from the world's last visit were queued under its own settings; they stay due, and

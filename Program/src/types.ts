@@ -250,7 +250,12 @@ export interface MoneySetup {
   job?: string
   /** What they take home a month in their city's money: null works it out from their work and city, 0 is unpaid. */
   pay?: number | null
+  /** How they hold their home (companion/life/owning.py); empty is the app's pick. */
+  home?: HomeTenure
 }
+
+/** Renting, paying off a mortgage, or owned outright; '' leaves it to the app. */
+export type HomeTenure = '' | 'rent' | 'mortgage' | 'owned'
 
 export interface CareerSummary { id: string; name: string; pay: string; eras: string[]; adult?: boolean }
 
@@ -264,7 +269,7 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   style: SpendingStyle
   career: { id: string; name: string; pay: string; guessed: boolean } | null
   housing: { unit: string; label: string; neighborhood: string }
-  budget: { income: number; rent: number; upkeep: number; essentials: number; fun: number; saving: number }
+  budget: { income: number; rent: number; owner_costs?: number; upkeep: number; essentials: number; fun: number; saving: number }
   rent_from: 'home' | 'budget'
   /** Living on a pension, and paying a mortgage on a place they bought (companion/life/big_turns.py). */
   retired?: boolean
@@ -272,7 +277,11 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   medieval?: boolean
   /** Their own business's short name ('bakery') while they run one (companion/life/business.py). */
   business?: string | null
+  /** A mortgage or owned outright: `rent` is then the mortgage, or 0 (companion/life/owning.py). */
   owned?: boolean
+  tenure?: 'rent' | 'mortgage' | 'owned'
+  /** What an owner's taxes and repairs are called there: "property tax, insurance and upkeep", "dues and repairs". */
+  owner_words?: string
   bought: MoneyHappening[]
   payday: { last: string; next: string; cycle_days: number; today: boolean }
   left: number
@@ -283,7 +292,7 @@ export type MoneyView = { date: string } & ({ available: false; reason: string }
   surprise: MoneyHappening | null
   cant_afford: string[]
   goal: { label: string; amount: number; saved: number; share: number; custom: boolean; since: string; stalled: boolean }
-  text: { income: string; rent: string; upkeep: string; essentials: string; fun: string; saving: string; left: string }
+  text: { income: string; rent: string; owner_costs?: string; upkeep: string; essentials: string; fun: string; saving: string; left: string }
 })
 
 export interface CharacterVersion {
@@ -552,6 +561,10 @@ export interface LifeSettings {
   /** Getting together (companion/life/together.py): how often they suggest meeting up, invite you over and drop by, 0 never on their own to 3 often. */
   together_realism: number
   onward_realism: number
+  /** Weather (companion/world/skies.py), kept in this world only like its drama: 0 gentle, 1 true to life, 2 stormy. */
+  weather_realism: number
+  /** Whether this world has weather for the Weather step: false aboard a ship or station, or in a city with no climate. */
+  weather?: boolean
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
   rough_patches_realism: number
   /** Next steps (companion/life/steps.py): how soon they bring up the next step, 0 only when you do, 1 slow, 2 true to life, 3 fast. */
@@ -806,7 +819,8 @@ export interface Today {
   /** How they feel right now (companion/moods.py); only with Hidden values > Show how they're feeling on. */
   feeling?: GroupMood | null
   last_seen_at: string | null
-  day: { date: string; body: BodyState | null }
+  /** Their day where they live: its weather and tomorrow's (companion/world/skies.py; observed where looked up). */
+  day: { date: string; body: BodyState | null; weather?: DayWeather | null; tomorrow?: DayWeather | null }
   /** Birthdays and talking milestones today or within a week (companion/life/occasions.py). */
   occasions?: Occasion[]
   /** On their mind (companion/life/thoughts.py): the last week, newest first; null when switched off. */
@@ -823,6 +837,17 @@ export interface Thought { day: string; text: string }
 /** A dream the night before `day` (companion/life/dreams.py). */
 export interface Dream { day: string; text: string; sleep_talk: string | null }
 export interface Moment { day: string; title: string; text: string; source: string; picked_by: 'dice' | 'user'; odds?: number }
+
+/** A day's weather in the companion's city: the sky and how many days it has held, high and low in °F. A day planned
+ * before skies were named, or a lookup that names none, has no sky. `observed` marks real weather looked up. */
+export interface DayWeather {
+  sky?: 'clear' | 'cloudy' | 'overcast' | 'fog' | 'rain' | 'storm' | 'snow'
+  days?: number
+  high_f: number
+  low_f: number
+  rain: boolean
+  observed?: { source: string; forecast?: boolean }
+}
 
 /** How the companion feels physically today, carried over from the day before. */
 export interface BodyState { state: 'sick' | 'hungover' | 'tired' | 'worn out' | 'sore'; because: string }
@@ -878,8 +903,14 @@ export interface DiaryEntry {
   ends_at: string
   local_date: string
   block: string
-  entry: { summary: string; activity?: string; place?: string | null; mood?: string | null; post?: unknown }
+  entry: { summary: string; activity?: string; place?: string | null; mood?: string | null; post?: unknown; happening?: string; said?: SaidNews }
   status: string
+}
+/** The companion's own news behind a diary line (companion/life/said_events.py): the fact and the words. */
+export interface SaidNews {
+  fact_id: string
+  statement: string
+  said_at: string
 }
 /** Someone's kind and how long they live (companion/world/lifespans.py `described`). `own` is the user's pick of
  * How long they live: null as their kind, 0 doesn't age. `years` is what applies (null: they don't age). */
@@ -910,6 +941,16 @@ export interface ShareablePerson {
   role: string
   owner_id: string
   owner: string
+}
+
+/** A circle person's love life for Edit person (GET /life/circle/{id}/love, companion/life/love_pick.py): as the app
+ * or the user has it now, and where everyone else in the circle stands, for "Who with". */
+export interface CircleLove {
+  state: 'single' | 'seeing' | 'engaged' | 'married' | 'separated' | 'divorced' | 'widowed'
+  partner: string | null
+  set: boolean
+  editable: boolean
+  people: { id: string; name: string; stands: string | null }[]
 }
 
 export interface CirclePerson {
@@ -1649,8 +1690,9 @@ export interface HomeItem {
   features?: string[]
   rent?: number | null
   rent_period?: 'month' | 'week'
-  /** A place they bought: `rent` is then the mortgage (companion/life/big_turns.py). */
+  /** A place they own: `rent` is then the mortgage, or what it would rent for when owned outright (`tenure`). */
   owned?: boolean
+  tenure?: 'rent' | 'mortgage' | 'owned' | null
   /** Bought in a medieval kingdom or a fairy-tale land: payments on it, not a mortgage. */
   medieval?: boolean
   currency?: { code: string; symbol: string; name: string }
@@ -2058,7 +2100,10 @@ export interface GuestOption {
 }
 
 /** Record model calls (companion/model_calls.py), Settings > Data. */
-export interface ModelCallLog { recording: boolean; folder: string; keep_days: number; files: number; bytes: number }
+export interface ModelCallLog {
+  recording: boolean; folder: string; keep_days: number; files: number; bytes: number
+  look_back: { offered: number; asked: number }
+}
 
 export interface GroupMood {
   feeling: 'calm' | 'happy' | 'excited' | 'annoyed' | 'hurt' | 'angry' | 'anxious' | 'sad'

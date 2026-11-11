@@ -100,6 +100,7 @@ def test_drama_sets_what_can_happen(client, social, monkeypatch):
 
 def test_beats_stay_hidden_until_their_day_and_reach_the_context(client, social, clock, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    clock.instant = clock.now().replace(hour=21, minute=30)  # Mira works until 17:00: news lands after work.
     monkeypatch.setattr(storylines, 'STORIES', tuple(story for story in storylines.STORIES if len(story.stages) > 1))
     set_life(client, drama=2)
     reconcile(client)
@@ -119,8 +120,9 @@ def test_beats_stay_hidden_until_their_day_and_reach_the_context(client, social,
     assert not item['unfolding'] and len(item['beats']) >= 2 and item['beats'][0]['text'] == first
 
 
-def test_ending_one_takes_it_out_of_today_and_the_context(client, social, monkeypatch):
+def test_ending_one_takes_it_out_of_today_and_the_context(client, social, clock, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    clock.instant = clock.now().replace(hour=21, minute=30)
     reconcile(client)
     item = client.get('/api/life/storylines').json()[0]
     assert client.post(f"/api/life/storylines/{item['id']}/end").json() == []
@@ -155,8 +157,9 @@ def spread_news(client) -> list[str]:
         return [row['status'] for row in connection.execute("SELECT status FROM news WHERE source LIKE 'storyline:%'")]
 
 
-def test_removing_someone_ends_their_storylines(client, social, monkeypatch):
+def test_removing_someone_ends_their_storylines(client, social, clock, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    clock.instant = clock.now().replace(hour=21, minute=30)
     monkeypatch.setattr(storylines, 'STORIES', tuple(story for story in storylines.STORIES if story.cast.startswith('friend ')))
     reconcile(client)
     item = client.get('/api/life/storylines').json()[0]
@@ -167,6 +170,7 @@ def test_removing_someone_ends_their_storylines(client, social, monkeypatch):
 
 def test_someone_leaving_after_a_storyline_settled_keeps_it(client, social, clock, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
+    clock.instant = clock.now().replace(hour=21, minute=30)
     monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('friend_new_job'),))
     reconcile(client)
     item = client.get('/api/life/storylines').json()[0]
@@ -211,6 +215,7 @@ def test_a_settled_storyline_stays_by_its_outcome_then_goes_to_recall(client, so
     from companion.memory import vectors
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
     monkeypatch.setattr(storylines, 'STORIES', (storylines.find_story('friend_new_job'),))
+    clock.instant = clock.now().replace(hour=21, minute=30)
     reconcile(client)
     item = client.get('/api/life/storylines').json()[0]
     friend = item['cast'][0]['name']
@@ -304,12 +309,17 @@ def test_a_beat_today_waits_for_its_time(client, social, clock, monkeypatch):
     clock.instant = clock.now().replace(hour=7, minute=0)
     reconcile(client)
     assert len(stored(client)) == 1 and client.get('/api/life/storylines').json() == []
-    when = storylines.beat_time(stored(client)[0]['id'], 0)
+    from companion.characters import require_current
+    row = stored(client)[0]
+    with client.app.state.database.connect() as connection:
+        when = storylines.beat_at(row, 0, json.loads(row['stages'])[0],
+                                  storylines.timing(connection, require_current(connection), [row]))
+    # A Monday: never while Mira is at work (09:00 to 17:00).
+    assert not '09:00' <= when < '17:00'
     clock.instant = clock.now().replace(hour=int(when[:2]), minute=int(when[3:]))
     listed = client.get('/api/life/storylines').json()
     assert len(listed) == 1 and listed[0]['beats'][0]['time'] == when
     # The narrator (Just watching) tells it at that time, not at one time shared by everyone.
-    from companion.characters import require_current
     from companion.life import narrator
     with client.app.state.database.connect() as connection:
         lines = narrator.companion_lines(connection, require_current(connection), clock.now())

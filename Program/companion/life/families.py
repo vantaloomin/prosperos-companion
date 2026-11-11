@@ -32,7 +32,7 @@ from functools import cache
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import ages, circle, pronouns
+from companion.life import ages, circle, circle_love, pronouns
 from companion.world import catalog, generators, intimacy
 
 ACTIVE = True  # Off in most tests (tests/conftest.py), since new pregnancies would add storylines to unrelated ones.
@@ -44,6 +44,8 @@ AGES = (24, 42)
 YEARLY = {'married sibling': 0.22, 'sibling': 0.08, 'cousin': 0.12, 'close friend': 0.12, 'friend': 0.09,
           'coworker': 0.07}
 SPACING = timedelta(days=548)  # After a baby, a year and a half before the next.
+# Single by a life event this recently (a breakup, a partner who died): no baby on the way yet.
+PARTED_DAYS = 90
 MOST_CHILDREN = 3
 CATCH_UP_DAYS = 14
 GODPARENT = 0.45  # A close friend asking the companion to be the godparent.
@@ -230,6 +232,8 @@ def eligible(connection, timeline_id: str, people: list[dict], day: date) -> lis
         if not how or person['role'] in PARTNERS or person['id'] in dating | busy or not isinstance(age, int) \
                 or not AGES[0] <= age <= AGES[1]:
             continue
+        if circle_love.single_by_event_since(person, PARTED_DAYS, day):  # Just broke up, or lost their partner.
+            continue
         theirs = children_of(connection, person['id'])
         if len(theirs) >= MOST_CHILDREN or any(date.fromisoformat(child['born_on']) + SPACING > day for child in theirs):
             continue
@@ -377,16 +381,23 @@ def arrived(child: dict, kind: str, definition: dict, parent: str = 'she/her', o
 
 
 def start(connection, companion: dict, world, person: dict, how: str, day: date, now) -> None:
+    storyline_id = begin(connection, companion, world, person, how, day, now)
+    keep_odds(connection, companion['active_timeline_id'], storyline_id, CIRCLE_BABY,
+              *circle_odds(connection, companion, person, how), day, now)
+
+
+def begin(connection, companion: dict, world, person: dict, how: str, day: date, now) -> str:
+    """The pregnancy's storyline and its baby, due later; with no odds, for news the companion gave themselves
+    (companion/life/life_changes.py). Returns the storyline's id."""
     found, timeline_id = plan(connection, companion, world, person, how, day), companion['active_timeline_id']
     storyline_id = insert_story(connection, timeline_id, 'expecting', person['id'], found['stages'], day, now)
-    keep_odds(connection, timeline_id, storyline_id, CIRCLE_BABY, *circle_odds(connection, companion, person, how),
-              day, now)
     child = found['child']
     connection.execute(
         'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, born_on, status, '
         "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'expected', ?, ?)",
         (identifier(), timeline_id, person['id'], storyline_id, child['name'], child['pronouns'], child['title'],
          found['born'].isoformat(), stamp(now), stamp(now)))
+    return storyline_id
 
 
 # The odds behind a baby (Hidden values): a seeded chance each week, not the consequence engine, kept with the

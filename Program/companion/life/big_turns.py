@@ -38,7 +38,7 @@ from functools import cache
 from companion import consequences
 from companion.database import decode, encode, many, optional
 from companion.errors import require
-from companion.life import ages, home, money, moving_in, routine
+from companion.life import ages, happenings, home, money, moving_in, routine
 from companion.world import catalog, generators, intimacy, looks
 
 KINDS = ('school', 'career_change', 'buy_place', 'retire', 'business', 'health', 'caring')
@@ -336,6 +336,8 @@ def plan_buy(connection, companion, world, day, seed) -> dict | None:
     found, city = money.profile(definition), money.city_for(definition)
     if age is None or age < BUY_AGE or not found or found.tier < 1 or owns(connection, timeline_id, day):
         return None
+    if (definition.get('money') or {}).get('home'):  # The user said how they live (Work and money): it stays so.
+        return None
     together = moving_in.current(connection, timeline_id)
     if together and (together['status'] != 'moved' or together['city_id'] != city['id']):
         return None  # A move in together still to come, or a shared home in another city.
@@ -365,7 +367,8 @@ def place_to_buy(companion: dict, city: dict, found, together: dict | None, seed
     # shillings or pennies stay whole (never 0).
     payment *= random.Random(f'{seed}:mortgage').uniform(*MORTGAGE)
     payment = int(round(payment, -1)) if payment >= 200 else max(1, round(payment))
-    return {**place, 'details': {**place['details'], 'owned': True, 'shared': bool(together), 'rent': payment,
+    return {**place, 'details': {**place['details'], 'owned': True, 'tenure': 'mortgage', 'shared': bool(together),
+                                 'rent': payment,
                                  'rent_from': 'mortgage', 'estimate': True, 'city': city['name'],
                                  **old_words(city)}}  # Payments on the place, not a mortgage, in a medieval city.
 
@@ -432,7 +435,13 @@ def progress(connection, companion: dict, world, day: date, now) -> int:
         details = decode(row['details'])
         update = STAGES[row['kind'], details['stage']](connection, companion, row, details, day, now)
         save_stage(connection, row, update, day)
+        if (row['kind'], details['stage']) in LEAVING_WORK:  # Coworkers stay at the old place (happenings.py).
+            happenings.coworkers_moved_on(connection, companion, f"chapter:{row['id']}", day, now)
     return len(rows)
+
+
+# The stages after which the companion no longer works where they did: a new career, retirement, their own business.
+LEAVING_WORK = {('career_change', 'retraining'), ('retire', 'leaving'), ('business', 'planning')}
 
 
 def save_stage(connection, row: dict, update: dict, day: date):

@@ -3013,6 +3013,18 @@ CREATE TABLE IF NOT EXISTS drop_bys (
 );
 CREATE INDEX IF NOT EXISTS drop_bys_timeline ON drop_bys(timeline_id, created_at);
 
+-- Their own words (companion/memory/own_words.py): the user's list of words to drop or swap in the companion's
+-- replies (`replacement` for a swap), and phrases from "Caught lately" they kept (a catchphrase, never flagged) or
+-- dismissed. `everyone` = for every world, carried along when the user switches worlds; otherwise this world only.
+CREATE TABLE IF NOT EXISTS word_rules (
+  id TEXT PRIMARY KEY,
+  phrase TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('drop', 'swap', 'keep', 'dismiss')),
+  replacement TEXT NOT NULL DEFAULT '',
+  everyone INTEGER NOT NULL DEFAULT 0 CHECK (everyone IN (0, 1)),
+  created_at TEXT NOT NULL
+);
+
 -- What happened to someone in a companion's circle from a life event (companion/life/happenings.py): their diary line,
 -- and what it changed on their record (`undo` puts it back). `text` is a template with {name}, {other} and {partner},
 -- filled when read so a rename carries over; `names` holds who they are. `starts_at` is the moment, for sorting.

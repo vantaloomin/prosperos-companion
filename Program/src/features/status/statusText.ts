@@ -23,7 +23,8 @@ function togetherLine(where: StatusWhere): { text: string; away: AwayGlyph; shor
 /** A weekend visit across the distance (companion/life/long_distance.py) shows luggage, like the chat strip; home
  * together (companion/life/moving_in.py) the house, and together somewhere out the pin. */
 function togetherGlyph(where: StatusWhere): AwayGlyph {
-  if (where.kind === 'home') return 'home'
+  // At your place shows the house too, like the chat strip (Iris, 2026-11-10).
+  if (where.kind === 'home' || where.kind === 'yours' || where.kind === 'knock') return 'home'
   return where.kind === 'staying' || where.kind === 'hosting' || where.kind === 'away' ? 'luggage' : 'pin'
 }
 

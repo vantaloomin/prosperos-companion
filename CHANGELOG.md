@@ -76,6 +76,31 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.4.0 "Another Storm Brewing" (2026-11-11)
+
+- **Weather that settles in (#88):** world/skies.py keeps yesterday's sky ~45% of days and draws from the month's mix
+  otherwise (spells, same wet-day count), temperatures wander and lean with the sky, snow only when cold. Per-world
+  Weather step on Realism (world_life.weather: Gentle / True to life / Stormy; hidden where there is no weather).
+  "Tomorrow:" on the Now card and inside the existing weather context section; the weather server asks for 2 days.
+  Snow, fog and storms reach picture light, lore moments and the paper's outlook.
+- **Earlier in this talk (#99):** memory/earlier.py builds a rule-made bridge (~350 tokens) of turns that left the
+  window, stepping with the window; extra lines go to recall; wider look-back gate with Debug counts.
+- **The scene keeps up (#100):** life/scene_now.py reads meetup and Story action lines (world/data/scene_moves.json)
+  for place and clothes; Where strip "Back to" undo for 2 minutes; Second location wins when it fires.
+- **Their own words (#97):** world/data/ai_isms.json and memory/own_words.py, a 3-step ladder worked out from the
+  transcript; word_rules table (drop / swap / keep / dismiss, 50 max, per world or everyone); Settings > Memory list.
+- **Gestures by personality (#96):** rough patches roll big/small gestures against who the companion is.
+- **Home ownership:** life/owning.py picks renting, a mortgage or owned at home assembly; Home choice in Money.
+- **World consistency, parts 3 to 6:** storyline beats pinned in plans (agenda.pinned_plans, joint.py); news.subjects;
+  coworkers, friend weddings, marriages and widowhood as happenings; Their love life in Edit person (life/love_pick.py).
+- **Goals that fit (#101), dating app keeps up (#102), said events (#103):** goals.json `needs` + casting checks;
+  dating status follows world/couples.py; life/said_events.py records family news said in chat as happenings with
+  undo (world/data/said_changes.json), user edits and recent events win.
+- **Bounds (#98):** Feb 29 rollover, weather readings, ages, pet ages and message indexes kept in range;
+  drafting.DRAFT_FLOOR; saved prompt edits are refused when a kept JSON example no longer parses.
+- **Fixes:** a short dinner ask with a time and named place books; "Your mom" reads as the user's in Earlier in this
+  talk; steadier lone-storylines test.
+
 ## v1.3.4 (2026-11-11)
 
 - **Named free blocks:** a leisure, social or rest block whose label names its activity is composed as that activity

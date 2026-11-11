@@ -114,10 +114,20 @@ character with no matching words keeps the even mix.
 
 ### Weather
 
-Each day has typical weather for the companion's city, drawn from the world data's monthly climate
-averages with a seeded chance of rain: `{season, high_f, low_f, rain, note}`. It is the same for
-everyone in the city that day, so the companion and their circle agree. It is not a forecast and
-never claims to be real. On a rainy, very hot (93°F and up) or very cold (38°F and below) day,
+Each day has weather for the companion's city that settles in (`companion/world/skies.py`, Hit List
+#88): `{season, sky, days, high_f, low_f, rain, note}`. Each day keeps yesterday's sky about 45% of
+the time, otherwise it draws from the month's mix of clear, cloudy, overcast, fog, rain, storm and
+snow, built from the climate's rain days, temperatures and note, so the month keeps its real number
+of wet days but they come in spells. `days` is how many days the sky has held; `rain` is any wet day
+(rain, storms or snow). Temperatures wander within about 7°F of the month's typical high and low and
+lean with the sky; a snowy day's high is at most 34°F. Everything is seeded by the city and date and
+stored nowhere, worked out from a week before the day. The Weather step on Settings > Realism, kept
+in each world's own database (`world_life.weather`, like its drama), sets the fronts: 0 Gentle (short
+spells, rare storms), 1 True to life (the default), 2 Stormy (long spells, more storms and snow).
+Changing it plans the companion's days from tomorrow again. It is the same for everyone in the city
+that day, so the companion and their circle agree. It is not a forecast and never claims to be
+real. Tomorrow's weather is known too: the chat context adds a "Tomorrow:" line, and Today's `day`
+carries `tomorrow`. On a wet, very hot (93°F and up) or very cold (38°F and below) day,
 outdoor activities give way to indoor ones: no walks, and workouts happen at a gym rather than a
 park. A rainy day at home sometimes gets a rainy caption. Agenda entries carry it as
 `block.weather`, events as `details.weather`, and the chat context includes today's line, marked
@@ -429,7 +439,10 @@ These reach the chat context, Around town (`facts`, `stories`), Story mode's peo
 a townsperson becomes the main character. The bank grows without code changes; `tests/test_life_details.py`
 checks its rules (subject-less lowercase clauses, no final period, no gendered words, a `period` alternative where
 wording is modern). Goals and quirks are data too (`world/data/goals.json`, `world/data/quirks.json`, each with the
-line a dating profile shows), as are the temperaments, flaws and desires in `perception.json` (their `town` part).
+line a dating profile shows), as are the temperaments, flaws and desires in `perception.json` (their `town` part). A goal
+can say what it `needs` of the person (a job, a boss, not retired, a sibling, single, an age range): each person draws
+only goals that fit them, checked by the same rules as storylines (`life/casting.py`), and a goal that stops fitting
+their love life gives way, from that week, to the last fitting goal in their order (v1.4.0).
 
 ```http
 GET /api/life/townsfolk                     # townsfolk met, most recently seen first, only what is known
@@ -527,7 +540,7 @@ holds, with no model call, so an issue reads the same every time it is opened:
 - "Seen around town": one public outing that week per companion in the city (a show, a game, a museum);
 - "Overheard": companions who crossed paths that week (Small world), with no names, and never at an outing
   "Seen around town" names;
-- "Coming up": the next week's annual events and holidays, and the typical weather.
+- "Coming up": the next week's annual events and holidays, and the weather (the wet and foggy days by name).
 
 Nothing private goes in: no storylines, circle, chats or secrets, and companions appear only where anyone
 could have seen them.
@@ -1131,7 +1144,7 @@ POST /api/today/seen
 | `last_run` | The most recent batch, or `null` |
 | `paused`, `paused_at`, `simulated_through`, `clock_behind`, `limits` | State for the activity controls |
 | `last_seen_at` | When the user last marked Today as seen |
-| `day` | The companion's local day: `{date, weather, happenings, birthdays, body}`. `body` is how they feel today (`{state, because}`, see the agenda) or `null`. `weather` is the typical weather (see Weather) or `null`, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
+| `day` | The companion's local day: `{date, weather, happenings, birthdays, body}`. `body` is how they feel today (`{state, because}`, see the agenda) or `null`. `weather` is the day's weather (see Weather) or `null`, `tomorrow` the next day's, `happenings` the city's annual events that day, `birthdays` circle members (`{id, name}`) whose birthday it is. Weather and events appear once a reconcile has built the agenda. |
 | `mind` | On their mind: `{thoughts: [{day, text}]}`, the last week newest first, or `null` when switched off (see below) |
 | `moments` | Little things: the Life deck's moments of the last week, newest first: `{day, title, text, source, picked_by}`, plus `odds` with Hidden values > odds on (see below) |
 | `dreams` | Dreams of the last week, newest first: `{day, text, sleep_talk}`, `day` being the morning after (see below) |

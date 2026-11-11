@@ -27,7 +27,7 @@ from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import composer, money, onward, own_plans, routine
 from companion.memory.extraction import SENTENCE
-from companion.world import catalog, custom, generators, inside
+from companion.world import catalog, custom, generators, inside, skies
 
 # key: (words that name it, city place kinds, usual start, hours, money.COSTS key, how it reads)
 ACTIVITIES = {
@@ -99,6 +99,9 @@ VAGUE = re.compile(r"\b(?:sometime|some time|soon|next time|one day|someday|one 
 FIRM = re.compile(r"\b(?:let'?s|we should|we're going|we are going|i'll take you|i'm taking you)\b", re.IGNORECASE)
 STARTS = re.compile(rf"^(?:{'|'.join(value[0] for value in ACTIVITIES.values())})\b", re.IGNORECASE)
 SHORT = 6
+# Not counted toward SHORT: the time and a named place ("Dinner tonight at 7 at Woodberry Kitchen?" is short too; E2E
+# 1.4: seven words, so the companion said yes and nothing was booked).
+DETAILS = re.compile(r"\bat\s+\d{1,2}(?::\d{2})?\s*(?:[ap]\.?m\.?)?|\b(?:at|to)\s+(?:the\s+)?(?:[A-Z][\w'’&.-]*\s*)+")
 # Run-on messages join an ask to other news with "also", "btw" or "anyway".
 ASIDE = re.compile(r"\s+(?:also|btw|anyway|plus|oh and|and also)\s+", re.IGNORECASE)
 WEEKEND = re.compile(r'\b(?:this|the) weekend\b', re.IGNORECASE)
@@ -150,7 +153,8 @@ def asked(sentence: str, firm: bool, day: date | None) -> bool:
     question = sentence.rstrip().endswith('?')
     if firm:
         return bool(FIRM.search(sentence)) and not question
-    short = question and day is not None and len(sentence.split()) <= SHORT and bool(STARTS.match(sentence))
+    short = question and day is not None and len(DETAILS.sub(' ', sentence).split()) <= SHORT and \
+        bool(STARTS.match(sentence))
     return bool(ASKING.search(sentence)) or question and bool(TOGETHER.search(sentence)) or short
 
 
@@ -811,7 +815,8 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
     seed = f"outing:{outing['id']}:{outing['rolls']}"
     # Where they sat at the start, until a while in: then they may have moved about (the bench, not "the front steps").
     spot = generators.pick(seed, SPOT, place.get('spots') or []) if not settled(outing, companion, now) else None
-    conditions = generators.conditions(data, date.fromisoformat(outing['local_date'])) if data else None
+    conditions = generators.conditions(data, date.fromisoformat(outing['local_date']), skies.level_of(connection)) \
+        if data else None
     if outing['activity'] in VISIT_DOING:
         return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else ())
     if outing['activity'] in MEETUPS:
@@ -945,13 +950,7 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     for outing in in_force(connection, companion['active_timeline_id'], (today - timedelta(days=1)).isoformat()):
         found = state(outing, version['timezone'], now)
         if found == 'now':
-            # Where they are right now: the first place, or the second once they moved on (companion/life/onward.py).
-            current = onward.here(outing, version['timezone'], now)
-            result.append((f"outing:{outing['id']}:now", scene(connection, companion, current, now)))
-            result += [*since_lines(current, version['timezone'], now),
-                       *onward.lines(connection, companion, outing, now, fresh_ids)]
-            if ending := ending_line(connection, companion, outing, now):
-                result.append((f"outing:{outing['id']}:ending", ending))
+            result += now_lines(connection, companion, outing, now, fresh_ids)
         elif found == 'planned':
             result.append((f"outing:{outing['id']}", planned_line(outing)))
             # The wedding is kept on the latest message (companion/life/wedding.py), not one that asked for it.
@@ -968,6 +967,24 @@ def context_lines(connection, companion: dict, now: datetime, fresh_ids: set[str
     from companion.life import heading_home
     if on_way := heading_home.context_line(connection, companion, now):
         result.append(on_way)  # On their way home from it (companion/life/heading_home.py).
+    return result
+
+
+def now_lines(connection, companion: dict, outing: dict, now: datetime, fresh_ids: set[str]) -> list[tuple[str, str]]:
+    """An outing under way: where they are right now (the first place, the second once they moved on,
+    companion/life/onward.py, or where the chat has taken them, companion/life/scene_now.py), since when, and what
+    they have on now."""
+    from companion.life import scene_now
+    timezone = companion['version']['timezone']
+    current, seen = scene_now.applied(connection, companion, outing, onward.here(outing, timezone, now), now)
+    moving = current['place'].get('kind') == 'scene'  # On the bus, on the way somewhere, outside a place.
+    result = [(f"outing:{outing['id']}:now", scene_now.on_the_move_line(current, timezone, now) if moving
+               else scene(connection, companion, current, now))]
+    result += [*([] if moving else since_lines(current, timezone, now)),
+               *scene_now.wearing_lines(outing, seen, timezone),
+               *onward.lines(connection, companion, outing, now, fresh_ids)]
+    if ending := ending_line(connection, companion, outing, now):
+        result.append((f"outing:{outing['id']}:ending", ending))
     return result
 
 
@@ -1080,7 +1097,8 @@ def with_user_blocks(connection, companion: dict, ahead: list[tuple]) -> list[tu
         for outing, start, end in found:
             if outing['id'] not in shown:
                 shown.add(outing['id'])
-                result.append(({'kind': 'outing', 'label': f'with the user, {what(outing)}', 'with_user': True},
+                result.append(({'kind': 'outing', 'label': f'with the user, {what(outing)}', 'with_user': True,
+                                'outing_id': outing['id']},
                                start, end))
     return result
 

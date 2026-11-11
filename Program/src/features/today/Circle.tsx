@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BookOpen, HeartHandshake, Pencil, Plus, RotateCcw, UserMinus, UserPlus, Users, UsersRound } from 'lucide-react'
 import { api } from '../../api'
-import type { CirclePerson, CircleRoom, DiaryEntry } from '../../types'
+import type { CirclePerson, CircleRoom, DiaryEntry, SaidNews } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { Toggle } from '../../components/Fields'
@@ -14,7 +14,7 @@ import { PersonForm, type Act } from './PersonForm'
 import { useCircleHome } from './useCircleHome'
 import { CompanionLink, SharedCard, SharedForm } from './SharedPeople'
 import { useShareable } from './useShareable'
-import { eventWhen } from './todayText'
+import { eventWhen, saidText } from './todayText'
 import { Acquaintances, TheirPeople } from './Network'
 import { PetLines } from '../pets/PetLines'
 import { CirclePets } from './CirclePets'
@@ -193,11 +193,11 @@ function CardBody({ person, companion, act, onEdit }: { person: CirclePerson; co
   const restore = () => act(() => api(`/life/circle/${person.id}/restore`, {}), `${person.name} is back in ${companion}'s life.`)
   const bringBack = async () => { setBringing(false); await act(() => api(`/life/circle/${person.id}/${longAgo(person) ? 'restore' : 'bring-back'}`, {}), `${person.name} is alive again, back in ${companion}'s life.`) }
   return <>
-    <PersonState person={person} companion={companion} act={act} />
+    <PersonState person={person} companion={companion} act={act} diary={diary} />
     <PersonActions gone={gone} late={!!late && !longAgo(person)} diary={diary} network={network} name={person.name} onEdit={onEdit} onDiary={() => setDiary((open) => !open)}
       onNetwork={() => setNetwork((open) => !open)} onRemove={() => setRemoving(true)} onRestore={() => void (late ? setBringing(true) : restore())} />
     {bringing && <BringBack person={person} companion={companion} onClose={() => setBringing(false)} onConfirm={() => void bringBack()} />}
-    {diary && <Diary person={person} />}
+    {diary && <Diary person={person} companion={companion} />}
     {network && !gone && <TheirPeople personKey={person.key} name={person.name} />}
     {removing && (
       <ConfirmDialog title={`Remove ${person.name}?`} onClose={() => setRemoving(false)} actions={<>
@@ -238,12 +238,12 @@ function MetYou({ person }: { person: CirclePerson }) {
 }
 
 /** What the card says about them: their days, or that they were removed or passed away. */
-function PersonState({ person, companion, act }: { person: CirclePerson; companion: string; act: Act }) {
+function PersonState({ person, companion, act, diary = false }: { person: CirclePerson; companion: string; act: Act; diary?: boolean }) {
   if (person.late) return <Late person={person} died={person.late} companion={companion} />
   if (outOfTouch(person)) return <p className="subtle">{outOfTouchText(companion, person.name)}</p>
   if (person.status === 'removed') return <p className="subtle">{person.made_room_for ? `Stepped aside when you added ${person.made_room_for} as ${companion}'s ${person.role}. Past moments still mention ${person.name}.` : 'Removed. Moments that already happened still mention them.'}</p>
   return <>
-    <PersonDetails person={person} work={personWork(person)} companion={companion} />
+    <PersonDetails person={person} work={personWork(person)} companion={companion} diary={diary} />
     <CanPassAway person={person} act={act} />
     <PersonKind person={person} act={act} />
   </>
@@ -313,7 +313,8 @@ function PersonActions({ gone, late, diary, network, name, onEdit, onDiary, onNe
   )
 }
 
-function PersonDetails({ person, work, companion }: { person: CirclePerson; work: string | null; companion: string }) {
+/** With the Diary open, its recent lines are in it: the preview hides so no line shows twice (Iris, #103). */
+function PersonDetails({ person, work, companion, diary }: { person: CirclePerson; work: string | null; companion: string; diary: boolean }) {
   const aboard = useCircleHome()
   return <>
     <p>{personNow(person, aboard)}</p>
@@ -323,7 +324,7 @@ function PersonDetails({ person, work, companion }: { person: CirclePerson; work
     {person.haunts && person.haunts.length > 0 && <p className="subtle">Often at {person.haunts.join(', ')}</p>}
     <ChildLines person={person} companion={companion} />
     <PetLines pets={person.pets} />
-    {person.recent.length > 0 && <ul className="diary-list">{person.recent.map((entry) => <DiaryLine key={entry.slot} entry={entry} />)}</ul>}
+    {person.recent.length > 0 && !diary && <ul className="diary-list">{person.recent.map((entry) => <DiaryLine key={entry.slot ?? entry.starts_at} entry={entry} companion={companion} />)}</ul>}
   </>
 }
 
@@ -348,7 +349,7 @@ function ChildLines({ person, companion }: { person: CirclePerson; companion: st
   </>
 }
 
-function Diary({ person }: { person: CirclePerson }) {
+function Diary({ person, companion = '' }: { person: CirclePerson; companion?: string }) {
   const diary = useInfiniteQuery({
     queryKey: [...CIRCLE_KEY, 'diary', person.id],
     queryFn: ({ pageParam }) => api<DiaryEntry[]>(`/life/circle/${person.id}/diary?limit=${DIARY_PAGE}${pageParam ? `&before=${encodeURIComponent(pageParam)}` : ''}`),
@@ -360,12 +361,42 @@ function Diary({ person }: { person: CirclePerson }) {
   const entries = diary.data.pages.flat()
   return (
     <div className="diary">
-      {entries.length === 0 ? <p className="subtle">Nothing written yet. Their days fill in as time passes.</p> : <ul className="diary-list">{entries.map((entry) => <DiaryLine key={entry.slot} entry={entry} />)}</ul>}
+      {entries.length === 0 ? <p className="subtle">Nothing written yet. Their days fill in as time passes.</p> : <ul className="diary-list">{entries.map((entry) => <DiaryLine key={entry.slot ?? entry.starts_at} entry={entry} companion={companion} />)}</ul>}
       {diary.hasNextPage && <button type="button" className="text-button" disabled={diary.isFetchingNextPage} onClick={() => void diary.fetchNextPage()}>Earlier entries</button>}
     </div>
   )
 }
 
-function DiaryLine({ entry }: { entry: DiaryEntry }) {
-  return <li><time dateTime={entry.starts_at}>{eventWhen(entry.starts_at)}</time> {entry.entry.summary}</li>
+function DiaryLine({ entry, companion = '' }: { entry: DiaryEntry; companion?: string }) {
+  return <li>
+    <time dateTime={entry.starts_at}>{eventWhen(entry.starts_at)}</time> {entry.entry.summary}
+    {entry.entry.said && <SaidWhy said={entry.entry.said} companion={companion} />}
+  </li>
+}
+
+/** A line from the companion's own news about them (companion/life/said_events.py): what they said, and Undo, which
+ * puts the person's record back and drops the line (Hit List #103). */
+function SaidWhy({ said, companion }: { said: SaidNews; companion: string }) {
+  const client = useQueryClient()
+  const [failed, setFailed] = useState('')
+  const undo = async () => {
+    setFailed('')
+    try {
+      await api(`/life/said/${said.fact_id}/undo`, {})
+    } catch (error) {
+      setFailed(error instanceof Error ? error.message : String(error))
+      return
+    }
+    await Promise.all([client.invalidateQueries({ queryKey: CIRCLE_KEY }), client.invalidateQueries({ queryKey: ['self-facts'] })])
+  }
+  return (
+    <details className="said-why">
+      <summary>{saidText(companion)}</summary>
+      <p className="subtle">In chat: “{said.statement}”</p>
+      <div className="form-actions">
+        <button type="button" className="text-button" onClick={() => void undo()}><RotateCcw aria-hidden="true" />Undo</button>
+      </div>
+      {failed && <p className="subtle" role="alert">{failed}</p>}
+    </details>
+  )
 }

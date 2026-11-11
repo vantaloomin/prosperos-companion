@@ -69,6 +69,9 @@ def test_the_level_stays_in_its_world(client, companion):
 
 def test_a_companion_alone_in_their_world_gets_a_few_more_storylines(client, companion, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (0.3, 0.3, 0.3, 0.3))
+    # Every story can be cast, so the count is about the odds alone. A random circle sometimes has no castable
+    # story at all, and then both counts were 0 (the flaky macOS failure, about 1 run in 100).
+    monkeypatch.setattr(storylines, 'casts', lambda story, people, *_rest: [tuple(person['id'] for person in people[:1])])
     with client.app.state.database.connect() as connection:
         assert world_drama.alone(connection)
         found = require_current(connection)

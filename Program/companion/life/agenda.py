@@ -67,7 +67,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.workspace import overlapping_pause
-from companion.world import generators, inside, ships
+from companion.world import generators, inside, ships, skies
 
 HORIZON = timedelta(days=7)
 BACKFILL = timedelta(days=30)
@@ -171,6 +171,8 @@ def extend(connection, companion, world, now) -> dict:
         companion = by_id(connection, companion['id'])  # This week's shifts or gigs shape the days ahead.
     admin.plan_ahead(connection, companion, world, now)
     found = subjects(connection, companion, world, now)
+    # A storyline starting today can take an evening of the days about to be written (storylines.as_plans).
+    started = storylines.start_due(connection, companion, now)
     active = [subject for subject, _definition, _basis in found]
     # Removed people's upcoming entries go; what already happened stays.
     marks = ','.join('?' * len(active))
@@ -184,7 +186,7 @@ def extend(connection, companion, world, now) -> dict:
     for subject, definition, basis in found[:-1]:
         written += extend_subject(connection, timeline_id, timezone, subject, definition, basis, world, now, companion)
     settled = settle(connection, timeline_id, now)
-    started = storylines.advance(connection, companion, now)
+    started += storylines.advance(connection, companion, now)
     started += families.advance(connection, companion, world, now)
     kids.settle(connection, companion, world, now)
     reactions.daily(connection, companion, now)
@@ -218,6 +220,8 @@ def catch_up_in_steps(database, companion_id, world, now):
         if not behind or not behind['through'] or parse(behind['through']) > now + HORIZON - STEP_AFTER:
             return
         found = subjects(connection, companion, world, now)
+    with database.connect(write=True) as connection:
+        storylines.start_due(connection, companion, now)  # Their evenings are in the days caught up (as_plans).
     world = SameDay(world)
     # The circle again after the companion, around their outings (companion/life/joint.py), as `extend` does.
     for subject, definition, basis in found + found[:-1]:
@@ -306,10 +310,12 @@ def companion_days(connection, timeline_id, companion, now) -> tuple[dict, dict,
 def pinned_plans(connection, timeline_id, since: str) -> dict[str, list[dict]]:
     """The companion's own plans by local date, with outings with the user, which take their slots the same way
     (companion/life/outings.py), appointments, errands and chores (companion/life/admin.py), placed where
-    nothing else is, and big days they go to on their own (companion/life/big_days.py)."""
+    nothing else is, big days they go to on their own (companion/life/big_days.py) and evenings a storyline takes
+    (companion/life/storylines.py)."""
     plans = own_plans.by_date(own_plans.in_force(connection, timeline_id, since))
     for extra in (outings.as_plans(connection, timeline_id, since), admin.as_plans(connection, timeline_id, since),
-                  big_days.as_plans(connection, timeline_id, since), own_family.as_plans(connection, timeline_id, since)):
+                  big_days.as_plans(connection, timeline_id, since), own_family.as_plans(connection, timeline_id, since),
+                  storylines.as_plans(connection, timeline_id, since)):
         for local_date, found in extra.items():
             plans[local_date] = plans.get(local_date, []) + found
     return plans
@@ -420,6 +426,8 @@ def plan_entry(plan: dict, block: dict, definition: dict) -> dict:
         return admin.entry(plan, block, definition)
     if 'babysit' in plan:  # An evening out while the user babysits (companion/life/own_family.py).
         return own_family.entry(plan, block, definition)
+    if 'storyline' in plan:  # The friend after a breakup, a send-off (companion/life/storylines.py).
+        return storylines.entry(plan, block, definition)
     return big_days.entry(plan, block, definition) if 'big_day' in plan else own_plans.entry(plan, block, definition)
 
 
@@ -663,9 +671,16 @@ def diary(connection, timeline_id, subject, limit=20, before=None) -> list[dict]
     # What happened to them in a storyline (companion/life/happenings.py): a line of its own.
     result += [{'subject': subject, 'slot': None, 'starts_at': item['starts_at'], 'ends_at': item['starts_at'],
                 'local_date': item['local_date'], 'block': None, 'status': 'happened', 'with_companion': None,
-                'entry': {'summary': item['text'], 'happening': item['kind']}}
+                'entry': {'summary': item['text'], 'happening': item['kind']} | said_of(connection, item['source'])}
                for item in happenings.for_person(connection, timeline_id, subject, before, limit)]
     return sorted(result, key=lambda item: item['starts_at'], reverse=True)[:limit]
+
+
+def said_of(connection, source: str) -> dict:
+    """A line from the companion's own news (companion/life/said_events.py): what they said, for Undo."""
+    from companion.life import said_events
+    found = said_events.said_view(connection, source)
+    return {'said': found} if found else {}
 
 
 def current(connection, timeline_id, subject, now) -> dict | None:
@@ -696,10 +711,14 @@ def happenings_text(events) -> str:
 
 
 def weather_text(conditions: dict) -> str:
+    """'High 48°F, low 37°F, rain, the third day of it.' A day from before skies were named (or a lookup that names
+    none) says only wet or dry."""
     text = f"High {conditions['high_f']}°F, low {conditions['low_f']}°F, "
-    text += 'with rain.' if conditions['rain'] else 'dry.'
-    # The month's note can describe sunshine, so it is left out on a rainy day.
-    return text if conditions['rain'] else f"{text} {conditions['note']}"
+    sky = skies.sky_words(conditions)
+    text += f'{sky}.' if sky else 'with rain.' if conditions['rain'] else 'dry.'
+    # The month's note can describe sunshine (or snow), so it is said only on a dry day, and never on a looked-up one.
+    return text if conditions['rain'] or conditions.get('observed') or not conditions.get('note') \
+        else f"{text} {conditions['note']}"
 
 
 def forget_person(connection, timeline_id, person_id, now):
@@ -752,9 +771,11 @@ def save_prepared(connection, entry_id, prepared: dict):
 
 def upcoming(connection, timeline_id, basis, now, hours=24, limit=4) -> list[dict]:
     """The companion's next precomputed entries, for the chat context only: likely plans the
-    companion may mention as intentions. They are not events and nothing commits them."""
+    companion may mention as intentions. They are not events and nothing commits them. An evening a storyline takes
+    is left out: what it is about has not happened yet (companion/life/storylines.py)."""
     rows = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND subject=? AND status='upcoming' "
-                'AND basis=? AND entry IS NOT NULL AND starts_at>? AND starts_at<? ORDER BY starts_at LIMIT ?',
+                "AND basis=? AND entry IS NOT NULL AND json_extract(entry, '$.storyline') IS NULL AND starts_at>? "
+                'AND starts_at<? ORDER BY starts_at LIMIT ?',
                 (timeline_id, COMPANION, basis, stamp(now), stamp(now + timedelta(hours=hours)), limit))
     return [entry_view(row) for row in rows]
 

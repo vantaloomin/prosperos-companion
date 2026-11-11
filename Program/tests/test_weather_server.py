@@ -58,7 +58,7 @@ def test_open_meteo_forecast_and_what_is_sent():
                               'now 58°F. Weather data by Open-Meteo.com (CC BY 4.0).')
     assert result['structured'] == {'location': 'Baltimore, Maryland, US', 'condition': 'light rain', 'high_f': 61,
                                     'low_f': 52, 'precipitation_chance': 70, 'temperature_f': 58,
-                                    'source': 'Open-Meteo'}
+                                    'source': 'Open-Meteo', 'tomorrow': None}
     assert parse_qs(seen[0].url.query.decode())['name'] == ['Baltimore']
     sent = parse_qs(seen[1].url.query.decode())
     assert (sent['latitude'], sent['longitude'], sent['temperature_unit']) == (['39.29'], ['-76.61'], ['fahrenheit'])
@@ -167,3 +167,19 @@ def test_built_in_service_in_the_app(client, companion, services):
     assert found[0]['arguments'] == {'location': 'Baltimore, MD'}
     assert found[0]['structured']['high_f'] == 61
     assert 'Open-Meteo.com (CC BY 4.0)' in found[0]['content']
+
+
+def test_open_meteo_gives_tomorrow_too():
+    two = {'current': {'temperature_2m': 58.1},
+           'daily': {'weather_code': [3, 95], 'temperature_2m_max': [61.2, 70.4], 'temperature_2m_min': [52.3, 58.9],
+                     'precipitation_probability_max': [10, 80]}}
+    result = weather.forecast({'location': 'Baltimore, MD'}, recorded({'geocoding': PLACES, 'forecast': two}))
+    assert result['structured']['tomorrow'] == {'condition': 'thunderstorms', 'high_f': 70, 'low_f': 59,
+                                                'precipitation_chance': 80}
+    assert result['text'].startswith('Baltimore, Maryland, US: overcast, high 61°F, low 52°F, 10% chance of '
+                                     'precipitation, now 58°F, tomorrow thunderstorms, high 70°F, low 59°F.')
+    from companion.mcp.weather import conditions_from, tomorrow_from
+    today = conditions_from(result['text'], result['structured'])
+    assert (today['rain'], today['sky']) == (False, 'overcast')  # Tomorrow's storm is not today's.
+    assert tomorrow_from(result["structured"]) == {'high_f': 70, 'low_f': 59, 'rain': True,
+                                                        'note': 'thunderstorms', 'sky': 'storm'}

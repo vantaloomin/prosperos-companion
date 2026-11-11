@@ -511,8 +511,11 @@ def state(connection, companion: dict, now: datetime) -> dict:
     if weekend:
         return {**weekend, 'outing': None}  # A weekend visit across the distance, under way.
     found = together_now(connection, companion, now)
-    if found:  # Where they are now: the first place, or the second once they moved on (companion/life/onward.py).
-        found = onward.here(found, companion['version']['timezone'], now)
+    if found:  # Where they are now: the first place, the second once they moved on (companion/life/onward.py), or
+        # where the chat has taken them (companion/life/scene_now.py).
+        from companion.life import scene_now
+        found = scene_now.applied(connection, companion, found, onward.here(
+            found, companion['version']['timezone'], now), now)[0]
     if found and not found['ended_at']:
         return {'state': 'together', 'kind': kind_of(found), 'text': together_text(found, companion), 'outing': found}
     from companion.life import moving_in
@@ -545,6 +548,8 @@ def together_text(outing: dict, companion: dict) -> str:
     place = outing['place']
     if outing['activity'] in AT_YOURS:
         return 'At your place'
+    if place.get('label'):  # On the bus, on the way somewhere (companion/life/scene_now.py).
+        return place['label'][:1].upper() + place['label'][1:]
     if place['kind'] == 'home':
         return f"At {companion['version']['definition']['name']}'s place"
     if outing['activity'] == 'visit-work':  # Dropping by at work (companion/life/drop_by.py).

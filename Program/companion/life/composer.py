@@ -614,13 +614,14 @@ def home_city(definition: dict) -> str:
 
 
 def weather(world, definition: dict, local_date: str) -> dict | None:
-    """Typical weather in the character's city on this date, from the world's climate data (the same
-    for everyone in the city). None when the world or city has no climate."""
+    """The weather in the character's city on this date, from the world's climate data in fronts that settle in
+    (companion/world/skies.py: the sky and how many days it has held), the same for everyone in the city. None when
+    the world or city has no climate."""
     lookup, city = getattr(world, 'weather', None), home_city(definition)
     found = lookup(city, date.fromisoformat(local_date)) if lookup and city else None
     # `observed` marks real weather looked up for the city that day (companion/mcp/weather.py).
-    return found and {key: found[key] for key in ('season', 'high_f', 'low_f', 'rain', 'note', 'observed')
-                      if key in found}
+    return found and {key: found[key] for key in ('season', 'high_f', 'low_f', 'rain', 'sky', 'days', 'note',
+                                                  'observed') if key in found}
 
 
 def harsh(conditions: dict | None) -> bool:

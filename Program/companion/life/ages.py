@@ -26,7 +26,7 @@ Milestone birthdays (30, 40, 50 ...) are bigger occasions (companion/life/occasi
 scrapbook (companion/life/scrapbook.py).
 """
 from calendar import isleap, monthrange
-from datetime import date, timedelta
+from datetime import MINYEAR, date, timedelta
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, many, optional
@@ -53,8 +53,9 @@ def birthday_in(year: int, birthday: str) -> date:
 
 
 def born_from(age: int, birthday: str, today: date) -> date:
-    """The birth date that makes someone `age` today with this birthday."""
-    year = today.year - age - (birthday_in(today.year, birthday) > today)
+    """The birth date that makes someone `age` today with this birthday. An age older than the calendar ("she is
+    3000 years old" in 2026) is born in year 1, and `age_from` keeps the age they were written at."""
+    year = max(MINYEAR, today.year - age - (birthday_in(today.year, birthday) > today))
     return birthday_in(year, birthday)
 
 

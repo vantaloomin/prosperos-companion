@@ -85,7 +85,7 @@ def test_the_deck_shows_only_single_compatible_adults_and_likes_need_a_yes_back(
     data = changes.resolve('baltimore', []) | {'kin': [], 'town': ''}
     for card in opened['deck']:
         sheet = townsfolk.find(data, card['key'])
-        found = dating.details(sheet, data)
+        found = dating.details(sheet, data, date(2026, 10, 5))  # The test clock's day.
         assert found['gender'] == 'woman' and 'man' in found['drawn_to'] and found['status'] in ('single', 'widowed')
         assert 22 <= sheet['age'] <= 40 and found['age_range'][0] <= 30 <= found['age_range'][1]
         assert sheet['full'] not in str(card)

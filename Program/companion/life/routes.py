@@ -34,6 +34,7 @@ from companion.life import (
     long_distance,
     loss,
     love_life,
+    love_pick,
     money,
     mood,
     moving_in,
@@ -48,6 +49,8 @@ from companion.life import (
     recommendations,
     rough_patches,
     routine,
+    said_events,
+    scene_now,
     shared_people,
     simulation,
     social,
@@ -94,6 +97,9 @@ class PersonAbout(Input):
     # Whether they and the companion know each other, or only one knows the other; '' hands it back to the app
     # (circle.knowing).
     knowing: Literal['', 'both', 'they', 'companion'] | None = None
+    # Their love life (companion/life/love_pick.py); '' hands it back to the app. Who with, in the user's words.
+    love: Literal['', 'single', 'seeing', 'engaged', 'married'] | None = None
+    partner_name: str | None = Field(default=None, max_length=60)
 
 
 class PersonTie(Input):
@@ -388,6 +394,19 @@ def edit_person(request: Request, person_id: str, body: PersonAbout):
         connection, require_current(connection), world, person_id, body.model_dump(exclude_unset=True), now))
 
 
+@router.get('/circle/{person_id}/love')
+def person_love(request: Request, person_id: str):
+    """Their love life as the app has it now, for Edit person, and where everyone else in the circle stands, for
+    "Who with" (companion/life/love_pick.py)."""
+    with db(request).connect() as connection:
+        companion = require_current(connection)
+        row = circle.person(connection, person_id)
+        require(row['timeline_id'] == companion['active_timeline_id'], 'That person is not in the circle.', 404)
+        people = circle.people(connection, row['timeline_id'])
+        return love_pick.shown(connection, companion, row, people) | {'people': [
+            item for item in love_pick.suggestions(connection, companion, people) if item['id'] != person_id]}
+
+
 @router.put('/circle/{person_id}/ties')
 def set_person_tie(request: Request, person_id: str, body: PersonTie):
     """How someone knows another person in the circle, as the user says; it changes both their cards."""
@@ -480,6 +499,12 @@ def person_diary(request: Request, person_id: str, before: str | None = None, li
         found = agenda.diary(connection, row['timeline_id'], person_id, min(max(limit, 1), 100), before)
         # Someone from another circle: what they did with their own companion stays on that companion's page.
         return [{**entry, 'with_companion': None} for entry in found if entry['slot'] is not None] if shared else found
+
+
+@router.post('/said/{fact_id}/undo')
+def undo_said(request: Request, fact_id: str):
+    """Undo on a diary line from the companion's own news about someone (companion/life/said_events.py)."""
+    return said_events.undo(db(request), fact_id)
 
 
 class SharedPerson(Input):
@@ -698,15 +723,15 @@ def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo
 
 @router.post('/outings/{outing_id}/{action}')
 def change_outing(request: Request, outing_id: str,
-                  action: Literal['cancel', 'elsewhere', 'home', 'undo', 'now', 'longer', 'next', 'back']):
+                  action: Literal['cancel', 'elsewhere', 'home', 'undo', 'now', 'longer', 'next', 'back', 'scene-back']):
     """Call an outing off, have the companion pick somewhere else, meet up now, stay longer, head home early, or undo
     calling it off or heading home; before moving on to a second place, have them pick another one, or just after,
-    go back."""
+    go back; just after the chat took them somewhere, be back where they were (companion/life/scene_now.py)."""
     database = db(request)
     change = {'cancel': outings.cancel, 'elsewhere': outings.elsewhere, 'home': outings.head_home,
               'undo': outings.undo, 'now': outings.go_now, 'longer': outings.stay_longer,
               # Second location (companion/life/onward.py): another next place, or back to where they were.
-              'next': onward.elsewhere, 'back': onward.stay}[action]
+              'next': onward.elsewhere, 'back': onward.stay, 'scene-back': scene_now.back}[action]
     with database.connect(write=True) as connection:
         companion = require_current(connection)
         changed = change(connection, companion, outing_id, database.clock.now())
@@ -852,6 +877,7 @@ def read_consequence(request: Request, consequence_id: str):
 CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.change,
            'people:': lambda: their_people.change, 'breakup:': lambda: breakups.change,
            'bigday:': lambda: big_days.change, 'tense-ask:': lambda: rough_patches.change_ask,
+           'gesture:': lambda: rough_patches.change_gesture,
            'wedding:': lambda: wedding.change_size, 'loss:': lambda: loss.change,
            'family:': lambda: parenthood.change,
            # How a business, a health turn or a parent's care is going (big_turns.py).

@@ -26,7 +26,7 @@ MIN_OVERLAP = timedelta(minutes=30)
 # A circle person the user named themselves can be another companion by first name alone ("Lestara" for Lestara Vey).
 USER_NAMED = ('sheet', 'by_hand', 'edited')
 # An entry that is already spoken for: a plan, an outing with the user, a trip, a session of a recommendation.
-FIXED = ('own_plan', 'outing', 'trip', 'recommendation', 'admin', 'big_day', 'babysit')
+FIXED = ('own_plan', 'outing', 'trip', 'recommendation', 'admin', 'big_day', 'babysit', 'storyline')
 # A block that is already spoken for.
 FIXED_BLOCK = ('plans', 'trip', 'arrival', 'sick_day')
 
@@ -120,6 +120,8 @@ def told(entry: dict, own: str, other: str) -> str:
     """The outing from the other side: "Lestara had dinner with Sett at Cloud Step Inn." """
     activity, place = entry.get('activity'), entry.get('place') or {}
     at = f" at {place['name']}" if place.get('name') and place.get('kind') != 'event' else ''
+    if (entry.get('storyline') or {}).get('theirs'):  # A storyline's evening (companion/life/storylines.py).
+        return entry['storyline']['theirs'].format(own=own, other=other)
     if activity in composer.PLANNABLE_TOGETHER:
         return f"{own} {composer.PLANNABLE_TOGETHER[activity][1].format(at=at, friend=other)}."
     if activity == 'gathering' and (entry.get('gathering') or {}).get('occasion'):

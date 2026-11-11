@@ -162,14 +162,21 @@ def parse(text: str) -> list[dict]:
 def supported(value: str, message_text: str) -> bool:
     """Most of the value's words must come from the message itself, so the model cannot add facts."""
     words, source = set(terms(value)), set(terms(message_text))
-    return bool(words) and len(words & source) / len(words) >= SUPPORT
+    if words and len(words & source) / len(words) >= SUPPORT:
+        return True
+    # A correction in the prompt's own shape ("no longer gardens" from "I don't garden anymore"): its negation and
+    # word endings are not the message's, but its facts are.
+    if corrections.negated(value) and corrections.negated(message_text):
+        words, source = corrections.stems(value), corrections.stems(message_text)
+        return bool(words) and len(words & source) / len(words) >= SUPPORT
+    return False
 
 
 def candidate(item, batch) -> tuple[dict, Candidate, dict | None] | None:
     """A supported answer, with the sent memory it corrects; a `corrects` naming anything not sent drops it."""
     index, layer = item.get('message'), item.get('layer')
     subject, value = str(item.get('subject') or '').strip()[:200], str(item.get('value') or '').strip()[:1000]
-    if not isinstance(index, int) or not 1 <= index <= len(batch) or layer not in LAYERS or not subject or not value:
+    if type(index) is not int or not 1 <= index <= len(batch) or layer not in LAYERS or not subject or not value:
         return None
     message = batch[index - 1]
     # The companion's name counts as the message's own word: "you" in it is them; "the user" is the writer's "I".

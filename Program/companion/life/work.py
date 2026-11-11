@@ -18,7 +18,8 @@ never cancelled, and the user can move it like any entry. Late nights also come 
 
 On Dramatic, rarely, they are laid off or quit (likelier after slammed weeks in a row) and job hunt for a few weeks
 before starting at a new place in the same line of work. Easy life's Light level keeps a steady job. Pay changes reach
-the budget through money.household (`pay`). Only the companion is tracked; coworkers in the circle stay as they are.
+the budget through money.household (`pay`). Coworkers in the circle stay at the old place when the companion leaves
+it, as former coworkers (companion/life/happenings.py `moved_on`).
 """
 import json
 import re
@@ -29,7 +30,7 @@ from pathlib import Path
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
-from companion.life import admin, job_words, money, outings, routine, shifts
+from companion.life import admin, happenings, job_words, money, outings, routine, shifts
 from companion.world import catalog, decades, generators, wording
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'work_life.json'
@@ -703,6 +704,8 @@ def lose_job(connection, companion: dict, found: dict, day: date, slammed_run: i
     text = 'laid off' if reason == 'laid-off' else 'quit the job'
     record(connection, companion['active_timeline_id'], f'lose:{day.isoformat()}', reason, day, text,
            found['pay'], 0, now)
+    # Coworkers in the circle stay at the old place (companion/life/happenings.py `moved_on`).
+    happenings.coworkers_moved_on(connection, companion, f'work:lose:{day.isoformat()}', day, now)
     return {'status': 'hunting', 'hunt_since': day.isoformat(), 'hunt_until': until.isoformat(), 'hunt_reason': reason}
 
 

@@ -446,6 +446,12 @@ ADDED_COLUMNS = (
     # Moving on slider (Settings > Realism): 0 never, 1 now and then, 2 true to life, 3 often.
     ('outings', 'onward', 'TEXT'),
     ('life_settings', 'onward_realism', 'INTEGER NOT NULL DEFAULT 2 CHECK (onward_realism BETWEEN 0 AND 3)'),
+    # Weather that settles in (companion/world/skies.py), the Weather step on Settings > Realism, kept in this world
+    # only: 0 gentle, 1 true to life (also NULL), 2 stormy.
+    ('world_life', 'weather', 'INTEGER CHECK (weather BETWEEN 0 AND 2)'),
+    # Whose news it is besides the companion (companion/news.py): the circle people a storyline beat happened to, a
+    # JSON list of person keys. They know it from the start and never hear it from anyone.
+    ('news', 'subjects', "TEXT NOT NULL DEFAULT '[]'"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

@@ -1,6 +1,7 @@
 /** Together or apart (companion/life/together.py): the "where you are" strip's state and wording, kept apart from the component for tests. */
 import { dayText, timeText, type Outing } from '../today/outingText.ts'
 import { MODERN_WORDS, say, type EraWords } from '../world/eraWords.ts'
+import { firstName } from '../watch/watchText.ts'
 
 export const WHERE_KEY = ['where']
 
@@ -20,7 +21,8 @@ export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: Wh
 
 /** What the strip says: a lead, the place (linked to the map when it is out in town) and how long. */
 export interface StripLine { lead: string; place: { id: string; name: string } | null; tail: string; /** A shorter lead for the phone, when there is one. */ short?: string
-  /** The place they move on to next (companion/life/onward.py), after ", then ". */ then?: { id: string; name: string } | null }
+  /** The place they move on to next (companion/life/onward.py), after ", then ". */ then?: { id: string; name: string } | null
+  /** One line, cut with an ellipsis, for places the chat took them (Iris, 2026-11-10). */ clip?: boolean }
 /** The strip's one button: Head home (Call it a night at your own wedding), Say goodbye, Not now, or Undo just after
  * one of those. */
 export interface StripAction { action: 'home' | 'undo' | 'back'; label: string }
@@ -34,8 +36,13 @@ export function stripLine(where: WhereState | undefined, name: string, words: Er
   if (other) return other
   const outing = where.outing
   if (!outing) return null
-  return outing.state === 'done' ? endedLine(where.kind, outing, name) : liveLine(where.kind, outing, name)
+  // First names on the strip: "Dana is at your place" (Iris, 2026-11-10).
+  const first = firstName(name)
+  return outing.state === 'done' ? endedLine(where.kind, outing, first) : liveLine(where.kind, outing, first)
 }
+
+/** On the bus, on the way somewhere, outside a place: no "until" while they are on the move (Iris, 2026-11-10). */
+const ON_THE_MOVE = new Set(['transit', 'way', 'outside'])
 
 /** A call, a weekend visit, or on their way home: anything on the strip but an outing. */
 function otherLine(where: WhereState, name: string, words: EraWords): StripLine | null {
@@ -57,13 +64,17 @@ function mapped(lead: string, outing: WhereOuting, tail: string): StripLine {
   return { lead, place: { id: outing.place.id, name: outing.place.name }, tail }
 }
 
+function sentenceStart(words: string): string {
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 /** A full stop, unless the words already end in one ("Power Plant Live!", "Pastries & Co."). */
 function sentence(words: string): string {
   return /[.!?]$/.test(words) ? words : `${words}.`
 }
 
 function liveLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine {
-  const tail = ` until ${timeText(outing.until_time)}`
+  const tail = ON_THE_MOVE.has(outing.scene?.kind ?? '') ? '' : ` until ${timeText(outing.until_time)}`
   if (kind === 'out') return outLine(outing, tail)
   if (kind === 'theirs') return { lead: `At ${name}'s place`, place: null, tail }
   if (kind === 'knock' && outing.not_now) return { lead: `${name} dropped by and is at your place`, place: null, tail }
@@ -72,6 +83,8 @@ function liveLine(kind: WhereKind, outing: WhereOuting, name: string): StripLine
 
 /** Out together somewhere in town. */
 function outLine(outing: WhereOuting, tail: string): StripLine {
+  // On the bus, on the way somewhere, outside a place: where the chat took them (companion/life/scene_now.py).
+  if (outing.place.label) return { lead: sentenceStart(outing.place.label), place: null, tail, clip: true }
   // Dinner at their family's home (companion/life/their_people.py) isn't on the map.
   if (outing.place.kind === 'family-home') return { lead: `Together at ${outing.place.name}`, place: null, tail }
   // Your wedding (companion/life/wedding.py).
@@ -160,7 +173,12 @@ function leaveLabel(outing: WhereOuting): string {
 
 /** Stay longer on the strip, beside Head home: under way, and their next hour is free. */
 export function canStayLonger(where: WhereState | undefined): boolean {
-  return where?.outing?.state === 'now' && Boolean(where.outing.longer_ok) && !where.outing.undo_move
+  return where?.outing?.state === 'now' && Boolean(where.outing.longer_ok) && !where.outing.undo_move && !canBeBackAt(where)
+}
+
+/** Just after the chat took them somewhere else: Back to takes them back to where they were for a minute or two (companion/life/scene_now.py). */
+export function canBeBackAt(where: WhereState | undefined): boolean {
+  return where?.outing?.state === 'now' && Boolean(where.outing.scene?.back) && !where.outing.undo_move
 }
 
 /** Just moved on to a second place by themselves: Undo takes them back for a minute or two (companion/life/onward.py). */

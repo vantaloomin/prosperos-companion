@@ -51,7 +51,7 @@ from companion.life import (
     together,
     wedding,
 )
-from companion.memory import context, formation, look_back
+from companion.memory import context, earlier, formation, look_back, own_words
 from companion.providers.chat import INCOMPLETE, ChatProvider
 from companion.providers.embeddings import QUERY_TIMEOUT, EmbeddingProvider, as_query, vector_model
 from companion.providers.scheduling import CONVERSATION, RequestScheduler
@@ -682,11 +682,15 @@ class Conversation:
 
     def may_look_back(self, prepared) -> bool:
         user_text = prepared['user']['text']
-        if in_character.out_of_character(user_text) or not look_back.points_back(user_text) or \
-                not look_back.RATES.allowed(model_of(prepared)):
+        if in_character.out_of_character(user_text) or not look_back.RATES.allowed(model_of(prepared)):
             return False
         with self.database.connect() as connection:
-            return bool(settings(connection)['recall_more'])
+            if not settings(connection)['recall_more']:
+                return False
+            # The wider gate needs the names the app knows (companion/memory/earlier.py); only for a 1:1 chat.
+            companion = for_timeline(connection, prepared['user']['timeline_id'])
+            known = earlier.known_names(connection, companion) if companion else None
+            return look_back.points_back(user_text, known)
 
     def look_back(self, prepared, query: str, packet: dict) -> list[str]:
         user = prepared['user']
@@ -705,6 +709,9 @@ class Conversation:
         never waits unseen forever."""
         status, error, guard = 'complete', None, in_character.Guard(active)
         lookout = lookout or look_back.Lookout(strip=True)
+        # Their own words (companion/memory/own_words.py): the user's swaps, and a habit past two nudges taken out.
+        asked = (prepared.get('user') or {}).get('text', '')  # A first text answers nothing.
+        tidy = own_words.Tidy(packet.get('tidy'), not in_character.out_of_character(asked))
         text.clear()
 
         def keep(piece):
@@ -720,14 +727,15 @@ class Conversation:
                 step('writing')
                 async for chunk in self.provider.stream(prepared['config'], key, packet['system'],
                                                         packet['messages']):
-                    keep(guard.feed(lookout.feed(chunk.text)))
+                    keep(tidy.feed(guard.feed(lookout.feed(chunk.text))))
                     if lookout.query:
                         break
                     if chunk.finish_reason in INCOMPLETE:
                         status, error = 'incomplete', INCOMPLETE[chunk.finish_reason]
         finally:
-            keep(guard.feed(lookout.flush()))
-            keep(guard.flush())  # A stopped or failed reply keeps the text it had, still checked.
+            keep(tidy.feed(guard.feed(lookout.flush())))
+            keep(tidy.feed(guard.flush()))  # A stopped or failed reply keeps the text it had, still checked.
+            keep(tidy.flush())
         return status, error, guard.dropped, lookout.query
 
     def what_if(self, timeline_id) -> str:

@@ -5,7 +5,9 @@ the character drafting files in `companion/prompts/`. Here they are shown and st
 with `{{placeholder}}` marks the app fills in. A user's wording is stored in `prompt_overrides`
 with the default it replaced, so an update that changes the default can say so without touching
 their text. Wording is checked before it is saved: every placeholder the default uses must stay,
-and no unknown one may be added, so a typo cannot break replies.
+and no unknown one may be added, so a typo cannot break replies. A JSON example the wording keeps must be
+one the app's own parser would accept (companion/prompt_examples.py), so the model is not taught a reply
+that gets thrown away.
 
 The picture prompts' pieces (the Pictures group) are the words the rule-based prompt builder
 (companion/images/prompts.py) strings together, not a prompt sent whole: a plain line, or a list
@@ -359,6 +361,8 @@ def save(database, name: str, wording: str) -> dict:
     prompt = PROMPTS[name]
     if problem := (list_problems(prompt, default, wording) if prompt.lines else problems(default, wording)):
         raise DomainError(problem, 422, 'prompt_placeholders')
+    if problem := import_module('companion.prompt_examples').problems(name, wording):
+        raise DomainError(problem, 422, 'prompt_example')
     with database.connect(write=True) as connection:
         if wording == default:
             connection.execute('DELETE FROM prompt_overrides WHERE name=?', (name,))

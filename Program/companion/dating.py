@@ -164,14 +164,15 @@ def pool(data: dict) -> list[tuple[dict, dict]]:
     """Everyone in the city who is on the app, with their dating details: people at its places, its residents and
     the neighbors who only turn up on the app (townsfolk.APP_MEMBERS). Several thousand people, so it is worked
     out once per city and town; only those looking are named."""
-    # Who is in town changes week by week (companion/world/turnover.py).
+    # Who is in town changes week by week (companion/world/turnover.py), and so do the town's couples
+    # (companion/world/couples.py): someone newly single may join, someone newly paired leaves (Hit List #102).
     day = turnover.today(data)
     week = townsfolk.week_of(day)
     key = (data['id'], data.get('town', ''), data.get('you', ''), tuple(data.get('kin', ())), tuple(place['id'] for place in data['places']),
            tuple(hood['id'] for hood in data['neighborhoods']), mix.fingerprint(), tuple(data.get('kept', ())), week)
     if key not in _POOLS:
         found = [sheet for place in data['places'] for sheet in townsfolk.at_place(data, place['id'], day)
-                 if dating.on_app(sheet, data)]
+                 if dating.on_app(sheet, data, day)]
         for hood in data['neighborhoods']:
             where = townsfolk.area(data, hood['id'])
             members = range(townsfolk.resident_count(data, hood['id']), townsfolk.resident_count(data, hood['id']) +
@@ -179,10 +180,10 @@ def pool(data: dict) -> list[tuple[dict, dict]]:
             found += townsfolk.not_you(data, [
                 townsfolk.resident(data, hood['id'], index, where)
                 for index in [*townsfolk.living(data, hood['id'], day), *members]
-                if dating.on_app(townsfolk.resident(data, hood['id'], index, where, named=False), data)])
+                if dating.on_app(townsfolk.resident(data, hood['id'], index, where, named=False), data, day)])
         if len(_POOLS) > 16:
             _POOLS.clear()
-        _POOLS[key] = [(sheet, dating.details(sheet, data)) for sheet in found]
+        _POOLS[key] = [(sheet, dating.details(sheet, data, day)) for sheet in found]
     return _POOLS[key]
 
 
@@ -255,7 +256,7 @@ def swipe(database, key: str, like: bool) -> dict:
                 'You already answered this one.', 409)
         town = story.city_data(connection, key.split(':')[1] if key.count(':') == 3 else '').get('town', '')
         sheet, data = person(connection, key, town)
-        found = dating.details(sheet, data)
+        found = dating.details(sheet, data, turnover.today(data))
         require(dating.suits(sheet, found, mine), 'This person is not in your deck.', 409)
         matched = like and (bool(settings(connection).get('debug_all_matches')) or dating.says_yes(sheet, found, mine))
         connection.execute(
@@ -296,7 +297,8 @@ def unmatch(database, key: str) -> dict:
 
 
 def card(sheet: dict, data: dict, database) -> dict:
-    return dating.card(sheet, data, database.clock.now().date())
+    """A match's card, as they were when the user matched with them: a match never changes (Hit List #102)."""
+    return dating.card(sheet, data, database.clock.now().date(), dating.details(sheet, data, matched=True))
 
 
 def matches(connection, database) -> list[dict]:
@@ -335,7 +337,7 @@ def match(connection, key: str) -> dict | None:
     if row is None:
         return None
     sheet, data = person(connection, key, row['town'])
-    return {'sheet': sheet, 'data': data, 'town': row['town'], 'details': dating.details(sheet, data),
+    return {'sheet': sheet, 'data': data, 'town': row['town'], 'details': dating.details(sheet, data, matched=True),
             'noun': words(data)['noun'], 'met': met_on(data)}
 
 
@@ -414,7 +416,7 @@ def with_date(connection, data: dict, place_id: str, moment, present: list[dict]
         sheet, _data = person(connection, row['person_key'], row['town'])
     except DomainError:
         return present
-    found = dating.details(sheet, data)
+    found = dating.details(sheet, data, matched=True)
     mine = profile(connection) or {}
     noun = words(data)['noun']
     looks = dating.looks_text(found['looks'], data)

@@ -91,6 +91,7 @@ a.button { color: inherit; text-decoration: none; }
 .text-button:hover { color: var(--accent); }
 .eyebrow { font-size: 0.6875rem; letter-spacing: 1.4px; text-transform: uppercase; color: var(--accent); font-weight: 500; }
 .subtle { color: var(--muted); font-size: 0.8125rem; line-height: 1.6; }
+.reaction-date { color: var(--muted); margin-right: 0.5em; }
 .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px; color: var(--muted); font-size: 0.875rem; }
 .loading svg { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -349,7 +350,7 @@ a.button { color: inherit; text-decoration: none; }
 .info-tip-button { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: var(--muted); }
 .info-tip-button:hover, .info-tip-button[aria-expanded='true'] { color: var(--accent); background: var(--accent-tint); }
 .info-tip-button svg { width: 15px; height: 15px; }
-.info-tip-text { position: absolute; z-index: 20; left: -4px; top: calc(100% + 6px); width: max-content; max-width: min(300px, 75vw); padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); color: var(--text); font-size: 0.8125rem; font-weight: 400; line-height: 1.5; box-shadow: 0 6px 18px var(--shadow); white-space: normal; transform: translateX(var(--fit-shift, 0px)); }
+.info-tip-text { position: absolute; z-index: 20; left: -4px; top: calc(100% + 6px); width: max-content; max-width: min(300px, 75vw); padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); color: var(--text); font-size: 0.8125rem; font-weight: 400; line-height: 1.5; box-shadow: 0 6px 18px var(--shadow); white-space: pre-line; transform: translateX(var(--fit-shift, 0px)); }
 .versions { margin-top: 32px; max-width: 760px; border-top: 1px solid var(--border); padding-top: 18px; }
 .versions summary { cursor: pointer; color: var(--muted); font-size: 0.875rem; }
 .versions ol { padding-left: 22px; display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
@@ -735,6 +736,12 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .person-actions .text-button { padding-left: 0; }
 .diary-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; font-size: .95rem; }
 .diary-list time { color: var(--muted); margin-right: 6px; }
+/* A diary line from the companion's own news (#103): its source and Undo, spaced like a diary line (Iris). */
+.said-why { margin: 2px 0 0; }
+.said-why summary { cursor: pointer; font-size: 0.8125rem; color: var(--muted); }
+.said-why p { margin: 4px 0 0; }
+.said-why .form-actions { margin: 2px 0 0; }
+.said-why .form-actions .text-button { padding-left: 0; }
 .network-list { list-style: none; margin: 6px 0 0 12px; padding: 0 0 0 10px; border-left: 2px solid var(--border); display: grid; gap: 6px; font-size: .95rem; }
 .network-list .badge { margin-left: 6px; }
 .network-list .text-button { margin-left: 6px; }
@@ -2264,6 +2271,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip-place:hover, .where-strip-place:focus-visible { text-decoration-style: solid; text-decoration-color: currentColor; }
 .where-strip > svg { flex: none; width: 1rem; height: 1rem; color: var(--accent); }
 .where-strip > span { flex: 1; min-width: 0; }
+.where-strip > .where-strip-clip { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .where-strip .text-button { flex: none; }
 .msg-action { font-style: italic; color: var(--muted); }
 /* In your own bubble the muted colour can sit on the accent: body colour at 80% keeps it readable (Iris, 2026-11-02). */
@@ -2974,6 +2982,12 @@ p.breakup-line { align-items: center; }
 .suggest-popup [role='option'] { padding: 8px 10px; border-radius: 6px; cursor: pointer; overflow-wrap: anywhere; }
 .suggest-popup [role='option'][data-active='true'] { background: var(--accent); color: var(--on-accent); }
 .suggest-popup [role='option'][aria-selected='true'] { font-weight: 600; }
+.suggest-note { color: var(--muted); font-weight: 400; }
+.suggest-popup [role='option'][data-active='true'] .suggest-note { color: inherit; opacity: 0.8; }
+.label-with-tip { display: inline-flex; align-items: center; gap: 4px; }
+/* The tip's button keeps its 24px target but takes no more than the label's line, so labels share a baseline and the
+   boxes a top edge (Iris, relationship control). */
+.label-with-tip .info-tip-button { margin-block: -4px; }
 .suggest > svg { position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
 .person-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .person-add-button { align-self: flex-start; }
@@ -3374,3 +3388,19 @@ p.breakup-line { align-items: center; }
 .affix-input.has-prefix input { padding-left: 28px; }
 .affix-input.has-suffix .affix { right: 12px; }
 .affix-input.has-suffix input { padding-right: 8.5em; }
+
+/* Their own words (Settings > Memory, Hit List #97): caught phrases and the user's list as rows; the add row wraps on
+   a phone. */
+.own-words-row { justify-content: space-between; }
+.own-words-phrase { flex-direction: column; align-items: flex-start; gap: 0; padding-block: 6px; }
+.own-words-text { font-size: 0.875rem; color: var(--text); overflow-wrap: anywhere; }
+.own-words-note { font-size: 0.8125rem; color: var(--muted); }
+.own-words-actions { display: inline-flex; gap: 16px; flex: none; }
+.own-words-count { margin-left: 6px; color: var(--faint); }
+.own-words-remove { flex: none; width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; color: var(--muted); }
+.own-words-remove svg { width: 15px; height: 15px; }
+.own-words-add { flex-wrap: wrap; gap: 8px 10px; padding-block: 8px; }
+.setting-row.own-words-add input:not([type='checkbox']) { flex: 1 1 10rem; max-width: none; }
+.setting-row.own-words-add select { width: auto; max-width: none; }
+.own-words h3 + .row-list, .own-words .row-list + h3 { margin-top: 8px; }
+.own-words-submit { margin-left: auto; }

@@ -1,4 +1,6 @@
 """The Today view: the companion's routine, plans and what changed since the last visit (PRD Today, C5)."""
+from datetime import date, timedelta
+
 from companion import events
 from companion import moods as feelings
 from companion.characters import require_current
@@ -116,11 +118,14 @@ def plans(connection, companion, now) -> dict:
 
 
 def day(connection, timeline_id, local_date) -> dict:
-    """The companion's local day: typical weather, the city's annual events and circle birthdays."""
+    """The companion's local day: its weather and tomorrow's (companion/world/skies.py; observed where looked up), the
+    city's annual events and circle birthdays."""
     found = agenda.day_on(connection, timeline_id, local_date)
+    tomorrow = (date.fromisoformat(local_date) + timedelta(days=1)).isoformat()
     birthdays = [{'id': person['id'], 'name': person['name']} for person in circle.people(connection, timeline_id)
                  if circle.birthday(person['id']) == local_date[5:]]
-    return {'date': local_date, **found, 'birthdays': birthdays}
+    return {'date': local_date, **found, 'tomorrow': agenda.day_on(connection, timeline_id, tomorrow)['weather'],
+            'birthdays': birthdays}
 
 
 def view(database) -> dict:

@@ -9,6 +9,7 @@ import { useEraWords } from '../world/useEraWords'
 import { useChatLook } from '../conversation/useTheirLook'
 import { firstName } from '../character/panelText'
 import { clearOfNow, daySegments, labelFits, type DaySlot } from './dayStrip'
+import { weatherLine } from './todayText'
 
 const HOURS = ['12 AM', '6 AM', '12 PM', '6 PM', '12 AM']
 
@@ -31,6 +32,8 @@ export function NowCard({ data, name, go, status, children }: { data: TodayData;
   const next = data.routine.next
   const after = status ? (doing?.startsWith('Away') ? null : now) : next && `${next.block.label} from ${at(next.starts_at)}`
   const sub = [`${at(data.now)} their time`, after].filter(Boolean).join(' · ')
+  // Their city's weather today and tomorrow (companion/world/skies.py), so "move the picnic?" has a reason.
+  const weather = weatherLine(data.day)
   return (
     <section ref={card} className={`now-card${look.className}`} style={look.style} data-their-font={look.font} aria-labelledby="now-heading">
       <div className="now-head">
@@ -38,6 +41,10 @@ export function NowCard({ data, name, go, status, children }: { data: TodayData;
         <div className="now-text">
           <h2 id="now-heading" className="now-line"><span className="now-name">{firstName(name)}</span><span aria-hidden="true"> · </span><span className="visually-hidden">: </span>{line}</h2>
           <p className="row-sub">{sub}</p>
+          {weather.full && <>
+            <p className="row-sub now-weather desktop-only">{weather.full}</p>
+            <p className="row-sub now-weather phone-only">{weather.short}</p>
+          </>}
         </div>
         <button type="button" className="button primary now-message" onClick={() => go('conversation')}><MessageCircle aria-hidden="true" />{label}</button>
       </div>

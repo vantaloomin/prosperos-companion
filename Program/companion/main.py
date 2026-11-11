@@ -20,6 +20,7 @@ from companion import (
     local_zone,
     logs,
     observer_routes,
+    own_words_routes,
     story_routes,
     text_models,
     troubleshoot,
@@ -298,6 +299,7 @@ def create_app(database_path: str | Path | None = None, *, clock=None, vault=Non
     app.include_router(context_routes.router)
     app.include_router(story_routes.router)
     app.include_router(authors_note_routes.router)
+    app.include_router(own_words_routes.router)
     app.include_router(observer_routes.router)
     app.include_router(group_routes.router)
     app.include_router(group_routes.secrets_router)

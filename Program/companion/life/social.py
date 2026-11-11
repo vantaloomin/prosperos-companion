@@ -36,7 +36,7 @@ from companion.characters import require_current
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import circle, composer, loss, love_life, post_snark, wedding
+from companion.life import circle, composer, happenings, loss, love_life, post_snark, wedding
 from companion.world import catalog
 from companion.world.generators import pick, unit
 
@@ -250,13 +250,16 @@ def friend_posts(connection, timeline_id, people, since, now) -> list[dict]:
     rows = many(connection, "SELECT * FROM life_agenda WHERE timeline_id=? AND subject!=? AND status='happened' "
                 'AND entry IS NOT NULL AND ends_at>? AND ends_at<=? ORDER BY starts_at',
                 (timeline_id, COMPANION, stamp(since), stamp(now)))
-    floors = floor(connection, timeline_id, people, {row['local_date'] for row in rows})
+    # Nobody posts "cooked something new" the day of their breakup or health scare (companion/life/happenings.py).
+    rough = happenings.bad_days(connection, timeline_id)
+    floors = floor(connection, timeline_id, people, {row['local_date'] for row in rows}, rough)
     result, posted, daily = [], set(), {}
     for row in rows:
         entry = decode(row['entry'])
         key = friend_key(timeline_id, row)
         day = (row['subject'], row['local_date'])
-        if row['subject'] not in people or day in posted or daily.get(row['local_date'], 0) >= FRIEND_DAILY:
+        if row['subject'] not in people or day in posted or day in rough or \
+                daily.get(row['local_date'], 0) >= FRIEND_DAILY:
             continue
         if (not shares(key, row) and key != floors.get(row['local_date'])) or not isinstance(entry.get('post'), str):
             continue
@@ -277,7 +280,7 @@ def shares(key: str, row) -> bool:
     return unit(key, 'share') < SHARE.get(decode(row['block']).get('kind'), 0.1)
 
 
-def floor(connection, timeline_id, people, local_dates) -> dict[str, str]:
+def floor(connection, timeline_id, people, local_dates, rough=frozenset()) -> dict[str, str]:
     """For a local day on which nobody in the circle would share anything, the one entry shared anyway: the nearest to
     sharing. A small circle's quiet day otherwise left the feed empty (tester, 2026-10-31). Decided over the whole day,
     entries still to come included, so it is the same however often the feed is read."""
@@ -288,7 +291,7 @@ def floor(connection, timeline_id, people, local_dates) -> dict[str, str]:
     for row in many(connection, 'SELECT subject, slot_key, local_date, block FROM life_agenda WHERE timeline_id=? '
                     f"AND subject!=? AND status IN ('happened', 'upcoming') AND json_type(entry, '$.post')='text' "
                     f'AND local_date IN ({marks})', (timeline_id, COMPANION, *sorted(local_dates))):
-        if row['subject'] not in people:
+        if row['subject'] not in people or (row['subject'], row['local_date']) in rough:
             continue
         key = friend_key(timeline_id, row)
         if shares(key, row):
