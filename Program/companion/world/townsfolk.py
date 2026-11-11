@@ -24,7 +24,7 @@ in 2005), and whoever would not be grown up yet, or not born, isn't in town (`no
 import functools
 import json
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from companion.world import catalog, decades, generators, lifespans, turnover
 from companion.world.wording import regional
@@ -182,6 +182,9 @@ GOALS = tuple((item['id'], (item['text'], item['period']), item['steps'],
                tuple(item['practice']) if item['practice'] else None, item['progress'], item['done'])
               for item in GOAL_BANK)
 GOAL_INTERESTS = {item['id']: item['interest'] for item in GOAL_BANK}
+# What a goal asks of the person (Hit List #101): has a job, works for someone, retired or not, has a sibling, single,
+# partnered, an age range in human years. A goal with none fits anyone; the city's own goals have none.
+GOAL_NEEDS = {item['id']: item['needs'] for item in GOAL_BANK if item.get('needs')}
 # How much more often a townsperson draws one of the city's own quirks or goals (its `townsfolk` block) than any
 # one shared one, so a handful of them flavour about a quarter of the town.
 TOWN_WEIGHT = 5.0
@@ -336,6 +339,7 @@ def _build(data: dict, place_id: str, index: int) -> dict:
             sheet['love_life'] = False
         if notable.get('temperament') in TEMPERAMENTS:
             sheet['temperament'] = notable['temperament']
+    sheet['goals'] = fitting(sheet, data)
     parts = place.get('day_parts') or ['afternoon']
     if role[2]:
         off = sorted(generators.pick(seed, f'off-{n}', list(range(7))) for n in range(2))
@@ -586,6 +590,31 @@ def goal_order(data: dict, seed: str) -> list[str]:
     return list(_goal_order(seed, tuple(item['id'] for item in town(data)['goals'])))
 
 
+def fitting(sheet: dict, data: dict) -> list[str]:
+    """Their goal order with every goal that doesn't fit who they are taken out (companion/life/casting.py): no
+    promotion for someone retired or self-employed, no estranged sibling for an only child. Only goals that ask
+    something are checked."""
+    from companion.life import casting
+    return casting.lasting_goals(sheet['goals'], GOAL_NEEDS, sheet, data)
+
+
+def fits_now(sheet: dict, data: dict, goal_id: str, day: date) -> bool:
+    """Whether a goal still fits where their love life stands this week."""
+    needs = GOAL_NEEDS.get(goal_id)
+    if not needs or goal_id in {item['id'] for item in town(data)['goals']}:
+        return True
+    from companion.life import casting
+    return casting.weekly_fit(needs, sheet, data, day)
+
+
+def stand_in(sheet: dict, data: dict, day: date) -> int | None:
+    """The goal number that takes over this week from one that stopped fitting: the last fitting one in their order,
+    which they would otherwise never reach, so it never comes up twice."""
+    order = sheet['goals']
+    return next((number for number in range(len(order) - 1, -1, -1) if fits_now(sheet, data, order[number], day)),
+                None)
+
+
 @functools.lru_cache(maxsize=8192)
 def _goal_order(seed: str, own: tuple) -> tuple:
     # Every resident sorts a hundred goals by their draws, and a new day reads the same residents again and again.
@@ -646,14 +675,27 @@ def story(sheet: dict, data: dict, day: date) -> dict:
     history = _weeks(drawn(sheet), sheet['temperament'], sheet['flaw'], weeks, steps)
     number, progress, beat = history[-1] if week_of(day) >= start else (0, 0, 'stall')
     reached = [goal(sheet, data, n)['text'] for n in range(number)][-3:]
+    week = EPOCH + timedelta(weeks=week_of(day))  # A goal that stops fitting is swapped from the week's start.
     if beat == 'achieved':
-        finished = goal(sheet, data, number)
-        return {'goal': goal(sheet, data, number + 1), 'progress': 0, 'beat': 'achieved', 'line': finished['done'],
-                'reached': [*reached, finished['text']][-3:]}
-    current = goal(sheet, data, number)
+        if fits_now(sheet, data, sheet['goals'][number % len(sheet['goals'])], week):
+            finished = goal(sheet, data, number)
+            return {'goal': now_or_stand_in(sheet, data, number + 1, week), 'progress': 0, 'beat': 'achieved',
+                    'line': finished['done'], 'reached': [*reached, finished['text']][-3:]}
+        number, progress, beat = number + 1, 0, 'stall'
+    current = now_or_stand_in(sheet, data, number, week)
+    progress = min(progress, current['steps'] - 1)
     line = current['progress'] if beat == 'progress' else \
         FLAWS[sheet['flaw']][2].format(name=sheet['name']) if beat == 'setback' else ''
     return {'goal': current, 'progress': progress, 'beat': beat, 'line': line, 'reached': reached}
+
+
+def now_or_stand_in(sheet: dict, data: dict, number: int, week: date) -> dict:
+    """Their `number`th goal, or the stand-in for it while it doesn't fit (`stand_in`)."""
+    if not fits_now(sheet, data, sheet['goals'][number % len(sheet['goals'])], week):
+        number = stand_in(sheet, data, week)
+        if number is None:
+            number = 0
+    return goal(sheet, data, number)
 
 
 # Where they are, by rule ---------------------------------------------------------------------------
@@ -890,6 +932,7 @@ def resident(data: dict, hood_id: str, index: int, where: dict | None = None, na
                              *(spot['id'] for spot in sheet['spots'].values() if spot)})
     if folk != lifespans.HUMAN:
         sheet['folk'] = folk
+    sheet['goals'] = fitting(sheet, data)
     if key.startswith('town:') and slot_of(index)[1]:
         sheet['arrived'] = arrival(data, f'~{hood_id}', slot_of(index)[0], slot_of(index)[1])
     if named:

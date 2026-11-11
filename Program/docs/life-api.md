@@ -439,7 +439,10 @@ These reach the chat context, Around town (`facts`, `stories`), Story mode's peo
 a townsperson becomes the main character. The bank grows without code changes; `tests/test_life_details.py`
 checks its rules (subject-less lowercase clauses, no final period, no gendered words, a `period` alternative where
 wording is modern). Goals and quirks are data too (`world/data/goals.json`, `world/data/quirks.json`, each with the
-line a dating profile shows), as are the temperaments, flaws and desires in `perception.json` (their `town` part).
+line a dating profile shows), as are the temperaments, flaws and desires in `perception.json` (their `town` part). A goal
+can say what it `needs` of the person (a job, a boss, not retired, a sibling, single, an age range): each person draws
+only goals that fit them, checked by the same rules as storylines (`life/casting.py`), and a goal that stops fitting
+their love life gives way, from that week, to the last fitting goal in their order (v1.4.0).
 
 ```http
 GET /api/life/townsfolk                     # townsfolk met, most recently seen first, only what is known
