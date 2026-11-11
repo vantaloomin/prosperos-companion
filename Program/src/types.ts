@@ -563,6 +563,8 @@ export interface LifeSettings {
   onward_realism: number
   /** Weather (companion/world/skies.py), kept in this world only like its drama: 0 gentle, 1 true to life, 2 stormy. */
   weather_realism: number
+  /** Whether this world has weather for the Weather step: false aboard a ship or station, or in a city with no climate. */
+  weather?: boolean
   /** Rough patches (companion/life/rough_patches.py): 0 off, 1 blows over by morning, 2 true to life, 3 dramatic. */
   rough_patches_realism: number
   /** Next steps (companion/life/steps.py): how soon they bring up the next step, 0 only when you do, 1 slow, 2 true to life, 3 fast. */

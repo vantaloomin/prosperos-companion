@@ -135,3 +135,15 @@ def test_today_and_the_chat_know_tomorrow(client, app, connected, provider):
     assert day['tomorrow']['sky'] == expected['sky']
     send(client, 'Any plans tomorrow?', 'skies-0001')
     assert f"Tomorrow: {agenda.weather_text(day['tomorrow'])}" in provider.requests[-1]['prompt']
+
+
+def test_a_ship_has_no_weather_step_to_offer(client):
+    """E2E 1.4: Settings > Realism showed "Weather in The Long Meridian" aboard the ship, which has no weather."""
+    assert client.get('/api/life/settings').json()['weather'] is True  # No companion yet.
+    made = client.post('/api/companion', json={'name': 'Ilyan Voss', 'timezone': 'UTC', 'home_city': 'long-meridian'})
+    assert made.status_code == 200, made.text
+    assert client.get('/api/life/settings').json()['weather'] is False
+
+
+def test_a_city_with_a_climate_has_one(client, companion):
+    assert client.get('/api/life/settings').json()['weather'] is True

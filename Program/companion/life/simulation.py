@@ -91,7 +91,19 @@ def with_world(connection, view: dict) -> dict:
     """Drama as this world runs it (its own level, kept in this world only: companion/life/world_drama.py), its own
     level or None while it still follows the one carried from world to world, and whether its companion is alone."""
     return {**view, 'drama': world_drama.level(connection), 'world_drama': world_drama.own(connection),
-            'alone': world_drama.alone(connection), 'weather_realism': skies.level_of(connection)}
+            'alone': world_drama.alone(connection), 'weather_realism': skies.level_of(connection),
+            'weather': has_weather(connection)}
+
+
+def has_weather(connection) -> bool:
+    """Whether this world has weather for its Weather step to change: a city with a climate, not a ship or station
+    (world/generators.py `conditions`). E2E 1.4: Realism offered "Weather in The Long Meridian" aboard the ship."""
+    companion = current(connection)
+    if companion is None:
+        return True
+    from companion.life import outings
+    data = outings.city_data(connection, companion['version']['definition'])
+    return not data or bool(data.get('climate')) and data.get('enclosed') is not True
 
 
 def update_world(database, drama: int | None) -> dict:
