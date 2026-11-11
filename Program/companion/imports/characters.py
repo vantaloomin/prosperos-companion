@@ -7,6 +7,12 @@ city's timezone (companion/cast.py `profile`), so they have a life from the firs
 townsperson; the sheet is only a template. No model is asked and there is no review step: the user changes
 anything afterwards on the Character page ("The world exists outside of User").
 
+A card made in Prospero's Dramatis (vantaloomin/prosperos-dramatis) carries Companion's own shape of the character,
+written and checked there: their routine, week, texting, emotional edges and sliders as the user kept them. When this
+version's models take that shape (`from_dramatis`), it is used as written and the town lends only where they live
+(their city, neighborhood, clock and money) and whatever the shape left empty; otherwise the card is read like any
+other, so a card from an older or newer Dramatis is never worse off.
+
 The character's own lorebook becomes theirs, a lorebook file on its own becomes the world's
 (companion/lore.py), and a card's picture is kept with their reference pictures, marked "Not stated" until
 the user says where it came from (as the Study import does, companion/imports/study.py). A scenario, greetings
@@ -19,6 +25,8 @@ the user's companions (by name) starts unticked, with their lorebook going to th
 """
 import hashlib
 import re
+
+from pydantic import ValidationError
 
 from companion import cast, characters, dating, worlds
 from companion.clock import zone
@@ -91,8 +99,35 @@ def texts(character: dict, name: str) -> tuple[dict, str]:
         description
 
 
-def definition(connection, database, character: dict, focus: dict | None) -> tuple[CharacterDefinition, str]:
+# Where they live comes from the town they move into, whatever a Dramatis card says (its setting is a few words, and
+# the user's browser clock when it was drafted).
+TOWN_KEYS = ('location', 'home_city', 'timezone', 'money')
+
+
+def from_dramatis(prospero: dict | None) -> dict | None:
+    """Companion's shape of a character from a Prospero's Dramatis card, when this version's models take it; None
+    for another card, a user persona (`{'persona': ...}`, not a companion), or a shape they refuse."""
+    shape = ((prospero or {}).get('apps') or {}).get('companion')
+    if not isinstance(shape, dict) or 'persona' in shape:
+        return None
+    try:
+        return CharacterDefinition.model_validate(shape).model_dump()
+    except ValidationError:
+        return None
+
+
+def unset(key: str, value) -> bool:
+    return value == CharacterDefinition.model_fields[key].get_default(call_default_factory=True)
+
+
+def definition(connection, database, character: dict, focus: dict | None,
+               prospero: dict | None = None) -> tuple[CharacterDefinition, str]:
     """Their definition, and any description past the background's limit (kept as lore instead)."""
+    written = from_dramatis(prospero)
+    if written is not None:
+        town = life(connection, database, {**character, 'name': written['name']}, focus)
+        kept = {key: value for key, value in written.items() if key not in TOWN_KEYS and not unset(key, value)}
+        return characters.named(connection, CharacterDefinition.model_validate(town | kept)), ''
     name = character['name'].strip()[:120]
     values = life(connection, database, character, focus)
     fields, description = texts(character, name)
@@ -315,7 +350,7 @@ def bring_character(database, filename: str, found: dict, stored, shape, lore_fo
     timestamp = database.now()
     with database.connect(write=True) as connection:
         focus = characters.current(connection)
-        made, overflow = definition(connection, database, found['character'], focus)
+        made, overflow = definition(connection, database, found['character'], focus, found.get('prospero'))
         companion_id = add_companion(connection, timestamp, made, f"Imported from {filename} ({found['format']})"[:500],
                                      focus)
         added = add_lore(connection, timestamp, found['book'], made, (companion_id, overflow), lore_for, filename)
