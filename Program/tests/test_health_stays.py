@@ -110,8 +110,17 @@ def now_of(client, person_id):
     return [(row['local_date'], decode(row['block'])) for row in rows]
 
 
+def in_town(client, found):
+    """The person with a week here: one the app placed out of town has no routine, so no days to change. Gives them a
+    local person's week (the app picks who lives where, so the sister may be either)."""
+    with client.app.state.database.connect(write=True) as connection:
+        connection.execute("UPDATE circle_people SET schedule=(SELECT schedule FROM circle_people WHERE schedule "
+                           "NOT IN ('', '[]') LIMIT 1) WHERE id=? AND schedule IN ('', '[]')", (found['id'],))
+    return found
+
+
 def test_a_hospital_stay_said_in_chat_changes_their_days_until_they_are_out(world):  # noqa: F811
-    sister = person(world, 'sister')
+    sister = in_town(world, person(world, 'sister'))
     now_of(world, sister['id'])
     says(world, 'my sister is in the hospital', 'client-stay-01')
     health = record_of(world, sister['id'])[1]['health']
