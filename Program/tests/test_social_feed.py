@@ -662,3 +662,27 @@ def test_a_quiet_day_in_the_circle_still_gets_one_post(client, city, clock, monk
     assert days and len(days) == len(set(days))
     # Reading again posts nothing new.
     assert len([post for post in feed(client)['posts'] if post['kind'] == 'friend']) == len(friends)
+
+
+def test_nobody_posts_a_cheerful_entry_on_the_day_of_their_breakup(client, city, clock):
+    """World consistency (tester 2026-11-10): a friend's diary post the day of their breakup or health scare."""
+    from companion.database import identifier
+    since = clock.now()
+    live_days(client, clock)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        timeline = companion['active_timeline_id']
+        people = social.active_people(connection, timeline)
+        before = social.friend_posts(connection, timeline, people, since, clock.now())
+        assert before
+        subject = before[0]['author']
+        days = {row['local_date'] for row in connection.execute(
+            "SELECT local_date FROM life_agenda WHERE timeline_id=? AND subject=? AND status='happened'",
+            (timeline, subject))}
+        for day in days:
+            connection.execute(
+                "INSERT INTO person_events (id, timeline_id, subject, source, kind, local_date, at_time, starts_at, "
+                "tone, text, names, undo, created_at) VALUES (?, ?, ?, ?, 'broke_up', ?, '18:00', ?, 'bad', '', '{}', "
+                "'[]', 'x')", (identifier(), timeline, subject, f'test:{day}', day, f'{day}T18:00:00Z'))
+        after = social.friend_posts(connection, timeline, people, since, clock.now())
+    assert after and subject not in {post['author'] for post in after}

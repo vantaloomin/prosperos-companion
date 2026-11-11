@@ -588,6 +588,10 @@ def prompt(connection, group: dict, companion: dict, stay: dict, now, config: di
 
 
 GUEST_RELATIONSHIP = 'a guest in a group chat with the user, whom you know only through {host}'
+# A circle guest's own news lately, each with its day, in their notes (A/B 2026-11-11,
+# /mnt/project-files/companion-world-consistency/ab: "how is Liss?" went along with a girlfriend of the past in 19 of
+# 30 replies without it, 1 of 30 with it).
+NEWS_LINE = "What's new with you lately (it happened; keep to it): {lines}"
 
 
 def guest_prompt(connection, group: dict, stay: dict, now, config: dict, until_seq: int,
@@ -607,6 +611,8 @@ def guest_prompt(connection, group: dict, stay: dict, now, config: dict, until_s
                                           lines='\n'.join(f'- {line}' for line in found['behaviour']))
     clock = f"Your local time: {context.local_time(now, found['timezone'])}."
     right_now = clock + (f"\nWhat you're doing: {found['doing']}." if found['doing'] else '')
+    if found['news']:  # What happened to them lately is their own news (group_guests.own_news).
+        right_now += f"\n{NEWS_LINE.format(lines=' '.join(found['news']))}"
     found_lines = [text for _key, text in group_lines(connection, group, stay, now)]
     at = 2 if stay['sees_from'] > 1 else 1  # Right after who they are here and when they joined.
     section = '\n'.join([*found_lines[:at], group_guests.history_line(connection, found), *found_lines[at:]])

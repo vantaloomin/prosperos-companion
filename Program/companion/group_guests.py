@@ -45,6 +45,8 @@ REGULAR_VISITS = 3
 KNOWS_TOWNSPERSON = 3
 # How likely a guest is picked to answer next to a member, when nobody is named.
 GUEST_WEIGHT = 0.6
+# A circle guest's own news (`own_news`): what happened to them in this many days, at most this many lines.
+NEWS_DAYS, NEWS_LIMIT = 14, 2
 # Local hours when someone with no plan of their own for the hour is asleep.
 NIGHT = (0, 7)
 
@@ -201,6 +203,23 @@ def doing(connection, person: dict, companion: dict, now) -> str | None:
     return 'asleep' if NIGHT[0] <= hour < NIGHT[1] else None
 
 
+def own_news(connection, person: dict, companion: dict, now) -> list[str]:
+    """What happened to a circle guest lately, from their own diary (companion/life/happenings.py): Kaito knows about
+    his own breakup and can bring it up, or answer for it, as anyone would."""
+    if person['kind'] != 'circle':
+        return []
+    from datetime import date
+
+    from companion.life import happenings
+    today = now.astimezone(zone(companion['version']['timezone'])).date()
+    since = (today - timedelta(days=NEWS_DAYS)).isoformat()
+    found = [item for item in happenings.for_person(connection, person['timeline_id'], person['person_id'],
+                                                    limit=NEWS_LIMIT) if item['local_date'] >= since]
+    # With its day, as it happened: without one, guests said "a few weeks back" of a breakup four days old (A/B).
+    days = [(date.fromisoformat(item['local_date']), item['text']) for item in found[::-1]]
+    return [f'{day:%A} {day.day} {day:%B}: {text}' for day, text in days]
+
+
 def asleep(connection, person: dict, companion: dict, now) -> bool:
     return doing(connection, person, companion, now) == 'asleep'
 
@@ -215,7 +234,7 @@ def sheet(connection, stay: dict, now) -> dict | None:
     return {**person, 'who': who(connection, person), 'public': found['public'], 'private': found['private'],
             'behaviour': found.get('behaviour') or [],
             'host_name': companion['version']['name'].split()[0], 'timezone': companion['version']['timezone'],
-            'doing': doing(connection, person, companion, now)}
+            'doing': doing(connection, person, companion, now), 'news': own_news(connection, person, companion, now)}
 
 
 def sheet_text(found: dict, text: str = SHEET) -> str:
