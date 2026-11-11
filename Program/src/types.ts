@@ -320,6 +320,9 @@ export interface Companion {
 export interface WorkspaceSettings {
   user_timezone: string
   auto_backups?: AutoBackups
+  /** Celsius or Fahrenheit (companion/world/temperature.py); 'auto' picks by the companion's city, `temperature_auto`. */
+  temperature_unit?: TemperatureSetting
+  temperature_auto?: TemperatureUnit
   /** 'pc' follows this PC's timezone; 'chosen' was picked in Settings; 'default' is the untouched UTC. */
   user_timezone_source: 'default' | 'pc' | 'chosen'
   /** What the backend worked out from the PC (Windows registry, TZ), or null. */
@@ -820,7 +823,7 @@ export interface Today {
   feeling?: GroupMood | null
   last_seen_at: string | null
   /** Their day where they live: its weather and tomorrow's (companion/world/skies.py; observed where looked up). */
-  day: { date: string; body: BodyState | null; weather?: DayWeather | null; tomorrow?: DayWeather | null }
+  day: { date: string; body: BodyState | null; weather?: DayWeather | null; tomorrow?: DayWeather | null; temperature_unit?: TemperatureUnit }
   /** Birthdays and talking milestones today or within a week (companion/life/occasions.py). */
   occasions?: Occasion[]
   /** On their mind (companion/life/thoughts.py): the last week, newest first; null when switched off. */
@@ -837,6 +840,9 @@ export interface Thought { day: string; text: string }
 /** A dream the night before `day` (companion/life/dreams.py). */
 export interface Dream { day: string; text: string; sleep_talk: string | null }
 export interface Moment { day: string; title: string; text: string; source: string; picked_by: 'dice' | 'user'; odds?: number }
+
+export type TemperatureUnit = 'C' | 'F'
+export type TemperatureSetting = 'auto' | TemperatureUnit
 
 /** A day's weather in the companion's city: the sky and how many days it has held, high and low in °F. A day planned
  * before skies were named, or a lookup that names none, has no sky. `observed` marks real weather looked up. */

@@ -1,5 +1,5 @@
 import { appDate } from '../../appTime.ts'
-import type { BodyState, DayWeather, PauseRecord, Recommendation, Today } from '../../types'
+import type { BodyState, DayWeather, PauseRecord, TemperatureUnit, Recommendation, Today } from '../../types'
 
 const time = (value: string, timeZone?: string) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone }).format(new Date(value))
 
@@ -64,11 +64,16 @@ const SKY_WORDS: Record<NonNullable<DayWeather['sky']>, string> = {
   clear: 'Clear', cloudy: 'Some cloud', overcast: 'Overcast', fog: 'Fog', rain: 'Rain', storm: 'Storms', snow: 'Snow',
 }
 
-/** "Rain for 3 days, high 48°F": a day's sky (how long a wet or grey spell has held) and its high. A day with no sky
- *  named says wet or dry; a looked-up day says so. `unit` false leaves the unit off ("high 48°"). */
-export function dayWeatherText(weather: DayWeather, unit = true): string {
+/** A temperature kept in °F, in the unit the user reads: 48 or, in Celsius, 9 (companion/world/temperature.py). */
+export function degrees(fahrenheit: number, scale: TemperatureUnit = 'F'): number {
+  return Math.round(scale === 'F' ? fahrenheit : (fahrenheit - 32) * 5 / 9)
+}
+
+/** "Rain for 3 days, high 48°F": a day's sky (how long a wet or grey spell has held) and its high, in °F or °C. A day
+ *  with no sky named says wet or dry; a looked-up day says so. `unit` false leaves the unit off ("high 48°"). */
+export function dayWeatherText(weather: DayWeather, unit = true, scale: TemperatureUnit = 'F'): string {
   const sky = weather.sky ? SKY_WORDS[weather.sky] : weather.rain ? 'Rain' : 'Dry'
-  return `${sky}${spellText(weather)}, high ${weather.high_f}°${unit ? 'F' : ''}${seenText(weather)}`
+  return `${sky}${spellText(weather)}, high ${degrees(weather.high_f, scale)}°${unit ? scale : ''}${seenText(weather)}`
 }
 
 /** " for 3 days" for a wet or grey spell of two days or more; sunny spells go uncounted. */
@@ -79,15 +84,16 @@ function spellText(weather: DayWeather): string {
 
 const seenText = (weather: DayWeather) => (weather.observed ? (weather.observed.forecast ? ' (forecast)' : ' (looked up)') : '')
 
-/** The Now card's weather (Iris, PR #561): on desktop today and tomorrow, the unit said once by the heading's sense,
- *  "Some cloud, high 56° · Tomorrow: some cloud, high 53°"; on phone today only, one line, "Some cloud, high 56°F".
+/** The Now card's weather (Iris, PR #561, 1.4.1): on desktop today and tomorrow, the unit said once on the first,
+ *  "Some cloud, high 13°C · Tomorrow: some cloud, high 12°"; on phone today only, one line, "Some cloud, high 56°F".
  *  Both empty without weather (a ship has none): the line is left out, never "Unknown". */
 export function weatherLine(day: Today['day']): { full: string; short: string } {
   if (!day.weather) return { full: '', short: '' }
-  const short = dayWeatherText(day.weather)
+  const scale = day.temperature_unit ?? 'F'
+  const short = dayWeatherText(day.weather, true, scale)
   if (!day.tomorrow) return { full: short, short }
-  const ahead = dayWeatherText(day.tomorrow, false)
-  return { full: `${dayWeatherText(day.weather, false)} · Tomorrow: ${ahead[0].toLowerCase()}${ahead.slice(1)}`, short }
+  const ahead = dayWeatherText(day.tomorrow, false, scale)
+  return { full: `${short} · Tomorrow: ${ahead[0].toLowerCase()}${ahead.slice(1)}`, short }
 }
 
 /** The summary over a diary line from the companion's own news: "From what Sett said" (Iris, #103). */
