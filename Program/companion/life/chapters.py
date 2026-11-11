@@ -32,7 +32,7 @@ from companion.characters import apply_changes, by_id, require_current
 from companion.clock import stamp
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import big_turns, circle, home, love_life, money, pets, storylines
+from companion.life import big_turns, circle, happenings, home, love_life, money, pets, storylines
 from companion.memory import pairs
 from companion.world import catalog, generators, looks
 
@@ -148,6 +148,9 @@ def make(connection, companion: dict, world, chapter_id: str, kind: str, plan: d
     """Make the chapter's change and write what it was (and how to take it back) on its row."""
     row = one(connection, 'SELECT started_on FROM life_chapters WHERE id=?', (chapter_id,))
     undo = DOERS[kind](connection, companion, world, date.fromisoformat(row['started_on']), plan, now)
+    if kind == 'new_job':  # Coworkers in the circle stay at the old place (companion/life/happenings.py).
+        happenings.coworkers_moved_on(connection, companion, f'chapter:{chapter_id}',
+                                      date.fromisoformat(row['started_on']), now)
     connection.execute('UPDATE life_chapters SET kind=?, title=?, told=?, share=?, changes=?, undo=?, details=? '
                        'WHERE id=?', (kind, plan['title'], plan['told'], plan['share'], encode(plan.get('changes', {})),
                                       encode(undo), encode(plan.get('details', {})), chapter_id))
@@ -317,6 +320,7 @@ def undo(database, chapter_id: str) -> list[dict]:
         row = mine(connection, chapter_id)
         reverse(connection, decode(row['undo']), database.clock.now())
         big_turns.undone(connection, row)
+        happenings.take_back(connection, row['timeline_id'], f'chapter:{chapter_id}', database.clock.now())
         if row['consequence_id']:
             consequences.clear_marks(connection, row['consequence_id'])
         connection.execute('UPDATE life_chapters SET undone_at=? WHERE id=?', (database.now(), chapter_id))
@@ -334,6 +338,7 @@ def change(database, world, consequence_id: str, option: int) -> dict:
         now, day = database.clock.now(), date.fromisoformat(row['started_on'])
         reverse(connection, decode(row['undo']), now)
         big_turns.undone(connection, row)
+        happenings.take_back(connection, row['timeline_id'], f"chapter:{row['id']}", now, forget=True)
         connection.execute("UPDATE life_chapters SET changes='{}', undo='{}', details='{}' WHERE id=?", (row['id'],))
         companion = require_current(connection)
         plan = PLANS[KINDS[option]](connection, companion, world, day, f"chapter:{row['timeline_id']}:{day}")

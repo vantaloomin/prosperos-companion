@@ -323,7 +323,8 @@ def test_milestone_birthdays_retirements_and_graduations_come_from_the_circle(cl
 def test_friends_marry_by_their_love_life(client, clock, monkeypatch):
     make(client)
     friend = person(client, 'close friend')
-    set_details(client, friend['id'], age=30)
+    # Only someone seeing someone gets engaged (companion/life/circle_love.py, world consistency part E).
+    set_details(client, friend['id'], age=30, partner={'state': 'seeing', 'key': 'test/Rae', 'name': 'Rae'})
     monkeypatch.setattr(big_days, 'FRIEND_RATE', (0.0, 1.0, 1.0, 1.0))
     with client.app.state.database.connect(write=True) as connection:
         companion = current(connection)

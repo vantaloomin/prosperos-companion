@@ -77,9 +77,10 @@ def seeded_partner(row: dict) -> str | None:
 
 
 def single_by_event_since(row: dict, days: int, today: date | None = None) -> str | None:
-    """The day a life event left them single, when that was within `days` of today: else None."""
+    """The day a life event left them single (a breakup, or widowed), when that was within `days` of today: else
+    None."""
     recorded = circle.details_of(row).get('partner')
-    if not isinstance(recorded, dict) or recorded.get('state') != 'single' or not recorded.get('since'):
+    if not isinstance(recorded, dict) or recorded.get('state') not in ('single', 'widowed') or not recorded.get('since'):
         return None
     today = today or date.today()
     return recorded['since'] if recorded['since'] >= (today - timedelta(days=days)).isoformat() else None

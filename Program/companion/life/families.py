@@ -32,7 +32,7 @@ from functools import cache
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import ages, circle, pronouns
+from companion.life import ages, circle, circle_love, pronouns
 from companion.world import catalog, generators, intimacy
 
 ACTIVE = True  # Off in most tests (tests/conftest.py), since new pregnancies would add storylines to unrelated ones.
@@ -44,6 +44,8 @@ AGES = (24, 42)
 YEARLY = {'married sibling': 0.22, 'sibling': 0.08, 'cousin': 0.12, 'close friend': 0.12, 'friend': 0.09,
           'coworker': 0.07}
 SPACING = timedelta(days=548)  # After a baby, a year and a half before the next.
+# Single by a life event this recently (a breakup, a partner who died): no baby on the way yet.
+PARTED_DAYS = 90
 MOST_CHILDREN = 3
 CATCH_UP_DAYS = 14
 GODPARENT = 0.45  # A close friend asking the companion to be the godparent.
@@ -229,6 +231,8 @@ def eligible(connection, timeline_id: str, people: list[dict], day: date) -> lis
         age = ages.person_life_age(connection, details, age) if isinstance(age, int) else age  # In human terms.
         if not how or person['role'] in PARTNERS or person['id'] in dating | busy or not isinstance(age, int) \
                 or not AGES[0] <= age <= AGES[1]:
+            continue
+        if circle_love.single_by_event_since(person, PARTED_DAYS, day):  # Just broke up, or lost their partner.
             continue
         theirs = children_of(connection, person['id'])
         if len(theirs) >= MOST_CHILDREN or any(date.fromisoformat(child['born_on']) + SPACING > day for child in theirs):

@@ -296,11 +296,13 @@ def spared_now(connection, row: dict, today: date) -> bool:
 def happen(connection, companion: dict, row: dict, now) -> None:
     """They pass away: late in the circle (out of every upcoming day), their unfinished storylines end and a caring
     turn for them closes."""
-    from companion.life import agenda, storylines
+    from companion.life import agenda, happenings, storylines
     person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (row['person_id'],))
     if person is None or person['status'] != 'active':
         connection.execute('DELETE FROM losses WHERE id=?', (row['id'],))
         return
+    # Their partner in the circle is widowed, read while they are still in it (companion/life/happenings.py).
+    happenings.widowed_by(connection, companion, person, f"loss:{row['id']}", row['died_on'], now)
     details = decode(person['details']) or {}
     connection.execute("UPDATE circle_people SET status='removed', details=?, revision=revision+1, updated_at=? "
                        'WHERE id=?', (encode({**details, 'late': row['died_on']}), stamp(now), person['id']))
@@ -358,11 +360,13 @@ def town(connection, companion: dict, today: date, now) -> None:
 def undo(connection, companion: dict, loss_id: str, now) -> None:
     """"Bring them back": back in the circle as if it never happened, the funeral called off and the outcome changed
     to living on."""
-    from companion.life import big_days
+    from companion.life import big_days, happenings
     row = optional(connection, 'SELECT * FROM losses WHERE id=? AND timeline_id=?',
                    (loss_id, companion['active_timeline_id']))
     if row is None:
         return
+    # Their partner is no longer widowed; forgotten, so a death decided again writes it again.
+    happenings.take_back(connection, row['timeline_id'], f'loss:{loss_id}', now, forget=True)
     person = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (row['person_id'] or '',))
     if person and (decode(person['details']) or {}).get('late'):
         details = {key: value for key, value in decode(person['details']).items() if key != 'late'}

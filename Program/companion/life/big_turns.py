@@ -38,7 +38,7 @@ from functools import cache
 from companion import consequences
 from companion.database import decode, encode, many, optional
 from companion.errors import require
-from companion.life import ages, home, money, moving_in, routine
+from companion.life import ages, happenings, home, money, moving_in, routine
 from companion.world import catalog, generators, intimacy, looks
 
 KINDS = ('school', 'career_change', 'buy_place', 'retire', 'business', 'health', 'caring')
@@ -435,7 +435,13 @@ def progress(connection, companion: dict, world, day: date, now) -> int:
         details = decode(row['details'])
         update = STAGES[row['kind'], details['stage']](connection, companion, row, details, day, now)
         save_stage(connection, row, update, day)
+        if (row['kind'], details['stage']) in LEAVING_WORK:  # Coworkers stay at the old place (happenings.py).
+            happenings.coworkers_moved_on(connection, companion, f"chapter:{row['id']}", day, now)
     return len(rows)
+
+
+# The stages after which the companion no longer works where they did: a new career, retirement, their own business.
+LEAVING_WORK = {('career_change', 'retraining'), ('retire', 'leaving'), ('business', 'planning')}
 
 
 def save_stage(connection, row: dict, update: dict, day: date):
