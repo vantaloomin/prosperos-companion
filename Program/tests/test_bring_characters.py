@@ -5,6 +5,7 @@ import json
 import struct
 import zipfile
 import zlib
+from pathlib import Path
 
 import pytest
 
@@ -237,3 +238,31 @@ def test_a_brought_character_never_borrows_a_named_characters_life():
     for n in range(60):
         sheet = characters.template(data, {'name': f'Visitor {n}', 'description': 'A traveller.', 'personality': ''})
         assert sheet['key'] not in named
+
+
+DRAMATIS_CARD = Path(__file__).parent / 'data' / 'dramatis-card.json'
+
+
+def test_a_dramatis_card_arrives_as_written_with_only_a_home_from_town(client):
+    """A card exported from Prospero's Dramatis (tests/data/dramatis-card.json, made by its cards.card) carries
+    Companion's own shape of the character: it is used word for word, and the town lends where they live."""
+    exported = json.loads(DRAMATIS_CARD.read_text(encoding='utf-8'))
+    shape = exported['data']['extensions']['prospero']['apps']['companion']
+    shape['timezone'] = 'Asia/Tokyo'  # Drafted on a laptop abroad.
+    made = bring(client, 'Dana Okafor.json', as_json(exported))
+    definition = made['companion']['version']['definition']
+    assert made['format'] == "Prospero's Dramatis character (Character Card V3)"
+    for key in ('name', 'identity', 'personality', 'voice', 'skills', 'flaws', 'interests', 'background', 'appearance',
+                'routine', 'schedule', 'life_themes', 'texting', 'emotional_traits', 'absence_reaction', 'seen_as',
+                'sees_self', 'looks', 'personality_sliders'):
+        assert definition[key] == shape[key], key
+    # Where they live is the town's: its city and clock, not the browser's zone the draft was made in.
+    assert definition['home_city'] == 'baltimore' and definition['timezone'] == 'America/New_York'
+
+
+def test_a_dramatis_card_this_version_cannot_take_is_read_like_any_card(client):
+    exported = json.loads(DRAMATIS_CARD.read_text(encoding='utf-8'))
+    exported['data']['extensions']['prospero']['apps']['companion']['starting_closeness'] = 99
+    made = bring(client, 'Dana Okafor.json', as_json(exported))
+    definition = made['companion']['version']['definition']
+    assert definition['name'] == 'Dana Okafor' and 'Lives in' in definition['identity']
