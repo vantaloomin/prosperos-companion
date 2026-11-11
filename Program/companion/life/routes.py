@@ -34,6 +34,7 @@ from companion.life import (
     long_distance,
     loss,
     love_life,
+    love_pick,
     money,
     mood,
     moving_in,
@@ -95,6 +96,9 @@ class PersonAbout(Input):
     # Whether they and the companion know each other, or only one knows the other; '' hands it back to the app
     # (circle.knowing).
     knowing: Literal['', 'both', 'they', 'companion'] | None = None
+    # Their love life (companion/life/love_pick.py); '' hands it back to the app. Who with, in the user's words.
+    love: Literal['', 'single', 'seeing', 'engaged', 'married'] | None = None
+    partner_name: str | None = Field(default=None, max_length=60)
 
 
 class PersonTie(Input):
@@ -387,6 +391,19 @@ def edit_person(request: Request, person_id: str, body: PersonAbout):
     world = request.app.state.life.world
     return circle_change(request, person_id, lambda connection, now: circle_edit.edit(
         connection, require_current(connection), world, person_id, body.model_dump(exclude_unset=True), now))
+
+
+@router.get('/circle/{person_id}/love')
+def person_love(request: Request, person_id: str):
+    """Their love life as the app has it now, for Edit person, and where everyone else in the circle stands, for
+    "Who with" (companion/life/love_pick.py)."""
+    with db(request).connect() as connection:
+        companion = require_current(connection)
+        row = circle.person(connection, person_id)
+        require(row['timeline_id'] == companion['active_timeline_id'], 'That person is not in the circle.', 404)
+        people = circle.people(connection, row['timeline_id'])
+        return love_pick.shown(connection, companion, row, people) | {'people': [
+            item for item in love_pick.suggestions(connection, companion, people) if item['id'] != person_id]}
 
 
 @router.put('/circle/{person_id}/ties')

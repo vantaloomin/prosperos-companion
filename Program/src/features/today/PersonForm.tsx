@@ -2,7 +2,10 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { SuggestInput } from '../../components/SuggestInput'
 import { api } from '../../api'
-import type { CareerSummary, CirclePerson } from '../../types'
+import type { CareerSummary, CircleLove, CirclePerson } from '../../types'
+import { InfoTip } from '../../components/InfoTip'
+import { LOVE_CHOICES, LOVE_TIP, appLove, loveSuggestions, withPartner, type LovePick, type LoveValues } from './loveText'
+import { useCircleLove } from './useCircleLove'
 import { NOTE_MAX, RELATION_WORDS, appKnowing, knowingChoices, knowingHint, knowingPick, aboutChange, aboutForm, aboutSaved, ageClamp, noteCount, placeWords, type AboutValues } from './circleText'
 import { useCircleHome } from './useCircleHome'
 import { PAIR_STAGES } from '../memories/pairText'
@@ -28,10 +31,11 @@ export function PersonForm({ person, companion, act, onDone, local }: Props) {
   const jobs = [...new Set((careers.data ?? []).filter((career) => !career.adult).map((career) => career.name))].sort()
   const set = (change: Partial<AboutValues>) => setValues((current) => ({ ...current, ...change }))
   const prefix = `about-${person?.id ?? 'new'}`
+  const love = useCircleLove(person)
   const pick = person ? undefined : 'Let the app pick'
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    const change = aboutChange(form.values, values, !person)
+    const change = { ...aboutChange(form.values, values, !person), ...love.change() }
     if (person && Object.keys(change).length === 0) { onDone(false); return }
     const path = person ? `/life/circle/${person.id}/about` : '/life/circle/people'
     if (await act(() => api(path, change, person ? 'PUT' : 'POST'), aboutSaved(person, values.name.trim(), companion), local)) onDone(true)
@@ -48,6 +52,7 @@ export function PersonForm({ person, companion, act, onDone, local }: Props) {
       </Text>
       <Knowing prefix={prefix} person={person} companion={companion} values={values} set={set} />
       <Start prefix={prefix} person={person} companion={companion} values={values} set={set} />
+      {love.info && love.values && <LoveLife prefix={prefix} info={love.info} values={love.values} set={love.set} />}
       <Basics prefix={prefix} values={values} set={set} adding={!person} current={form.values.age} />
       <div className="circle-form-row circle-form-work">
         <Text id={`${prefix}-job`} label="Job" hint="In your words, like Photography student or Retired. Their hours follow the job.">
@@ -98,6 +103,33 @@ function Start({ prefix, person, companion, values, set }: KnowingProps) {
     </Text>
   )
 }
+
+interface LoveProps { prefix: string; info: CircleLove; values: LoveValues; set: (change: Partial<LoveValues>) => void }
+
+/** Their own love life, after closeness: the app's while left to it; "Who with" only for someone with a partner, one
+ * row on desktop and stacked on a phone (Iris, relationship control direction). */
+function LoveLife({ prefix, info, values, set }: LoveProps) {
+  const people = loveSuggestions(info)
+  const id = `${prefix}-love`
+  return (
+    <div className="circle-form-row">
+      <div className="circle-field">
+        <span className="label-with-tip"><label htmlFor={id}>Their love life</label><InfoTip id={`${id}-tip`} label="Their love life" text={LOVE_TIP} /></span>
+        <select id={id} value={values.love} aria-describedby={`${id}-tip`} onChange={(event) => set({ love: loveOf(event.target.value) })}>
+          <option value="">{appLove(info)}</option>
+          {LOVE_CHOICES.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+        </select>
+      </div>
+      {withPartner(values.love) && (
+        <Text id={`${prefix}-partner`} label="Who with">
+          <SuggestInput id={`${prefix}-partner`} value={values.partner} options={people.options} notes={people.notes} placeholder="Let the app pick" maxLength={60} onChange={(partner) => set({ partner })} />
+        </Text>
+      )}
+    </div>
+  )
+}
+
+const loveOf = (value: string): LovePick => LOVE_CHOICES.some((choice) => choice.value === value) ? value as LovePick : ''
 
 const knowingOf = (value: string): AboutValues['knowing'] => value === 'both' || value === 'they' || value === 'companion' ? value : ''
 
