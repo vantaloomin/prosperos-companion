@@ -81,6 +81,9 @@ def test_drama_sets_what_can_happen(client, social, monkeypatch):
                                client.app.state.database.clock.now())
         definition = companion['version']['definition']
         drunk = storylines.find_story('drunk_kiss')
+        # Single, whatever their seeded people say (companion/life/circle_love.py): the kiss needs a single friend.
+        people = [{**person, 'details': json.dumps({**json.loads(person['details']), 'partner': {'state': 'single'}})}
+                  for person in people]
         assert storylines.casts(drunk, people, definition)
         assert storylines.casts(drunk, people, {**definition, 'relationship': 'romance'}) == []
         levels = {0: set(), 3: set()}
@@ -154,7 +157,7 @@ def spread_news(client) -> list[str]:
 
 def test_removing_someone_ends_their_storylines(client, social, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
-    monkeypatch.setattr(storylines, 'STORIES', tuple(story for story in storylines.STORIES if story.cast == 'friend'))
+    monkeypatch.setattr(storylines, 'STORIES', tuple(story for story in storylines.STORIES if story.cast.startswith('friend ')))
     reconcile(client)
     item = client.get('/api/life/storylines').json()[0]
     client.post(f"/api/life/circle/{item['cast'][0]['id']}/remove")

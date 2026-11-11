@@ -52,6 +52,48 @@ def span(block: dict) -> str:
     hour = int((block.get('start') or '18:00')[:2])
     return 'morning' if hour < 12 else 'afternoon' if hour < 17 else 'evening'
 
+# A free block the character's schedule names by what it holds ("Bathhouse and cards", "Training yard") is that
+# activity, every time: the composer's own pick (a museum, a pastime session) would contradict what the chat already
+# told the user from the block's label (Vanta, 2026-11-09). Blocks named only as a stretch of time ("Free time after
+# work", "Day off", "Evening") are still filled by the composer.
+NAMED_KINDS = {'leisure', 'social', 'rest'}
+GENERIC_WORDS = SPAN_WORDS | {
+    'free', 'after', 'before', 'work', 'school', 'days', 'mornings', 'afternoons', 'evenings', 'nights', 'late',
+    'early', 'midday', 'noon', 'tonight', 'today', 'weekday', 'weekends', 'quiet', 'in', 'at', 'out', 'home', 'the',
+    'a', 'an', 'and', 'my', 'me', 'own', 'retired', 'downtime', 'leisure', 'rest', 'relax', 'relaxing', 'personal',
+    'spare', 'chill', 'unwind', 'unwinding', 'lazy', 'slow', 'open', 'nothing', 'planned', 'plans', 'monday',
+    'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    # Time with people in general ("Out with friends", "Seeing people") is what the composer's social picks are.
+    'with', 'friends', 'friend', 'mates', 'pals', 'people', 'others', 'social', 'socialising', 'socializing', 'seeing',
+    'hanging', 'hang', 'catch', 'catching', 'up'}
+
+
+def named(block: dict) -> bool:
+    """Whether a free block's label names what it holds, so that is what happens in it."""
+    if block.get('kind') not in NAMED_KINDS or any(block.get(key) for key in ('holiday', 'sick_day', 'with_user',
+                                                                                'trip', 'arrival', 'planned')):
+        return False
+    words = set(re.findall(r"[a-z]+", (block.get('label') or '').casefold()))
+    return bool(words - GENERIC_WORDS)
+
+
+def usual(block: dict) -> str:
+    """A named block as it always goes: "afternoon as usual: Bathhouse and cards (rest, gambling)." """
+    themes = [theme.strip() for theme in block.get('themes') or () if theme and theme.strip()]
+    notes = f" ({', '.join(themes)})" if themes else ''
+    hour = block_hour(block)
+    part = 'morning' if hour < 12 else 'afternoon' if hour < 17 else 'evening'
+    return f"{part} as usual: {block['label'].strip()}{notes}."
+
+
+def own_block(slot: dict, definition: dict) -> dict:
+    """The entry for a named block: what its label (and the notes under it) say."""
+    block = slot['block']
+    return {'summary': f"{definition['name']} spent the {usual(block)}", 'post': f"{block['label'].strip()}.",
+            'mood': 'content', 'activity': 'own-block', 'place': None, 'with': None, 'weather': block.get('weather'),
+            'composer_version': COMPOSER_VERSION}
+
+
 def activity(key, place_kinds, summaries, captions, moods, generic='', together=()) -> Activity:
     """`generic` stands in for " at <place>" when the world has no matching place. `together` are
     summaries naming a circle member ({friend}) who is free at the time."""
