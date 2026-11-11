@@ -22,7 +22,10 @@ def of_city(city: dict | None) -> str:
 def auto(connection) -> str:
     """The unit the app picks for this world: by the companion's city (or the user's, before there is a companion)."""
     from companion import story  # story reads agenda, which says the weather in this unit
-    from companion.world import changes, custom
+    from companion.world import changes, custom, newcomers
+    companion = story.current(connection)
+    if companion:
+        return of_city(newcomers.city_for(connection, companion['version']['definition']))
     return of_city(changes.resolve(story.default_city(connection), custom.all_cities(connection)))
 
 
