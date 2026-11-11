@@ -839,6 +839,16 @@ def own_tie(first: dict, second: dict) -> str | None:
     return None
 
 
+def app_tie(first: dict, second: dict) -> str | None:
+    """How a life event left two of them (`details.ties`, companion/life/circle_love.py tie_between), '' for not
+    speaking; None where no event has said."""
+    for one_side, other in ((first, second), (second, first)):
+        found = details_of(one_side).get('ties') or {}
+        if other.get('seed') in found:
+            return found[other['seed']]
+    return None
+
+
 def tie(first: dict, second: dict, older: bool = False, city: dict | None = None) -> str | None:
     """tie_of, with a same-sex couple the app made married partners instead before they could marry (could_marry)."""
     how = tie_of(first, second, older)
@@ -864,6 +874,9 @@ def tie_of(first: dict, second: dict, older: bool = False) -> str | None:
     told = own_tie(first, second)
     if told is not None:
         return told or None
+    happened = app_tie(first, second)  # A life event's word (companion/life/happenings.py) comes next.
+    if happened is not None:
+        return happened or None
     kinds = {role_kind(first['role']), role_kind(second['role'])}
     pair = ':'.join(sorted((first['id'], second['id'])))
     if planned := planned_tie(first, second):  # Their family plan says (companion/life/family_circle.py).
@@ -873,7 +886,7 @@ def tie_of(first: dict, second: dict, older: bool = False) -> str | None:
         return ('separated' if older else 'divorced') if parted else 'married'
     if kinds <= FAMILY:
         return 'family'
-    if kinds == {'coworker'}:
+    if kinds == {'coworker'} or kinds == {'coworker', 'former coworker'}:  # Leaving the job (happenings.left_job).
         return 'coworkers'
     if kinds <= OLD_FRIENDS:
         return 'old friends'

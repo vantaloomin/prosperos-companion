@@ -30,6 +30,14 @@ RELATIONS = (('friend', 30, 5, False), ('coworker', 18, 12, False), ('sibling', 
              ('cousin', 6, 10, True), ('ex', 3, 4, False), ('gym buddy', 6, 8, False))
 PARTNER_SHARE = 0.45
 PARTNERS = ('partner', 'girlfriend', 'boyfriend')
+# Someone's partner by the state of their love life (companion/life/circle_love.py), and an ex by how far they got.
+LOVE_WORDS = {'seeing': {'she/her': 'girlfriend', 'he/him': 'boyfriend'},
+              'engaged': {'she/her': 'fiancée', 'he/him': 'fiancé', '': 'fiancé'},
+              'married': {'she/her': 'wife', 'he/him': 'husband', '': 'spouse'},
+              'separated': {'she/her': 'wife', 'he/him': 'husband', '': 'spouse'}}
+EX_WORDS = {False: {'she/her': 'ex-girlfriend', 'he/him': 'ex-boyfriend'}, True: {'she/her': 'ex-wife', 'he/him': 'ex-husband'}}
+# A partner's partner is the person we came from, whatever the word for them.
+TAKEN = {*PARTNERS, 'fiancée', 'fiancé', 'wife', 'husband', 'spouse'}
 WORDS = {('sibling', 'she/her'): 'sister', ('sibling', 'he/him'): 'brother', ('partner', 'she/her'): 'girlfriend',
          ('partner', 'he/him'): 'boyfriend'}
 # Gatherings a circle friend hosts: (key, wording, months or None for any).
@@ -49,13 +57,21 @@ POSTS = ('Full house tonight.', 'Met some good people.', 'Hosting done right.', 
 
 # People ------------------------------------------------------------------------------------------
 
-def root(row: dict) -> dict:
-    """A circle member as the first layer: what their people are built around."""
+def root(row: dict, love: dict | None = None, voice: str = '') -> dict:
+    """A circle member as the first layer: what their people are built around. `love` is their love life of record
+    (circle_love.state), which decides who their partner and exes are among their people."""
     details = decode(row['details']) if isinstance(row['details'], str) else row['details']
     full = details.get('full_name') or row['name']
     return {'key': row['seed'], 'name': row['name'], 'full': full, 'family': full.split()[-1] if ' ' in full else '',
             'age': details.get('age') or 33, 'depth': 1, 'how': row['name'], 'circle_id': row['id'],
-            'pronouns': details.get('pronouns', '')}
+            'pronouns': details.get('pronouns', ''), 'love': love, 'voice': voice}
+
+
+def rooted(connection, row: dict, people: list[dict] | None = None) -> dict:
+    """root, with their love life of record and the city's words."""
+    from companion.life import circle_love
+    rows = people if people is not None else circle.people(connection, row['timeline_id'])
+    return root(row, circle_love.state(connection, row, rows), circle.voice_of(connection, row['timeline_id']))
 
 
 def relation_word(relation: str, pronouns: str) -> str:
@@ -83,12 +99,96 @@ def their_people(parent: dict, data: dict, taken=frozenset()) -> list[dict]:
                        'age': age, 'relation': word, 'depth': parent['depth'] + 1, 'of': parent['name'],
                        'how': how, 'short': short, 'circle_id': parent['circle_id'],
                        'occupation': occupation(data, key, age, person['pronouns'])})
+    if parent['depth'] == 1 and parent.get('love'):
+        return with_love(parent, result, data, used)
     return result
+
+
+# Their love life among their people -----------------------------------------------------------------------------
+
+def love_word(state: str, pronouns: str, voice: str = '') -> str:
+    words = LOVE_WORDS.get(state, LOVE_WORDS['seeing'])
+    return circle.era_word(words.get(pronouns, words.get('', 'partner')), voice)
+
+
+def ex_word(ex: dict, pronouns: str) -> str:
+    return EX_WORDS[bool(ex.get('married'))].get(pronouns, 'ex')
+
+
+def labelled(parent: dict, item: dict, word: str, **extra) -> dict:
+    short = f"{parent['name']}'s {word}"
+    return {**item, 'relation': word, 'short': short, 'how': short, **extra}
+
+
+def relabel(parent: dict, key: str, relation: str, pronouns: str) -> tuple[str, bool] | None:
+    """What one of a circle member's own people is to them now, by their love life of record: (word, ex), or None
+    when it is what the seed says."""
+    love = parent.get('love') or {}
+    partner = love.get('partner') or {}
+    if key == partner.get('key'):
+        return love_word(love['state'], pronouns, parent.get('voice', '')), False
+    ex = next((item for item in love.get('exes') or () if item.get('key') == key), None)
+    if ex:
+        return ex_word(ex, pronouns), True
+    if relation in PARTNERS and love.get('decided') != 'seed':
+        # Their seeded partner is not theirs: they keep their name and become someone else to them.
+        options = [item for item in RELATIONS if not item[3] and item[0] != 'ex']
+        word = generators.pick(key, 'instead', options, [item[1] for item in options])[0]
+        return relation_word(word, pronouns), False
+    return None
+
+
+def with_love(parent: dict, people: list[dict], data: dict, used: set) -> list[dict]:
+    """Their people with their love life of record: the partner first, by the word for where they are, the seeded
+    partner who is not theirs as someone else, and exes last. A partner or ex who is in the circle (or the companion)
+    is not listed again."""
+    current, rest, past = [], [], []
+    for item in people:
+        found = relabel(parent, item['key'], item['relation'], item['pronouns'])
+        if not found:
+            rest.append(item)
+            continue
+        word, ex = found
+        target = past if ex else current if item['key'] == ((parent['love'].get('partner') or {}).get('key')) else rest
+        target.append(labelled(parent, item, word, **({'ex': True} if ex else {})))
+    listed = {item['key'] for item in people}
+    love = parent['love']
+    partner = love.get('partner') or {}
+    if partner.get('key') and partner['key'] not in listed and outside(partner):
+        current.append(labelled(parent, made(parent, partner, data, used), love_word(
+            love['state'], partner.get('pronouns', ''), parent.get('voice', ''))))
+    for ex in love.get('exes') or ():
+        if ex.get('key') and ex['key'] not in listed and outside(ex):
+            person = made(parent, ex, data, used)
+            past.append(labelled(parent, person, ex_word(ex, person['pronouns']), ex=True))
+    return current + rest + past
+
+
+def outside(person: dict) -> bool:
+    """Not someone in the circle, and not the companion."""
+    return not person.get('circle_id') and person.get('key') != 'companion'
+
+
+def made(parent: dict, person: dict, data: dict, used: set) -> dict:
+    """A partner or ex who is not one of their seeded people: as recorded, else named from their key."""
+    key = person['key']
+    age = max(18, parent['age'] + round((generators.unit(key, 'age') * 2 - 1) * 4))
+    if person.get('name'):
+        full = person.get('full') or person['name']
+        named_ = {'given': person['name'], 'full': full, 'family': full.split()[-1] if ' ' in full else '',
+                  'pronouns': person.get('pronouns') or ''}
+    else:
+        named_ = named(data, key, age, None, used, parent['family'])
+    used.add(named_['given'])
+    return {'key': key, 'name': named_['given'], 'full': named_['full'], 'family': named_['family'],
+            'pronouns': named_['pronouns'], 'age': age, 'relation': '', 'depth': parent['depth'] + 1,
+            'of': parent['name'], 'how': '', 'short': '', 'circle_id': parent['circle_id'],
+            'occupation': occupation(data, key, age, named_['pronouns'])}
 
 
 def choose_relation(key: str, index: int, parent_relation: str | None) -> tuple[str, int, bool]:
     # A partner's partner is the person we came from, so a partner gets no partner of their own.
-    partner = parent_relation not in PARTNERS and index == 0 and generators.unit(key, 'partner') < PARTNER_SHARE
+    partner = parent_relation not in TAKEN and index == 0 and generators.unit(key, 'partner') < PARTNER_SHARE
     if partner:
         return 'partner', 4, False
     relation, _weight, spread, related = generators.pick(key, 'relation', list(RELATIONS),
@@ -154,7 +254,7 @@ def find(connection, companion: dict, key: str) -> dict | None:
                    (companion['active_timeline_id'], seed))
     if not row or len(path) >= MAX_DEPTH:
         return None
-    person, data, taken = root(row), city(connection, companion), names_taken(connection, companion)
+    person, data, taken = rooted(connection, row), city(connection, companion), names_taken(connection, companion)
     for step in path:
         found = [item for item in their_people(person, data, taken) if item['key'] == f"{person['key']}/{step}"]
         if not found:
@@ -211,8 +311,8 @@ def gathering(connection, companion: dict, slot: dict, block: dict, company: lis
     if not row:
         return None
     data, taken = city(connection, companion), names_taken(connection, companion)
-    hosts = root(row)
-    guests = their_people(hosts, data, taken)
+    hosts = rooted(connection, row)
+    guests = [person for person in their_people(hosts, data, taken) if not person.get('ex')]
     if not guests:
         return None
     picked = sorted(guests, key=lambda item: generators.unit(seed, 'guest', item['key']))[:2 + int(
@@ -267,7 +367,8 @@ def acquaintances(connection, timeline_id: str, now) -> list[dict]:
                 'agenda.timeline_id=acquaintances.timeline_id AND agenda.slot_key=acquaintances.slot_key AND '
                 f"agenda.subject='companion' WHERE acquaintances.timeline_id=? {happened}"
                 'ORDER BY acquaintances.met_at', (timeline_id, *([stamp(now)] if now is not None else [])))
-    active = {row['seed'] for row in circle.people(connection, timeline_id)}
+    members = circle.people(connection, timeline_id)
+    active = {row['seed'] for row in members}
     first = {}
     for row in rows:
         # A meeting counts while its evening is still a gathering where they met (a rebuilt day may differ).
@@ -275,7 +376,24 @@ def acquaintances(connection, timeline_id: str, now) -> list[dict]:
         if row['key'] in met and row['key'].split('/')[0] in active and row['key'] not in first:
             first[row['key']] = {**decode(row['person']), 'key': row['key'], 'occasion': row['occasion'],
                                  'met_on': row['met_on'], 'met_at': row['met_at']}
-    return sorted(first.values(), key=lambda person: person['met_at'], reverse=True)
+    return sorted(refreshed(connection, list(first.values()), members), key=lambda person: person['met_at'], reverse=True)
+
+
+def refreshed(connection, people: list[dict], rows: list[dict]) -> list[dict]:
+    """People met through a circle member, with what they are to that member now: "Kaito's ex-girlfriend" once they
+    broke up, though the evening they met she was his girlfriend."""
+    by_seed, roots = {row['seed']: row for row in rows}, {}
+    result = []
+    for person in people:
+        seed, *path = person['key'].split('/')
+        if len(path) != 1 or seed not in by_seed:
+            result.append(person)
+            continue
+        if seed not in roots:
+            roots[seed] = rooted(connection, by_seed[seed], rows)
+        found = relabel(roots[seed], person['key'], person.get('relation') or '', person.get('pronouns') or '')
+        result.append(labelled(roots[seed], person, found[0], **({'ex': True} if found[1] else {})) if found else person)
+    return result
 
 
 def text(person: dict) -> str:

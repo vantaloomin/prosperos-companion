@@ -3024,3 +3024,25 @@ CREATE TABLE IF NOT EXISTS word_rules (
   everyone INTEGER NOT NULL DEFAULT 0 CHECK (everyone IN (0, 1)),
   created_at TEXT NOT NULL
 );
+
+-- What happened to someone in a companion's circle from a life event (companion/life/happenings.py): their diary line,
+-- and what it changed on their record (`undo` puts it back). `text` is a template with {name}, {other} and {partner},
+-- filled when read so a rename carries over; `names` holds who they are. `starts_at` is the moment, for sorting.
+CREATE TABLE IF NOT EXISTS person_events (
+  id TEXT PRIMARY KEY,
+  timeline_id TEXT NOT NULL REFERENCES timelines(id),
+  subject TEXT NOT NULL,
+  source TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  at_time TEXT NOT NULL,
+  starts_at TEXT NOT NULL,
+  tone TEXT NOT NULL DEFAULT 'mixed',
+  text TEXT NOT NULL,
+  names TEXT NOT NULL DEFAULT '{}',
+  undo TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'ended')),
+  created_at TEXT NOT NULL,
+  UNIQUE (timeline_id, subject, source)
+);
+CREATE INDEX IF NOT EXISTS person_events_subject ON person_events(timeline_id, subject, local_date);
