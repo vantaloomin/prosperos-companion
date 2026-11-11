@@ -4648,7 +4648,6 @@
     "id": "meridian-orchard-tree",
     "text": "grow a fruit tree from a seed-library seed",
     "steps": 6,
-    "news": false,
     "practice": [
      "park",
      "morning"
