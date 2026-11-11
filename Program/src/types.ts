@@ -1705,6 +1705,9 @@ export interface HomeItem {
   currency?: { code: string; symbol: string; name: string }
   /** The rent (or mortgage) as money.py says it, in the city's money: "$1,410", "8 d.", "15s.". */
   rent_text?: string
+  /** Owned outright: what its taxes and repairs cost, and what they are called in its era ("dues and repairs"). */
+  owner_costs_text?: string
+  owner_words?: string
   out_of_action?: string | null
 }
 
