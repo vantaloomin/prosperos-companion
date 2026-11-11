@@ -95,12 +95,18 @@ def uses(text: str, phrase: str) -> bool:
 
 @dataclass(frozen=True)
 class Protected:
-    """What is never flagged: names, words the user wrote, the companion's written voice and kept phrases."""
+    """What is never flagged: names, words the user wrote, the companion's written voice and kept phrases. `names` are
+    single words of people's names (the user's name and nickname, the companion's, the people in their lives);
+    `places` are whole place names, so "the" in "The Rusty Anchor" still counts in other phrases."""
     names: frozenset = frozenset()
     said: str = ''
+    places: frozenset = frozenset()
 
     def covers(self, phrase: str) -> bool:
         if any(word in self.names for word in WORD.findall(phrase.casefold())):
+            return True
+        text = plain(phrase)
+        if any(compiled(place).search(text) or compiled(phrase).search(place) for place in self.places):
             return True
         return bool(self.said) and bool(compiled(phrase).search(self.said))
 
@@ -172,13 +178,52 @@ def swaps(rows) -> list[tuple[str, str]]:
             if row['action'] in ('drop', 'swap')]
 
 
-def protected_for(connection, timeline_id, definition, messages, rows) -> Protected:
+# The user's own name and what they go by, as memories hold them (companion/memory/extraction.py).
+USER_NAME_KEYS = ('preferred_name', 'nickname')
+
+
+def user_names(connection, timeline_id) -> list[str]:
+    """What the user is called: their persona's name, the nickname they gave the companion to use, and the name or
+    nickname they said in chat."""
+    persona = optional(connection, 'SELECT name FROM persona WHERE id=1')
+    closeness = optional(connection, 'SELECT nickname FROM closeness_settings WHERE timeline_id=?', (timeline_id,))
+    said = many(connection, "SELECT value FROM memories WHERE timeline_id=? AND status='active' AND layer='user_fact' "
+                f"AND subject_key IN ({', '.join('?' * len(USER_NAME_KEYS))})", (timeline_id, *USER_NAME_KEYS))
+    return [persona['name'] if persona else '', closeness['nickname'] if closeness else '',
+            *(row['value'] for row in said)]
+
+
+def people_names(connection, timeline_id, definition) -> set[str]:
+    """Every word of a name: the user's, the companion's, the people in the companion's life and the user's own."""
     from companion.life import circle
-    names = {word.casefold() for row in circle.people(connection, timeline_id, include_removed=True)
-             for word in row['name'].split()} | {word.casefold() for word in definition.get('name', '').split()}
+    texts = [*user_names(connection, timeline_id), definition.get('name', ''),
+             *(row['name'] for row in circle.people(connection, timeline_id, include_removed=True))]
+    texts += [row['name'] or '' for row in many(
+        connection, 'SELECT name FROM user_people WHERE companion_id=(SELECT companion_id FROM timelines WHERE id=?)',
+        (timeline_id,))]
+    return {word.casefold() for text in texts for word in WORD.findall(plain(text or ''))}
+
+
+def place_names(connection, definition) -> set[str]:
+    """The companion's city by name, with its aliases, neighbourhoods, places and employers."""
+    from companion.errors import DomainError
+    from companion.life import ages
+    try:
+        data = ages.city_of(connection, definition)
+    except DomainError:
+        data = None
+    if not data:
+        return set()
+    names = [data.get('name', ''), *data.get('aliases', ()),
+             *(item.get('name', '') for key in ('neighborhoods', 'places', 'employers') for item in data.get(key, ()))]
+    return {plain(name).strip().casefold() for name in names if isinstance(name, str) and WORD.search(name)}
+
+
+def protected_for(connection, timeline_id, definition, messages, rows) -> Protected:
     said = [message['text'] for message in messages if message['role'] == 'user']
     said += [definition.get('voice') or '', *(row['phrase'] for row in rows if row['action'] == 'keep')]
-    return Protected(frozenset(names), plain('\n'.join(said)))
+    return Protected(frozenset(people_names(connection, timeline_id, definition)), plain('\n'.join(said)),
+                     frozenset(place_names(connection, definition)))
 
 
 def window(messages: list[dict]) -> list[dict]:
