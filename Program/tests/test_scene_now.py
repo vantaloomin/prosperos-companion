@@ -234,3 +234,25 @@ def test_the_app_s_own_move_wins_when_it_fires(client, mira, provider, clock, mo
     assert where(client)['text'] == f"Outside {outing['place']['name']}"
     clock.advance(timedelta(hours=1, minutes=31))  # 21:01: Second location moved them on.
     assert where(client)['text'] == f"Together at {stop['place']['name']}"
+
+
+def test_today_s_out_together_card_follows_the_scene_like_the_strip(client, mira, provider, clock):
+    """Today's Out together card shows where the chat took them, not the plan (1.4 E2E, Vanta 2026-11-11)."""
+    outing = dinner_tonight(client, provider, 'scene-0010')
+    clock.advance(timedelta(hours=7, minutes=30))
+    provider.replies.append([Chunk('*smiles and takes your arm*'), Chunk('', 'stop')])
+    send(client, '*we finish dinner and walk down to the harbor together*', 'scene-0011')
+    [card] = client.get('/api/life/outings').json()['outings']
+    strip = where(client)['outing']
+    assert card['state'] == 'now'
+    assert card['place'] == strip['place'] and card['place']['label'].startswith('on the way to the harbor')
+    assert card['scene'] == strip['scene'] == {'back': True, 'to': outing['place']['name'], 'kind': 'way'}
+    assert card['came_from']['name'] == outing['place']['name'] and card['moved_at'] == '19:30'
+    # Back to the restaurant on the strip puts the card back too.
+    assert client.post(f"/api/life/outings/{outing['id']}/scene-back").status_code == 200
+    [card] = client.get('/api/life/outings').json()['outings']
+    assert card['place']['id'] == outing['place']['id'] and not card.get('scene')
+    # Once it is over, the card keeps the plan as it was.
+    clock.advance(timedelta(hours=4))
+    [card] = client.get('/api/life/outings').json()['outings']
+    assert card['state'] == 'done' and card['place']['id'] == outing['place']['id']
