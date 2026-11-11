@@ -194,6 +194,20 @@ SICK = activity('sick-day', (), ['{name} stayed home with a cold, sleeping most 
                                  '{name} spent the {label} on the sofa with tea, tissues and a cold.'],
                 ['Tea, blanket, tissues. Repeat.', 'Officially a couch creature today.', 'Send soup.'],
                 ['under the weather'])
+# A hospital stay, the rest after it, or a day of treatment (companion/life/health_stays.py): a sick day to every rule
+# that reads one, in its own words.
+STAYS = {
+    'hospital': activity('sick-day', (), ['{name} spent the {label} in the hospital.',
+                                               '{name} was in a hospital bed all {label}, between check-ins.'],
+                         ['Hospital food is exactly as advertised.', 'Visiting hours are the highlight.'],
+                         ['worn out']),
+    'home': activity('sick-day', (), ['{name} spent the {label} at home, taking it easy.',
+                                        '{name} rested up at home through the {label}.'],
+                     ['Doctor says rest. Resting.', 'Couch, blanket, slow going.'], ['tired']),
+    'treatment': activity('sick-day', (), ['{name} spent the {label} at treatment.',
+                                                '{name} had treatment through the {label}.'],
+                          ['Treatment day. One more done.', 'Long day at the clinic.'], ['tired']),
+}
 CALM = {'reading', 'home-cooking', 'coffee', 'walk', 'slow', 'nap'}
 
 # The hours (of the day the block starts, past midnight counted on from 24) an outing fits, so dinner is never at ten
@@ -645,8 +659,9 @@ def find_places(world, definition: dict, slot: dict, kinds) -> list:
 
 
 def sick_day(rng, block: dict, definition: dict) -> dict:
-    return {'summary': rng.choice(SICK.summaries).format(name=definition['name'], label=span(block)),
-            'post': rng.choice(SICK.captions), 'mood': SICK.moods[0], 'activity': SICK.key, 'place': None,
+    found = STAYS.get(block.get('stay'), SICK)
+    return {'summary': rng.choice(found.summaries).format(name=definition['name'], label=span(block)),
+            'post': rng.choice(found.captions), 'mood': found.moods[0], 'activity': found.key, 'place': None,
             'with': None, 'weather': block.get('weather'), 'composer_version': COMPOSER_VERSION}
 
 

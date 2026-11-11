@@ -10,7 +10,7 @@ For the companion, the agenda is scaffolding: what they did becomes part of thei
 through reviewed life events, which the capped batches (T5) draw from these entries. Circle
 members' happened entries are their visible diary.
 """
-from datetime import timedelta
+from datetime import date, timedelta
 
 from companion import consequences, self_facts
 from companion.almanac.context import city_for as almanac_city
@@ -33,6 +33,7 @@ from companion.life import (
     families,
     grooming,
     happenings,
+    health_stays,
     hobbies,
     home,
     joint,
@@ -91,7 +92,9 @@ def subjects(connection, companion, world, now) -> list[tuple[str, dict, str]]:
                                       'home_city': definition.get('home_city', ''),
                                       'location': definition.get('location', ''),
                                       'near': decode(person['details']).get('neighborhood', ''),
-                                      'haunts': decode(person['details']).get('haunts', [])},
+                                      'haunts': decode(person['details']).get('haunts', []),
+                                      # A hospital stay or a sick spell they were said to have (health_stays.py).
+                                      'stay': decode(person['details']).get('health')},
                        f"{person['id']}:{person['revision']}"))
     # What the companion has said they like or dislike leans their plans too (companion/self_facts.py).
     result.append((COMPANION, {**definition, 'self_tastes': self_facts.tastes(connection, companion['active_timeline_id']),
@@ -532,9 +535,11 @@ def repin(connection, timeline_id, plans: dict) -> int:
 def day_facts(connection, timeline_id, subject, definition, world, day, holiday) -> dict:
     """What every block on one local date shares: weather, annual events, a holiday and how the subject feels."""
     local_date = day.isoformat()
+    stay = health_stays.on(definition.get('stay'), day, subject) if subject != COMPANION else None
     return {'weather': composer.weather(world, definition, local_date),
-            'happenings': composer.happenings(world, definition, local_date), 'holiday': holiday,
-            'body': body.state_on(f'{timeline_id}:{subject}', day,
+            'happenings': composer.happenings(world, definition, local_date), 'holiday': holiday, 'stay': stay,
+            # In the hospital or home recovering, the day is the stay, not a cold or a hangover.
+            'body': None if stay else body.state_on(f'{timeline_id}:{subject}', day,
                                   body.previous_entries(connection, timeline_id, subject, day), world, definition)
             # A broken night with the pair's little one (companion/life/our_child.py), or with their own
             # (companion/life/own_family.py).
@@ -543,7 +548,7 @@ def day_facts(connection, timeline_id, subject, definition, world, day, holiday)
 
 
 def day_block(block: dict, facts: dict) -> dict:
-    block = body.apply(holiday_block(block, facts['holiday']), facts['body'])
+    block = health_stays.apply(body.apply(holiday_block(block, facts['holiday']), facts['body']), facts.get('stay'))
     if facts['weather']:
         block['weather'] = facts['weather']
     if facts['happenings']:
@@ -687,7 +692,21 @@ def current(connection, timeline_id, subject, now) -> dict | None:
     """The block a subject is in right now: where they are, never what will happen there."""
     row = optional(connection, 'SELECT * FROM life_agenda WHERE timeline_id=? AND subject=? AND starts_at<=? '
                    'AND ends_at>? LIMIT 1', (timeline_id, subject, stamp(now), stamp(now)))
-    return decode(row['block']) if row else None
+    return decode(row['block']) if row else between_stays(connection, timeline_id, subject, now)
+
+
+def between_stays(connection, timeline_id, subject, now) -> dict | None:
+    """Between two blocks, someone on a hospital stay or resting at home (companion/life/health_stays.py) is still
+    there, by the day of their next block."""
+    if subject == COMPANION:
+        return None
+    row = optional(connection, 'SELECT a.local_date, p.details FROM life_agenda a JOIN circle_people p ON p.id=a.subject '
+                   'WHERE a.timeline_id=? AND a.subject=? AND a.starts_at>? ORDER BY a.starts_at LIMIT 1',
+                   (timeline_id, subject, stamp(now)))
+    where = row and health_stays.on((decode(row['details']) or {}).get('health'), date.fromisoformat(row['local_date']),
+                                    subject)
+    return {'kind': 'rest', 'label': where['label'], 'stay': where['where']} if where and where['where'] != 'treatment' \
+        else None
 
 
 def day_on(connection, timeline_id, local_date) -> dict:

@@ -61,9 +61,11 @@ def moved(event) -> list[dict]:
 
 
 def unwell(event) -> list[dict]:
-    """In hospital, after surgery, hurt, ill or diagnosed: what it is and since when; a diagnosis means treatment."""
-    from companion.life import happenings, records
-    found = {'health': {'what': event.kind, 'since': event.day}}
+    """In hospital, after surgery, hurt, ill or diagnosed: what it is and since when; a diagnosis means treatment. The
+    stay that fits the cause (companion/life/health_stays.py) keeps them out of their days for as long as it lasts."""
+    from companion.life import happenings, health_stays, records
+    stay = health_stays.plan(event.kind, event.given, event.day, f"{event.row['seed']}:{event.source}")
+    found = {'health': {'what': event.kind, 'since': event.day, **stay}}
     if event.kind == 'diagnosed':
         found['in_treatment_since'] = event.day
     return happenings.listed(records.write(event.connection, event.row['id'], event.now, found))
