@@ -63,7 +63,8 @@ EDITABLE_KINDS = ('restaurant', 'cafe', 'bar', 'nightlife', 'museum', 'attractio
 
 def stored(connection, city_id: str) -> list[dict]:
     return [decode(row['place']) | {'added': row['origin']} for row in many(
-        connection, 'SELECT place, origin FROM added_places WHERE city_id=? ORDER BY created_at, place_id', (city_id,))]
+        connection, 'SELECT place, origin FROM added_places WHERE city_id=? AND removed=0 ORDER BY created_at, place_id',
+        (city_id,))]
 
 
 def merge(connection, data: dict | None) -> dict | None:
@@ -149,24 +150,26 @@ def guess(sentence: str, data: dict | None, activity_kinds: tuple[str, ...] = ()
     found = catalog.find(data, place_id)
     if found:
         return found
-    label = LABELS.get(kind, kind)
-    summary = f"{'An' if label[:1] in 'aeiou' else 'A'} {label} in {hood['name']}."
-    place = changes.new_place(data, kind, name, hood['id'], summary, place_id, place_id)
+    # No description: "A restaurant in The Quays" would only repeat the card's subtitle (Iris, 2026-11-11).
+    place = changes.new_place(data, kind, name, hood['id'], '', place_id, place_id)
     return place | {'tags': [tag for tag in place['tags'] if tag != 'new'], 'cuisine': '', 'source': 'named',
                     'added': 'named'}
 
 
 def add(connection, data: dict, place: dict, message_id: str | None, now: str) -> None:
-    """Keep a guessed place in this world (once per name)."""
+    """Keep a guessed place in this world (once per name; named again after it was taken off the map, it is back as
+    it was)."""
     fields = {key: value for key, value in place.items() if key != 'added'}
     connection.execute(
-        "INSERT OR IGNORE INTO added_places (city_id, place_id, origin, place, message_id, created_at, updated_at) "
-        "VALUES (?, ?, 'named', ?, ?, ?, ?)", (data['id'], place['id'], encode(fields), message_id, now, now))
+        "INSERT INTO added_places (city_id, place_id, origin, place, message_id, created_at, updated_at) "
+        "VALUES (?, ?, 'named', ?, ?, ?, ?) ON CONFLICT(city_id, place_id) DO UPDATE SET removed=0",
+        (data['id'], place['id'], encode(fields), message_id, now, now))
 
 
 def edit(connection, data: dict, place_id: str, change: dict, now: str) -> dict:
     """The user's own details for an added place: its name, kind, neighborhood and description."""
-    row = optional(connection, 'SELECT place FROM added_places WHERE city_id=? AND place_id=?', (data['id'], place_id))
+    row = optional(connection, 'SELECT place FROM added_places WHERE city_id=? AND place_id=? AND removed=0',
+                   (data['id'], place_id))
     require(row is not None, 'Only places added to this map can be changed here.', 404)
     place = decode(row['place'])
     if change.get('name') is not None:
@@ -184,8 +187,8 @@ def edit(connection, data: dict, place_id: str, change: dict, now: str) -> dict:
     return place
 
 
-def remove(connection, data: dict, place_id: str) -> None:
-    """Take an added place off the map. Outings and days already there keep it by name."""
-    require(connection.execute('DELETE FROM added_places WHERE city_id=? AND place_id=?',
-                               (data['id'], place_id)).rowcount > 0, 'Only places added to this map can be removed.',
-            404)
+def remove(connection, data: dict, place_id: str, removed: bool = True) -> None:
+    """Take an added place off the map, or put it back (Undo). Outings and days already there keep it by name."""
+    require(connection.execute('UPDATE added_places SET removed=? WHERE city_id=? AND place_id=?',
+                               (int(removed), data['id'], place_id)).rowcount > 0,
+            'Only places added to this map can be removed.', 404)

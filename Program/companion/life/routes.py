@@ -647,6 +647,13 @@ def remove_added_place(request: Request, place_id: str):
     return map_change(request, lambda connection, _companion, data, _now: added_places.remove(connection, data, place_id))
 
 
+@router.put('/map/places/{place_id}/back')
+def restore_added_place(request: Request, place_id: str):
+    """Undo taking a place added when the user named it off the map."""
+    return map_change(request, lambda connection, _companion, data, _now: added_places.remove(
+        connection, data, place_id, removed=False))
+
+
 @router.get('/outings')
 def read_outings(request: Request):
     """Going out with the user and trips away (companion/life/outings.py, trips.py), from two weeks ago on."""

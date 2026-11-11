@@ -3050,13 +3050,14 @@ CREATE INDEX IF NOT EXISTS person_events_subject ON person_events(timeline_id, s
 -- Places the user named that the city's data doesn't have (companion/world/added_places.py): "dinner at Woodberry
 -- Kitchen" adds Woodberry Kitchen, filled in by rules, and the outing happens there. `place` is the whole place as a
 -- city pack has it; origin 'edited' once the user changed its details on the map. `message_id` is the message that
--- named it, kept when the chat goes.
+-- named it, kept when the chat goes. `removed`: taken off the map (Undo puts it back; naming it again does too).
 CREATE TABLE IF NOT EXISTS added_places (
   city_id TEXT NOT NULL,
   place_id TEXT NOT NULL,
   origin TEXT NOT NULL DEFAULT 'named' CHECK (origin IN ('named', 'edited')),
   place TEXT NOT NULL,
   message_id TEXT,
+  removed INTEGER NOT NULL DEFAULT 0 CHECK (removed IN (0, 1)),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (city_id, place_id)

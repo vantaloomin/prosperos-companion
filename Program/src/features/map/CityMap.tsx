@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, KeyRound, List, Map as MapIcon } from 'lucide-react'
 import { api } from '../../api'
 import type { View } from '../../companion'
 import type { Companion } from '../../types'
-import { Loading } from '../../components/Feedback'
+import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { PlaceCard } from './PlaceCard'
 import { SketchMap } from './SketchMap'
@@ -48,14 +48,43 @@ interface AreaProps { data: CityMapData; asList: boolean; selected: string | nul
 /** The map or the list, and the picked place's card: floating over the map, or opened in its row in the list. */
 function MapArea({ data, asList, selected, onSelect, streetsFailed, onFail, companion, go }: AreaProps) {
   const picked = data.places.find((item) => item.id === selected) ?? null
-  const card = (inline: boolean) => picked && <PlaceCard inline={inline} place={picked} city={data.city.id} hoods={data.hoods} enclosed={data.city.enclosed === true} story={data.story} companion={companion} onClose={() => onSelect(null)} go={go} />
+  const [removed, setRemoved] = useRemoved()
+  const gone = (place: MapPlace) => { onSelect(null); setRemoved(place) }
+  const card = (inline: boolean) => picked && <PlaceCard inline={inline} place={picked} city={data.city.id} hoods={data.hoods} enclosed={data.city.enclosed === true} story={data.story} companion={companion} onClose={() => onSelect(null)} go={go} onRemoved={gone} />
   return (
     <div className="map-area">
       {asList ? <PlaceList places={data.places} selected={selected} onPick={(id) => onSelect(id === selected ? null : id)} card={card(true)} />
         : <MapView data={data} street={data.city.real && !streetsFailed} failed={streetsFailed} selected={selected} onSelect={onSelect} onFail={onFail} />}
       {!asList && card(false)}
+      {removed && <RemovedNotice place={removed} done={() => setRemoved(null)} />}
     </div>
   )
+}
+
+const UNDO_MS = 8000
+
+/** A place just taken off the map, for the few seconds its Undo is offered. */
+function useRemoved() {
+  const [removed, setRemoved] = useState<MapPlace | null>(null)
+  useEffect(() => {
+    if (!removed) return
+    const timer = window.setTimeout(() => setRemoved(null), UNDO_MS)
+    return () => window.clearTimeout(timer)
+  }, [removed])
+  return [removed, setRemoved] as const
+}
+
+/** "Removed Woodberry Kitchen. Undo": a place added when the user named it, put back as it was (Iris, 2026-11-11). */
+function RemovedNotice({ place, done }: { place: MapPlace; done: () => void }) {
+  const client = useQueryClient()
+  const undo = async () => {
+    await api(`/life/map/places/${encodeURIComponent(place.id)}/back`, undefined, 'PUT')
+    await client.invalidateQueries({ queryKey: ['city-map'] })
+    done()
+  }
+  return <div className="map-undo" aria-live="polite">
+    <Notice action={<button type="button" className="text-button" onClick={() => void undo()}>Undo</button>}>Removed {place.name}.</Notice>
+  </div>
 }
 
 interface ViewProps { data: CityMapData; street: boolean; failed: boolean; selected: string | null; onSelect: (id: string) => void; onFail: () => void }

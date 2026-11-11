@@ -11,13 +11,15 @@ import { WHERE_KEY } from '../conversation/whereText'
 import { TOGETHER_KEY } from '../today/outingText'
 import { ADDED_KINDS, dropByFound, dropByHint, dropByLabel, dropByLines, historyLine, isHome, spotList, suggestHint, suggestion, type DropByResult, type MapHood, type MapPlace } from './mapText'
 
-interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void }
+interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void
+  /** A place added when the user named it was taken off the map: the map closes the card and offers Undo. */
+  onRemoved?: (place: MapPlace) => void }
 
 const storage = () => { try { return window.localStorage } catch { return undefined } }
 
 /** A tapped place: what it is, what happened there with them, who is usually there, and where to go next. A home says
  * whose it is; theirs and the places in town can be edited here, and the user's own home is changed where they live. */
-export function PlaceCard({ inline, place, city, hoods, enclosed, story, companion, onClose, go }: Props) {
+export function PlaceCard({ inline, place, city, hoods, enclosed, story, companion, onClose, go, onRemoved }: Props) {
   const client = useQueryClient()
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
@@ -54,7 +56,7 @@ export function PlaceCard({ inline, place, city, hoods, enclosed, story, compani
   return (
     <aside className={inline ? 'map-card inline' : 'map-card'} aria-label={place.name}>
       <CardHeader place={place} name={name} editable={!editing && (place.id === '~home' || !isHome(place))} onEdit={() => setEditing(true)} onClose={onClose} />
-      {editing ? <EditPlace place={place} hoods={hoods} enclosed={enclosed} name={name} onDone={() => setEditing(false)} />
+      {editing ? <EditPlace place={place} hoods={hoods} enclosed={enclosed} name={name} onDone={() => setEditing(false)} onRemoved={onRemoved} />
         : <PlaceFacts place={place} />}
       {!editing && <PlaceDetails place={place} name={name} timezone={companion.version.definition.timezone} story={story} goThere={() => void goThere()} suggest={suggest} go={go} visit={visit} />}
       {error && <p className="field-error" role="alert">{error}</p>}
@@ -119,7 +121,7 @@ function PlaceFacts({ place }: { place: MapPlace }) {
 
 /** Their home's neighborhood and rooms, or what is inside a place, in the user's words. Saved for the whole app:
  * their Home section, chat, pictures and Story mode use the same. */
-function EditPlace({ place, hoods, enclosed, name, onDone }: { place: MapPlace; hoods: MapHood[]; enclosed: boolean; name: string; onDone: () => void }) {
+function EditPlace({ place, hoods, enclosed, name, onDone, onRemoved }: { place: MapPlace; hoods: MapHood[]; enclosed: boolean; name: string; onDone: () => void; onRemoved?: (place: MapPlace) => void }) {
   const client = useQueryClient()
   const home = place.id === '~home'
   const [about, setAbout] = useState(place.about ?? '')
@@ -139,6 +141,7 @@ function EditPlace({ place, hoods, enclosed, name, onDone }: { place: MapPlace; 
   const usual = (event: MouseEvent) => { event.preventDefault(); setInside('') }
   const remove = () => void run(async () => {
     await api(`/life/map/places/${encodeURIComponent(place.id)}`, undefined, 'DELETE')
+    onRemoved?.(place)
     await client.invalidateQueries({ queryKey: ['city-map'] })
   }, 'That could not be removed.')
   const words = insideWords(place, name)
@@ -204,7 +207,7 @@ function AddedFields({ title, setTitle, kind, setKind, about, setAbout, hood, se
       {[...hoods].sort((a, b) => a.name.localeCompare(b.name)).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
     </select>
     <label htmlFor="map-place-about">Description</label>
-    <textarea id="map-place-about" className="grow-box" rows={2} value={about} maxLength={300} placeholder="Such as a farm-to-table spot in an old mill" onChange={(event) => { setAbout(event.target.value); grow(event.target) }} ref={(box) => { if (box) grow(box) }} />
+    <textarea id="map-place-about" className="grow-box" rows={2} value={about} maxLength={300} placeholder="What's it like?" onChange={(event) => { setAbout(event.target.value); grow(event.target) }} ref={(box) => { if (box) grow(box) }} />
   </>
 }
 

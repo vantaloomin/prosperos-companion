@@ -2371,6 +2371,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .map-bar { display: flex; align-items: center; gap: 10px 14px; padding: 14px 24px; border-bottom: 1px solid var(--border); }
 .map-bar h1 { margin-right: auto; font-size: 1.25rem; }
 .map-area { position: relative; flex: 1; min-height: 420px; display: flex; }
+.map-undo { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 1000; width: min(420px, calc(100% - 32px)); } .map-undo .notice { margin: 0; background: var(--surface); box-shadow: 0 8px 24px var(--shadow); }
 .street-map { flex: 1; min-height: 420px; background: var(--surface); }
 .street-map .leaflet-tile-pane { filter: saturate(.75) brightness(.85); }
 .map-pin { display: flex; align-items: center; justify-content: center; color: var(--muted); }
