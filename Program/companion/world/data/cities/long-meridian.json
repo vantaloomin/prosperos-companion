@@ -4648,6 +4648,7 @@
     "id": "meridian-orchard-tree",
     "text": "grow a fruit tree from a seed-library seed",
     "steps": 6,
+    "news": false,
     "practice": [
      "park",
      "morning"
@@ -4661,6 +4662,7 @@
     "id": "meridian-family-log",
     "text": "trace their family back to the founders in the Archive",
     "steps": 5,
+    "news": false,
     "practice": [
      "library",
      "afternoon"
@@ -4700,6 +4702,7 @@
     "id": "meridian-shuttle-licence",
     "text": "earn a shuttle pilot's licence",
     "steps": 8,
+    "news": false,
     "practice": [
      "library",
      "evening"
@@ -4713,6 +4716,7 @@
     "id": "meridian-glass",
     "text": "blow a set of glasses on Studio Row",
     "steps": 5,
+    "news": false,
     "practice": [
      "workshop",
      "afternoon"

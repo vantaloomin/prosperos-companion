@@ -3855,6 +3855,7 @@
     "id": "pellmouth-family-papers",
     "text": "trace their family back through the town's old records",
     "steps": 5,
+    "news": false,
     "practice": [
      "library",
      "afternoon"
@@ -3881,6 +3882,7 @@
     "id": "pellmouth-mooring",
     "text": "save for a mooring and a boat in the harbor",
     "steps": 6,
+    "news": false,
     "practice": null,
     "progress": "{name} put another week of pay towards a mooring",
     "done": "{name} has a boat on a mooring of their own at last",
@@ -3891,6 +3893,7 @@
     "id": "pellmouth-boston-job",
     "text": "get a place in Boston and off the North Shore",
     "steps": 7,
+    "news": false,
     "practice": null,
     "progress": "{name} wrote off to another Boston firm about a position",
     "done": "{name} got an offer in Boston, and has not yet said whether they will go",
