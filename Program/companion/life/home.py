@@ -705,7 +705,10 @@ def pet_hint(connection, timeline_id: str, event: dict, named_ids: list[str], at
 
 
 def money_text(home: dict) -> str:
-    """Rent (the mortgage, on a place they own), unless the budget section already states it."""
+    """Rent (the mortgage, on a place they own), unless the budget section already states it. A place owned outright
+    has neither: the budget line says what its taxes and repairs cost."""
+    if home.get('tenure') == 'owned':
+        return ' You own it outright.'
     if not home.get('rent') or home.get('rent_from') == 'budget':
         return ''
     currency = home.get('currency') or {}
@@ -719,9 +722,10 @@ def money_text(home: dict) -> str:
     return f" Rent is about {said} a {home.get('rent_period', 'month')}{shared} (an estimate)."
 
 
-def context_lines(connection, timeline_id: str, day: date) -> list[tuple[str, str]]:
-    """(identity, line) pairs describing their home today, for the chat context."""
-    items = items_on(connection, timeline_id, day)
+def context_lines(connection, timeline_id: str, day: date, definition: dict | None = None) -> list[tuple[str, str]]:
+    """(identity, line) pairs describing their home today, for the chat context, held as `definition` says
+    (`as_held`)."""
+    items = [as_held(item, definition) for item in items_on(connection, timeline_id, day)]
     if not items:
         return []
     repairs = repairs_on(connection, timeline_id, day)
@@ -748,6 +752,40 @@ def item_line(item: dict) -> str:
     label = {'pet': 'Pet', 'plant': 'Plant', 'vehicle': 'Getting around', 'favorite': 'A favourite thing'}[item['kind']]
     detail = f" ({item['description']})" if item['description'] != item['name'] else ''
     return f"- {label}: {item['name']}{detail}."
+
+
+RENTED = re.compile(r'\brented\s+', re.IGNORECASE)
+
+
+def chosen_tenure(definition: dict | None) -> str:
+    """How the user said their home is held (the Home picker in Work and money, MoneySetup.home): 'rent', 'mortgage'
+    or 'owned', '' when they left it to the app. A ship or station's cabins are rented whatever it says (money.build)."""
+    chosen = ((definition or {}).get('money') or {}).get('home')
+    city = money.city_for(definition) if definition else None
+    return chosen if chosen in owning.TENURES and not (city and ships.enclosed(city)) else ''
+
+
+def as_held(item: dict, definition: dict | None) -> dict:
+    """Their home as the budget (money.with_home) holds it: the user's pick in Work and money wins over the one the app
+    made when the home was assembled, so this card, chat and the lease errand never say rent on a place they own
+    (Vanta's tester, 2026-11-11). A place owned outright carries what its taxes and repairs cost (`owner_costs_text`,
+    `owner_words`), worked out as money.py does it from the rent the place would fetch."""
+    if item['kind'] != 'home':
+        return item
+    city = money.city_for(definition) if definition else None
+    medieval = bool(item.get('medieval') or (city and city.get('era') in money.MEDIEVAL))
+    tenure = chosen_tenure(definition) or (item.get('tenure') if item.get('tenure') in owning.TENURES else
+                                           'mortgage' if item.get('owned') else 'rent')
+    found = {**item, 'tenure': tenure, 'owned': tenure != 'rent', **({'medieval': True} if medieval else {})}
+    if tenure != 'rent' and not item.get('edited'):  # "a rented chamber" from the city's housing kinds is theirs now.
+        found |= {key: RENTED.sub('', item[key]) for key in ('name', 'description') if item.get(key)}
+    currency = item.get('currency')
+    if tenure == 'owned' and city and money.has_money(city) and item.get('rent') and isinstance(currency, dict) \
+            and currency.get('symbol') is not None:
+        era = money.era_of(city)
+        found['owner_costs_text'] = money.amount(item['rent'] * owning.share(era, medieval), currency)
+        found['owner_words'] = owning.words(era, medieval)
+    return found
 
 
 def repair_status(item: dict) -> str:
@@ -785,8 +823,8 @@ def today_for(version: dict, now) -> date:
     return now.astimezone(zone(version['timezone'])).date()
 
 
-def view(connection, timeline_id: str, day: date, include_removed=False) -> dict:
-    items = items_on(connection, timeline_id, day)
+def view(connection, timeline_id: str, day: date, include_removed=False, definition: dict | None = None) -> dict:
+    items = [as_held(item, definition) for item in items_on(connection, timeline_id, day)]
     removed = []
     if include_removed:
         removed = [item_view(row) for row in many(

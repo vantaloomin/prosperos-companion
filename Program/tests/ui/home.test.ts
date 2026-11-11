@@ -27,6 +27,7 @@ test('rent and a mortgage read in the money of their city, as the server says it
   assert.equal(rentText(item({ rent: 8, rent_period: 'week', currency: pennies, rent_text: '8 d.' })), 'Rent about 8 d. a week (an estimate)')
   assert.equal(rentText(item({ rent: 12, rent_period: 'week', owned: true, currency: pennies, rent_text: '12 d.' })), 'Theirs, with a mortgage of about 12 d. a week (an estimate)')
   assert.equal(rentText(item({ rent: 12, rent_period: 'week', owned: true, tenure: 'owned', currency: pennies, rent_text: '12 d.' })), 'Theirs, owned outright')
+  assert.equal(rentText(item({ rent: 150, rent_period: 'month', owned: true, tenure: 'owned', medieval: true, rent_text: '150 gold', owner_costs_text: '22 gold', owner_words: 'dues and repairs' })), 'Theirs, owned outright; dues and repairs about 22 gold a month (an estimate)')
   // No mortgage in a medieval kingdom: payments on the place.
   assert.equal(rentText(item({ rent: 12, rent_period: 'week', owned: true, medieval: true, currency: pennies, rent_text: '12 d.' })), 'Theirs, paying about 12 d. a week on it (an estimate)')
 })

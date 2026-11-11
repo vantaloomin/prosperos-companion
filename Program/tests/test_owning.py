@@ -92,3 +92,35 @@ def test_a_cottage_their_words_own_is_theirs_from_the_start(client):
     assert item['tenure'] == 'owned' and item['owned']
     view = client.get('/api/today/money').json()
     assert view['tenure'] == 'owned' and view['budget']['rent'] == 0 and view['budget']['owner_costs'] > 0
+
+
+def test_the_home_card_and_chat_follow_the_home_they_set(client):
+    """Set to owned in Work and money after the app made them a renter, the Home card, chat and the lease errand say
+    so too, with the same taxes and repairs the money card shows (Vanta's tester, 2026-11-11)."""
+    created = client.post('/api/companion', json={'name': 'Mara', 'timezone': 'UTC', 'home_city': 'baltimore',
+                                                  'identity': 'A registered nurse at Hopkins.',
+                                                  'money': {'home': 'owned'}})
+    assert created.status_code == 200, created.text
+    found = next(item for item in client.get('/api/life/home').json()['items'] if item['kind'] == 'home')
+    view = client.get('/api/today/money').json()
+    assert found['tenure'] == 'owned' and found['owned'] and view['tenure'] == 'owned'
+    assert found['owner_costs_text'] == view['text']['owner_costs']
+    assert found['owner_words'] == view['owner_words'] == 'property tax, insurance and upkeep'
+
+
+def test_a_home_held_as_the_user_set_it():
+    from companion.life import home
+    rented = {'kind': 'home', 'description': 'a flat', 'rent': 150, 'rent_period': 'month', 'tenure': 'rent',
+              'owned': False, 'rent_from': 'budget', 'currency': money.profile(ADA).city['currency']}
+    owned = home.as_held(rented, {**ADA, 'money': {'home': 'owned'}})
+    assert owned['tenure'] == 'owned' and owned['owned'] and owned['medieval']
+    assert owned['owner_words'] == 'dues and repairs'
+    assert 'Rent' not in home.item_line(owned) and 'You own it outright.' in home.item_line(owned)
+    mortgage = home.as_held({**rented, 'rent_from': None}, {**ADA, 'money': {'home': 'mortgage'}})
+    assert mortgage['tenure'] == 'mortgage' and 'Payments on it are about' in home.item_line(mortgage)
+    # A city's "rented chamber" is just a chamber once it is theirs, unless the user named it so.
+    chamber = {**rented, 'name': 'a rented chamber', 'description': 'a rented chamber in Cheapside'}
+    assert home.as_held(chamber, {**ADA, 'money': {'home': 'owned'}})['description'] == 'a chamber in Cheapside'
+    assert home.as_held({**chamber, 'edited': True}, {**ADA, 'money': {'home': 'owned'}})['name'] == 'a rented chamber'
+    # Left to the app, the home keeps the way it was assembled.
+    assert home.as_held(rented, ADA)['tenure'] == 'rent' and 'owner_costs_text' not in home.as_held(rented, ADA)

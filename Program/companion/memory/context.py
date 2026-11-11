@@ -1027,9 +1027,10 @@ def offer_kitchen_and_media(packet, connection, timeline_id, version, now):
 def offer_home(packet, connection, companion, today: str):
     """Their home and belongings, the housework (companion/life/upkeep.py) and what is up at home for the season
     (companion/life/traditions.py)."""
-    for identity, text in home.context_lines(connection, companion['active_timeline_id'], date.fromisoformat(today)):
-        packet.offer('home', identity, text)
     timeline_id = companion['active_timeline_id']
+    for identity, text in home.context_lines(connection, timeline_id, date.fromisoformat(today),
+                                             definition_for_timeline(connection, timeline_id)):
+        packet.offer('home', identity, text)
     for identity, text in upkeep.context_lines(connection, timeline_id, definition_for_timeline(connection, timeline_id),
                                                date.fromisoformat(today)):
         packet.offer('housework', identity, text)

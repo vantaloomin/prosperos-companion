@@ -465,7 +465,7 @@ def owns(definition: dict, connection, timeline_id: str, day: date) -> set[str]:
     """What the companion has that some admin needs: a car, a horse, a rented home (not one they own), glasses, a
     job, a business they run (companion/life/business.py), a vote."""
     found = {'vote'} if votes(definition) else set()
-    for item in home.items_on(connection, timeline_id, day):
+    for item in (home.as_held(found_item, definition) for found_item in home.items_on(connection, timeline_id, day)):
         if item['kind'] == 'vehicle' and item['variety'] in ('car', 'motorcar', 'horse'):
             found.add('horse' if item['variety'] == 'horse' else 'car')
         if item['kind'] == 'home' and not item.get('owned') and (item.get('rent') or money.profile(definition)):
