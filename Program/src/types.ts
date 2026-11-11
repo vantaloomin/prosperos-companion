@@ -1001,7 +1001,8 @@ export interface CirclePerson {
   knowing_set?: boolean
   /** What they think of you, once they have met you (companion/life/their_people.py). */
   met?: CircleMet | null
-  now: RoutineBlock | null
+  /** Where they are now; `stay` while a hospital stay or a sick spell has them (companion/life/health_stays.py). */
+  now: (RoutineBlock & { stay?: 'hospital' | 'home' | 'treatment' }) | null
   recent: DiaryEntry[]
   /** Their pets (companion/life/pets.py), seeded by who they are until the user changes them. */
   pets?: CirclePetView[]

@@ -18,6 +18,7 @@ test('now reads out of town, asleep, a block or free', () => {
   const block = { key: 'w', label: 'Registered nurse', kind: 'work', days: [0], start: '09:00', end: '17:00', themes: [] }
   assert.equal(personNow(person({ now: block as CirclePerson['now'] })), 'Right now: Registered nurse')
   assert.equal(personNow(person({ now: { ...block, kind: 'sleep' } as CirclePerson['now'] })), 'Asleep right now')
+  assert.equal(personNow(person({ now: { ...block, kind: 'sleep', label: 'In the hospital', stay: 'hospital' } as CirclePerson['now'] })), 'Right now: In the hospital')
   assert.equal(personNow(person()), 'Free right now')
 })
 

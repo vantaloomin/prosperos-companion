@@ -25,7 +25,7 @@ from functools import cache
 
 from companion.clock import parse, stamp, zone
 from companion.database import decode, identifier, many, optional
-from companion.life import casting, circle, circle_love, happenings
+from companion.life import casting, circle, circle_love, happenings, health_stays
 from companion.memory.extraction import HYPOTHETICAL, QUESTION_START, QUOTED, SENTENCE
 from companion.world import catalog
 
@@ -298,12 +298,15 @@ def given_with(phrase: Phrase, match: re.Match, sentence: str) -> dict:
             'he/him' if HE_WORDS.search(sentence) else ''
     if groups.get('place'):
         given['place'] = groups['place'].rstrip('.')
+    if phrase.area == 'health' and phrase.kind != 'recovered':  # How long it keeps them out of their days, by its words (health_stays.py).
+        given['stay'] = health_stays.category(phrase.kind, match.string[match.start():])
+        given['home_now'] = bool(health_stays.HOME_NOW.search(match.group(0)))
     if phrase.area == 'baby':
         baby = BABY_NAME.search(sentence[match.start():])
         given['child'] = baby.group(1) if baby else ''
         given['pronouns'] = 'she/her' if GIRL.search(sentence[match.start():]) else \
             'he/him' if BOY.search(sentence[match.start():]) else ''
-    return {key: value for key, value in given.items() if value}
+    return {key: value for key, value in given.items() if value or key == 'stay'}
 
 
 # Whether the news can change the record -------------------------------------------------------------------------------
