@@ -28,6 +28,8 @@ PROMPTS = Path(__file__).parent / 'prompts'
 DRAFTING = Work(5, 'character drafting')
 # A whole character is longer than a chat reply; the connection's own limit applies when it is higher.
 DRAFT_TOKENS, FIELD_TOKENS = 4000, 1500
+# A model reporting fewer output tokens than this cannot write even one field's JSON; the report is ignored.
+DRAFT_FLOOR = 1024
 EDGE_WORDS = (*ABSENCE_WORDS, 'jealous', 'possessive', 'envious', 'clingy', 'needy')
 TEXT_LIMITS = {'name': 120, 'identity': 4000, 'personality': 8000, 'voice': 4000, 'background': 12000,
                'appearance': 4000, 'routine': 8000, 'location': 200, 'absence_reaction': 2000}
@@ -207,10 +209,16 @@ def connection_config(database) -> dict:
 
 
 def draft_tokens(config: dict, tokens: int) -> int:
-    """Room for a whole character, within what the model reports it can write."""
+    """Room for a whole character, within what the model reports it can write.
+
+    A reported limit too small for any draft (a server that says 16) is a misreport, not a ceiling: it is
+    ignored rather than failing every draft as too long. A plausible one still caps the request, but never
+    below the longest reply the profile itself was saved with."""
     ceiling = (config.get('reported_capabilities') or {}).get('max_output_tokens')
     wanted = max(config['max_output_tokens'], tokens)
-    return min(wanted, ceiling) if ceiling else wanted
+    if type(ceiling) is not int or ceiling < DRAFT_FLOOR:
+        return wanted
+    return max(min(wanted, ceiling), config['max_output_tokens'])
 
 
 async def complete(state, config: dict, system: str, messages: list[dict], tokens: int) -> str:
