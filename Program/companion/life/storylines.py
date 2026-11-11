@@ -772,7 +772,7 @@ def view(row: dict, names: dict, definition: dict, today: str, you=False, clock:
         text, share = told(row, index, stage, times)
         beats.append({'on': stage['on'], 'time': at, 'text': fill(text, row, names, definition, you),
                       'share': fill(share, row, names, definition), 'tone': stage['tone'],
-                      'consequence': stage.get('consequence') or stage.get('odds')})
+                      'consequence': stage.get('consequence') or stage.get('odds'), 'told': stage.get('told')})
     return {'id': row['id'], 'story': row['story'], 'level': LEVELS[row['level']], 'started_on': row['started_on'],
             'status': row['status'], 'cast': [{'id': person_id, **names[person_id]} for person_id in
                                               decode(row['cast_ids']) if person_id in names],
@@ -830,7 +830,7 @@ def fresh_beats(connection, companion, now) -> list[tuple[str, dict]]:
     result = []
     for item in visible(connection, companion, now, you=True):
         for index, beat_ in enumerate(item['beats']):
-            if beat_['on'] >= yesterday:
+            if beat_['on'] >= yesterday and not beat_.get('told'):  # Told by the companion already (said_events).
                 result.append((f"storyline:{item['id']}:{index}", beat_))
     return result
 

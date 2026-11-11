@@ -108,7 +108,7 @@ LOWERCASE_RULES = {'person': re.compile(kin_lowercase(RELATIVES), re.IGNORECASE)
 SINGLE = {'favorite', 'grew_up', 'person', 'team', 'works_at'}
 LABELS = {'likes': 'Likes', 'dislikes': 'Dislikes', 'favorite': 'Favorite', 'person': 'Person', 'pet': 'Pet',
           'never': 'Never', 'grew_up': 'Grew up', 'allergy': 'Allergic to', 'team': 'Team', 'plays': 'Plays',
-          'works_at': 'Works at', 'detail': 'Detail', 'said': 'Said'}
+          'works_at': 'Works at', 'detail': 'Detail', 'said': 'Said', 'news': 'Their people'}
 STATUSES = ('noted', 'kept', 'rejected', 'conflict')
 IN_FORCE = ('noted', 'kept')
 # Objects that are the conversation, not a taste ("I love that", "I like talking to you").
@@ -320,10 +320,15 @@ def note(connection, message: dict, timestamp: str) -> list[dict]:
         return []
     # A companion out of focus may text first too (companion/life/openers.py); the message says whose it is.
     companion = for_timeline(connection, message['timeline_id']) or require_current(connection)
+    from companion.clock import parse
+    from companion.life import said_events
     from companion.memory import self_suggest
     self_suggest.queue(connection, message, timestamp)
-    return record(connection, companion, message,
-                  extract(message['text'], texting.style(companion['version']['definition'])['lowercase']), timestamp)
+    lowercase = texting.style(companion['version']['definition'])['lowercase']
+    added = record(connection, companion, message, extract(message['text'], lowercase), timestamp)
+    # News about their people sticks to their record (Hit List #103).
+    said_events.notice(connection, companion, message, lowercase, parse(timestamp))
+    return added
 
 
 def same_value(old: str, new: str) -> bool:
@@ -452,6 +457,10 @@ def decide(database, fact_id: str, keep: bool) -> dict:
         if keep and row['conflicts_with']:
             connection.execute("UPDATE self_facts SET status='rejected', decided_at=? WHERE id=?",
                                (timestamp, row['conflicts_with']))
+        if not keep and row['category'] == 'news':  # News about their people leaves their record too.
+            from companion.life import said_events
+            said_events.take_back(connection, require_current(connection)['active_timeline_id'], fact_id,
+                                  database.clock.now())
         if not keep:
             # Whatever waited on this one no longer contradicts anything.
             connection.execute("UPDATE self_facts SET status='noted', conflicts_with=NULL WHERE conflicts_with=? "
@@ -496,6 +505,7 @@ def context_line(row: dict) -> str:
 def context_lines(connection, timeline_id) -> list[tuple[str, str]]:
     """A pet fact about a pet the app keeps is left to the pet's own lines (companion/life/pets.py), which win."""
     tracked = tracked_pets(connection, timeline_id)
+    # News about their people is on their record now (companion/life/said_events.py): the circle says it.
     return [(row['id'], context_line(row)) for row in in_force(connection, timeline_id)
-            if pet_link(row, tracked) != 'tracked']
+            if pet_link(row, tracked) != 'tracked' and row['category'] != 'news']
 

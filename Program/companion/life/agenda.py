@@ -671,9 +671,16 @@ def diary(connection, timeline_id, subject, limit=20, before=None) -> list[dict]
     # What happened to them in a storyline (companion/life/happenings.py): a line of its own.
     result += [{'subject': subject, 'slot': None, 'starts_at': item['starts_at'], 'ends_at': item['starts_at'],
                 'local_date': item['local_date'], 'block': None, 'status': 'happened', 'with_companion': None,
-                'entry': {'summary': item['text'], 'happening': item['kind']}}
+                'entry': {'summary': item['text'], 'happening': item['kind']} | said_of(connection, item['source'])}
                for item in happenings.for_person(connection, timeline_id, subject, before, limit)]
     return sorted(result, key=lambda item: item['starts_at'], reverse=True)[:limit]
+
+
+def said_of(connection, source: str) -> dict:
+    """A line from the companion's own news (companion/life/said_events.py): what they said, for Undo."""
+    from companion.life import said_events
+    found = said_events.said_view(connection, source)
+    return {'said': found} if found else {}
 
 
 def current(connection, timeline_id, subject, now) -> dict | None:
