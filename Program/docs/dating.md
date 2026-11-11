@@ -30,6 +30,9 @@ time and nothing is stored:
   queer and drawn to everyone or to women or men and nonbinary people.
 - **Single or not:** the chance of a partner rises with age (30% at 18-24 to 65% in midlife), and a person
   whose desire is "someone to come home to" is mostly single. Older single people are sometimes widowed.
+  The town's couples move on week by week (companion/world/couples.py), and the app keeps up: someone who
+  splits up may join it about six weeks later and leaves it when they meet someone new. A match stays a
+  match, shown as they were when the user matched with them.
 - **What they are looking for:** only single and widowed people are on the app. Some are not looking at
   all (more of the older ones and those who want a quiet life; fewer gay, lesbian and bisexual people, who
   use dating apps about twice as often, Pew 2023). The rest want a relationship, something

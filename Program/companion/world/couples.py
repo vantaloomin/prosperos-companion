@@ -10,8 +10,9 @@ Now and then a couple has a baby (`babies`), a week seeded the same way, from wh
 (companion/world/turnover.py); the baby is only ever words in the paper.
 
 The town paper reports engagements, weddings and babies (companion/world/paper.py), and a companion who knows a townsperson
-well enough knows where their love life stands (companion/life/encounters.py). The dating app keeps reading the
-seeded status (who is single and looking stays the same pool).
+well enough knows where their love life stands (companion/life/encounters.py). The dating app follows the couples
+too (Hit List #102, `looking_again`): someone who started with a partner may join it a few weeks after a split, and
+leaves it again when they meet someone new; a match the user already has stays a match.
 """
 from datetime import date, timedelta
 from functools import lru_cache
@@ -31,6 +32,7 @@ GENDER_PRONOUNS = {'woman': 'she', 'man': 'he', 'nonbinary': 'they'}
 BABY = 0.1  # An engaged or married couple's chance of a baby each year, at the usual pace.
 BABY_AGES = (24, 42)
 EXPECTING_WEEKS = 30  # How long before a town baby arrives that the people who know the couple hear about it.
+BACK_ON_APP = 6  # Weeks after a split before someone may be looking again on the dating app.
 
 
 @lru_cache(maxsize=4096)
@@ -70,6 +72,16 @@ def details_of(sheet: dict, data: dict) -> dict | None:
     if sheet.get('love_life') is False:
         return None
     return dating.details(sheet, data)
+
+
+def looking_again(sheet: dict, data: dict, seeded: str, day: date) -> bool:
+    """Whether someone who started with a partner (`seeded`, their seeded status) is single on `day` and has been for
+    at least `BACK_ON_APP` weeks, so the dating app may have them again (companion/world/dating.py `status_now`)."""
+    if seeded not in PARTNERED or companion_sheet(sheet, data) or sheet.get('love_life') is False:
+        return False
+    weeks = min(max(townsfolk.week_of(day), 0), townsfolk.MAX_WEEKS)
+    past = history(townsfolk.drawn(sheet), seeded, weeks)
+    return bool(past) and past[-1][1] == 'split' and weeks - past[-1][0] >= BACK_ON_APP
 
 
 def partner(sheet: dict, data: dict, number: int, found: dict) -> dict:
