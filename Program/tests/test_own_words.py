@@ -146,3 +146,25 @@ def test_a_single_word_habit_is_only_ever_pointed_out():
                      'Hoodie weather.', 'Washing the hoodie.'])
     items = own_words.ladder(texts, own_words.Protected())
     assert [(item['phrase'], item['step']) for item in items] == [('hoodie', 1)]
+
+
+def test_names_are_never_caught_even_in_an_all_lowercase_voice():
+    texts = replies(['hey luna, long day', 'missed you luna', 'luna come here', 'ok luna, night',
+                     'luna. hi', 'luna you there', 'see you at the rusty anchor', 'the rusty anchor again?',
+                     'rusty anchor at six'])
+    caught = [item['phrase'] for item in own_words.found(texts, own_words.Protected())]
+    assert 'luna' in caught
+    protected = own_words.Protected(names=frozenset({'luna'}), places=frozenset({'the rusty anchor'}))
+    left = [item['phrase'] for item in own_words.found(texts, protected)]
+    assert not any('luna' in phrase or 'anchor' in phrase for phrase in left)
+
+
+def test_the_users_name_and_nickname_are_protected(client, connected):
+    me = ok(client.get('/api/worlds'))['persona']
+    ok(client.patch(f"/api/worlds/personas/{me['id']}", json={'name': 'Luna Vale'}))
+    ok(client.put('/api/closeness', json={'nickname': 'moonbeam'}))
+    from companion.characters import current
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        names = own_words.people_names(connection, companion['active_timeline_id'], companion['version']['definition'])
+    assert {'luna', 'vale', 'moonbeam'} <= names
