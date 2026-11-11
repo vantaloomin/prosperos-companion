@@ -25,7 +25,9 @@ export function rentText(item: HomeItem): string | null {
 /** Owned outright, with what owning still costs as the money card says it ("Dues and repairs: about 22 gold a month"). */
 function outrightText(item: HomeItem): string {
   if (!item.owner_costs_text || !item.owner_words) return 'Theirs, owned outright'
-  return `Theirs, owned outright; ${item.owner_words} about ${item.owner_costs_text} a ${item.rent_period ?? 'month'} (an estimate)`
+  const words = item.owner_words.charAt(0).toUpperCase() + item.owner_words.slice(1)
+  // Two short sentences on one line, not a semicolon (Iris, PR #603).
+  return `Theirs outright. ${words} about ${item.owner_costs_text} a ${item.rent_period ?? 'month'} (an estimate).`
 }
 
 /** The description when it says more than the name, with what is wrong right now. */
