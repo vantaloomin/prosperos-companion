@@ -20,6 +20,7 @@ from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
 from companion.text_models import config_for, default_name, key_for
 from companion.world import (
+    added_places,
     catalog,
     changes,
     custom,
@@ -77,7 +78,7 @@ def city_data(connection, city_id: str) -> dict:
     companion = current(connection)
     if companion and newcomers.city_for(connection, companion['version']['definition'])['id'] == city_id:
         return network.city(connection, companion)
-    data = changes.resolve(city_id, custom.all_cities(connection))
+    data = added_places.merge(connection, changes.resolve(city_id, custom.all_cities(connection)))
     if data is None:
         raise DomainError(f'No world data for city {city_id!r}.', 404, 'unknown_city')
     town = companion.get('town_seed') or '' if companion else ''

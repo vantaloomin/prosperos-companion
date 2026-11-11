@@ -2404,6 +2404,7 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .map-action { display: flex; align-items: center; gap: 6px; } .map-action > .button { flex: 1; justify-content: center; }
 .map-edit { width: 100%; justify-content: center; } .map-edit-form { display: grid; gap: 6px; } .map-edit-form .rename-row { margin-top: 6px; }
 .map-edit-form select, .map-edit-form textarea { width: 100%; } .map-edit-form textarea { field-sizing: content; min-height: 2lh; max-height: 6lh; }
+.map-edit-form .map-remove { justify-self: start; margin-top: 4px; } .map-edit-form input { width: 100%; }
 .map-card > .button { width: 100%; justify-content: center; }
 .map-page .sketch-pin.pin-place.selected .sketch-ring { stroke: var(--accent-hover); stroke-width: 3; }
 .sketch-pin.pin-yours .sketch-badge { fill: var(--accent); stroke: var(--accent); } .sketch-pin.pin-yours .sketch-glyph { stroke: #fff; }
