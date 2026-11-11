@@ -935,6 +935,16 @@ export interface ShareablePerson {
   owner: string
 }
 
+/** A circle person's love life for Edit person (GET /life/circle/{id}/love, companion/life/love_pick.py): as the app
+ * or the user has it now, and where everyone else in the circle stands, for "Who with". */
+export interface CircleLove {
+  state: 'single' | 'seeing' | 'engaged' | 'married' | 'separated' | 'divorced' | 'widowed'
+  partner: string | null
+  set: boolean
+  editable: boolean
+  people: { id: string; name: string; stands: string | null }[]
+}
+
 export interface CirclePerson {
   kind?: KindShown
   own_kind?: string

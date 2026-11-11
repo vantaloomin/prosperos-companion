@@ -5,11 +5,13 @@ import { shownAs, suggestionsFor } from './suggestions'
 interface SuggestInputProps {
   id: string; value: string; options: string[]; onChange: (value: string) => void; onBlur?: () => void
   placeholder?: string; required?: boolean; maxLength?: number; describedBy?: string; label?: string
+  /** A few muted words after an option, like where someone stands now ("married to Kaito"). */
+  notes?: Record<string, string>
 }
 
 /** Free text with the app's own list of suggestions, drawn in the app's colours instead of the browser's
  * datalist popup, which looks like the browser offering past entries. `label` names an input with no visible label. */
-export function SuggestInput({ id, value, options, onChange, onBlur, placeholder, required, maxLength, describedBy, label }: SuggestInputProps) {
+export function SuggestInput({ id, value, options, onChange, onBlur, placeholder, required, maxLength, describedBy, label, notes }: SuggestInputProps) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
   const list = useRef<HTMLDivElement>(null)
@@ -39,7 +41,7 @@ export function SuggestInput({ id, value, options, onChange, onBlur, placeholder
         <div ref={list} className="suggest-popup" id={`${id}-list`} role="listbox" aria-label={label ? `${label} suggestions` : 'Suggestions'}>
           {shown.map((option, index) => (
             <div key={option} id={`${id}-${index}`} role="option" aria-selected={option === value} data-active={index === active}
-              onMouseDown={(event) => event.preventDefault()} onMouseMove={() => setActive(index)} onClick={() => choose(option)}>{shownAs(option)}</div>
+              onMouseDown={(event) => event.preventDefault()} onMouseMove={() => setActive(index)} onClick={() => choose(option)}>{shownAs(option)}{notes?.[option] && <span className="suggest-note"> · {notes[option]}</span>}</div>
           ))}
         </div>
       )}

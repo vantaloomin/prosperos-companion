@@ -15,10 +15,12 @@ import re
 from companion.clock import stamp
 from companion.database import decode, encode, one
 from companion.errors import require
-from companion.life import circle, job_words, named, shared_people
+from companion.life import circle, job_words, love_pick, named, shared_people
 from companion.world import catalog, generators
 
 FIELDS = ('name', 'role', 'pronouns', 'job', 'employer', 'age', 'local', 'note', 'start_stage', 'knowing')
+# Their love life and who with (companion/life/love_pick.py), kept apart from the row's own fields.
+LOVE = ('love', 'partner_name')
 NOTE_MAX = 300
 
 
@@ -53,6 +55,8 @@ def add(connection, companion: dict, world, change: dict, now) -> dict:
     connection.execute('INSERT OR IGNORE INTO agenda_cursors (timeline_id, subject, through) VALUES (?, ?, ?)',
                        (timeline_id, added['id'], stamp(now)))
     shared_people.step_aside(connection, companion, added['seed'], added['role'], now)
+    if change.get('love'):
+        love_pick.pick(connection, companion, added, change['love'], change.get('partner_name'), now)
     return added
 
 
@@ -63,7 +67,8 @@ def edit(connection, companion: dict, world, person_id: str, change: dict, now) 
     require(row['status'] == 'active', 'Restore this person before changing them.', 409)
     definition = companion['version']['definition']
     data = circle.city_data(definition, world)
-    details, given = decode(row['details']), {key: value for key, value in change.items() if value is not None}
+    details, given = decode(row['details']), {key: value for key, value in change.items()
+                                               if value is not None and key not in LOVE}
     made = {'name': row['name'], 'role': row['role'], 'career': row['career'], 'details': dict(details),
             'schedule': decode(row['schedule']) or []}
     made = basics(made, given)
@@ -80,6 +85,9 @@ def edit(connection, companion: dict, world, person_id: str, change: dict, now) 
                         encode(made['schedule']), stamp(now), person_id))
     if 'role' in given:
         shared_people.step_aside(connection, companion, row['seed'], made['role'], now)
+    if change.get('love') is not None:
+        love_pick.pick(connection, companion, circle.person(connection, person_id), change['love'],
+                       change.get('partner_name'), now)
     return one(connection, 'SELECT * FROM circle_people WHERE id=?', (person_id,))
 
 

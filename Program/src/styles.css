@@ -2976,6 +2976,12 @@ p.breakup-line { align-items: center; }
 .suggest-popup [role='option'] { padding: 8px 10px; border-radius: 6px; cursor: pointer; overflow-wrap: anywhere; }
 .suggest-popup [role='option'][data-active='true'] { background: var(--accent); color: var(--on-accent); }
 .suggest-popup [role='option'][aria-selected='true'] { font-weight: 600; }
+.suggest-note { color: var(--muted); font-weight: 400; }
+.suggest-popup [role='option'][data-active='true'] .suggest-note { color: inherit; opacity: 0.8; }
+.label-with-tip { display: inline-flex; align-items: center; gap: 4px; }
+/* The tip's button keeps its 24px target but takes no more than the label's line, so labels share a baseline and the
+   boxes a top edge (Iris, relationship control). */
+.label-with-tip .info-tip-button { margin-block: -4px; }
 .suggest > svg { position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
 .person-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .person-add-button { align-self: flex-start; }
