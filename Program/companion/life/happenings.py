@@ -19,6 +19,8 @@ from companion.database import decode, encode, identifier, many, optional
 from companion.life import circle, circle_love, records
 
 COMPANION = 'companion'
+# The time of day an event with no hour of its own is put at (a job left, a death): the morning.
+LEFT_AT = '09:00'
 
 
 @dataclass(frozen=True)
@@ -65,11 +67,13 @@ def new_job(event: Event) -> list[dict]:
     data = city(event)
     work = elsewhere(data, row['career'], event.source, details) if data and details.get('local', True) else None
     if not work:
-        return listed(records.write(event.connection, row['id'], event.now, {'employer': '', 'job_since': event.day}))
+        return with_card(event, records.write(event.connection, row['id'], event.now,
+                                              {'employer': '', 'job_since': event.day}))
     shown = details.get('career') or work['career']['name']
     schedule = [block | {'label': shown} if block['kind'] == 'work' else block for block in work['schedule']]
-    return listed(records.write(event.connection, row['id'], event.now,
-                                {'employer': work['employer']['name'], 'job_since': event.day}, schedule=schedule))
+    return with_card(event, records.write(event.connection, row['id'], event.now,
+                                          {'employer': work['employer']['name'], 'job_since': event.day},
+                                          schedule=schedule))
 
 
 def elsewhere(data: dict, career_id: str, seed: str, details: dict) -> dict | None:
@@ -98,12 +102,46 @@ def left_job(event: Event) -> list[dict]:
     details = {'works_with_companion': None, 'left_on': event.day}
     if not found:
         name = definition['name'].split()[0]
-        return listed(records.write(event.connection, event.row['id'], event.now,
-                                    details | {'career': f'Used to work with {name}', 'employer': ''},
-                                    role='former coworker'))
-    return listed(records.write(event.connection, event.row['id'], event.now,
-                                details | {'career': career['name'], 'employer': found['employer']['name']},
-                                role='former coworker', career=career['id'], schedule=found['schedule']))
+        return with_card(event, records.write(event.connection, event.row['id'], event.now,
+                                              details | {'career': f'Used to work with {name}', 'employer': ''},
+                                              role='former coworker'))
+    return with_card(event, records.write(event.connection, event.row['id'], event.now,
+                                          details | {'career': career['name'], 'employer': found['employer']['name']},
+                                          role='former coworker', career=career['id'], schedule=found['schedule']))
+
+
+def moved_on(event: Event) -> list[dict]:
+    """The companion left their job (a new one, retirement, their own business, laid off): a coworker stays where
+    they both worked, on the hours they had, as a former coworker doing the companion's old line of work."""
+    from companion.life import outings, work
+    definition, timeline_id = event.companion['version']['definition'], event.companion['active_timeline_id']
+    career = work.job_of(definition, outings.city_data(event.connection, definition)) or {}
+    employer = (work.state(event.connection, timeline_id) or {}).get('employer') or ''
+    shown = career.get('name') or f"Used to work with {definition['name'].split()[0]}"
+    return with_card(event, records.write(event.connection, event.row['id'], event.now,
+                                          {'works_with_companion': None, 'parted_on': event.day, 'career': shown,
+                                           'employer': employer},
+                                          role='former coworker', career=career.get('id') or ''))
+
+
+def with_card(event: Event, undo: dict | None) -> list[dict]:
+    """A job change on the companion's own partner's row shows on their partner card too (love_partners.details,
+    as back_when_careers.hire keeps it); the undo of both."""
+    undos = listed(undo)
+    if not undo:
+        return undos
+    card = optional(event.connection, 'SELECT id, details FROM love_partners WHERE person_id=? AND ended_on IS NULL',
+                    (event.row['id'],))
+    if card is None:
+        return undos
+    details = circle.details_of(optional(event.connection, 'SELECT details FROM circle_people WHERE id=?',
+                                         (event.row['id'],)))
+    before = decode(card['details']) or {}
+    after = before | {'career': details.get('career') or '', 'employer': details.get('employer') or ''}
+    if after == before:
+        return undos
+    event.connection.execute('UPDATE love_partners SET details=? WHERE id=?', (encode(after), card['id']))
+    return [*undos, {'card_id': card['id'], 'before': before}]
 
 
 def broke_up(event: Event) -> list[dict]:
@@ -162,6 +200,33 @@ def separated(event: Event) -> list[dict]:
     return circle_love.tie_between(event.connection, event.row, event.other, 'separated', event.now)
 
 
+def married(event: Event) -> list[dict]:
+    """A wedding in the circle (companion/life/big_days.py): married to the partner they had, else someone new.
+    A love life the user set stays theirs; only `married` is written, as before v1.4."""
+    from companion.life import casting
+    found = circle_love.state(event.connection, event.row, people(event))
+    partner = found['partner'] if found['partner'] and found['state'] in circle_love.WITH_PARTNER else None
+    if not casting.love_is_apps(event.row):
+        partner = circle_love.named(event.connection, event.companion, event.row, partner)
+        event.names['partner'] = (partner or {}).get('name') or 'their partner'
+        return listed(records.write(event.connection, event.row['id'], event.now, {'married': True}))
+    partner = partner or circle_love.new_partner(event.connection, event.companion, event.row)
+    partner = circle_love.named(event.connection, event.companion, event.row, partner) or partner
+    event.names['partner'] = partner.get('name') or 'their partner'
+    return listed(circle_love.change(event.connection, event.row, 'married', event.day, event.source, event.now,
+                                     partner=partner, people=people(event)))
+
+
+def widowed(event: Event) -> list[dict]:
+    """Their partner in the circle died (companion/life/loss.py): a husband, wife or spouse leaves them widowed, anyone
+    else single. The one who died is not an ex; they are simply gone, and their own people stay theirs."""
+    found = circle_love.state(event.connection, event.row, people(event))
+    to = 'widowed' if found['state'] in ('married', 'separated') else 'single'
+    record = {'state': to, 'since': event.day, 'source': event.source, 'exes': found['exes']}
+    return listed(records.write(event.connection, event.row['id'], event.now, {
+        'partner': {key: value for key, value in record.items() if value not in (None, '', [])}, 'married': None}))
+
+
 def treatment(event: Event) -> list[dict]:
     return listed(records.write(event.connection, event.row['id'], event.now, {'in_treatment_since': event.day}))
 
@@ -208,6 +273,11 @@ EFFECTS = {
     'results_fine': Effect("{name}'s test results came back fine.", 'good'),
     'treatment': Effect("{name}'s test results mean treatment, starting soon.", 'bad', treatment),
     'dating_companion': Effect('', 'good', dating_companion),
+    # From other sources than storylines: a wedding held (big_days), the companion leaving their job (work, chapters,
+    # big turns), a death in the circle (loss).
+    'married': Effect('{name} and {partner} got married.', 'good', married),
+    'moved_on': Effect('', 'mixed', moved_on, 'job'),
+    'widowed': Effect('', 'bad', widowed, 'love'),
 }
 
 
@@ -254,6 +324,9 @@ def take_back(connection, timeline_id: str, source_prefix: str, now, forget: boo
         for undo in reversed(decode(row['undo']) or []):
             if undo.get('partner_id'):
                 love_life.stop_with(connection, undo, now)
+            elif undo.get('card_id'):
+                connection.execute('UPDATE love_partners SET details=? WHERE id=?',
+                                   (encode(undo['before']), undo['card_id']))
             else:
                 records.restore(connection, undo, now)
     if forget:
@@ -263,6 +336,31 @@ def take_back(connection, timeline_id: str, source_prefix: str, now, forget: boo
         connection.execute("UPDATE person_events SET status='ended' WHERE timeline_id=? AND source LIKE ?",
                            (timeline_id, f'{source_prefix}%'))
     return len(rows)
+
+
+# Other sources (world consistency part E) ------------------------------------------------------------------------
+
+def coworkers_moved_on(connection, companion: dict, source: str, day: date, now) -> int:
+    """The companion left their job: everyone in the circle who worked with them stays there, as a former coworker
+    (`moved_on`). `source` is what made them leave ('work:lose:<day>', 'chapter:<id>'), so undoing it takes this back."""
+    rows = [row for row in circle.people(connection, companion['active_timeline_id'])
+            if circle.details_of(row).get('works_with_companion')]
+    return sum(record(connection, companion, subject=row['id'], source=source, kind='moved_on', day=day.isoformat(),
+                      at=LEFT_AT, now=now) for row in rows)
+
+
+def widowed_by(connection, companion: dict, late: dict, source: str, day: str, now) -> int:
+    """Someone in the circle died (companion/life/loss.py, before their row leaves the circle): whoever in the circle
+    had them as their partner of record is widowed (or single, if they were not married)."""
+    people_now = circle.people(connection, companion['active_timeline_id'])
+    survivors = [row for row in people_now if row['id'] != late['id'] and
+                 partner_is(circle_love.state(connection, row, people_now).get('partner'), late)]
+    return sum(record(connection, companion, subject=row['id'], source=source, kind='widowed', day=day,
+                      at=LEFT_AT, other=late['id'], now=now) for row in survivors)
+
+
+def partner_is(partner: dict | None, row: dict) -> bool:
+    return bool(partner) and (partner.get('circle_id') == row['id'] or partner.get('key') == row['seed'])
 
 
 # Reading -----------------------------------------------------------------------------------------------------------
@@ -316,7 +414,7 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str, now) -
         undo = [{**item, 'id': ids.get(item.get('id'), item.get('id'))} for item in decode(row['undo']) or []]
         if row['starts_at'] > cutoff:
             for item in reversed(undo):
-                if not item.get('partner_id'):
+                if on_record(item):
                     records.restore(connection, item, now)
             continue
         if row['subject'] not in ids:
@@ -328,7 +426,13 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str, now) -
             'starts_at, tone, text, names, undo, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             (identifier(), new_id, ids[row['subject']], remapped(row['source'], ids), row['kind'], row['local_date'],
              row['at_time'], row['starts_at'], row['tone'], row['text'], encode(names),
-             encode([item for item in undo if not item.get('partner_id')]), row['status'], row['created_at']))
+             encode([item for item in undo if on_record(item)]), row['status'], row['created_at']))
+
+
+def on_record(undo: dict) -> bool:
+    """An undo of a circle row (records.write), not of a partner (love_life) or their card, which a fork copies
+    on its own (love_life.copy)."""
+    return not undo.get('partner_id') and not undo.get('card_id')
 
 
 def remapped(source: str, ids: dict) -> str:

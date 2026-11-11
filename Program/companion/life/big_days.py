@@ -76,6 +76,8 @@ BUZZ_BEFORE, BUZZ_AFTER, TOLD_DAYS = 7, 2, 30
 # A friend's chance of marrying in a given year, by the Their love life slider (0 nothing new ... 3 lots going on).
 FRIEND_RATE = (0.0, 0.03, 0.06, 0.12)
 FRIEND_AGES = (24, 60)
+# The hour a friend's engagement is put at in their diary (companion/life/happenings.py).
+ENGAGED_AT = '20:00'
 FRIENDS = {'close friend', 'longtime friend', 'old friend from school', 'old classmate', 'friend', 'new friend',
            'roommate from years ago'}
 # Whose milestone birthday is a party they go to, and who retires with a send-off.
@@ -213,13 +215,14 @@ def sibling_weddings(connection, companion: dict, today: date, people: dict, now
 
 
 def friend_weddings(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
-    """Friends in their circle who aren't married get engaged and marry in seeded years, by Their love life."""
-    from companion.life import love_life
+    """Friends in their circle who are seeing someone get engaged and marry in seeded years, by Their love life. The
+    engagement is written into their own life (companion/life/happenings.py) the day it comes: their partner is their
+    fiancé or fiancée from then on."""
+    from companion.life import happenings, love_life
     rate = FRIEND_RATE[love_life.level(connection)]
     result = []
     for row in people.values():
-        details = decode(row['details']) or {}
-        if circle.role_kind(row['role']) not in FRIENDS or details.get('married') or details.get('love'):
+        if not engaging(row, list(people.values()), today):
             continue
         age = life_age_of(connection, row, today, companion) or 0
         for year in (today.year, today.year + 1):
@@ -228,10 +231,25 @@ def friend_weddings(connection, companion: dict, today: date, people: dict, now)
                 continue
             day = saturday_in(year, f'{seed}:{year}')
             engaged = day - timedelta(days=200 + int(generators.unit(seed, 'engaged', year) * 120))
-            if engaged <= today:
-                result.append(candidate('wedding', f"friend:{row['id']}:{year}", row, day,
-                                        engaged_on=engaged.isoformat()))
+            if engaged > today:
+                continue
+            result.append(candidate('wedding', f"friend:{row['id']}:{year}", row, day, engaged_on=engaged.isoformat()))
+            if day >= today:  # One wedding to come at a time; one already past never happened.
+                happenings.record(connection, companion, subject=row['id'], source=f'bigday:friend:{year}',
+                                  kind='engaged', day=engaged.isoformat(), at=ENGAGED_AT, now=now)
+                break
     return result
+
+
+def engaging(row: dict, people: list[dict], today: date) -> bool:
+    """A friend who can get engaged: seeing someone (or engaged already) by their love life of record
+    (companion/life/circle_love.py), a love life the app chose, and not single after a breakup in the last half year."""
+    from companion.life import casting, circle_love
+    details = decode(row['details']) or {}
+    if circle.role_kind(row['role']) not in FRIENDS or details.get('married') or details.get('love'):
+        return False
+    return casting.seeing_someone(row, casting.Facts(people=people)) and casting.love_is_apps(row) and \
+        circle_love.single_by_event_since(row, casting.SINGLE_DAYS, today) is None
 
 
 def milestone_birthdays(connection, companion: dict, today: date, people: dict, now) -> list[dict]:
@@ -821,7 +839,12 @@ def mark(connection, row: dict, timestamp: str, **values) -> None:
 
 
 def married(connection, companion: dict, row: dict, with_user: bool, now: datetime) -> None:
-    mark(connection, row, stamp(now), married=True)
+    """Married to their partner of record, through the one door for life events (companion/life/happenings.py): a
+    line in their diary, and `married` on their row as before."""
+    from companion.life import happenings
+    if row['person_id']:
+        happenings.record(connection, companion, subject=row['person_id'], source=f"bigday:{row['id']}",
+                          kind='married', day=row['local_date'], at=row['at_time'] or ENGAGED_AT, now=now)
 
 
 def retired(connection, companion: dict, row: dict, with_user: bool, now: datetime) -> None:
