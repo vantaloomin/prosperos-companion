@@ -381,16 +381,23 @@ def arrived(child: dict, kind: str, definition: dict, parent: str = 'she/her', o
 
 
 def start(connection, companion: dict, world, person: dict, how: str, day: date, now) -> None:
+    storyline_id = begin(connection, companion, world, person, how, day, now)
+    keep_odds(connection, companion['active_timeline_id'], storyline_id, CIRCLE_BABY,
+              *circle_odds(connection, companion, person, how), day, now)
+
+
+def begin(connection, companion: dict, world, person: dict, how: str, day: date, now) -> str:
+    """The pregnancy's storyline and its baby, due later; with no odds, for news the companion gave themselves
+    (companion/life/life_changes.py). Returns the storyline's id."""
     found, timeline_id = plan(connection, companion, world, person, how, day), companion['active_timeline_id']
     storyline_id = insert_story(connection, timeline_id, 'expecting', person['id'], found['stages'], day, now)
-    keep_odds(connection, timeline_id, storyline_id, CIRCLE_BABY, *circle_odds(connection, companion, person, how),
-              day, now)
     child = found['child']
     connection.execute(
         'INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, title, born_on, status, '
         "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'expected', ?, ?)",
         (identifier(), timeline_id, person['id'], storyline_id, child['name'], child['pronouns'], child['title'],
          found['born'].isoformat(), stamp(now), stamp(now)))
+    return storyline_id
 
 
 # The odds behind a baby (Hidden values): a seeded chance each week, not the consequence engine, kept with the

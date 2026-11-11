@@ -901,8 +901,14 @@ export interface DiaryEntry {
   ends_at: string
   local_date: string
   block: string
-  entry: { summary: string; activity?: string; place?: string | null; mood?: string | null; post?: unknown }
+  entry: { summary: string; activity?: string; place?: string | null; mood?: string | null; post?: unknown; happening?: string; said?: SaidNews }
   status: string
+}
+/** The companion's own news behind a diary line (companion/life/said_events.py): the fact and the words. */
+export interface SaidNews {
+  fact_id: string
+  statement: string
+  said_at: string
 }
 /** Someone's kind and how long they live (companion/world/lifespans.py `described`). `own` is the user's pick of
  * How long they live: null as their kind, 0 doesn't age. `years` is what applies (null: they don't age). */

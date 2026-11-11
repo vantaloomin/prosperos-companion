@@ -1044,6 +1044,8 @@ def fresh(item: dict, since: str | None) -> bool:
 def offer_own(packet, connection, timeline_id, version, now, since=None):
     """What the companion has said about themselves, and the plans they have made in chat."""
     for row in self_facts.in_force(connection, timeline_id):
+        if row['category'] == 'news':  # News about their people is on their record (life/said_events.py).
+            continue
         packet.offer('self_facts+' if fresh(row, since) else 'self_facts', row['id'], self_facts.context_line(row))
     for identity, text in own_plans.context_lines(connection, timeline_id,
                                                   now.astimezone(zone(version['timezone'])).date().isoformat()):

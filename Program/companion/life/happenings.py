@@ -16,7 +16,7 @@ from datetime import date, datetime, time
 
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
-from companion.life import circle, circle_love, records
+from companion.life import circle, circle_love, life_changes, records
 
 COMPANION = 'companion'
 # The time of day an event with no hour of its own is put at (a job left, a death): the morning.
@@ -28,7 +28,7 @@ class Effect:
     text: str
     tone: str = 'mixed'
     apply: Callable | None = None
-    touches: str = ''  # 'job' or 'love': what of theirs it changes, never when the user set it
+    touches: str = ''  # 'job', 'love' or 'home': what of theirs it changes, never when the user set it
 
 
 def apps(row: dict, touches: str) -> bool:
@@ -38,6 +38,8 @@ def apps(row: dict, touches: str) -> bool:
         return casting.job_is_apps(row) and 'role' not in set(circle.details_of(row).get('edited', ()))
     if touches == 'love':
         return casting.love_is_apps(row)
+    if touches == 'home':
+        return 'local' not in set(circle.details_of(row).get('edited', ()))
     return True
 
 
@@ -52,6 +54,8 @@ class Event:
     source: str
     now: datetime
     names: dict
+    kind: str = ''
+    given: dict | None = None  # What the companion said with it (said_events): a partner, a place, a baby's name.
 
 
 # The changes ----------------------------------------------------------------------------------------------------------
@@ -178,7 +182,7 @@ def apart(event: Event) -> list[dict]:
 
 
 def picked(event: Event) -> list[dict]:
-    partner = circle_love.new_partner(event.connection, event.companion, event.row)
+    partner = said_partner(event) or circle_love.new_partner(event.connection, event.companion, event.row)
     event.names['partner'] = partner['name']
     return listed(circle_love.change(event.connection, event.row, 'seeing', event.day, event.source, event.now,
                                      partner=partner, people=people(event)))
@@ -186,8 +190,8 @@ def picked(event: Event) -> list[dict]:
 
 def engaged(event: Event) -> list[dict]:
     found = circle_love.state(event.connection, event.row, people(event))
-    partner = found['partner'] if found['state'] == 'seeing' and found['partner'] else \
-        circle_love.new_partner(event.connection, event.companion, event.row)
+    partner = said_partner(event, found) or (found['partner'] if found['state'] == 'seeing' and found['partner'] else
+                                             circle_love.new_partner(event.connection, event.companion, event.row))
     partner = circle_love.named(event.connection, event.companion, event.row, partner) or partner
     event.names['partner'] = partner.get('name') or 'their partner'
     return listed(circle_love.change(event.connection, event.row, 'engaged', event.day, event.source, event.now,
@@ -205,7 +209,8 @@ def married(event: Event) -> list[dict]:
     A love life the user set stays theirs; only `married` is written, as before v1.4."""
     from companion.life import casting
     found = circle_love.state(event.connection, event.row, people(event))
-    partner = found['partner'] if found['partner'] and found['state'] in circle_love.WITH_PARTNER else None
+    partner = said_partner(event, found) or (
+        found['partner'] if found['partner'] and found['state'] in circle_love.WITH_PARTNER else None)
     if not casting.love_is_apps(event.row):
         partner = circle_love.named(event.connection, event.companion, event.row, partner)
         event.names['partner'] = (partner or {}).get('name') or 'their partner'
@@ -215,6 +220,17 @@ def married(event: Event) -> list[dict]:
     event.names['partner'] = partner.get('name') or 'their partner'
     return listed(circle_love.change(event.connection, event.row, 'married', event.day, event.source, event.now,
                                      partner=partner, people=people(event)))
+
+
+def said_partner(event: Event, found: dict | None = None) -> dict | None:
+    """The partner the companion named ("engaged to Ren"), unless that is who they already have."""
+    given = (event.given or {}).get('partner')
+    if not given:
+        return None
+    current = circle_love.named(event.connection, event.companion, event.row, (found or {}).get('partner'))
+    if current and (current.get('name') or '').split(' ')[0].casefold() == given['name'].split(' ')[0].casefold():
+        return None
+    return given
 
 
 def widowed(event: Event) -> list[dict]:
@@ -278,6 +294,23 @@ EFFECTS = {
     'married': Effect('{name} and {partner} got married.', 'good', married),
     'moved_on': Effect('', 'mixed', moved_on, 'job'),
     'widowed': Effect('', 'bad', widowed, 'love'),
+    # From what the companion said about them (companion/life/said_events.py, life_changes.py).
+    'retired': Effect('{name} retired.', 'good', life_changes.work_ended, 'job'),
+    'laid_off': Effect('{name} was laid off.', 'bad', life_changes.work_ended, 'job'),
+    'quit': Effect('{name} quit and is between jobs.', 'mixed', life_changes.work_ended, 'job'),
+    'moved': Effect('{name} moved to a new place.', 'mixed', life_changes.moved, 'home'),
+    'moved_to': Effect('{name} moved to {place}.', 'mixed', life_changes.moved, 'home'),
+    'moved_away': Effect('{name} moved away.', 'mixed', life_changes.moved, 'home'),
+    'moved_away_to': Effect('{name} moved away, to {place}.', 'mixed', life_changes.moved, 'home'),
+    'moved_back': Effect('{name} moved back to town.', 'good', life_changes.moved, 'home'),
+    'in_hospital': Effect('{name} went into the hospital.', 'bad', life_changes.unwell),
+    'surgery': Effect('{name} had surgery.', 'bad', life_changes.unwell),
+    'hurt': Effect('{name} got hurt.', 'bad', life_changes.unwell),
+    'ill': Effect('{name} came down sick.', 'bad', life_changes.unwell),
+    'diagnosed': Effect('{name} got a diagnosis and is starting treatment.', 'bad', life_changes.unwell),
+    'recovered': Effect('{name} is feeling better.', 'good', life_changes.recovered),
+    'expecting': Effect('{name} is expecting a baby.', 'good', life_changes.expecting),
+    'had_baby': Effect('{name} had a baby, {child}.', 'good', life_changes.had_baby),
 }
 
 
@@ -289,7 +322,7 @@ def moment(companion: dict, day: str, at: str) -> str:
 
 
 def record(connection, companion: dict, *, subject: str, source: str, kind: str, day: str, at: str,
-           other: str | None = None, now) -> bool:
+           other: str | None = None, now, given: dict | None = None) -> bool:
     """Write one event about `subject` (a circle id) once: its line and its change. False when it was already
     written (it is idempotent, so it also fills in beats that happened before v1.3.4), or the person is gone."""
     timeline_id = companion['active_timeline_id']
@@ -300,10 +333,10 @@ def record(connection, companion: dict, *, subject: str, source: str, kind: str,
     if row is None:
         return False
     effect = EFFECTS[kind]
-    names = {'other': other} if other else {}
+    names = ({'other': other} if other else {}) | ({'place': given['place']} if (given or {}).get('place') else {})
     other_row = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (other,)) if other and \
         other != COMPANION else None
-    event = Event(connection, companion, row, other_row, day, source, now, names)
+    event = Event(connection, companion, row, other_row, day, source, now, names, kind, given)
     allowed = apps(row, effect.touches) and (other_row is None or apps(other_row, effect.touches))
     undo = effect.apply(event) if effect.apply and allowed else []
     connection.execute(
@@ -327,7 +360,7 @@ def take_back(connection, timeline_id: str, source_prefix: str, now, forget: boo
             elif undo.get('card_id'):
                 connection.execute('UPDATE love_partners SET details=? WHERE id=?',
                                    (encode(undo['before']), undo['card_id']))
-            else:
+            elif not life_changes.undo(connection, undo):
                 records.restore(connection, undo, now)
     if forget:
         connection.execute('DELETE FROM person_events WHERE timeline_id=? AND source LIKE ?',
@@ -370,7 +403,8 @@ def filled(row: dict, names: dict[str, str], companion_name: str) -> str:
     other = found.get('other')
     values = {'name': names.get(row['subject'], 'Someone'),
               'other': companion_name if other == COMPANION else names.get(other, 'someone'),
-              'partner': found.get('partner') or 'their partner'}
+              'partner': found.get('partner') or 'their partner', 'place': found.get('place') or 'a new place',
+              'child': found.get('child') or 'a baby'}
     return row['text'].format(**values)
 
 
@@ -385,7 +419,7 @@ def for_person(connection, timeline_id: str, subject: str, before: str | None = 
     from companion.characters import definition_for_timeline
     companion_name = (definition_for_timeline(connection, timeline_id).get('name') or '').split(' ')[0]
     return [{'kind': row['kind'], 'starts_at': row['starts_at'], 'local_date': row['local_date'],
-             'tone': row['tone'], 'text': filled(row, names, companion_name)} for row in rows]
+             'tone': row['tone'], 'text': filled(row, names, companion_name), 'source': row['source']} for row in rows]
 
 
 def lately(connection, timeline_id: str, subject: str, today: date, days: int = 14, limit: int = 2) -> list[str]:
@@ -443,8 +477,8 @@ def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str, now) -
 
 def on_record(undo: dict) -> bool:
     """An undo of a circle row (records.write), not of a partner (love_life) or their card, which a fork copies
-    on its own (love_life.copy)."""
-    return not undo.get('partner_id') and not undo.get('card_id')
+    on its own (love_life.copy), nor a pregnancy or a baby from what the companion said (life_changes)."""
+    return 'after' in undo
 
 
 def remapped(source: str, ids: dict) -> str:

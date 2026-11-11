@@ -89,3 +89,9 @@ export function weatherLine(day: Today['day']): { full: string; short: string } 
   const ahead = dayWeatherText(day.tomorrow, false)
   return { full: `${dayWeatherText(day.weather, false)} · Tomorrow: ${ahead[0].toLowerCase()}${ahead.slice(1)}`, short }
 }
+
+/** The summary over a diary line from the companion's own news: "From what Sett said" (Iris, #103). */
+export function saidText(companion: string): string {
+  const name = companion.trim().split(/\s+/)[0]
+  return name ? `From what ${name} said` : 'From what they said'
+}

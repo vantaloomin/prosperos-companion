@@ -49,6 +49,7 @@ from companion.life import (
     recommendations,
     rough_patches,
     routine,
+    said_events,
     scene_now,
     shared_people,
     simulation,
@@ -498,6 +499,12 @@ def person_diary(request: Request, person_id: str, before: str | None = None, li
         found = agenda.diary(connection, row['timeline_id'], person_id, min(max(limit, 1), 100), before)
         # Someone from another circle: what they did with their own companion stays on that companion's page.
         return [{**entry, 'with_companion': None} for entry in found if entry['slot'] is not None] if shared else found
+
+
+@router.post('/said/{fact_id}/undo')
+def undo_said(request: Request, fact_id: str):
+    """Undo on a diary line from the companion's own news about someone (companion/life/said_events.py)."""
+    return said_events.undo(db(request), fact_id)
 
 
 class SharedPerson(Input):
