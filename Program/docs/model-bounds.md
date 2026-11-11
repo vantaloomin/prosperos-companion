@@ -37,9 +37,13 @@ a background pass or a page.
 | `world/schema.py`, `world/routes.py` | Roadworks delay | 1..60 minutes. |
 | `world/mix.py` | Townsfolk mix shares | Clamped to each share's low and high. |
 
-## Found, not fixed here
+## Leftovers, fixed in 1.4
 
-- `drafting.draft_tokens` takes a provider's reported output limit as a ceiling with no floor, so a server that
-  reports 16 output tokens makes every draft fail as too long. Rare and the error says why; left as is.
-- Editable prompts (Settings > Advanced) let the user change these examples. The tests guard the defaults that
-  ship; a saved edit is checked for placeholders and list lines, not for its JSON example.
+- `drafting.draft_tokens` took a provider's reported output limit as a ceiling with no floor, so a server that
+  reported 16 output tokens made every draft fail as too long. A reported limit under `DRAFT_FLOOR` (1024) is now
+  treated as a misreport and ignored; a plausible one still caps the request, but never below the profile's own
+  longest reply.
+- Editable prompts (Settings > Advanced) let the user change these examples. A saved edit is now checked for its
+  JSON examples too (`companion/prompt_examples.py`): each example it keeps is read by the code that reads the
+  model's real reply, and one the app would throw away is refused with the example named. Taking examples out is
+  allowed. The tests run the same check on every default that ships.

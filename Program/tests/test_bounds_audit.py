@@ -10,7 +10,7 @@ from datetime import date
 
 import pytest
 
-from companion import drafting, prompt_library, sidecar
+from companion import drafting, prompt_examples, prompt_library, sidecar
 from companion.life import ages, pets, synthesis
 from companion.mcp import weather
 from companion.memory import dates, self_suggest, suggest
@@ -155,3 +155,69 @@ def test_polish_example_reply_changes_the_item_it_names():
     definition = {'places': [{'id': '...', 'name': 'Old', 'summary': 'Old.'}]}
     polished, changed = polish.apply(definition, 'places', reply)
     assert changed == ['...']
+
+
+# --- Leftovers: a tiny reported output limit, and examples in a user's own wording -------------------------------
+
+PROFILE = {'max_output_tokens': 800}
+
+
+@pytest.mark.parametrize(('reported', 'expected'), [
+    (None, drafting.DRAFT_TOKENS),  # nothing reported: the draft's own room
+    (16, drafting.DRAFT_TOKENS),  # a misreport too small for any draft is ignored, not obeyed
+    (drafting.DRAFT_FLOOR - 1, drafting.DRAFT_TOKENS),
+    (2000, 2000),  # a plausible limit still caps the request
+    (64000, drafting.DRAFT_TOKENS),
+])
+def test_a_tiny_reported_output_limit_does_not_fail_every_draft(reported, expected):
+    config = {**PROFILE, 'reported_capabilities': {'max_output_tokens': reported}}
+    assert drafting.draft_tokens(config, drafting.DRAFT_TOKENS) == expected
+
+
+def test_a_reported_limit_never_cuts_below_the_profiles_own_longest_reply():
+    config = {'max_output_tokens': 3000, 'reported_capabilities': {'max_output_tokens': 2000}}
+    assert drafting.draft_tokens(config, drafting.DRAFT_TOKENS) == 3000
+
+
+@pytest.mark.parametrize('name', sorted(prompt_examples.CHECKS))
+def test_every_shipped_default_passes_the_save_time_example_check(name):
+    assert prompt_examples.problems(name, prompt_library.PROMPTS[name].default()) is None
+
+
+def reworded(name: str, old: str, new: str) -> str:
+    text = prompt_library.PROMPTS[name].default()
+    assert old in text
+    return text.replace(old, new, 1)
+
+
+@pytest.mark.parametrize(('name', 'old', 'new', 'says'), [
+    # A value the message does not support: the app drops it, so the model would learn to write dropped answers.
+    ('memory-suggestions', '"value": "Towson"', '"value": "Baltimore County"', 'throw away'),
+    ('memory-suggestions', '"value": "Towson"}]', '"value": "Towson"]', 'not JSON'),
+    ('memory-suggestions', '"layer": "user_fact", "subject": "Name"', '"layer": "fact", "subject": "Name"',
+     'throw away'),
+    ('self-facts', '"category": "team"', '"category": "squad"', 'throw away'),
+    ('life-phrasing', '{"summary": "...", "post": "..."}', '{"summary": "...", "caption": "..."}', '"post"'),
+    ('life-phrasing', '{"summary": "...", "post": "..."}', '{"summary": "...", "post": ...}', 'not JSON'),
+    ('character-draft.md', '\n  "name": ', '\n  "full_name": ', '"name"'),
+    ('sidecar.md', '- {"kind": "reply"', '- {"kind": "answer"', 'kind'),
+])
+def test_a_reworded_example_the_app_would_throw_away_is_refused(name, old, new, says):
+    problem = prompt_examples.problems(name, reworded(name, old, new))
+    assert problem and says in problem and problem.endswith('Fix it or take it out.')
+
+
+def test_wording_with_no_examples_is_still_fine():
+    for name in prompt_examples.CHECKS:
+        assert prompt_examples.problems(name, 'Write the JSON. {{name}}') is None
+
+
+def test_saving_a_broken_example_is_refused_and_nothing_is_stored(client):
+    bad = reworded('memory-suggestions', '"value": "Towson"', '"value": "Baltimore County"')
+    response = client.put('/api/prompts/memory-suggestions', json={'text': bad})
+    assert response.status_code == 422 and response.json()['code'] == 'prompt_example'
+    assert 'my mom lives in Towson' in response.json()['detail']
+    listed = next(item for item in client.get('/api/prompts').json() if item['name'] == 'memory-suggestions')
+    assert not listed['customized']
+    fine = reworded('memory-suggestions', '"subject": "Name"', '"subject": "First name"')
+    assert client.put('/api/prompts/memory-suggestions', json={'text': fine}).json()['customized']
