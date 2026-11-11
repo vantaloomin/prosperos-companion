@@ -54,9 +54,10 @@ def price(id, item, low, high, per=''):
     return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': SRC}
 
 
-def goal(id, text, steps, practice, progress, done, interest, bio):
-    return {'id': id, 'text': text, 'steps': steps, 'practice': list(practice), 'progress': progress, 'done': done,
-            'interest': interest, 'bio': bio}
+def goal(id, text, steps, practice, progress, done, interest, bio, news=True):
+    # news=False: a private win the town paper leaves out (companion/world/paper.py).
+    return {'id': id, 'text': text, 'steps': steps, **({} if news else {'news': False}), 'practice': list(practice),
+            'progress': progress, 'done': done, 'interest': interest, 'bio': bio}
 
 
 def climate(summary, note):
@@ -356,13 +357,13 @@ QUIRKS = [
 GOALS = [
     goal('vesper-jumper', 'knit a jumper from their own station wool', 6, ('market', 'afternoon'),
          '{name} finished another panel of the jumper', '{name} wore their station-wool jumper on the Concourse',
-         'knitting', 'Knitting a jumper from wool I sheared myself.'),
+         'knitting', 'Knitting a jumper from wool I sheared myself.', news=False),
     goal('vesper-pilot', 'fly the hourly shuttle to the Meridian', 8, ('library', 'evening'),
          '{name} passed another simulator flight', '{name} flew the hourly shuttle over to the Meridian',
-         'flying', 'Training to fly the Meridian shuttle.'),
+         'flying', 'Training to fly the Meridian shuttle.', news=False),
     goal('vesper-welding', 'learn to weld well enough to sign a mask', 5, ('workshop', 'evening'),
          '{name} laid a cleaner bead at the Makers\' Bench', '{name} signed their first mask and hung it in the Rivet',
-         'welding', 'Learning to weld at the Makers\' Bench.'),
+         'welding', 'Learning to weld at the Makers\' Bench.', news=False),
     goal('vesper-band', 'play a set at Low Ring Music Week', 5, ('venue', 'evening'),
          '{name} got through a whole set at the Bunkhouse open mic',
          '{name} played their set at Music Week to a packed bar', 'music',
