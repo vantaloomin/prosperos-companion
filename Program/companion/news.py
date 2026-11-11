@@ -10,6 +10,9 @@ or from a gossip. The dice are seeded by the news, the pair and the day, so a da
 So the sister hears Tuesday night, a coworker Wednesday, and a friend who is a companion too may text the user
 about it Thursday, before the companion has said a word.
 
+News that happens to someone in the circle (Kaito's breakup, Lestara's promotion) has them as its `subjects`:
+they know it from the start (hop 0), pass it on as their own news, and never "hear" it from someone else.
+
 Everyone remembers who told them (`news_holders.told_by`). Saying it in a group counts too: everyone there hears
 it (via `group`), from whoever said it. Openers (life/openers.py) and group replies (groups.py) pick from what each
 person has heard. Secrets keep their own rules (companion/secrets.py) and never travel this way.
@@ -23,7 +26,7 @@ from datetime import date, time, timedelta
 from companion import consequences, secrets
 from companion.characters import by_id
 from companion.clock import parse, stamp, zone
-from companion.database import decode, identifier, many, settings
+from companion.database import decode, encode, identifier, many, settings
 from companion.life import circle, expecting, families, love_life, storylines
 from companion.memory import pairs
 
@@ -42,17 +45,20 @@ TONES = ('good', 'bad')
 # What counts as news --------------------------------------------------------------------------------------
 
 def found(connection, companion: dict, now) -> list[dict]:
-    """The companion's recent news: {source, text, happened_on}."""
+    """The companion's recent news: {source, text, happened_on, subjects}. A storyline beat's subjects are the circle
+    people it happened to (their person keys); the companion's own news has none."""
     today = storylines.local_today(companion, now)
     since = (today - timedelta(days=RECENT_DAYS)).isoformat()
-    result = []
+    result, seeds = [], None
     for item in storylines.visible(connection, companion, now):
         if item['story'] in secrets.STORY_SECRETS:
             continue
         for index, beat in enumerate(item['beats']):
             if beat['tone'] in TONES and since <= beat['on'] <= today.isoformat():
+                seeds = seeds if seeds is not None else circle_keys(connection, companion['active_timeline_id'])
                 result.append({'source': f"storyline:{item['id']}:{index}", 'text': beat['text'].rstrip('.'),
-                               'happened_on': beat['on']})
+                               'happened_on': beat['on'],
+                               'subjects': [seeds[person['id']] for person in item['cast'] if person['id'] in seeds]})
     for row in many(connection, 'SELECT * FROM life_chapters WHERE timeline_id=? AND undone_at IS NULL '
                     'AND started_on>=? AND started_on<=?', (companion['active_timeline_id'], since, today.isoformat())):
         result.append({'source': f"chapter:{row['id']}", 'text': row['title'].rstrip('.'),
@@ -63,6 +69,21 @@ def found(connection, companion: dict, now) -> list[dict]:
         expecting.news_items(connection, companion, since, today.isoformat())
 
 
+def circle_keys(connection, timeline_id: str) -> dict[str, str]:
+    """Each circle person's id and their person key, the one news holders go by (memory/pairs.py)."""
+    return {row['id']: row['seed'] for row in circle.people(connection, timeline_id, include_removed=True)}
+
+
+def subjects_of(item: dict) -> list[str]:
+    found = item.get('subjects')
+    return (decode(found) or []) if isinstance(found, str) else (found or [])
+
+
+def own_news(item: dict, key: str) -> bool:
+    """Whether this news is about `key`: the companion it started with, or someone it happened to."""
+    return key == item['about'] or key in subjects_of(item)
+
+
 def register(connection, companion: dict, now) -> None:
     """New news starts with the companion; a chapter's news follows its title and ends when it is undone, and a
     storyline's ends when the user ends the storyline."""
@@ -71,13 +92,18 @@ def register(connection, companion: dict, now) -> None:
                        f"{storylines.ENDED_SOURCE.format(column='source')}", (companion['active_timeline_id'],))
     current = {item['source']: item for item in found(connection, companion, now)}
     for item in current.values():
-        news_id = identifier()
+        news_id, subjects = identifier(), item.get('subjects') or []
         added = connection.execute(
-            'INSERT OR IGNORE INTO news (id, timeline_id, source, about, text, happened_on, created_at) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?)', (news_id, companion['active_timeline_id'], item['source'], key,
-                                             item['text'], item['happened_on'], timestamp)).rowcount
+            'INSERT OR IGNORE INTO news (id, timeline_id, source, about, text, happened_on, subjects, created_at) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (news_id, companion['active_timeline_id'], item['source'], key,
+                                                item['text'], item['happened_on'], encode(subjects),
+                                                timestamp)).rowcount
         if added:
             hear(connection, news_id, key, None, 0, item['happened_on'], 'origin', timestamp)
+        elif subjects:
+            news_id = given_subjects(connection, item['source'], subjects)
+        for subject in subjects if news_id else ():
+            knows_own(connection, news_id, subject, item['happened_on'], timestamp)
     for row in many(connection, "SELECT * FROM news WHERE timeline_id=? AND status='active' AND source LIKE 'chapter:%'",
                     (companion['active_timeline_id'],)):
         item = current.get(row['source'])
@@ -85,6 +111,24 @@ def register(connection, companion: dict, now) -> None:
             connection.execute("UPDATE news SET status='ended' WHERE id=?", (row['id'],))
         elif item['text'] != row['text']:
             connection.execute('UPDATE news SET text=? WHERE id=?', (item['text'], row['id']))
+
+
+def given_subjects(connection, source: str, subjects: list[str]) -> str | None:
+    """News registered before it had subjects (before v1.4.0) gets them, so Kaito stops "hearing" his own breakup.
+    Returns its id when it is still active."""
+    row = next(iter(many(connection, "SELECT id, subjects FROM news WHERE source=? AND status='active'", (source,))),
+               None)
+    if row and decode(row['subjects']) != subjects:
+        connection.execute('UPDATE news SET subjects=? WHERE id=?', (encode(subjects), row['id']))
+    return row and row['id']
+
+
+def knows_own(connection, news_id: str, subject: str, day: str, timestamp: str) -> None:
+    """Someone it happened to knows it from the start: hop 0, from nobody. Someone recorded as having heard it from
+    someone else (news from before v1.4.0) is put right."""
+    if not hear(connection, news_id, subject, None, 0, day, 'origin', timestamp):
+        connection.execute("UPDATE news_holders SET told_by=NULL, hop=0, heard_on=?, via='origin', message_id=NULL "
+                           'WHERE news_id=? AND holder=? AND hop>0', (day, news_id, subject))
 
 
 def hear(connection, news_id: str, holder: str, told_by: str | None, hop: int, day: str, via: str, timestamp: str,
@@ -131,7 +175,7 @@ class Ties:
 
 
 def passes(connection, ties: Ties, item: dict, teller: str, listener: str, day: str) -> bool:
-    facts = {'closeness_a': ties.level(teller, listener), 'own': int(teller == item['about']),
+    facts = {'closeness_a': ties.level(teller, listener), 'own': int(own_news(item, teller)),
              'gossip': int(secrets.gossips(connection, teller))}
     odds = consequences.odds(CHOICE, facts, {'name': 'they', 'a': 'them', 'b': ''})
     return consequences.roll(f"{item['id']}:{teller}>{listener}:{day}", odds) == 0
@@ -185,13 +229,15 @@ ACTIVE = "JOIN companions c ON c.active_timeline_id=n.timeline_id WHERE n.status
 
 
 def heard(connection, holder: str, since: str, limit: int = CONTEXT_LIMIT) -> list[dict]:
-    """News about someone else that this person heard since `since`, newest first, with who told them. Only news
+    """News about someone else that this person heard since `since`, newest first, with who told them; never news
+    that happened to them (they are among its `subjects`). Only news
     on its companion's active timeline: a forked or abandoned timeline's news stays where it was. With the adult side
     of life on, none about a child on the way or come home (companion/life/expecting.py)."""
     kept = " AND n.source NOT LIKE 'journey:%'" if families.withheld(connection) else ''
     return many(connection, 'SELECT n.*, h.told_by, h.heard_on, h.hop, h.via FROM news n JOIN news_holders h '
                 f'ON h.news_id=n.id AND h.holder=? {ACTIVE} AND n.about!=? AND h.heard_on>=?{kept} '
-                'ORDER BY h.heard_on DESC, n.id LIMIT ?', (holder, holder, since, limit))
+                'AND NOT EXISTS (SELECT 1 FROM json_each(n.subjects) s WHERE s.value=?) '
+                'ORDER BY h.heard_on DESC, n.id LIMIT ?', (holder, holder, since, holder, limit))
 
 
 def who(connection, key: str | None, owner: str | None = None) -> str:
@@ -236,12 +282,14 @@ def group_lines(connection, speaker: str, present: list[str], labels: dict[str, 
             holders[item['id']] = {row['holder'] for row in many(
                 connection, 'SELECT holder FROM news_holders WHERE news_id=?', (item['id'],))}
         unaware = [secrets.label(connection, member, labels) for member in present
-                   if member != speaker and member not in holders[item['id']] and member != item['about']]
+                   if member != speaker and member not in holders[item['id']] and not own_news(item, member)]
         if not unaware:
             continue
         text = f"- You heard ({who(connection, item['told_by'], speaker)} told you): {item['text']}."
-        if item['about'] in present:
-            text += f" It is {secrets.label(connection, item['about'], labels)}'s news, so let them tell it."
+        # The one it happened to tells it first (Kaito his breakup), else the companion it started with.
+        here = [member for member in [*subjects_of(item), item['about']] if member in present]
+        if here:
+            text += f" It is {secrets.label(connection, here[0], labels)}'s news, so let them tell it."
         else:
             text += f" {secrets.names_text(unaware)} {'has' if len(unaware) == 1 else 'have'}n't heard yet."
         lines.append((f"news:{item['id']}", text))
@@ -274,8 +322,9 @@ def listing(connection, companion: dict, now) -> list[dict]:
     result = []
     for item in many(connection, f'SELECT n.* FROM news n {ACTIVE} AND n.about=? AND n.happened_on>=? '
                      'ORDER BY n.happened_on DESC, n.id', (key, since)):
-        rows = many(connection, 'SELECT * FROM news_holders WHERE news_id=? AND holder!=? ORDER BY heard_on, hop, '
-                    'holder', (item['id'], key))
+        rows = [row for row in many(connection, 'SELECT * FROM news_holders WHERE news_id=? AND holder!=? '
+                                    'ORDER BY heard_on, hop, holder', (item['id'], key))
+                if row['holder'] not in subjects_of(item)]  # It happened to them: they did not hear it.
         result.append({'id': item['id'], 'text': on_screen(item['text']), 'happened_on': item['happened_on'],
                        'heard': [{'name': on_screen(who(connection, row['holder'], key)), 'heard_on': row['heard_on'],
                                   'from': None if row['told_by'] == key else on_screen(who(connection, row['told_by'],

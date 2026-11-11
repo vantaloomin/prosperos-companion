@@ -37,6 +37,7 @@ from companion.life import (
     calls,
     chapters,
     circle,
+    circle_love,
     composer,
     deck,
     disruptions,
@@ -509,7 +510,9 @@ def person_text(person, away: str = 'out of town') -> str:
     # An employer whose name ends in a full stop ("Coutts and Co.") already ends the sentence.
     text += '' if text.endswith('.') else '.'
     text += '' if person.get('local', True) else f' Lives {away}.'
-    if person.get('married'):
+    if person.get('love'):  # Their love life of record, once an event changed it (life/circle_love.py).
+        text += f" {person['love']}"
+    elif person.get('married'):
         text += ' Married' + (f", goes by their married name (born {person['birth_family']})."
                               if person.get('birth_family') else '.')
     if person.get('knowing', 'both') != 'both':
@@ -862,12 +865,22 @@ def offer_all(packet, section: str, lines: list[tuple[str, str]]):
         packet.offer(section, identity, text)
 
 
+def love_lines(connection, companion, today: str) -> dict[str, str]:
+    """Each circle person's love life of record, by id, where a life event changed it (life/circle_love.py)."""
+    day = date.fromisoformat(today)
+    found = ((row['id'], circle_love.prompt_line(connection, companion, row, day))
+             for row in circle.people(connection, companion['active_timeline_id']))
+    return {person_id: line for person_id, line in found if line}
+
+
 def offer_people(packet, connection, companion, now, today):
     """The circle, and the storylines going on in their lives and the companion's."""
     timeline_id = companion['active_timeline_id']
     away = ships.away_text(ships.vessel_of(connection, companion['version']['definition']))
     also = shared_people.also_known(connection, companion)
-    people = [{**person, 'also': also.get(person['id'])} for person in agenda.circle_view(connection, timeline_id, now)]
+    love = love_lines(connection, companion, today)
+    people = [{**person, 'also': also.get(person['id']), 'love': love.get(person['id'])}
+              for person in agenda.circle_view(connection, timeline_id, now)]
     for person in people + shared_people.shared_with(connection, companion, now):
         if person.get('late') or person.get('estranged'):
             continue  # Someone who passed away is in the 'loss' section (companion/life/loss.py), not among the living;
