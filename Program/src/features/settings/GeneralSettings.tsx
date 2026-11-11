@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ExternalLink, RefreshCw } from 'lucide-react'
 import { SETTINGS_KEY, pcTimezone } from '../../companion'
 import { api } from '../../api'
-import type { UpdateCheck as Found, WorkspaceSettings as Settings } from '../../types'
+import type { UpdateCheck as Found, TemperatureSetting, WorkspaceSettings as Settings } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { RowGroup, SettingRow, SwitchRow } from '../../components/Rows'
 import { timezones } from '../character/definition'
@@ -29,7 +29,7 @@ export function GeneralSettings() {
   if (!data) return <SectionError problem={problem} />
   return <>
     <SectionError problem={problem} />
-    <RowGroup id="time-heading"><TimeZoneRow data={data} save={save} /></RowGroup>
+    <RowGroup id="time-heading"><TimeZoneRow data={data} save={save} /><TemperatureRow data={data} save={save} /></RowGroup>
     <ChatStyleRows />
     <WorldRows data={data} save={save} onPaused={(saved) => setPending({ paused: saved.paused, paused_at: saved.paused_at })} onError={setError} />
     <OocRows data={data} save={save} />
@@ -54,6 +54,25 @@ function TimeZoneRow({ data, save }: { data: Settings; save: Save }) {
           {pc && <option value={FOLLOW_PC}>Follow this PC ({pc})</option>}
           {!zones.includes(data.user_timezone) && <option value={data.user_timezone}>{data.user_timezone}</option>}
           {zones.map((zone) => <option key={zone} value={zone}>{zone}</option>)}
+        </select>
+      )}
+    </SettingRow>
+  )
+}
+
+/** Celsius or Fahrenheit, picked by their city until the user keeps one; the value says which ("Follow their city (°C)"). */
+function TemperatureRow({ data, save }: { data: Settings; save: Save }) {
+  const client = useQueryClient()
+  const choose = (value: TemperatureSetting) => void save({ temperature_unit: value }).then((saved) => {
+    if (saved) for (const key of ['today', 'paper']) void client.invalidateQueries({ queryKey: [key] })
+  })
+  return (
+    <SettingRow label="Temperature" tip="Follows their city: °F in the United States, °C everywhere else.">
+      {(id) => (
+        <select id={id} value={data.temperature_unit ?? 'auto'} onChange={(event) => choose(event.target.value as TemperatureSetting)}>
+          <option value="auto">Follow their city (°{data.temperature_auto ?? 'F'})</option>
+          <option value="C">Celsius (°C)</option>
+          <option value="F">Fahrenheit (°F)</option>
         </select>
       )}
     </SettingRow>

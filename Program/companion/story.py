@@ -19,7 +19,18 @@ from companion.memory.context import NOTE_CLOSE
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
 from companion.text_models import config_for, default_name, key_for
-from companion.world import catalog, changes, custom, generators, inside, life_details, newcomers, skies, townsfolk
+from companion.world import (
+    catalog,
+    changes,
+    custom,
+    generators,
+    inside,
+    life_details,
+    newcomers,
+    skies,
+    temperature,
+    townsfolk,
+)
 
 JOB = 'story'
 DEFAULT_CITY = 'baltimore'
@@ -135,7 +146,7 @@ def scene(connection, now: datetime) -> dict:
     return {'city': {'id': data['id'], 'name': data['name'], 'era': data.get('era', 'modern')},
             'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'summary': place.get('summary', ''),
                       'neighborhood': hood, 'spots': inside.names(inside.for_place(place, data.get('era')))},
-            'local_time': moment.isoformat(timespec='minutes'), 'weather': agenda.weather_text(weather) if weather else '',
+            'local_time': moment.isoformat(timespec='minutes'), 'weather': agenda.weather_text(weather, temperature.chosen(connection)) if weather else '',
             'people': present(connection, data, place['id'], moment), 'data': data, 'now': now,
             'known': story_people.known(connection)}
 

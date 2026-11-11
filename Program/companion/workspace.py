@@ -5,6 +5,7 @@ from companion import local_zone, notifications
 from companion.clock import zone
 from companion.database import identifier, optional, settings
 from companion.errors import require
+from companion.world import temperature
 
 FLAGS = ('automatic_memory', 'sensitive_memory', 'share_profile_across_timelines', 'background_activity',
          'model_memory_suggestions', 'chat_sounds', 'chat_retro_dark', 'auto_launch', 'ask_about_people',
@@ -24,6 +25,11 @@ def view(row: dict) -> dict:
             'custom_palette': json.loads(row['custom_palette']) if row['custom_palette'] else None,
             'ooc_markers': json.loads(row['ooc_markers']) if row['ooc_markers'] else OOC_MARKERS,
             'system_timezone': local_zone.detect()}
+
+
+def shown(connection) -> dict:
+    """The settings as Settings shows them, with the temperature unit the app would pick here ("Automatic (°C)")."""
+    return view(settings(connection)) | {'temperature_auto': temperature.auto(connection)}
 
 
 def follows_pc(row: dict) -> bool:
@@ -58,7 +64,7 @@ def adopt_pc_timezone(database, detected: str | None):
 
 def read(database) -> dict:
     with database.connect() as connection:
-        return view(settings(connection))
+        return shown(connection)
 
 
 def update(database, body) -> dict:
@@ -91,7 +97,7 @@ def update(database, body) -> dict:
         if changed.get('background_activity') is False:
             # Revoking background permission applies to queued notifications as well.
             notifications.cancel_queued(connection, assignments['updated_at'], 'Background activity was turned off.')
-        return view(settings(connection))
+        return shown(connection)
 
 
 def hold(connection, timestamp: str):
@@ -114,13 +120,13 @@ def release(connection, timestamp: str):
 def pause(database) -> dict:
     with database.connect(write=True) as connection:
         hold(connection, database.now())
-        return view(settings(connection))
+        return shown(connection)
 
 
 def resume(database) -> dict:
     with database.connect(write=True) as connection:
         release(connection, database.now())
-        return view(settings(connection))
+        return shown(connection)
 
 
 def overlapping_pause(connection, starts_at: str, ends_at: str) -> dict | None:

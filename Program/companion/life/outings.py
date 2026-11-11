@@ -27,7 +27,7 @@ from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import composer, money, onward, own_plans, routine
 from companion.memory.extraction import SENTENCE
-from companion.world import catalog, custom, generators, inside, skies
+from companion.world import catalog, custom, generators, inside, skies, temperature
 
 # key: (words that name it, city place kinds, usual start, hours, money.COSTS key, how it reads)
 ACTIVITIES = {
@@ -818,7 +818,8 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
     conditions = generators.conditions(data, date.fromisoformat(outing['local_date']), skies.level_of(connection)) \
         if data else None
     if outing['activity'] in VISIT_DOING:
-        return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else ())
+        return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else (),
+                           temperature.chosen(connection))
     if outing['activity'] in MEETUPS:
         from companion.life import their_people
         return their_people.scene(connection, companion, outing, spot)
@@ -836,7 +837,7 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
             'Talk as if you are there together, face to face, not texting.') if part)
     parts = [f"Right now you are out with the user, in person: {what(outing)}, until about {outing['until_time']}.",
              f'You are {spot}.' if spot else '', place.get('summary', ''), menu(data, outing),
-             f'Weather: {agenda.weather_text(conditions)}' if conditions else '',
+             f'Weather: {agenda.weather_text(conditions, temperature.chosen(connection))}' if conditions else '',
              'Talk as if you are there together, face to face, not texting.']
     if place.get('proposal'):
         from companion.life import wedding
@@ -861,7 +862,7 @@ def here_too(connection, companion: dict, outing: dict, now: datetime) -> list[s
     return names
 
 
-def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
+def visit_scene(outing: dict, spot: str | None, conditions, others=(), unit: str = 'F') -> str:
     """Being at the user's place, or having them at yours, in person."""
     from companion.life import agenda
     place = outing['place']
@@ -880,7 +881,7 @@ def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
         food = ' for dinner, which they are cooking' if outing['activity'] == 'dinner-yours' else ''
         first = f"Right now you are over at the user's place{area}{food}, in person, until about {outing['until_time']}."
     spot = None if place.get('knock') else spot  # Just in from the door, not settled anywhere yet.
-    weather = f'Weather outside: {agenda.weather_text(conditions)}' if conditions else ''
+    weather = f'Weather outside: {agenda.weather_text(conditions, unit)}' if conditions else ''
     company = ' '.join(f'{name}, also visiting the user, is here too, in person.' for name in others)
     return '- ' + ' '.join(part for part in (first, company, f'You are {spot}.' if spot else '', weather, IN_PERSON)
                            if part)

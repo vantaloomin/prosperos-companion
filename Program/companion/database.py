@@ -452,6 +452,9 @@ ADDED_COLUMNS = (
     # Whose news it is besides the companion (companion/news.py): the circle people a storyline beat happened to, a
     # JSON list of person keys. They know it from the start and never hear it from anyone.
     ('news', 'subjects', "TEXT NOT NULL DEFAULT '[]'"),
+    # Celsius or Fahrenheit (companion/world/temperature.py): 'auto' picks by the companion's city.
+    ('workspace_settings', 'temperature_unit',
+     "TEXT NOT NULL DEFAULT 'auto' CHECK (temperature_unit IN ('auto', 'C', 'F'))"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

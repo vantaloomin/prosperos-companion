@@ -67,7 +67,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.workspace import overlapping_pause
-from companion.world import generators, inside, ships, skies
+from companion.world import generators, inside, ships, skies, temperature
 
 HORIZON = timedelta(days=7)
 BACKFILL = timedelta(days=30)
@@ -710,10 +710,10 @@ def happenings_text(events) -> str:
         event['name'] + (f" ({event['neighborhood']})" if event['neighborhood'] else '') for event in events) + '.'
 
 
-def weather_text(conditions: dict) -> str:
-    """'High 48°F, low 37°F, rain, the third day of it.' A day from before skies were named (or a lookup that names
-    none) says only wet or dry."""
-    text = f"High {conditions['high_f']}°F, low {conditions['low_f']}°F, "
+def weather_text(conditions: dict, unit: str = 'F') -> str:
+    """'High 48°F, low 37°F, rain, the third day of it.' (or in °C, companion/world/temperature.py). A day from before
+    skies were named (or a lookup that names none) says only wet or dry."""
+    text = f"High {temperature.text(conditions['high_f'], unit)}, low {temperature.text(conditions['low_f'], unit)}, "
     sky = skies.sky_words(conditions)
     text += f'{sky}.' if sky else 'with rain.' if conditions['rain'] else 'dry.'
     # The month's note can describe sunshine (or snow), so it is said only on a dry day, and never on a looked-up one.
