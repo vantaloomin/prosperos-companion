@@ -9,15 +9,17 @@ import { HISTORY_KEY } from '../../companion'
 import { DRAFT_KEY, newDraft, readDraft, writeDraft } from '../conversation/draft'
 import { WHERE_KEY } from '../conversation/whereText'
 import { TOGETHER_KEY } from '../today/outingText'
-import { dropByFound, dropByHint, dropByLabel, dropByLines, historyLine, isHome, spotList, suggestHint, suggestion, type DropByResult, type MapHood, type MapPlace } from './mapText'
+import { ADDED_KINDS, dropByFound, dropByHint, dropByLabel, dropByLines, historyLine, isHome, spotList, suggestHint, suggestion, type DropByResult, type MapHood, type MapPlace } from './mapText'
 
-interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void }
+interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void
+  /** A place added when the user named it was taken off the map: the map closes the card and offers Undo. */
+  onRemoved?: (place: MapPlace) => void }
 
 const storage = () => { try { return window.localStorage } catch { return undefined } }
 
 /** A tapped place: what it is, what happened there with them, who is usually there, and where to go next. A home says
  * whose it is; theirs and the places in town can be edited here, and the user's own home is changed where they live. */
-export function PlaceCard({ inline, place, city, hoods, enclosed, story, companion, onClose, go }: Props) {
+export function PlaceCard({ inline, place, city, hoods, enclosed, story, companion, onClose, go, onRemoved }: Props) {
   const client = useQueryClient()
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
@@ -54,7 +56,7 @@ export function PlaceCard({ inline, place, city, hoods, enclosed, story, compani
   return (
     <aside className={inline ? 'map-card inline' : 'map-card'} aria-label={place.name}>
       <CardHeader place={place} name={name} editable={!editing && (place.id === '~home' || !isHome(place))} onEdit={() => setEditing(true)} onClose={onClose} />
-      {editing ? <EditPlace place={place} hoods={hoods} enclosed={enclosed} name={name} onDone={() => setEditing(false)} />
+      {editing ? <EditPlace place={place} hoods={hoods} enclosed={enclosed} name={name} onDone={() => setEditing(false)} onRemoved={onRemoved} />
         : <PlaceFacts place={place} />}
       {!editing && <PlaceDetails place={place} name={name} timezone={companion.version.definition.timezone} story={story} goThere={() => void goThere()} suggest={suggest} go={go} visit={visit} />}
       {error && <p className="field-error" role="alert">{error}</p>}
@@ -66,12 +68,13 @@ export function PlaceCard({ inline, place, city, hoods, enclosed, story, compani
  * invitation (Iris, 2026-11-03). */
 function CardHeader({ place, name, editable, onEdit, onClose }: { place: MapPlace; name: string; editable: boolean; onEdit: () => void; onClose: () => void }) {
   const home = place.id === '~home'
+  const label = home ? 'Edit home' : place.added ? 'Edit place' : 'Edit inside'
   return (
     <header>
       <div><h2>{place.name}</h2><p className="subtle">{[isHome(place) ? place.relation : place.kind, place.hood].filter(Boolean).join(' · ')}</p></div>
       <div className="map-card-tools">
-        {editable && <button type="button" className="icon-button" aria-label={home ? 'Edit home' : 'Edit inside'}
-          title={home ? `Edit home. Changes here show on ${name}'s Character page too.` : 'Edit inside'} onClick={onEdit}><Pencil aria-hidden="true" /></button>}
+        {editable && <button type="button" className="icon-button" aria-label={label}
+          title={home ? `Edit home. Changes here show on ${name}'s Character page too.` : label} onClick={onEdit}><Pencil aria-hidden="true" /></button>}
         <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X aria-hidden="true" /></button>
       </div>
     </header>
@@ -110,7 +113,7 @@ function NextSteps({ place, name, story, goThere, suggest, visit }: Omit<Details
 /** What the card says about a place or a home: where it is approximate, its description and what is inside. */
 function PlaceFacts({ place }: { place: MapPlace }) {
   return <>
-    {!isHome(place) && <p className="subtle map-approx">Location approximate</p>}
+    {!isHome(place) && <p className="subtle map-approx">{place.added ? 'Added when you named it · Location approximate' : 'Location approximate'}</p>}
     {place.about && <p>{place.about.charAt(0).toUpperCase() + place.about.slice(1).replace(/[.\s]*$/, '.')}</p>}
     {place.spots.length > 0 && <p className="subtle">Inside: {place.spots.join(', ')}</p>}
   </>
@@ -118,31 +121,36 @@ function PlaceFacts({ place }: { place: MapPlace }) {
 
 /** Their home's neighborhood and rooms, or what is inside a place, in the user's words. Saved for the whole app:
  * their Home section, chat, pictures and Story mode use the same. */
-function EditPlace({ place, hoods, enclosed, name, onDone }: { place: MapPlace; hoods: MapHood[]; enclosed: boolean; name: string; onDone: () => void }) {
+function EditPlace({ place, hoods, enclosed, name, onDone, onRemoved }: { place: MapPlace; hoods: MapHood[]; enclosed: boolean; name: string; onDone: () => void; onRemoved?: (place: MapPlace) => void }) {
   const client = useQueryClient()
   const home = place.id === '~home'
   const [about, setAbout] = useState(place.about ?? '')
   const [hood, setHood] = useState(place.hood_id)
   const [inside, setInside] = useState(place.spots.join(', '))
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
-  const save = async (event: FormEvent) => {
+  const [title, setTitle] = useState(place.name)
+  const [kind, setKind] = useState(place.kind)
+  const { error, saving, run } = useRun(onDone)
+  const save = (event: FormEvent) => {
     event.preventDefault()
-    setSaving(true)
-    try {
+    void run(async () => {
+      if (place.added) await saveAdded(place, { name: title.trim(), kind, neighborhood: hood, about: about.trim() })
       await saveEdits(place, about.trim(), hood, spotList(inside))
       await Promise.all([client.invalidateQueries({ queryKey: ['city-map'] }), client.invalidateQueries({ queryKey: ['home'] })])
-      onDone()
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'That could not be saved.')
-    } finally { setSaving(false) }
+    }, 'That could not be saved.')
   }
   const usual = (event: MouseEvent) => { event.preventDefault(); setInside('') }
-  const words = home ? { label: 'Rooms', example: 'Such as the kitchen, the bedroom', used: `${name}'s days, pictures and Story mode use these rooms.`, set: place.rooms_set }
-    : { label: 'Inside', example: 'Such as the bar, the back room', used: "Everyone's days and Story mode use these.", set: place.spots_set }
+  const remove = () => void run(async () => {
+    await api(`/life/map/places/${encodeURIComponent(place.id)}`, undefined, 'DELETE')
+    onRemoved?.(place)
+    await client.invalidateQueries({ queryKey: ['city-map'] })
+  }, 'That could not be removed.')
+  const words = insideWords(place, name)
+  const part = enclosed ? 'Deck' : 'Neighborhood'
+  const shared = { about, setAbout, hood, setHood, hoods, part }
   return (
-    <form className="map-edit-form" onSubmit={(event) => void save(event)}>
-      {home && <HomeFields about={about} setAbout={setAbout} was={place.about ?? ''} hood={hood} setHood={setHood} hoods={hoods} part={enclosed ? 'Deck' : 'Neighborhood'} name={name} />}
+    <form className="map-edit-form" onSubmit={save}>
+      {home && <HomeFields {...shared} was={place.about ?? ''} name={name} />}
+      {place.added && <AddedFields {...shared} title={title} setTitle={setTitle} kind={kind} setKind={setKind} />}
       <label htmlFor="map-inside">{words.label}</label>
       <textarea id="map-inside" className="grow-box" rows={2} value={inside} maxLength={480} aria-describedby="map-inside-hint" placeholder={words.example} onChange={(event) => { setInside(event.target.value); grow(event.target) }} />
       <small id="map-inside-hint" className="subtle">
@@ -151,11 +159,63 @@ function EditPlace({ place, hoods, enclosed, name, onDone }: { place: MapPlace; 
       </small>
       {error && <p className="field-error" role="alert">{error}</p>}
       <div className="rename-row">
-        <button type="submit" className="button primary" disabled={saving}>Save</button>
+        <button type="submit" className="button primary" disabled={saving || !title.trim()}>Save</button>
         <button type="button" className="button" onClick={onDone}>Cancel</button>
       </div>
+      {place.added && <button type="button" className="text-button danger map-remove" disabled={saving} onClick={remove}>Remove from the map</button>}
     </form>
   )
+}
+
+/** What the list under the fields is: their home's rooms, or what is inside a place. */
+function insideWords(place: MapPlace, name: string) {
+  return place.id === '~home'
+    ? { label: 'Rooms', example: 'Such as the kitchen, the bedroom', used: `${name}'s days, pictures and Story mode use these rooms.`, set: place.rooms_set }
+    : { label: 'Inside', example: 'Such as the bar, the back room', used: "Everyone's days and Story mode use these.", set: place.spots_set }
+}
+
+/** Runs a save or a removal, keeping its error and whether it is under way; done once it worked. */
+function useRun(onDone: () => void) {
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const run = async (work: () => Promise<void>, failed: string) => {
+    setSaving(true)
+    try {
+      await work()
+      onDone()
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : failed)
+    } finally { setSaving(false) }
+  }
+  return { error, saving, run }
+}
+
+interface AddedFieldsProps { title: string; setTitle: (text: string) => void; kind: string; setKind: (kind: string) => void; about: string; setAbout: (text: string) => void; hood: string; setHood: (id: string) => void; hoods: MapHood[]; part: string }
+
+/** A place added when the user named it: the app filled it in, and every detail is theirs to change. */
+function AddedFields({ title, setTitle, kind, setKind, about, setAbout, hood, setHood, hoods, part }: AddedFieldsProps) {
+  const kinds = ADDED_KINDS.some(([id]) => id === kind) ? ADDED_KINDS : [[kind, kind.charAt(0).toUpperCase() + kind.slice(1)], ...ADDED_KINDS]
+  return <>
+    <label htmlFor="map-place-name">Name</label>
+    <input id="map-place-name" autoComplete="off" value={title} maxLength={80} onChange={(event) => setTitle(event.target.value)} />
+    <label htmlFor="map-place-kind">Kind of place</label>
+    <select id="map-place-kind" value={kind} onChange={(event) => setKind(event.target.value)}>
+      {kinds.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+    </select>
+    <label htmlFor="map-place-hood">{part}</label>
+    <select id="map-place-hood" value={hood} onChange={(event) => setHood(event.target.value)}>
+      {[...hoods].sort((a, b) => a.name.localeCompare(b.name)).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+    </select>
+    <label htmlFor="map-place-about">Description</label>
+    <textarea id="map-place-about" className="grow-box" rows={2} value={about} maxLength={300} placeholder="What's it like?" onChange={(event) => { setAbout(event.target.value); grow(event.target) }} ref={(box) => { if (box) grow(box) }} />
+  </>
+}
+
+/** A place added when the user named it: only what changed is sent. */
+async function saveAdded(place: MapPlace, next: { name: string; kind: string; neighborhood: string; about: string }) {
+  const change = Object.fromEntries(Object.entries(next).filter(([key, value]) =>
+    value !== { name: place.name, kind: place.kind, neighborhood: place.hood_id, about: place.about ?? '' }[key]))
+  if (Object.keys(change).length) await api(`/life/map/places/${encodeURIComponent(place.id)}`, change, 'PATCH')
 }
 
 interface HomeFieldsProps { about: string; setAbout: (text: string) => void; was: string; hood: string; setHood: (id: string) => void; hoods: MapHood[]; part: string; name: string }

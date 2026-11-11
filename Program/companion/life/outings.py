@@ -27,7 +27,7 @@ from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import composer, money, onward, own_plans, routine
 from companion.memory.extraction import SENTENCE
-from companion.world import catalog, custom, generators, inside, skies, temperature
+from companion.world import added_places, catalog, custom, generators, inside, skies, temperature
 
 # key: (words that name it, city place kinds, usual start, hours, money.COSTS key, how it reads)
 ACTIVITIES = {
@@ -128,10 +128,11 @@ def activity_for_place(place: dict) -> str:
 
 
 def city_data(connection, definition: dict) -> dict | None:
+    """Their city, with the places added in this world (companion/world/added_places.py)."""
     extra = custom.all_cities(connection)
     for text in (definition.get('home_city'), definition.get('location')):
         if text and (found := catalog.resolve(text, extra)):
-            return catalog.city(found['city'], extra)
+            return added_places.merge(connection, catalog.city(found['city'], extra))
     return None
 
 
@@ -143,6 +144,13 @@ def named_place(sentence: str, data: dict | None) -> dict | None:
         if len(item['name']) >= 4 and re.search(rf"\b{re.escape(item['name'])}\b", sentence, re.IGNORECASE):
             return item
     return None
+
+
+def new_place(sentence: str, data: dict | None) -> dict | None:
+    """A place the user names that the city does not have, filled in by rules for what the ask is for
+    (companion/world/added_places.py); stored only once the outing is booked."""
+    activity = which(sentence, None)
+    return added_places.guess(sentence, data, kinds(activity) if activity else ())
 
 
 def asked(sentence: str, firm: bool, day: date | None) -> bool:
@@ -235,8 +243,8 @@ def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bo
             return found
         if not sentence or not asked(sentence, firm, day):
             continue
-        place = named_place(sentence, data)
         pastime = next((found['id'] for found in pastimes if found['pattern'].search(sentence)), None)
+        place = None if pastime else named_place(sentence, data) or new_place(sentence, data)
         activity = 'hobby' if pastime else which(sentence, place)
         if activity is None:
             continue
@@ -493,6 +501,7 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
                                          not affordable, wanted.get('word', ''), wanted.get('waterside', False))
     if item is None:
         return None
+    keep_added(connection, data, item, message['id'], timestamp)
     if item.get('cost') == 'free':
         cost, affordable = 0.0, True
     outing_id = identifier()
@@ -506,6 +515,13 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
     admin.make_room(connection, companion, day, at, parse(timestamp))
     onward.plan(connection, companion, outing_id)  # Whether it moves on to a second place (companion/life/onward.py).
     return get(connection, outing_id)
+
+
+def keep_added(connection, data: dict, item: dict, message_id: str, timestamp: str) -> None:
+    """A place the user named that the map did not have goes on it now that something is booked there, theirs to
+    change on the map (companion/world/added_places.py)."""
+    if item.get('added') and not catalog.find(data, item['id']):
+        added_places.add(connection, data, item, message_id, timestamp)
 
 
 def save_pastime(connection, companion, message, wanted, data, day: date, at: str, timestamp: str, cost: float):

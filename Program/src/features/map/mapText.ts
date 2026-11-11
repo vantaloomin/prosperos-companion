@@ -14,6 +14,9 @@ export interface MapPlace {
   relation?: string
   /** Whether the user rewrote what is inside a place. */
   spots_set?: boolean
+  /** A place added when the user named it (companion/world/added_places.py), and whether they changed it since; its
+   * name, kind, neighborhood and description (`about`) are theirs to change. */
+  added?: 'named' | 'edited'
   /** Surprise visits (companion/life/drop_by.py), on their home and their work: whether Drop by is on offer now, and
    * the line beside it ("Sett works here. On shift now until 02:00."). */
   drop_by?: DropByOffer
@@ -120,3 +123,11 @@ export function byHood(places: MapPlace[]): [string, MapPlace[]][] {
 export function narrow(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches
 }
+
+/** The kinds a place added when the user named it can be (companion/world/added_places.py EDITABLE_KINDS). */
+export const ADDED_KINDS: [string, string][] = [
+  ['restaurant', 'Restaurant'], ['cafe', 'Cafe'], ['bar', 'Bar'], ['nightlife', 'Club'], ['venue', 'Theater or venue'],
+  ['museum', 'Museum'], ['attraction', 'Attraction'], ['stadium', 'Stadium'], ['park', 'Park'], ['garden', 'Garden'],
+  ['trail', 'Trail'], ['beach', 'Beach'], ['market', 'Market'], ['shopping', 'Shop'], ['library', 'Library'],
+  ['fitness', 'Gym or studio'], ['landmark', 'Landmark'],
+]

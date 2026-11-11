@@ -168,6 +168,8 @@ def place_view(place: dict, hood: dict, pins: set[str], events: list[dict], peop
             'lat': round(hood['lat'] + north, 6), 'lon': round(hood['lon'] + east, 6), 'approx': True,
             'pins': sorted(pins), 'spots': inside.names(inside.for_place(place, era)),
             'spots_set': bool(place.get('spots_set')),
+            # Added when the user named it (companion/world/added_places.py): its details are the user's to change.
+            **({'added': place['added'], 'about': place.get('summary', '')} if place.get('added') else {}),
             'history': [{'id': event['id'], 'summary': event['summary'], 'at': event['at']} for event in events[:HISTORY]],
             'regulars': sorted(set(people))}
 

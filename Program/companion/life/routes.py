@@ -67,7 +67,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.models import Input, KindChange, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
-from companion.world import inside, lifespans, paper, ships
+from companion.world import added_places, inside, lifespans, paper, ships
 
 router = APIRouter(prefix='/api/life')
 today_router = APIRouter(prefix='/api/today')
@@ -588,6 +588,14 @@ class MapPlaceInside(Input):
     spots: list[Annotated[str, Field(max_length=60)]] = Field(max_length=8)
 
 
+class MapPlaceDetails(Input):
+    """A place added to the map when the user named it (companion/world/added_places.py), in the user's words."""
+    name: Annotated[str, Field(max_length=80)] | None = None
+    kind: Literal[added_places.EDITABLE_KINDS] | None = None
+    neighborhood: Annotated[str, Field(max_length=80)] | None = None
+    about: Annotated[str, Field(max_length=300)] | None = None
+
+
 def map_change(request: Request, action=None):
     """The map, after `action(connection, companion, data, now)`; their home is set up (and kept in a neighbourhood
     that fits what is said about it, companion/life/home.py) before it is drawn."""
@@ -624,6 +632,26 @@ def edit_place_inside(request: Request, place_id: str, body: MapPlaceInside):
         require(any(place['id'] == place_id for place in data['places']), 'That place is not in their city.', 404)
         inside.edit(connection, data['id'], place_id, body.spots, now)
     return map_change(request, action)
+
+
+@router.patch('/map/places/{place_id}')
+def edit_added_place(request: Request, place_id: str, body: MapPlaceDetails):
+    """The name, kind, neighborhood or description of a place added when the user named it."""
+    return map_change(request, lambda connection, _companion, data, now: added_places.edit(
+        connection, data, place_id, body.model_dump(exclude_none=True), stamp(now)))
+
+
+@router.delete('/map/places/{place_id}')
+def remove_added_place(request: Request, place_id: str):
+    """Take a place added when the user named it off the map."""
+    return map_change(request, lambda connection, _companion, data, _now: added_places.remove(connection, data, place_id))
+
+
+@router.put('/map/places/{place_id}/back')
+def restore_added_place(request: Request, place_id: str):
+    """Undo taking a place added when the user named it off the map."""
+    return map_change(request, lambda connection, _companion, data, _now: added_places.remove(
+        connection, data, place_id, removed=False))
 
 
 @router.get('/outings')

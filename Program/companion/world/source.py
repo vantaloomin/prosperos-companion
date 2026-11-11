@@ -4,7 +4,7 @@ from typing import Sequence
 
 from companion.almanac import days as almanac_days
 from companion.life.world import Place
-from companion.world import catalog, changes, custom, destinations, skies
+from companion.world import added_places, catalog, changes, custom, destinations, skies
 from companion.world.generators import SEASONS, conditions, unit
 
 # The composer's place kinds, answered from this data's place kinds (and tags, for waterfronts and books).
@@ -40,7 +40,7 @@ class CatalogWorld:
             data = changes.resolve(city, {})
             return changes.apply(data, changes.known(data, day), day) if data and day else data
         with self.database.connect() as connection:
-            data = changes.resolve(city, custom.all_cities(connection))
+            data = added_places.merge(connection, changes.resolve(city, custom.all_cities(connection)))
             saved = changes.stored(connection, data['id']) if data and day else None
         return changes.apply(data, changes.known(data, day, saved), day) if saved else data
 

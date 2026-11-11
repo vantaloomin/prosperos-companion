@@ -24,7 +24,7 @@ Kept on the outing as `onward` (JSON):
 import re
 from datetime import date, datetime, timedelta
 
-from companion.clock import parse, zone
+from companion.clock import parse, stamp, zone
 from companion.database import encode, optional
 from companion.errors import require
 from companion.life import composer, money, routine
@@ -425,6 +425,8 @@ def move_on(connection, companion: dict, outing: dict, message: dict, wanted: di
                  activity=wanted['activity'] if wanted else None, place=named,
                  rolls=(stop_of(outing) or {}).get('rolls', 0) + 1)
     if found:
+        if named and named.get('added'):  # A place the user named that the map did not have (world/added_places.py).
+            outings.keep_added(connection, data, named, message['id'], stamp(now))
         write(connection, outing, {**found, 'asked': True, 'message_id': message['id'],
                                    'before': (outing.get('onward') or {}).get('before') or []})
 
