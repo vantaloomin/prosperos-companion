@@ -36,6 +36,7 @@ import { WhereStrip } from './WhereStrip'
 import { ApartStrip } from './ApartStrip'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, notTexting } from './whereText'
+import { TOGETHER_KEY } from '../today/outingText'
 import { ChatSidebar } from '../chats/ChatSidebar'
 import { openNewGroup } from '../chats/newGroupStore'
 import { readThrough } from '../chats/chatText'
@@ -112,6 +113,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
     setLive((current) => { const next = { ...current }; delete next[reply.id]; return next })
     if (held) return
     void client.invalidateQueries({ queryKey: WHERE_KEY })
+    void client.invalidateQueries({ queryKey: TOGETHER_KEY })  // Today's Out together card follows the scene too (companion/life/scene_now.py).
     void client.invalidateQueries({ queryKey: THEIR_LOOK_KEY })  // A reply can move their mood, and so their shade.
     setAnnouncement(replyAnnouncement(name, reply))
     if (sounds.current && reply.status === 'complete') playCue('message')
@@ -152,6 +154,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
       draft.clear()
       // A visit asked for, or a goodbye, is settled as the message is sent (companion/life/together.py).
       void client.invalidateQueries({ queryKey: WHERE_KEY })
+      void client.invalidateQueries({ queryKey: TOGETHER_KEY })
     } catch (error) { fail(error) } finally { draft.setSending(false) }
   }
   const retry = async (userId: string, profileId?: string) => {

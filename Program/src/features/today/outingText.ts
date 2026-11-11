@@ -64,8 +64,10 @@ export function timeText(hhmm: string): string {
   return text.replace(/\s/gu, '\u00a0')
 }
 
-/** "Dinner at Ouzo Bay". */
+/** "Dinner at Ouzo Bay"; once the chat took them somewhere the map doesn't know, where they are, as the chat strip
+ * says it: "On the way to the harbor", "On the bus" (companion/life/scene_now.py). */
 export function outingTitle(outing: Pick<Outing, 'activity' | 'place'>): string {
+  if (outing.place.label) return outing.place.label.charAt(0).toUpperCase() + outing.place.label.slice(1)
   if (outing.activity === 'hobby' && outing.place.hobby) return `${outing.place.hobby.label} at ${outing.place.name}`
   if (outing.activity === 'big-day' && outing.place.title) return outing.place.title
   if (outing.place.kind === 'your-home') return `${WHAT[outing.activity] ?? 'A visit'} at your place`
@@ -98,6 +100,7 @@ export function placeLine(place: OutingPlace): string {
 /** Where an outing is, for Today: a big day names its own venue ("Unity Temple, Oak Park"), like the chat strip does;
  * anything else reads as the kind of place (placeLine). */
 export function outingPlace(outing: Pick<Outing, 'activity' | 'place'>): string {
+  if (outing.place.kind === 'scene') return ''  // Where the chat took them: the title already says it.
   if (outing.activity !== 'big-day') return placeLine(outing.place)
   const name = outing.place.name.charAt(0).toUpperCase() + outing.place.name.slice(1)
   return outing.place.neighborhood ? `${name}, ${outing.place.neighborhood}` : name
@@ -152,18 +155,27 @@ export function outingNote(outing: Outing, name: string): string {
   return outing.rolls > 0 ? 'You asked for somewhere else.' : ''
 }
 
-/** Moving on to a second place: "Then drinks at The Owl Bar, around 9:00 PM.", or "Came over from Lupa." once there. */
-export function onwardLine(outing: Pick<Outing, 'state' | 'next' | 'came_from'>): string {
+/** Moving on to a second place: "Then drinks at The Owl Bar, around 9:00 PM.", or "Came over from Lupa." once there;
+ * on the move after the chat took them off, "Left Lupa." (companion/life/scene_now.py). */
+export function onwardLine(outing: Pick<Outing, 'state' | 'next' | 'came_from' | 'scene'>): string {
   if (outing.state !== 'now') return ''
   if (outing.next) return `Then ${(WHAT[outing.next.activity] ?? 'on').toLowerCase()} at ${outing.next.place.name}, around ${timeText(outing.next.at)}.`
-  return outing.came_from ? `Came over from ${outing.came_from.name}.` : ''
+  if (!outing.came_from) return ''
+  return onTheMove(outing) ? `Left ${outing.came_from.name}.` : `Came over from ${outing.came_from.name}.`
+}
+
+/** On the bus, on the way somewhere, outside a place (companion/life/scene_now.py): no "until" while they are on the
+ * move, as on the chat strip (Iris, 2026-11-10). */
+export function onTheMove(outing: Pick<Outing, 'scene'>): boolean {
+  return ['transit', 'way', 'outside'].includes(outing.scene?.kind ?? '')
 }
 
 /** How meeting up works, so nobody waits for a "Go there" button that never comes: at the time they are simply there
  * together, and the chat is where it happens. '' once it is over or called off. */
-export function meetLine(outing: Pick<Outing, 'state' | 'until_time'>): string {
+export function meetLine(outing: Pick<Outing, 'state' | 'until_time' | 'scene'>): string {
   const until = outing.until_time ? ` until ${timeText(outing.until_time)}` : ''
   if (outing.state === 'planned') return `No need to go anywhere. When it's time, you'll be there together, and the chat turns face to face${until}.`
+  if (outing.state === 'now' && onTheMove(outing)) return "You're together now."
   if (outing.state === 'now') return until ? `You're there together${until}.` : `You're there together now.`
   return ''
 }

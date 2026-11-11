@@ -1460,12 +1460,23 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     since = (now.astimezone(zone(version['timezone'])).date() - timedelta(days=14)).isoformat()
     found = in_force(connection, companion['active_timeline_id'], since, include_cancelled=True)
     from companion.life import our_child  # An evening out with a child at home: who watches them (screen only).
-    return [{**onward.here(outing, version['timezone'], now), 'state': state(outing, version['timezone'], now),
+    return [{**where_now(connection, companion, outing, now), 'state': state(outing, version['timezone'], now),
              'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
              'undo_move': onward.undoable(outing, version['timezone'], now),
              'cost_text': money_text(companion, outing).strip(),
              'sitter': our_child.sitter_view(connection, companion, outing),
              **choices(connection, companion, outing, now)} for outing in found]
+
+
+def where_now(connection, companion: dict, outing: dict, now: datetime) -> dict:
+    """The outing as Today shows it: under way, where they are now, the second place once they moved on
+    (companion/life/onward.py) or where the chat has taken them (companion/life/scene_now.py), as the chat strip has it."""
+    timezone = companion['version']['timezone']
+    here = onward.here(outing, timezone, now)
+    if state(outing, timezone, now) != 'now':
+        return here
+    from companion.life import scene_now
+    return scene_now.applied(connection, companion, outing, here, now)[0]
 
 
 def photo_ready(connection, now: datetime) -> list[dict]:
