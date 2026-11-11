@@ -1,5 +1,5 @@
 {
- "about": "What townsfolk work toward (companion/world/townsfolk.py). text and period complete 'trying to ...' (period wording for towns before cars and phones); steps is how many good weeks it takes; practice is the place kind and part of day they go to work on it (see GOAL_KINDS), or null; progress and done lines start with {name}; interest is what a profile drafted from them lists; bio is their first-person line on a dating profile. Add goals freely; every id must be new.",
+ "about": "What townsfolk work toward (companion/world/townsfolk.py). text and period complete 'trying to ...' (period wording for towns before cars and phones); steps is how many good weeks it takes; practice is the place kind and part of day they go to work on it (see GOAL_KINDS), or null; progress and done lines start with {name}; interest is what a profile drafted from them lists; bio is their first-person line on a dating profile. Add goals freely; every id must be new. needs, when present, is what the goal asks of the person (companion/life/casting.py): job (has work), employer (works for someone, not their own boss), retired, sibling, single or partner, each true or false, and ages [low, high] in human years; a goal that asks nothing fits anyone.",
  "goals": [
   {
    "id": "own-place",
@@ -17,6 +17,12 @@
    "text": "run their first marathon",
    "period": "walk the long road to the coast and back",
    "steps": 5,
+   "needs": {
+    "ages": [
+     18,
+     72
+    ]
+   },
    "practice": [
     "park",
     "morning"
@@ -45,6 +51,9 @@
    "text": "pass a licensing exam",
    "period": "earn their guild papers",
    "steps": 4,
+   "needs": {
+    "retired": false
+   },
    "practice": [
     "library",
     "evening"
@@ -73,6 +82,9 @@
    "text": "patch things up with an estranged sibling",
    "period": "make peace with a sibling they fell out with long ago",
    "steps": 4,
+   "needs": {
+    "sibling": true
+   },
    "practice": null,
    "progress": "{name} sent their sibling a message and got an answer",
    "done": "{name} and their sibling are speaking again",
@@ -109,6 +121,9 @@
    "text": "get promoted",
    "period": "be made head of the place they work",
    "steps": 5,
+   "needs": {
+    "employer": true
+   },
    "practice": null,
    "progress": "{name} got trusted with something bigger at work",
    "done": "{name} got the promotion",
@@ -409,6 +424,9 @@
    "text": "finish an evening course in accounting",
    "period": "learn to keep accounts properly",
    "steps": 5,
+   "needs": {
+    "retired": false
+   },
    "practice": [
     "library",
     "evening"
@@ -484,6 +502,9 @@
    "text": "land a job in a proper restaurant kitchen",
    "period": "get taken on in a fine dining house's kitchen",
    "steps": 4,
+   "needs": {
+    "retired": false
+   },
    "practice": [
     "restaurant",
     "evening"
@@ -934,6 +955,13 @@
    "text": "work up the nerve to ask someone out",
    "period": "work up the nerve to ask someone to walk out together",
    "steps": 3,
+   "needs": {
+    "single": true,
+    "ages": [
+     18,
+     70
+    ]
+   },
    "practice": [
     "cafe",
     "afternoon"
@@ -959,6 +987,9 @@
    "text": "mentor a young apprentice at work",
    "period": "take on and train an apprentice",
    "steps": 5,
+   "needs": {
+    "job": true
+   },
    "practice": null,
    "progress": "{name} watched the apprentice manage a job alone",
    "done": "{name}'s apprentice is doing well and says it is thanks to them",
@@ -970,6 +1001,9 @@
    "text": "ask for a raise and get it",
    "period": "ask the master for better wages and get them",
    "steps": 3,
+   "needs": {
+    "employer": true
+   },
    "practice": null,
    "progress": "{name} wrote down everything they have done this year",
    "done": "{name} asked for more pay and got it",
@@ -1095,6 +1129,12 @@
    "text": "climb the hardest wall at the climbing gym",
    "period": "scale the old quarry face",
    "steps": 5,
+   "needs": {
+    "ages": [
+     18,
+     70
+    ]
+   },
    "practice": [
     "gym",
     "evening"
@@ -1206,6 +1246,12 @@
    "text": "make the rowing crew",
    "period": "make the rowing crew for the regatta",
    "steps": 5,
+   "needs": {
+    "ages": [
+     18,
+     65
+    ]
+   },
    "practice": [
     "beach",
     "morning"
@@ -1242,6 +1288,12 @@
    "text": "plan a surprise party for their parents' anniversary",
    "period": "plan a surprise feast for their parents' anniversary",
    "steps": 4,
+   "needs": {
+    "ages": [
+     18,
+     62
+    ]
+   },
    "practice": null,
    "progress": "{name} booked the room and kept the secret",
    "done": "{name}'s surprise worked and their parents were teary and delighted",

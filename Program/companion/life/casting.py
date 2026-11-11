@@ -254,3 +254,80 @@ def companion_employed(connection, companion: dict) -> bool:
     found = work.state(connection, companion['active_timeline_id']) if connection else None
     return not found or found['status'] == 'working'
 
+
+
+# Townsfolk goals (Hit List #101) ---------------------------------------------------------------------------------
+# A townsperson's goals (companion/world/townsfolk.py) come from world/data/goals.json, where a goal can say what it
+# `needs` of the person: these read a townsperson's sheet the way the rules above read a circle row, so "got the
+# promotion" goes to someone with a boss, as a storyline's does, and never to someone retired.
+
+# The keys a goal's `needs` may hold, each a check on the sheet (`day` matters only to `single` and `partner`).
+GOAL_NEEDS = ('job', 'employer', 'retired', 'sibling', 'single', 'partner', 'ages')
+# The share of townsfolk with a brother or sister. A townsperson has no family of record; this seeded draw is it.
+SIBLINGS = 0.8
+
+
+def townsperson_works(sheet: dict) -> bool:
+    return (sheet.get('occupation') or '') not in ('', 'retired')
+
+
+def townsperson_employed(sheet: dict, data: dict) -> bool:
+    """Works for someone else: on staff at their place, or in a career that keeps staff or a rota. Not an owner,
+    not freelance, not working from home (the same words `independent_words` reads on a circle row)."""
+    if not townsperson_works(sheet):
+        return False
+    words = f"{sheet['occupation']} {sheet.get('role') or ''}".replace('-', ' ')
+    if shifts.has_words(words, INDEPENDENT_WORDS):
+        return False
+    if sheet.get('staff'):
+        return True
+    career = next((item for item in catalog.careers_for(data).values()
+                   if item['name'].lower() == sheet['occupation']), None)
+    return shifts.employment_of(career, sheet['occupation']) in ('staff', 'rota')
+
+
+def townsperson_sibling(sheet: dict) -> bool:
+    from companion.world import generators, townsfolk
+    return generators.unit(townsfolk.drawn(sheet), 'sibling') < SIBLINGS
+
+
+def townsperson_life(sheet: dict, data: dict) -> int:
+    from companion.world import dating
+    return dating.life_of(sheet, data)
+
+
+def lasting_goals(order, needs_of: dict, sheet: dict, data: dict) -> list:
+    """The goals in `order` that fit who they are, whatever the week: their job, their age, their family. Each check
+    runs once per person, however many goals ask it."""
+    checks = {
+        'job': lambda: townsperson_works(sheet),
+        'employer': lambda: townsperson_employed(sheet, data),
+        'retired': lambda: (sheet.get('occupation') or '') == 'retired',
+        'sibling': lambda: townsperson_sibling(sheet),
+        'ages': lambda: townsperson_life(sheet, data),
+    }
+    known = {}
+
+    def fact(key):
+        if key not in known:
+            known[key] = checks[key]()
+        return known[key]
+
+    def fits(needs):
+        return all(span[0] <= fact(key) <= span[1] if key == 'ages' else fact(key) == span
+                   for key, span in needs.items() if key in checks)
+    return [goal_id for goal_id in order if fits(needs_of.get(goal_id) or {})]
+
+
+def weekly_fit(needs: dict, sheet: dict, data: dict, day: date) -> bool:
+    """Whether a goal fits where their love life stands on `day` (companion/world/couples.py moves it week by week):
+    no asking someone out while seeing someone."""
+    if 'single' not in needs and 'partner' not in needs:
+        return True
+    from companion.world import couples
+    details = couples.details_of(sheet, data)
+    if not details:  # A companion or a pack's notable: a love life the app doesn't draw, so no goal that needs one.
+        return False
+    found = couples.couple(sheet, data, day)
+    taken = found['status'] != 'single' if found else details['status'] in couples.PARTNERED
+    return ('single' not in needs or needs['single'] != taken) and ('partner' not in needs or needs['partner'] == taken)
