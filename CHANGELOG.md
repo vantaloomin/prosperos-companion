@@ -76,6 +76,21 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.3.4 (2026-11-11)
+
+- **Named free blocks:** a leisure, social or rest block whose label names its activity is composed as that activity
+  ("as usual: Bathhouse and cards"); pinned plan entries (errands, late nights, big days, babysitting) are marked
+  planned so pastimes and grooming never replace them; a named block resumes after an admin entry that ends early;
+  upcoming entries drawn the old way in named blocks are redrawn.
+- **Storyline casting:** new life/casting.py checks each cast against the record (confidants are friends or family who
+  know the companion, never a rival or ex; promotions need an employer; breakups need a partner; work stories need an
+  employed companion); self-employed parents get parent_big_order.
+- **Storyline happenings:** one love life of record per circle person (life/circle_love.py); new person_events table and
+  life/happenings.py write a diary line and the record change (employer, partner to ex, engaged, separated, not
+  speaking) with undo when a storyline ends or changes; beats from before 1.3.4 within the settled window are filled
+  in; Their people lists partner first, exes last. Forks copy person_events; start over and Back when roll them back.
+  Pinned beats, news subjects, other sources and a Relationship control follow in 1.4.0.
+
 ## v1.3.3 (2026-11-09)
 
 - **Moods:** stinging words build up by the Rough patches slider (True to life: a warning first, hurt on the second);
