@@ -320,6 +320,33 @@ def begin(connection, companion: dict, world, day: date, found: dict, now) -> di
     return {'partner': partner_id}
 
 
+def start_with(connection, companion: dict, row: dict, day: date, now) -> list[dict]:
+    """Someone already in their circle becomes their partner (the drunk kiss storyline's "decided to try dating",
+    companion/life/happenings.py), when they can have a love life of their own and have no partner now. Returns the
+    undos: the circle row as it was, and the partner to take back (stop_with)."""
+    from companion.life import records
+    if not ACTIVE or not level(connection) or mode(connection, companion) not in ('free', 'open') or \
+            partners(connection, companion['active_timeline_id']):
+        return []
+    details = circle.details_of(row)
+    role = role_for('dating', details.get('pronouns', ''))
+    undo = records.write(connection, row['id'], now, {'love': True}, role=role)
+    partner_id = insert(connection, companion, row['name'], {**details, 'love': True, 'met': 'through years of friendship'}, day, now,
+                        person_id=row['id'])
+    return [item for item in (undo, {'partner_id': partner_id}) if item]
+
+
+def stop_with(connection, undo: dict, now) -> None:
+    """Take back start_with's partner: the pair never started, and the friend stays in the circle as they were."""
+    found = optional(connection, 'SELECT * FROM love_partners WHERE id=?', (undo['partner_id'],))
+    if not found:
+        return
+    connection.execute("UPDATE love_partners SET ended_on=COALESCE(ended_on, met_on), ended_how='undone' WHERE id=?",
+                       (found['id'],))
+    connection.execute('UPDATE relationship_steps SET undone_at=? WHERE timeline_id=? AND other=? AND undone_at IS NULL',
+                       (stamp(now), found['timeline_id'], key_of(found)))
+
+
 def insert(connection, companion: dict, name: str, details: dict, day: date, now, person_id: str | None = None,
            secret: bool = False, consequence_id: str | None = None) -> str:
     partner_id = identifier()

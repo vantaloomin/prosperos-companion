@@ -306,7 +306,7 @@ def happen(connection, companion: dict, row: dict, now) -> None:
                        'WHERE id=?', (encode({**details, 'late': row['died_on']}), stamp(now), person['id']))
     connection.execute('UPDATE losses SET happened=1, updated_at=? WHERE id=?', (stamp(now), row['id']))
     agenda.forget_person(connection, row['timeline_id'], person['id'], now)  # No more plans or drop-ins with them.
-    storylines.end_removed(connection, row['timeline_id'], local_today(companion, now))
+    storylines.end_removed(connection, row['timeline_id'], local_today(companion, now), now)
     end_care(connection, companion, row)
 
 
