@@ -99,6 +99,9 @@ VAGUE = re.compile(r"\b(?:sometime|some time|soon|next time|one day|someday|one 
 FIRM = re.compile(r"\b(?:let'?s|we should|we're going|we are going|i'll take you|i'm taking you)\b", re.IGNORECASE)
 STARTS = re.compile(rf"^(?:{'|'.join(value[0] for value in ACTIVITIES.values())})\b", re.IGNORECASE)
 SHORT = 6
+# Not counted toward SHORT: the time and a named place ("Dinner tonight at 7 at Woodberry Kitchen?" is short too; E2E
+# 1.4: seven words, so the companion said yes and nothing was booked).
+DETAILS = re.compile(r"\bat\s+\d{1,2}(?::\d{2})?\s*(?:[ap]\.?m\.?)?|\b(?:at|to)\s+(?:the\s+)?(?:[A-Z][\w'’&.-]*\s*)+")
 # Run-on messages join an ask to other news with "also", "btw" or "anyway".
 ASIDE = re.compile(r"\s+(?:also|btw|anyway|plus|oh and|and also)\s+", re.IGNORECASE)
 WEEKEND = re.compile(r'\b(?:this|the) weekend\b', re.IGNORECASE)
@@ -150,7 +153,8 @@ def asked(sentence: str, firm: bool, day: date | None) -> bool:
     question = sentence.rstrip().endswith('?')
     if firm:
         return bool(FIRM.search(sentence)) and not question
-    short = question and day is not None and len(sentence.split()) <= SHORT and bool(STARTS.match(sentence))
+    short = question and day is not None and len(DETAILS.sub(' ', sentence).split()) <= SHORT and \
+        bool(STARTS.match(sentence))
     return bool(ASKING.search(sentence)) or question and bool(TOGETHER.search(sentence)) or short
 
 

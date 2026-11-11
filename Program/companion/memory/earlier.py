@@ -141,8 +141,15 @@ def action(text: str) -> bool:
 def saved(step: list[dict], memories: list[dict]) -> list[tuple[str, str]]:
     """Memories and plans saved from the step's turns, by their saved text."""
     ids = {message['id'] for message in step}
-    return [(memory['id'], f"{memory['subject']}: {memory['value']}") for memory in memories
+    return [(memory['id'], f"{whose(memory['subject'])}: {memory['value']}") for memory in memories
             if not memory.get('boundary') and ids & set(memory.get('source_message_ids') or ())]
+
+
+def whose(subject: str) -> str:
+    """A memory subject as the companion reads it. Memories say "Your mom" for the user's mom (they are written for the
+    user to read); in the companion's prompt that would be their own mom (E2E 1.4: "Saved: Your mom: News: retired"
+    after the user's mom retired). The People section says "The user's mom" too (memory/people.py)."""
+    return f"The user's {subject[5:]}" if subject.startswith('Your ') else subject
 
 
 def entry(step: list[dict], known: set[str], memories: list[dict]) -> Entry | None:

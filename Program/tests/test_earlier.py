@@ -75,6 +75,15 @@ def test_one_entry_per_step_with_saved_memories_and_the_budget_shrinks_the_oldes
     assert {item['id'] for item in tight.spare} and all(item['text'] for item in tight.spare), 'left out for recall'
 
 
+def test_a_memory_about_the_users_people_reads_as_theirs_not_the_companions():
+    """E2E 1.4: "Saved: Your mom: News: retired" read to the companion as their own mom."""
+    talk = turns(['my mom just retired!' if index == 0 else f'thing {index}' for index in range(48)])
+    memories = [{'id': 'k1', 'subject': 'Your mom: News', 'value': 'retired', 'source_message_ids': ['m0']}]
+    built = earlier.bridge(talk, 48, 12, set(), memories, 'UTC', budget=10_000)
+    text = '\n'.join(text for _id, text in built.shown)
+    assert "Saved: The user's mom: News: retired" in text and 'Your mom' not in text
+
+
 def test_the_steps_stay_put_as_the_window_moves():
     talk = turns(['call me X'] * 36)
     before = earlier.steps(talk[:24], 24, 12)

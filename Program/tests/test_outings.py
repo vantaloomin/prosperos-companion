@@ -35,6 +35,9 @@ def test_asking_out_is_read_from_the_message():
     assert asked('How about a date sometime?') == ('dinner', None, None, None)
     # The map's "Suggest going together" line names the place.
     assert asked('Want to go to Ouzo Bay one night this week?') == ('dinner', None, None, 'ouzo-bay')
+    # A short ask with the time and a place the map doesn't know (E2E 1.4).
+    assert asked('Dinner tonight at 7 at Woodberry Kitchen?') == ('dinner', '2026-10-05', '19:00', None)
+    assert asked('Drinks Friday at 9pm at the Owl Bar?') == ('drinks', '2026-10-09', '21:00', None)
 
 
 def test_questions_about_their_plans_the_past_and_refusals_are_not_asking():
