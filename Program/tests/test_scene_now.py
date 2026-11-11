@@ -146,9 +146,14 @@ def dinner_tonight(client, provider, key):
 def neighbour(outing):
     """A place the map knows a short walk from the restaurant."""
     data = catalog.city('baltimore')
-    hood = next(item['neighborhood'] for item in data['places'] if item['id'] == outing['place']['id'])
-    return next(item for item in data['places'] if item['neighborhood'] == hood and item['id'] != outing['place']['id']
-                and item['kind'] in ('park', 'landmark', 'bar', 'cafe') and len(item['name']) >= 6)
+    place = next(item for item in data['places'] if item['id'] == outing['place']['id'])
+    start = {key: place[key] for key in ('id', 'name', 'neighborhood')}
+    # Not every neighborhood has a park, landmark, bar or cafe (Roland Park has a garden and a trail), and some are
+    # near another: any of these the scene reader knows from the restaurant, its own neighborhood first.
+    walks = [item for item in data['places'] if item['id'] != place['id'] and scene_now.near(data, start, item)
+             and item['kind'] in ('park', 'landmark', 'bar', 'cafe', 'garden', 'trail') and len(item['name']) >= 6
+             and scene_now.known_place(data, item['name'], start) is item]
+    return min(walks, key=lambda item: item['neighborhood'] != place['neighborhood'])
 
 
 def preview(client):
