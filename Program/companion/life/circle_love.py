@@ -86,6 +86,36 @@ def single_by_event_since(row: dict, days: int, today: date | None = None) -> st
     return recorded['since'] if recorded['since'] >= (today - timedelta(days=days)).isoformat() else None
 
 
+# Telling it (companion/memory/context.py) ---------------------------------------------------------------------------
+
+# Their love life of record in their circle line, once a life event (or the user) has decided it: the seeded default
+# says nothing, and a couple inside the circle already reads "Separated from Ana" (circle.ties_text).
+# A/B 2026-11-11 (/mnt/project-files/companion-world-consistency/ab): asked about Kaito's girlfriend months after his
+# breakup, 23 of 30 replies went along without the line, 1 of 30 with it; "who is Mara marrying?" 26 of 30 wrong
+# (19 made up a name) without it, none with it.
+SAID = {'seeing': 'Seeing {partner}.', 'engaged': 'Engaged to {partner}.', 'married': 'Married to {partner}.',
+        'separated': 'Separated from {partner}.'}
+SINCE = {'single': 'Single since a breakup in {month}.', 'divorced': 'Divorced since {month}.',
+         'widowed': 'Widowed in {month}.'}
+
+
+def prompt_line(connection, companion: dict, row: dict, today: date) -> str | None:
+    """"Engaged to Ren Ito.", "Single since a breakup in November.", or None when nothing has changed it."""
+    recorded = circle.details_of(row).get('partner')
+    if not isinstance(recorded, dict) or recorded.get('state') not in STATES:
+        return None
+    found = state(connection, row)
+    partner = named(connection, companion, row, found['partner'])
+    if found['state'] in SAID and partner and partner.get('name') and not partner.get('circle_id'):
+        return SAID[found['state']].format(partner=partner.get('full') or partner['name'])
+    if found['state'] in SINCE and found['since']:
+        when = date.fromisoformat(found['since'])
+        month = when.strftime('%B') + ('' if when.year == today.year else f' {when.year}')
+        if found['state'] != 'single' or found['exes']:
+            return SINCE[found['state']].format(month=month)
+    return None
+
+
 # Changing it (companion/life/happenings.py) -------------------------------------------------------------------------
 
 # States with a partner now; the rest have none.

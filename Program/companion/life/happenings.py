@@ -403,6 +403,18 @@ def bad_day(connection, timeline_id: str, subject: str, day: date) -> bool:
                          (timeline_id, subject, (day - timedelta(days=1)).isoformat(), day.isoformat())))
 
 
+def bad_days(connection, timeline_id: str) -> set[tuple[str, str]]:
+    """(subject, local date) for every day someone is having a bad time: a bad event's day and the day after
+    (`bad_day` for all of them at once)."""
+    from datetime import timedelta
+    found = set()
+    for row in many(connection, "SELECT subject, local_date FROM person_events WHERE timeline_id=? AND "
+                    "status='active' AND tone='bad'", (timeline_id,)):
+        day = date.fromisoformat(row['local_date'])
+        found |= {(row['subject'], day.isoformat()), (row['subject'], (day + timedelta(days=1)).isoformat())}
+    return found
+
+
 # Timelines -------------------------------------------------------------------------------------------------------
 
 def copy(connection, parent_id: str, new_id: str, ids: dict, cutoff: str, now) -> None:
