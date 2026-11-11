@@ -24,10 +24,10 @@ import random
 from dataclasses import dataclass
 from datetime import date, time, timedelta
 
-from companion.clock import stamp, zone
+from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import casting, circle, happenings, pronouns, world_drama
+from companion.life import casting, circle, happenings, pronouns, routine, world_drama
 from companion.world import lifespans, perception
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
@@ -41,6 +41,25 @@ CATCH_UP_DAYS = 14
 BEAT_HOURS = (time(8, 30), time(21, 0))
 RECENT_DAYS = 21
 SETTLED_DAYS = 60
+# A beat that takes the companion's evening is pinned to the free block that holds this time (own_plans.assign); one
+# that no slot could take happens in these hours instead, told without the claim on their time (Spent.short).
+SPENT_AT = '19:00'
+SPENT_HOURS = (time(18, 0), time(21, 0))
+BUSY = {'work', 'study', 'sleep'}
+
+
+@dataclass(frozen=True)
+class Spent:
+    """A beat that says the companion spent real time with someone in it (v1.4.0): it takes a slot of the companion's
+    day (`summary`, their agenda entry) and the same slot of that person's day (`theirs`, companion/life/joint.py).
+    `short` and `short_share` tell the beat when no slot could take it, without saying where the evening went."""
+    activity: str
+    summary: str
+    theirs: str
+    short: str
+    short_share: str
+    mood: str = 'content'
+    with_cast: int = 0
 
 
 @dataclass(frozen=True)
@@ -48,6 +67,7 @@ class Beat:
     text: str
     share: str
     tone: str = 'mixed'
+    spent: Spent | None = None
 
 
 @dataclass(frozen=True)
@@ -60,8 +80,8 @@ class Story:
     own: bool = False  # Started by its own module, never by the drama roll, and outside its caps.
 
 
-def beat(text, share, tone='mixed'):
-    return (Beat(text, share, tone),)
+def beat(text, share, tone='mixed', spent=None):
+    return (Beat(text, share, tone, spent),)
 
 
 def either(*beats):
@@ -105,14 +125,22 @@ STORIES = (
                 "talked to my manager about the credit thing. they're keeping an eye on it"))), (2, 5)),
     Story('friend_breakup', 1, 'friend seeing someone', (
         beat('{a} went through a breakup, and {name} spent the evening on the phone with them.',
-             'rough night. {a} got dumped and I was on the phone with them for hours', 'bad'),
+             'rough night. {a} got dumped and I was on the phone with them for hours', 'bad', Spent(
+                 'stood-by', '{name} spent the evening on the phone with {a} after the breakup.',
+                 '{own} spent the evening on the phone with {other} after the breakup.',
+                 '{a} went through a breakup, and {name} has been checking in on {a_them}.',
+                 '{a} got dumped. been checking in on {a_them}', 'sad')),
         beat('{a} is doing better after the breakup.', "{a}'s doing a lot better btw. bounced back fast",
              'good')), (4, 9)),
     Story('coworker_leaving', 1, 'coworker', (
         beat('{a} told {name} they are quitting.', 'noooo {a} is quitting. who am I supposed to eat lunch with',
              'bad'),
         beat("{a} had their last day, and {name} went to the send-off drinks.",
-             "{a}'s last day today. we gave them a proper send-off")), (5, 12)),
+             "{a}'s last day today. we gave them a proper send-off", spent=Spent(
+                 'send-off', "{name} went to the send-off drinks for {a}'s last day at work.",
+                 '{own} had send-off drinks with {other}.',
+                 "It was {a}'s last day at work.", "{a}'s last day today. it won't be the same", 'social'))),
+     (5, 12)),
     Story('layoff_rumors', 1, 'work', (
         beat("There are rumors of layoffs at {name}'s work.", 'everyone at work is whispering about layoffs. fun times',
              'bad'),
@@ -165,7 +193,11 @@ STORIES = (
         beat("{a} and {b}, {name}'s parents, told {name} they are separating.",
              "my parents are separating. I did not see that coming", 'bad'),
         beat('{name} had a long dinner with {a} about the separation.',
-             'long dinner with {a} about everything. it helped, I think')), (3, 8)),
+             'long dinner with {a} about everything. it helped, I think', spent=Spent(
+                 'family-dinner', '{name} had a long dinner with {a} about the separation.',
+                 '{own} had a long dinner with {other} about the separation.',
+                 '{name} and {a} talked through the separation.',
+                 'talked with {a} about everything. it helped, I think', 'sad'))), (3, 8)),
     Story('love_triangle', 3, 'two single friends', (
         beat('{a} and {b} have both fallen for the same person, and it is turning into a whole thing.',
              "{a} and {b} like the SAME person. this is a soap opera"),
@@ -345,8 +377,12 @@ def outcome_stage(on: str, chosen: Beat, consequence_id: str) -> dict:
 
 
 def names_by_id(connection, row) -> dict:
-    return {person['id']: {'name': person['name'], 'role': person['role']}
-            for person in circle.people(connection, row['timeline_id'], include_removed=True)}
+    return {person['id']: named(person) for person in circle.people(connection, row['timeline_id'], include_removed=True)}
+
+
+def named(person: dict) -> dict:
+    """{name, role, pronouns} of someone in a storyline, as its text names them."""
+    return {'name': person['name'], 'role': person['role'], 'pronouns': circle.details_of(person).get('pronouns')}
 
 
 def holders(companion, row) -> dict:
@@ -408,7 +444,17 @@ def local_today(companion, now) -> date:
 
 
 def advance(connection, companion, now) -> int:
-    """Decide the storylines that started on each day since the last check (cheap, no model)."""
+    """Decide the storylines that started on each day since the last check, how their turnings went, and write what
+    happened into people's lives (cheap, no model). Returns how many started."""
+    started = start_due(connection, companion, now)
+    settle(connection, companion, local_today(companion, now), now)
+    record_due(connection, companion, now)
+    return started
+
+
+def start_due(connection, companion, now) -> int:
+    """Start the storylines due on each day since the last check. The agenda runs this before it writes the days
+    ahead (companion/life/agenda.py extend), so an evening a storyline takes is in the days it fills in."""
     timeline_id, today = companion['active_timeline_id'], local_today(companion, now)
     end_removed(connection, timeline_id, today, now)
     level, lone = drama(connection), world_drama.alone(connection)
@@ -429,18 +475,30 @@ def advance(connection, companion, now) -> int:
         day += timedelta(days=1)
     connection.execute('INSERT INTO storyline_days (timeline_id, through) VALUES (?, ?) ON CONFLICT(timeline_id) '
                        'DO UPDATE SET through=excluded.through', (timeline_id, today.isoformat()))
-    settle(connection, companion, today, now)
-    record_due(connection, companion, now)
     return started
+
+
+def chosen_beat(row: dict, index: int, stage: dict) -> Beat | None:
+    """The beat a stage took, once it has its outcome."""
+    story = find_story(row['story'])
+    if stage.get('pending') or index >= len(story.stages):
+        return None
+    return next((item for item in story.stages[index] if item.text == stage['text']), None)
 
 
 def effect_of(row: dict, index: int, stage: dict) -> tuple[str, str] | None:
     """(happenings kind, who) for a beat that has its outcome, or None."""
-    story = find_story(row['story'])
-    if stage.get('pending') or index >= len(story.stages):
+    found = chosen_beat(row, index, stage)
+    if found is None:
         return None
-    chosen = next((number for number, item in enumerate(story.stages[index]) if item.text == stage['text']), None)
-    return EFFECTS.get((row['story'], index, chosen)) if chosen is not None else None
+    chosen = find_story(row['story']).stages[index].index(found)
+    return EFFECTS.get((row['story'], index, chosen))
+
+
+def spent_of(row: dict, index: int, stage: dict) -> Spent | None:
+    """The time with someone a beat takes from the companion's day, or None."""
+    found = chosen_beat(row, index, stage)
+    return found.spent if found else None
 
 
 def record_due(connection, companion, now) -> int:
@@ -450,24 +508,113 @@ def record_due(connection, companion, now) -> int:
     local = now.astimezone(zone(companion['version']['timezone']))
     today, clock = local.date().isoformat(), local.strftime('%H:%M')
     since = (local.date() - timedelta(days=SETTLED_DAYS)).isoformat()
-    recorded = 0
-    for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running' AND started_on>=? "
-                    'ORDER BY started_on', (companion['active_timeline_id'], (local.date() - timedelta(
-                        days=SETTLED_DAYS * 3)).isoformat())):
+    rows = [row for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running' AND "
+                                'started_on>=? ORDER BY started_on', (companion['active_timeline_id'], (local.date() - timedelta(
+                                    days=SETTLED_DAYS * 3)).isoformat()))
+            if row['story'] not in OWN and (decode(row['stages'])[-1]['on'] >= since or decode(row['stages'])[-1].get('pending'))]
+    times, recorded = timing(connection, companion, rows), 0
+    for row in rows:
         stages, cast = decode(row['stages']), decode(row['cast_ids'])
-        if row['story'] in OWN or stages[-1]['on'] < since and not stages[-1].get('pending'):
-            continue
         for index, stage in enumerate(stages):
-            found = effect_of(row, index, stage)
-            if not found or not happened(stage, row['id'], index, today, clock):
+            found, at = effect_of(row, index, stage), beat_at(row, index, stage, times)
+            if not found or not happened(stage, at, today, clock):
                 continue
             kind, who = found
             for position, subject in enumerate(cast[:len(who)]):
                 other = cast[1 - position] if len(cast) > 1 else None
+                when = lead_in(connection, subject, stage['on'], at) if spent_of(row, index, stage) else at
                 recorded += happenings.record(connection, companion, subject=subject, source=f"storyline:{row['id']}:{index}",
-                                              kind=kind, day=stage['on'], at=beat_time(row['id'], index),
-                                              other=other if who == 'ab' else None, now=now)
+                                              kind=kind, day=stage['on'], at=when, other=other if who == 'ab' else None,
+                                              now=now)
     return recorded
+
+
+def lead_in(connection, subject: str, day: str, at: str) -> str:
+    """When what happened to someone comes before the evening spent with them ("It was Dana's last day at work.", then
+    the send-off): the end of their work that day when it ends by then, else just before the evening."""
+    row = optional(connection, 'SELECT schedule FROM circle_people WHERE id=?', (subject,))
+    schedule, _default = routine.blocks({'schedule': decode(row['schedule']) or []}) if row and row['schedule'] else ([], True)
+    ends = [block.end.strftime('%H:%M') for block in schedule if block.kind in ('work', 'study') and
+            block.on(date.fromisoformat(day)) and block.start < block.end and block.end.strftime('%H:%M') < at]
+    return max(ends) if ends else clock_of(max(minutes(time(int(at[:2]), int(at[3:]))) - 1, 0))
+
+
+# Time with someone ---------------------------------------------------------------------------------------------------
+
+def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
+    """The evenings running storylines take from the companion's day (the friend after a breakup, a coworker's send-off,
+    a long dinner with a parent), by local date in the shape own_plans.assign takes (companion/life/agenda.py). The
+    entry names the person, so their own day holds the same evening (companion/life/joint.py)."""
+    result = {}
+    for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running'", (timeline_id,)):
+        if row['story'] in OWN:
+            continue
+        cast = decode(row['cast_ids'])
+        for index, stage in enumerate(decode(row['stages'])):
+            spent = spent_of(row, index, stage)
+            if not spent or stage['on'] < since or spent.with_cast >= len(cast):
+                continue
+            person = optional(connection, "SELECT id, name FROM circle_people WHERE id=? AND status='active'",
+                              (cast[spent.with_cast],))
+            if person:
+                result.setdefault(stage['on'], []).append({
+                    'id': f"storyline:{row['id']}:{index}", 'at_time': SPENT_AT,
+                    'storyline': {'id': row['id'], 'beat': index, 'story': row['story'],
+                                  'with': {'id': person['id'], 'name': person['name']}}})
+    return result
+
+
+def entry(plan: dict, block: dict, definition: dict) -> dict:
+    """The agenda entry for the slot a storyline's evening takes: the companion with that person, as the beat says."""
+    found = plan['storyline']
+    spent = next(item.spent for item in find_story(found['story']).stages[found['beat']] if item.spent)
+    period = era_words(definition)
+    return {'summary': period(spent.summary).format(name=definition['name'], a=found['with']['name']),
+            'post': None, 'mood': spent.mood, 'activity': spent.activity, 'place': None, 'with': found['with'],
+            'weather': block.get('weather'),
+            'storyline': {'id': found['id'], 'beat': found['beat'], 'theirs': period(spent.theirs)},
+            'composer_version': 'storyline-1'}
+
+
+def era_words(definition: dict):
+    """What a line says in a city of another era instead of today's phone or internet (PERIOD)."""
+    if perception.era_modern(definition):
+        return lambda text: text
+
+    def period(text: str) -> str:
+        for today, then in PERIOD.items():
+            text = text.replace(today, then)
+        return text
+    return period
+
+
+@dataclass(frozen=True)
+class Timing:
+    """What sets the time of day a beat happens: the companion's routine, and the slots storylines' evenings took
+    ({(storyline id, beat): 'HH:MM'})."""
+    schedule: list
+    pins: dict
+
+
+def timing(connection, companion, rows) -> Timing:
+    schedule, _default = routine.blocks(companion['version']['definition'])
+    return Timing(schedule, pinned(connection, companion, rows))
+
+
+def pinned(connection, companion, rows) -> dict[tuple[str, int], str]:
+    """When each storyline evening began in the companion's day, where a slot took it."""
+    tz, found = zone(companion['version']['timezone']), {}
+    for row in rows:
+        for index, stage in enumerate(decode(row['stages'])):
+            if not spent_of(row, index, stage):
+                continue
+            slot = optional(connection, "SELECT starts_at FROM life_agenda WHERE timeline_id=? AND subject='companion' "
+                            "AND local_date=? AND json_extract(entry, '$.storyline.id')=? AND "
+                            "json_extract(entry, '$.storyline.beat')=? LIMIT 1",
+                            (row['timeline_id'], stage['on'], row['id'], index))
+            if slot:
+                found[(row['id'], index)] = parse(slot['starts_at']).astimezone(tz).strftime('%H:%M')
+    return found
 
 
 # A thought or a piece of news about an ended storyline: its topic or source is `storyline:<id>:<beat>`.
@@ -509,22 +656,21 @@ def second_person(text: str) -> str:
 # Views --------------------------------------------------------------------------------------------
 
 # What a beat (and what they tell the user of it) says in a city of another era instead of today's phone or internet (companion/world/perception.py).
-PERIOD = {'spent the evening on the phone with them': 'spent the evening sitting up with them',
+PERIOD = {'spent the evening on the phone with': 'spent the evening sitting up with',
           'I was on the phone with them for hours': 'I sat up with them for hours',
           'looked the half-sibling up online': 'asked around about the half-sibling',
           "found my half-sibling online. haven't messaged": "found out where my half-sibling lives. haven't written"}
 
 
 def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
-    if not perception.era_modern(definition):
-        for today, then in PERIOD.items():
-            text = text.replace(today, then)
+    text = era_words(definition)(text)
     text = second_person(text) if you else text
     cast = decode(row['cast_ids'])
     people = [names.get(person_id, {'name': 'someone', 'role': 'friend'}) for person_id in cast]
-    values = {'name': definition['name'], 'a': '', 'b': '', 'a_rel': ''}
+    values = {'name': definition['name'], 'a': '', 'b': '', 'a_rel': '', 'a_them': 'them'}
     if people:
-        values |= {'a': people[0]['name'], 'a_rel': people[0]['role']}
+        values |= {'a': people[0]['name'], 'a_rel': people[0]['role'],
+                   'a_them': pronouns.person(people[0].get('pronouns'))['them']}
     if len(people) > 1:
         values['b'] = people[1]['name']
     filled = pronouns.said(text.format(**values), THIRD_PERSON, definition)
@@ -532,26 +678,101 @@ def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
 
 
 def beat_time(storyline_id: str, index: int) -> str:
-    """The time of day a beat happens, 'HH:MM': seeded, so it stays put, and different for every storyline."""
-    start, end = (moment.hour * 60 + moment.minute for moment in BEAT_HOURS)
-    minutes = random.Random(f'beat-time:{storyline_id}:{index}').randrange(start, end + 1)
-    return f'{minutes // 60:02d}:{minutes % 60:02d}'
+    """The seeded time of day for a beat, 'HH:MM': it stays put, and is different for every storyline."""
+    start, end = (minutes(moment) for moment in BEAT_HOURS)
+    found = random.Random(f'beat-time:{storyline_id}:{index}').randrange(start, end + 1)
+    return clock_of(found)
 
 
-def happened(stage: dict, row_id: str, index: int, today: str, clock: str) -> bool:
-    """A beat has happened once its day has come and, on that day, its time (`beat_time`) has too."""
-    return not stage.get('pending') and (stage['on'] < today or (stage['on'] == today and
-                                                                  beat_time(row_id, index) <= clock))
+def minutes(moment: time) -> int:
+    return moment.hour * 60 + moment.minute
 
 
-def view(row: dict, names: dict, definition: dict, today: str, you=False, clock: str = '24:00') -> dict:
+def clock_of(found: int) -> str:
+    return f'{found // 60:02d}:{found % 60:02d}'
+
+
+def beat_at(row: dict, index: int, stage: dict, times: Timing) -> str:
+    """When a beat happens, 'HH:MM'. One that takes the companion's evening happens when the slot it took begins, or
+    in the evening hours when no slot could take it; any other keeps to the companion's waking hours outside work
+    that day (v1.4.0), at its seeded time where that fits."""
+    seeded = beat_time(row['id'], index)
+    if spent_of(row, index, stage):
+        return times.pins.get((row['id'], index)) or within(seeded, [tuple(minutes(moment) for moment in SPENT_HOURS)],
+                                                            f"{row['id']}:{index}")
+    return within(seeded, free_hours(times.schedule, date.fromisoformat(stage['on'])), f"{row['id']}:{index}")
+
+
+def free_hours(schedule, day: date) -> list[tuple[int, int]]:
+    """The stretches of BEAT_HOURS on this day the companion is not at work, in class or asleep: [low, high] in
+    minutes."""
+    spans = [tuple(minutes(moment) for moment in BEAT_HOURS)]
+    for begins, ends in busy_hours(schedule, day):
+        spans = [piece for low, high in spans for piece in cut(low, high, begins, ends)]
+    return spans
+
+
+def cut(low: int, high: int, begins: int, ends: int) -> list[tuple[int, int]]:
+    """[low, high] without [begins, ends)."""
+    if ends <= low or begins > high:
+        return [(low, high)]
+    return [piece for piece in ((low, begins - 1), (ends, high)) if piece[0] <= piece[1]]
+
+
+def busy_hours(schedule, day: date) -> list[tuple[int, int]]:
+    """[start, end) in minutes of the day's work, study and sleep blocks, a night's from the evening before too."""
+    found = []
+    for block in schedule:
+        if block.kind not in BUSY:
+            continue
+        begins, ends = minutes(block.start), minutes(block.end)
+        if block.on(day):
+            found.append((begins, ends if ends > begins else 24 * 60))
+        if ends <= begins and block.on(day - timedelta(days=1)):
+            found.append((0, ends))
+    return found
+
+
+def within(seeded: str, spans: list[tuple[int, int]], seed: str) -> str:
+    """The seeded time where it falls in one of these spans, else a time drawn across them; the seeded time when there
+    are none."""
+    found = int(seeded[:2]) * 60 + int(seeded[3:])
+    if not spans or any(low <= found <= high for low, high in spans):
+        return seeded
+    pick = random.Random(f'beat-within:{seed}').randrange(sum(high - low + 1 for low, high in spans))
+    for low, high in spans:
+        if pick <= high - low:
+            return clock_of(low + pick)
+        pick -= high - low + 1
+    return seeded
+
+
+def happened(stage: dict, at: str, today: str, clock: str) -> bool:
+    """A beat has happened once its day has come and, on that day, its time (`beat_at`) has too."""
+    return not stage.get('pending') and (stage['on'] < today or (stage['on'] == today and at <= clock))
+
+
+def told(row: dict, index: int, stage: dict, times: Timing) -> tuple[str, str]:
+    """(text, share) of a beat: a storyline evening no slot took is told without the claim on their time."""
+    spent = spent_of(row, index, stage)
+    if spent and (row['id'], index) not in times.pins:
+        return spent.short, spent.short_share
+    return stage['text'], stage['share']
+
+
+def view(row: dict, names: dict, definition: dict, today: str, you=False, clock: str = '24:00',
+         times: Timing | None = None) -> dict:
     """`clock` is the companion's local time ('HH:MM'); a beat due later today waits for it."""
-    stages = decode(row['stages'])
-    beats = [{'on': stage['on'], 'time': beat_time(row['id'], index),
-              'text': fill(stage['text'], row, names, definition, you),
-              'share': fill(stage['share'], row, names, definition), 'tone': stage['tone'],
-              'consequence': stage.get('consequence') or stage.get('odds')}
-             for index, stage in enumerate(stages) if happened(stage, row['id'], index, today, clock)]
+    stages, times = decode(row['stages']), times or Timing([], {})
+    beats = []
+    for index, stage in enumerate(stages):
+        at = beat_at(row, index, stage, times)
+        if not happened(stage, at, today, clock):
+            continue
+        text, share = told(row, index, stage, times)
+        beats.append({'on': stage['on'], 'time': at, 'text': fill(text, row, names, definition, you),
+                      'share': fill(share, row, names, definition), 'tone': stage['tone'],
+                      'consequence': stage.get('consequence') or stage.get('odds')})
     return {'id': row['id'], 'story': row['story'], 'level': LEVELS[row['level']], 'started_on': row['started_on'],
             'status': row['status'], 'cast': [{'id': person_id, **names[person_id]} for person_id in
                                               decode(row['cast_ids']) if person_id in names],
@@ -566,14 +787,14 @@ def visible(connection, companion, now, include_ended=False, you=False, shown=Fa
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     local = now.astimezone(zone(companion['version']['timezone']))
     today, clock = local.date().isoformat(), local.strftime('%H:%M')
-    names = {row['id']: {'name': row['name'], 'role': row['role']}
-             for row in circle.people(connection, timeline_id, include_removed=True)}
+    names = {row['id']: named(row) for row in circle.people(connection, timeline_id, include_removed=True)}
     status = '' if include_ended else "AND status='running' "
     rows = many(connection, f'SELECT * FROM storylines WHERE timeline_id=? {status}AND started_on<=? '
                 'ORDER BY started_on DESC', (timeline_id, today))
     if not shown and families.withheld(connection):
         rows = [row for row in rows if row['story'] not in FAMILY]
-    found = (view(row, names, definition, today, you, clock) for row in rows)
+    times = timing(connection, companion, rows)
+    found = (view(row, names, definition, today, you, clock, times) for row in rows)
     return [item for item in found if item['beats']]
 
 
