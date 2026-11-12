@@ -66,3 +66,15 @@ def test_an_older_turn_comes_back_when_its_day_is_asked_about(client, connected,
     clock.advance(timedelta(days=6))
     send(client, 'What did I tell you last Monday?', 'client-0099')
     assert 'finished the blue quilt' in provider.requests[-1]['prompt']
+
+
+def test_a_named_time_reaches_lines_left_out_of_earlier_in_this_talk():
+    # A tester's reply failed with KeyError 'earlier' when the question named a time and a spare line was in the pool.
+    said = '2026-10-05T09:00:00+00:00'
+    older = [{'id': 'm1', 'role': 'user', 'text': 'I finished the blue quilt', 'created_at': said}]
+    spare = [{'id': 'm1', 'role': 'user', 'created_at': said, 'text': 'The user said: "I finished the blue quilt"'},
+             {'id': 'm2', 'role': 'companion', 'created_at': said, 'text': 'They said: "it looks great"'}]
+    query = 'what did I tell you last Monday?'
+    when = (time_recall.query_span(query, MONDAY, 'UTC'), 'UTC')
+    found = context.recalled([], older, query, when=when, spare=spare, timezone='UTC')
+    assert sorted(identity for identity, _text in found) == ['m1', 'm2'], 'each turn comes up once'
