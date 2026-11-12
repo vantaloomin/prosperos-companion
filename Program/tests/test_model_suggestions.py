@@ -279,6 +279,25 @@ def test_memories_an_earlier_prompt_called_the_assistant_get_the_name(client, ap
     assert addressed.tidy(database) == 0
 
 
+def test_a_title_with_no_message_left_behind_it_still_gets_the_name(client, app, connected, provider, monkeypatch):
+    from companion.memory import addressed, suggest
+    enable(client)
+    provider.respond = model_reply([{'message': 1, 'layer': 'relationship', 'subject': 'Trust in assistant',
+                                     'value': "didn't feel afraid of Mira"}])
+    send(client, MEETUP, 'model-0001')
+    database = app.state.database
+    monkeypatch.setattr(addressed, 'fields', lambda subject, value, *args: (subject, value))
+    run(client, app)
+    monkeypatch.undo()
+    with database.connect(write=True) as connection:  # a later revision an older app saved: no candidate points at it
+        connection.execute('DELETE FROM memory_candidates')
+    suggest.tidy(database)
+    assert [memory['subject'] for memory in client.get('/api/memories').json()] == ['Trust in Mira']
+    assert addressed.tidy_titles(database) == 0
+    assert addressed.title("Boss's assistant", 'Mira') == "Boss's assistant"
+    assert addressed.title('Talks to the assistant at work', 'Mira') == 'Talks to the assistant at work'
+
+
 def test_you_becomes_the_name_in_plain_english():
     from companion.memory.addressed import named
     cases = {"you're the one I trust": 'Mira is the one you trust',
