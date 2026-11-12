@@ -393,6 +393,7 @@ def tidy(database) -> int:
     how many went."""
     addressed.tidy(database)
     addressed.tidy_yours(database)
+    addressed.tidy_titles(database)
     with database.connect() as connection:
         found = strays(connection)
     gone = set()

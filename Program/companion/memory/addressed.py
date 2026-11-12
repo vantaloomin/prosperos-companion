@@ -412,3 +412,35 @@ def tidy_yours(database) -> int:
         if changed:
             bump_memory_revision(connection, database.now())
         return changed
+
+
+# A model memory whose message link is gone (a later revision of one saved by an older app, Vanta on 1.4.0: "Trust in
+# assistant" still in the history) never comes up in `older`, so its title is named on its own: no message is left
+# to say the word was the user's.
+UNLINKED = ("SELECT id, companion_id, subject FROM memories WHERE origin='automatic' AND status='active' AND NOT EXISTS "
+            "(SELECT 1 FROM memory_candidates WHERE memory_candidates.memory_id=memories.id)")
+
+
+def title(subject: str, name: str) -> str:
+    """"Trust in assistant" -> "Trust in Sett", the bare way the model writes titles; "My boss's assistant" or "the
+    assistant at work" may be someone else, so a title with an article stays as it is."""
+    return OPENING.sub(name, BARE.sub(lambda match: f'{match[1]} {name}', subject))
+
+
+def tidy_titles(database) -> int:
+    """Titles still calling the companion "assistant" where no message is left behind them. Returns how many."""
+    with database.connect(write=True) as connection:
+        names, changed = {}, 0
+        for row in many(connection, UNLINKED):
+            if row['companion_id'] not in names:
+                companion = by_id(connection, row['companion_id'])
+                names[row['companion_id']] = first_name(companion) if companion else ''
+            fixed = title(row['subject'], names[row['companion_id']]) if names[row['companion_id']] else row['subject']
+            if fixed != row['subject']:
+                connection.execute('UPDATE memories SET subject=?, subject_key=? WHERE id=?',
+                                   (fixed, subject_key(fixed), row['id']))
+                vectors.forget(connection, 'memory', [row['id']])
+                changed += 1
+        if changed:
+            bump_memory_revision(connection, database.now())
+        return changed
