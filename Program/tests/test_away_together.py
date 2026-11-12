@@ -176,3 +176,54 @@ def test_a_trip_moves_planned_vacation_days_rather_than_adding_more():
     assert len(found) == len(july) and set(january) <= set(found)
     assert found[-2:] == july[-2:]
     assert work.moved(july, [('2027-08-01', january)]) == sorted(july + january)  # Booked after July: nothing to move.
+
+
+# --- A tester's river walk (1.4.1): the place said is kept, the day asked is kept, and the user picks the place ---
+
+def test_a_day_word_is_never_the_place_and_a_walk_is_an_outing():
+    found = away_together.asked('what about a little trip by the river on monday?')
+    assert found['place'] == '' and found['strong']
+    assert away_together.asked('how about a little trip on monday, just a walk by the river?')['day_out']
+    assert not away_together.asked('a weekend trip to the river, with walks?')['day_out']
+
+
+@pytest.fixture
+def camelot(client, monkeypatch):
+    mira(client, monkeypatch, home_city='camelot', schedule=FREE_WEEK)
+    monkeypatch.setattr(trips, 'ACTIVE', True)
+    monkeypatch.setattr(trips, 'CHANCE', 0.0)
+    monkeypatch.setattr(trips, 'LONG_CHANCE', 0.0)
+    monkeypatch.setattr(away_together, 'SOON', 0)
+
+
+def test_a_trip_by_the_river_goes_to_the_river_valley_on_the_day_asked(client, camelot, provider, clock):
+    says(provider)
+    send(client, 'what about a little trip by the river on monday?', 'client-away-11')
+    [trip] = together_trips(client)
+    assert trip['city_name'] == 'the river valley'
+    start = date.fromisoformat(trip['start_date'])
+    assert start.weekday() == 0 and 0 < (start - clock.now().date()).days <= 7
+
+
+def test_a_walk_by_the_river_on_monday_is_not_a_trip(client, camelot, provider):
+    says(provider)
+    send(client, 'we could take a little trip on monday, a walk by the river?', 'client-away-12')
+    assert not together_trips(client)
+
+
+def test_the_place_picker_offers_the_first_place_back_and_moves_there(client, camelot, provider):
+    says(provider)
+    send(client, "let's take a weekend trip to the river", 'client-away-13')
+    [trip] = together_trips(client)
+    assert trip['city_name'] == 'the river valley'
+    picked = client.get(f"/api/life/trips/{trip['id']}/places").json()
+    assert picked and all(item['name'] != 'the river valley' for item in picked)
+    other = picked[-1]
+    moved = client.post(f"/api/life/trips/{trip['id']}/elsewhere", json={'key': other['key']})
+    assert moved.status_code == 200, moved.text
+    assert moved.json()['city_name'] == other['name'] and moved.json()['status'] == 'planned'
+    offered = client.get(f"/api/life/trips/{trip['id']}/places").json()
+    assert offered[0]['name'] == 'the river valley' and offered[0]['first']
+    back = client.post(f"/api/life/trips/{trip['id']}/elsewhere", json={'key': offered[0]['key']})
+    assert back.json()['city_name'] == 'the river valley'
+    assert client.post(f"/api/life/trips/{trip['id']}/elsewhere", json={'key': 'g-nowhere'}).status_code == 409
