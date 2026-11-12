@@ -55,7 +55,8 @@ def within(kind: str, owner: dict, span: tuple[datetime, datetime], timezone: st
     return lower <= said < upper
 
 
-ORDER = {'memory': 0, 'summary': 1, 'storyline': 1, 'message': 2}
+# 'earlier' is a turn left out of Earlier in this talk (companion/memory/earlier.py), so it ranks as a turn.
+ORDER = {'memory': 0, 'summary': 1, 'storyline': 1, 'message': 2, 'earlier': 2}
 
 
 def ranking(chunks, owners, span, timezone: str) -> list[str]:
