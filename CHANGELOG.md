@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Characters made in Prospero's Dramatis arrive as written:** a card exported from Dramatis for the Prospero apps
+  carries Companion's own shape of the character. Bring your characters now uses it word for word (their routine,
+  week, texting habits, emotional edges and personality sliders as you kept them there) instead of reading the
+  description and borrowing a townsperson's life. The town still gives them a home: their city, neighborhood, clock
+  and money. A card from a Dramatis this version can't read comes in the old way.
 - **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat
   message. Posts now have a Comment button: your comment goes under the post, and whoever posted answers you there,
   your companion on their own posts and a friend on theirs, once they would have seen it (sooner or later by
