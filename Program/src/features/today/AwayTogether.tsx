@@ -46,6 +46,11 @@ function PlacePicker({ trip, onPick, onClose }: { trip: Trip; onPick: (key: stri
   const [places, setPlaces] = useState<Place[] | null>(null)
   const [failed, setFailed] = useState('')
   useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [onClose])
+  useEffect(() => {
     let live = true
     api<Place[]>(`/life/trips/${trip.id}/places`)
       .then((found) => { if (live) setPlaces(found) })
@@ -60,7 +65,7 @@ function PlacePicker({ trip, onPick, onClose }: { trip: Trip; onPick: (key: stri
       {places.map((place) => (
         <li key={place.key}>
           <button type="button" className="away-place" onClick={() => onPick(place.key)}>
-            <span className="away-place-name">{place.name}</span>
+            <span className="away-place-name">{place.name.charAt(0).toUpperCase() + place.name.slice(1)}</span>
             <span className="subtle">{[place.first && 'First plan', place.by && `by ${place.by}`].filter(Boolean).join(' · ')}</span>
           </button>
         </li>
