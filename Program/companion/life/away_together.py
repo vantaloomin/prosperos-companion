@@ -58,6 +58,8 @@ SAVE_SHARE = 0.6
 FUND_DAYS = 60
 # Heading home early can be undone for this long.
 HOME_UNDO = timedelta(minutes=2)
+# The most places the place picker offers.
+PICKER = 8
 
 # --- Reading the chat ---------------------------------------------------------------------------------------------
 
@@ -80,13 +82,16 @@ STOP = re.compile(r"\s+\b(?:in|for|this|next|with|and|together|on|at|over|someti
                   r"before|around|during|from|until|till|by (?:plane|train|car|boat|ship|bus|coach|air|sea|road|rail)|if|or|so|"
                   r"babe|baby|love|hun|honey|"
                   r"january|february|march|april|may|june|july|august|september|october|november|december|"
+                  r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thurs|fri|sat|sun|today|"
+                  r"tonight|tomorrow|"
                   r"weekend|week|summer|winter|spring|fall|autumn|month|year|sometime)\b.*$", re.IGNORECASE)
 LEAD = re.compile(r"^(?:(?:a|an)\s+)?(?:(?:little|long|quick|short)\s+)?(?:trip|weekend|week|getaway|vacation|holiday)"
                   r"(?:\s+(?:away|trip))?\s*", re.IGNORECASE)
 MUNDANE = re.compile(r"^(?:the\s+|a\s+|my\s+|your\s+)?(?:store|shops?|supermarket|gym|office|work|school|class|"
                      r"bathroom|toilet|doctors?|dentist|hospital|mall|grocery|groceries|bank|post office|kitchen|bed|"
                      r"couch|dinner|lunch|breakfast|movies|cinema|bar|pub|club|party|sleep|it|that|this|you|me|"
-                     r"there|here|town|place|house|home|yours|mine)\b", re.IGNORECASE)
+                     r"there|here|town|place|house|home|yours|mine|monday|tuesday|wednesday|thursday|friday|saturday|sunday|"
+                     r"today|tonight|tomorrow|the weekend)\b", re.IGNORECASE)
 SOMEWHERE = re.compile(r"\bsomewhere(?:\s+(\w+))?", re.IGNORECASE)
 LEANINGS = {'warm': {'coast', 'islands'}, 'sunny': {'coast', 'islands'}, 'tropical': {'islands', 'coast'},
             'hot': {'coast', 'islands', 'desert'}, 'snowy': {'mountains'}, 'cold': {'mountains'},
@@ -94,6 +99,12 @@ LEANINGS = {'warm': {'coast', 'islands'}, 'sunny': {'coast', 'islands'}, 'tropic
 MONTHS = ('january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october',
           'november', 'december')
 SEASON_START = {'spring': (3, 15), 'summer': (6, 15), 'fall': (9, 15), 'autumn': (9, 15), 'winter': (12, 5)}
+# A few hours out on one day ("a walk by the river on Monday") is an outing (companion/life/outings.py), not a trip:
+# unless the words also say a stay away, or name a place only a trip reaches.
+DAY_OUT = re.compile(r"\b(?:walk|stroll|picnic|coffee|lunch|brunch|dinner|drinks?|a bite|swim|day out|afternoon|"
+                     r"evening|morning)\b", re.IGNORECASE)
+STAY_AWAY = re.compile(r"\b(?:weekend|week|days|nights?|overnight|getaway|get ?away|vacation|vacay|holiday|honeymoon|"
+                       r"stay|road ?trip|sleep over|inn|lodge)\b", re.IGNORECASE)
 WHEN = re.compile(r"\b(?:in|this|next|over the|during|for)\s+(" + '|'.join(MONTHS) +
                   r"|spring|summer|fall|autumn|winter)\b", re.IGNORECASE)
 
@@ -109,7 +120,8 @@ def asked(text: str) -> dict | None:
         if not strong and not going:
             continue
         start = min(found.start() for found in (strong, going) if found)
-        return {'place': place_words(sentence[start:]), 'strong': bool(strong), 'sentence': sentence}
+        return {'place': place_words(sentence[start:]), 'strong': bool(strong), 'sentence': sentence,
+                'day_out': bool(DAY_OUT.search(sentence)) and not STAY_AWAY.search(sentence)}
     return None
 
 
@@ -189,26 +201,53 @@ def character_of(city: dict) -> list[str]:
 def resolve(connection, home: dict, ask: dict, year: int | None, seed: str, month: int,
             likes: set[str]) -> tuple[dict | None, str | None]:
     """(destination option, None) for an ask, or (None, why it can't be): 'elsewhere' a real place their world can't
-    reach, 'not-yet' one that was no getaway yet in their year, 'nowhere' nothing to go to at all."""
+    reach, 'not-yet' one that was no getaway yet in their year, 'nowhere' nothing to go to at all, 'not-a-trip' an
+    outing in town or a few hours out on one day."""
     words = ask['place']
     city = shipped(connection, home, words)
     if city:
         return city_option(home, city), None
     if words:
         found = destinations.lookup(words, home, year)
-        if found['why']:
-            return None, found['why']
-        if found['options']:
-            return destinations.best_for(found['options'], month, seed, likes), None
-        if ask['strong'] and not ships.enclosed(home):
-            return destinations.unknown(words), None
-        if not ask['strong']:
+        if found['why'] or found['options']:
+            return (None, found['why']) if found['why'] else \
+                (destinations.best_for(found['options'], month, seed, likes), None)
+        if not ask['strong'] or ask.get('day_out'):
             return None, 'not-a-trip'
+        # "A trip to the river": the getaway that says so (the river valley) before a place nobody knows.
+        echo = echoed(reachable(home, year), words)
+        if echo:
+            return destinations.best_for(echo, month, seed, likes), None
+        if not ships.enclosed(home):
+            return destinations.unknown(words), None
+    if ask.get('day_out'):
+        return None, 'not-a-trip'
+    return picked(home, ask, year, seed, month, likes)
+
+
+def picked(home: dict, ask: dict, year: int | None, seed: str, month: int,
+           likes: set[str]) -> tuple[dict | None, str | None]:
+    """No place named: one that fits the words around the ask ("by the river", "somewhere warm"), else what they like."""
     leaning_to = leaning(ask['sentence']) or likes
     options = [item for item in reachable(home, year) if not leaning(ask['sentence'])
                or set(item['character']) & leaning_to]
+    options = echoed(options, ask['sentence']) or options
     choice = destinations.best_for(options, month, seed, leaning_to)
     return (choice, None) if choice else (None, 'nowhere')
+
+
+# Words in a place's name that say nothing about it on their own.
+PLAIN = {'the', 'old', 'town', 'country', 'great', 'little', 'high', 'fair', 'house', 'city'}
+
+
+def stems(text: str) -> set[str]:
+    return {word.rstrip('s') for word in re.findall(r"[a-z]+", text.lower()) if len(word) > 3 and word not in PLAIN}
+
+
+def echoed(options: list[dict], text: str) -> list[dict]:
+    """The options whose name shares a telling word with what was said ("river" for the river valley)."""
+    said = stems(text)
+    return [item for item in options if stems(item['name']) & said]
 
 
 def reachable(home: dict, year: int | None, most: int = 7) -> list[dict]:
@@ -318,14 +357,19 @@ def plan(connection, companion: dict, home: dict, option: dict, days: list[date]
 
 
 def book(connection, companion: dict, home: dict, option: dict, first: date, now: datetime, year: int | None,
-         message_id: str | None, seed: str, weeks: int = ASK_WEEKS) -> tuple[dict | None, str]:
-    """(trip, '') booked the first weekend from `first` that works, or (None, why not): 'too-far', 'no-time',
-    'money'."""
+         message_id: str | None, seed: str, weeks: int = ASK_WEEKS, on: date | None = None) -> tuple[dict | None, str]:
+    """(trip, '') booked from the day the ask named (`on`) when that works, else the first weekend from `first`
+    that works, or (None, why not): 'too-far', 'no-time', 'money'."""
     count = destinations.nights(way_there(home, option, year))
     if count is None:
         return None, 'too-far'
     today = now.astimezone(zone(companion['version']['timezone'])).date()
     why = 'no-time' if count > 3 else 'weekends'
+    if on is not None:
+        trip = on_day(connection, companion, home, option, on, count, today, year, message_id, seed)
+        if trip:
+            trips.insert(connection, companion, trip, now)
+            return trip, ''
     first = max(first, today + timedelta(days=WEEK_FROM if count > 3 else ASK_FROM))
     for saturday in saturdays(first, weeks):
         days = span_for(connection, companion, home, saturday, count, today)
@@ -338,6 +382,31 @@ def book(connection, companion: dict, home: dict, option: dict, first: date, now
         trips.insert(connection, companion, trip, now)
         return trip, ''
     return None, why
+
+
+def on_day(connection, companion: dict, home: dict, option: dict, day: date, count: int, today: date,
+           year: int | None, message_id: str | None, seed: str) -> dict | None:
+    """The trip from the very day asked ("Monday"), when it is free and they can take it and pay for it."""
+    days = [day + timedelta(days=offset) for offset in range(count)]
+    if day <= today or trips.booked(connection, companion, days):
+        return None
+    from companion.life import long_distance
+    definition = companion['version']['definition']
+    if (definition.get('rota') or {}).get('kind') in long_distance.SWAPS:
+        definition = {**definition, 'rota': None}
+    if long_distance.overlaps(connection, companion, days) or \
+            takes_off(connection, companion, home, definition, days, today) is None:
+        return None
+    return plan(connection, companion, home, option, days, year, message_id, seed, today)
+
+
+def exact_day(text: str, today: date, holidays: dict) -> date | None:
+    """A day the ask names outright ("Monday", "the 20th"), not a weekend, month or season."""
+    from companion.life import long_distance
+    found = long_distance.visit_day(text, today, holidays)
+    if found is None or WHEN.search(text) or re.search(r'\bweekend\b', text, re.IGNORECASE):
+        return None
+    return found
 
 
 def home_city(connection, companion: dict) -> dict | None:
@@ -363,7 +432,8 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     today = now.astimezone(zone(companion['version']['timezone'])).date()
     year = destinations.year_of(home)
     definition = companion['version']['definition']
-    first = asked_day(message['text'], today, own_plans.holiday_dates(connection, definition, today)) or today
+    holidays = own_plans.holiday_dates(connection, definition, today)
+    first = asked_day(message['text'], today, holidays) or today
     seed = f"away:{companion['active_timeline_id']}:{message['id']}"
     option, why = resolve(connection, home, ask, year, seed, first.month, likes(definition))
     if why == 'not-a-trip':
@@ -374,7 +444,8 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
         from companion.life import rough_patches
         if rough_patches.turned_down(connection, companion, message, 'trip', now):
             return True
-        trip, why = book(connection, companion, home, option, first, now, year, message['id'], seed)
+        trip, why = book(connection, companion, home, option, first, now, year, message['id'], seed,
+                         on=exact_day(ask['sentence'], today, holidays))
         if trip:
             return True
     # A real place out of reach aboard ship is said so (together.TRIP_REASONS 'aboard').
@@ -512,34 +583,88 @@ def owned(connection, companion: dict, trip_id: str) -> dict:
     return row
 
 
-def elsewhere(connection, companion: dict, trip_id: str, now: datetime) -> dict:
-    """Somewhere else, the same days: another place the same journey reaches in that time, picked by the app."""
+def still_to_come(connection, companion: dict, trip_id: str, now: datetime) -> tuple[dict, dict, date]:
+    """(the trip, home, today) for a trip together still to come, or a 409."""
     row = owned(connection, companion, trip_id)
     today = now.astimezone(zone(companion['version']['timezone'])).date()
     require(row['status'] == 'planned' and row['start_date'] > today.isoformat(),
             'Only a trip still to come can go somewhere else.', 409)
     home = home_city(connection, companion)
     require(home is not None, 'There is nowhere else to go from here.', 409)
+    return row, home, today
+
+
+def fitting(connection, companion: dict, home: dict, row: dict, today: date) -> list[dict]:
+    """Other places the same days reach and they can pay for: the place first asked for or booked first, then the
+    rest by how well they fit the season and what they like."""
     year = destinations.year_of(home)
     days = (date.fromisoformat(row['end_date']) - date.fromisoformat(row['start_date'])).days + 1
     start = date.fromisoformat(row['start_date'])
+    pool = reachable(home, year, max(days, 2))
+    first = away_of(row).get('first') or {}
+    pool = [*back(connection, home, first, pool), *pool]
     options = affordable(connection, companion, home, [
-        item for item in reachable(home, year, max(days, 2)) if item['name'] != row['city_name']
+        item for item in pool if item['name'] != row['city_name']
         and (destinations.nights(way_there(home, item, year)) or 99) <= days], year, start, today, row['cost'] or 0.0)
+    wanted = likes(companion['version']['definition'])
+    return sorted(options, key=lambda item: (item['name'] != first.get('name'),
+                                             start.month not in item['best_months'],
+                                             -len(wanted & set(item['character'])), item['name']))
+
+
+def back(connection, home: dict, first: dict, pool: list[dict]) -> list[dict]:
+    """The place first booked as an option again, when the usual ones don't hold it: a city the app ships, or a
+    place nobody knows that was said in the chat."""
+    if not first or any(item['name'] == first['name'] for item in pool):
+        return []
+    if (first.get('key') or '').startswith('x-'):
+        return [destinations.unknown(first['name'])]
+    city = None if first.get('key') else shipped(connection, home, first['name'])
+    return [city_option(home, city)] if city else []
+
+
+def places(connection, companion: dict, trip_id: str, now: datetime) -> list[dict]:
+    """The places the user can pick for a trip still to come (Today's place picker)."""
+    row, home, today = still_to_come(connection, companion, trip_id, now)
+    year = destinations.year_of(home)
+    first = (away_of(row).get('first') or {}).get('name')
+    return [{'key': item.get('key') or f"city:{item['city']['id']}", 'name': item['name'],
+             'summary': item.get('summary', ''), 'by': way_there(home, item, year)['by'],
+             'first': item['name'] == first}
+            for item in fitting(connection, companion, home, row, today)[:PICKER]]
+
+
+def elsewhere(connection, companion: dict, trip_id: str, now: datetime, key: str | None = None) -> dict:
+    """Somewhere else, the same days: the place the user picks (`key`, one of `places`), else another place the
+    same journey reaches in that time, picked by the app."""
+    row, home, today = still_to_come(connection, companion, trip_id, now)
+    year = destinations.year_of(home)
+    options = fitting(connection, companion, home, row, today)
     seed = f"away-elsewhere:{row['id']}:{row['city_name']}"
-    option = destinations.best_for(options, date.fromisoformat(row['start_date']).month, seed,
-                                   likes(companion['version']['definition']))
+    if key:
+        option = next((item for item in options if (item.get('key') or f"city:{item['city']['id']}") == key), None)
+        require(option is not None, "That place doesn't fit those days any more.", 409)
+    else:
+        option = destinations.best_for(options, date.fromisoformat(row['start_date']).month, seed,
+                                       likes(companion['version']['definition']))
     require(option is not None, 'There is nowhere else that fits those days.', 409)
+    days = (date.fromisoformat(row['end_date']) - date.fromisoformat(row['start_date'])).days + 1
     span = [date.fromisoformat(row['start_date']) + timedelta(days=offset) for offset in range(days)]
     trip = plan(connection, companion, home, option, span, year, row['message_id'], seed, today, row['cost'] or 0.0)
     require(trip is not None, "They can't afford anywhere else for those days.", 409)
+    away = trip['away'] | {'first': away_of(row).get('first') or first_of(row)}
     connection.execute('UPDATE trips SET city_id=?, city_name=?, landmark=?, sunny=?, cost=?, away=? WHERE id=?',
                        (trip['city_id'], trip['city_name'], encode(trip['landmark']), int(trip['sunny']), trip['cost'],
-                        encode(trip['away']), trip_id))
+                        encode(away), trip_id))
     # Its days are written again, in the new place (agenda.py).
     connection.execute("DELETE FROM life_agenda WHERE timeline_id=? AND status='upcoming' AND "
                        "json_extract(block, '$.trip')=?", (row['timeline_id'], trip_id))
     return trips.view(optional(connection, 'SELECT * FROM trips WHERE id=?', (trip_id,)))
+
+
+def first_of(row: dict) -> dict:
+    """The place a trip was first booked for, kept so the picker can always offer it back."""
+    return {'key': away_of(row).get('key'), 'name': row['city_name']}
 
 
 def head_home(connection, companion: dict, trip_id: str, now: datetime) -> dict:
