@@ -1,6 +1,6 @@
 """Ordinary names the companion can give someone new in conversation (a new coworker, a neighbor), so the
 chat model picks from the world data instead of inventing a name. One short context section."""
-from companion.world import changes, custom, generators, naming
+from companion.world import added_places, changes, custom, generators, naming
 
 # Ages spread across adulthood, so a name fits whoever the companion mentions.
 AGES = (24, 29, 34, 41, 48, 57, 66)
@@ -10,7 +10,7 @@ SUFFIXES = {'jr', 'sr', 'ii', 'iii', 'iv'}
 def city_for(connection, definition: dict) -> dict:
     for text in (definition.get('home_city'), definition.get('location')):
         if text and (data := changes.resolve(text, custom.all_cities(connection))):
-            return data
+            return added_places.merge(connection, data)
     return naming.DEFAULT_CITY
 
 

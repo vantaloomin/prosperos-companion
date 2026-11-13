@@ -50,7 +50,7 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
         <strong>{outingTitle(outing)}</strong>
         <span className="badge">{OUTING_STATES[outing.state]}</span>
       </div>
-      <p className="subtle">{outingWhen(outing, name)} · {outingPlace(outing)}{outing.place.kind !== 'family-home' && !outing.place.id.startsWith('~') && <> <a className="text-button show-on-map" href={`#map/${encodeURIComponent(outing.place.id)}`}>Show on map</a></>}</p>
+      <p className="subtle">{outingWhen(outing, name)}{outingPlace(outing) && ` · ${outingPlace(outing)}`}{outing.place.kind !== 'family-home' && !outing.place.id.startsWith('~') && <> <a className="text-button show-on-map" href={`#map/${encodeURIComponent(outing.place.id)}`}>Show on map</a></>}</p>
       {peopleLine(outing.place, outing.state) && <p className="subtle">{peopleLine(outing.place, outing.state)}</p>}
       {bigDayLine(outing, firstName(name)) && <p className="subtle">{bigDayLine(outing, firstName(name))}</p>}
       {note && <p className="subtle">{note}</p>}
@@ -81,12 +81,19 @@ function Now({ outing, act }: { outing: Outing; act: (path: string) => Promise<v
   const long = outing.activity === 'wedding' || (outing.activity === 'big-day' && !outing.place.quiet)
   return (
     <div className="together-actions">
-      {/* Moving on to a second place (companion/life/onward.py): another one before, back just after. */}
-      {outing.undo_move && outing.came_from && <button type="button" className="text-button back-to" aria-label={`Back to ${outing.came_from.name}`} onClick={() => void act(`/life/outings/${outing.id}/back`)}><Undo2 aria-hidden="true" /><BackTo name={outing.came_from.name} /></button>}
-      {outing.longer_ok && !outing.undo_move && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/longer`)}><Hourglass aria-hidden="true" />Stay longer</button>}
+      <BackButton outing={outing} act={act} />
+      {outing.longer_ok && !outing.undo_move && !outing.scene?.back && <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/longer`)}><Hourglass aria-hidden="true" />Stay longer</button>}
       <button type="button" className="text-button" onClick={() => void act(`/life/outings/${outing.id}/home`)}>{long ? <><Moon aria-hidden="true" />Call it a night</> : <><Home aria-hidden="true" />Head home</>}</button>
     </div>
   )
+}
+
+/** Back where they were: just after they moved on to a second place by themselves (companion/life/onward.py), or just
+ * after the chat took them somewhere (companion/life/scene_now.py), as on the chat strip. */
+function BackButton({ outing, act }: { outing: Outing; act: (path: string) => Promise<void> }) {
+  const [to, verb] = outing.undo_move ? [outing.came_from?.name, 'back'] : outing.scene?.back ? [outing.scene.to, 'scene-back'] : [undefined, '']
+  if (!to) return null
+  return <button type="button" className="text-button back-to" aria-label={`Back to ${to}`} onClick={() => void act(`/life/outings/${outing.id}/${verb}`)}><Undo2 aria-hidden="true" /><BackTo name={to} /></button>
 }
 
 /** Moving on to a second place: where next, with Somewhere else? at the end of the line it changes, or where they came from. */

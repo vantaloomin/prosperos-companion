@@ -208,7 +208,9 @@ mention crab feasts or a ventanita coffee without inventing them. Legends and ru
 
 **A town's own townsfolk.** A city may add an optional `townsfolk` block with `quirks` and `goals` of its own
 (Pellmouth's people keep the tide table pinned by the door); each is drawn five times as often as a single shared
-one. Residents' and regulars' jobs follow the town: a career counts more when the city lists it, when its
+one. A town goal reached makes the town paper unless it says `"news": false` (a private win, like a pilot's
+licence or a family tree); shared goals make it only when marked `"news": true` in `goals.json`, and an issue
+carries at most one. Residents' and regulars' jobs follow the town: a career counts more when the city lists it, when its
 employers hire for it (by employer size), when a career hub matches its sector and when fitting places exist, so a
 quarry town has quarry workers rather than stockbrokers. Staff titles depend on the place as well as its kind (a
 soda jerk only at a soda fountain, a floorwalker only at a department store, a ticket taker at a paid attraction).

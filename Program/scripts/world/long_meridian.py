@@ -55,9 +55,10 @@ def price(id, item, low, high, per=''):
     return {'id': id, 'item': item, 'low': low, 'high': high, 'per': per, 'source': SRC}
 
 
-def goal(id, text, steps, practice, progress, done, interest, bio):
-    return {'id': id, 'text': text, 'steps': steps, 'practice': list(practice), 'progress': progress, 'done': done,
-            'interest': interest, 'bio': bio}
+def goal(id, text, steps, practice, progress, done, interest, bio, news=True):
+    # news=False: a private win the town paper leaves out (companion/world/paper.py).
+    return {'id': id, 'text': text, 'steps': steps, **({} if news else {'news': False}), 'practice': list(practice),
+            'progress': progress, 'done': done, 'interest': interest, 'bio': bio}
 
 
 def climate(summary, note):
@@ -721,7 +722,7 @@ GOALS = [
     goal('meridian-family-log', 'trace their family back to the founders in the Archive', 5,
          ('library', 'afternoon'), '{name} found another great-grandparent in the Archive\'s birth logs',
          '{name} traced the family to a founder\'s name on the Founders\' Hall wall', 'family history',
-         'Hunting for my founder in the Archive logs.'),
+         'Hunting for my founder in the Archive logs.', news=False),
     goal('meridian-lantern', 'make a lantern for the Lantern Fair', 4, ('workshop', 'evening'),
          '{name} got another panel of the lantern glued and painted',
          '{name} hung their lantern on the Lantern Ring for the fair', 'lantern making',
@@ -733,10 +734,10 @@ GOALS = [
     goal('meridian-shuttle-licence', 'earn a shuttle pilot\'s licence', 8, ('library', 'evening'),
          '{name} passed another flight test in the dockside simulator',
          '{name} flew a shuttle solo round the docking ring and got their licence', 'flying',
-         'Studying for my shuttle licence. Wish me steady hands.'),
+         'Studying for my shuttle licence. Wish me steady hands.', news=False),
     goal('meridian-glass', 'blow a set of glasses on Studio Row', 5, ('workshop', 'afternoon'),
          '{name} blew a glass that was nearly round', '{name} blew a matching set of four glasses and kept them all',
-         'glassblowing', 'Learning to blow glass. Most of it is broken glass.'),
+         'glassblowing', 'Learning to blow glass. Most of it is broken glass.', news=False),
     goal('meridian-theatre', 'get a part in the winter pantomime', 5, ('venue', 'evening'),
          '{name} got through another rehearsal at the Lantern Theatre',
          '{name} played their part in the pantomime and got the biggest laugh of the night', 'acting',

@@ -2,11 +2,6 @@
 
 ## Unreleased
 
-- **Characters made in Prospero's Dramatis arrive as written:** a card exported from Dramatis for the Prospero apps
-  carries Companion's own shape of the character. Bring your characters now uses it word for word (their routine,
-  week, texting habits, emotional edges and personality sliders as you kept them there) instead of reading the
-  description and borrowing a townsperson's life. The town still gives them a home: their city, neighborhood, clock
-  and money. A card from a Dramatis this version can't read comes in the old way.
 - **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat
   message. Posts now have a Comment button: your comment goes under the post, and whoever posted answers you there,
   your companion on their own posts and a friend on theirs, once they would have seen it (sooner or later by
@@ -80,6 +75,29 @@
 - **Duplicate a model profile:** each profile in Settings > Models has a Duplicate button that copies
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
+
+## v1.4.1 (2026-11-12)
+
+- **Places you name join the map (#602):** a place the user names that the city lacks is added per world
+  (added_places), filled in by rules (kind, neighborhood, hours, prices) and merged wherever the world reads the
+  city. The map card edits or removes it, with Undo.
+- **Away together keeps what was agreed (#608):** a weekday is never the place, a one-day walk or meal is an
+  outing not a trip, a named day starts the trip; Change place is a picker of reachable, affordable places with
+  the first plan offered back (GET /api/life/trips/{id}/places), replacing the cycling pin.
+- **Hospital stays fit the cause (#601):** a health change said in chat keeps the person out of their days for a
+  seeded length the words suggest (overnight, days, weeks, until said); "recovered" or Undo ends it.
+- **Out together card follows the scene (#600):** Today's card shows the scene_now spot under way, with Back to.
+- **Celsius or Fahrenheit (#598):** temperatures in the city's unit; Settings > General > Temperature overrides.
+- **Town paper goal stories (#599):** one an issue, public wins only ("news" flag in goals), real lengths, four
+  sentence shapes.
+- **Characters made in Prospero's Dramatis arrive as written (#604):** a card exported from Dramatis for the Prospero apps
+  carries Companion's own shape of the character. Bring your characters now uses it word for word (their routine,
+  week, texting habits, emotional edges and personality sliders as you kept them there) instead of reading the
+  description and borrowing a townsperson's life. The town still gives them a home: their city, neighborhood, clock
+  and money. A card from a Dramatis this version can't read comes in the old way.
+- **Fixes:** time recall ranks Earlier-in-this-talk lines (KeyError 'earlier', #606); own words never catch names
+  in any case (#597); the Home card, chat and lease errand follow an owned home (#603); week lines pick outings,
+  firsts and dates and the most telling quote (#605).
 
 ## v1.4.0 "Another Storm Brewing" (2026-11-11)
 

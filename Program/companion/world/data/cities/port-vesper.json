@@ -2228,6 +2228,7 @@
     "id": "vesper-jumper",
     "text": "knit a jumper from their own station wool",
     "steps": 6,
+    "news": false,
     "practice": [
      "market",
      "afternoon"
@@ -2241,6 +2242,7 @@
     "id": "vesper-pilot",
     "text": "fly the hourly shuttle to the Meridian",
     "steps": 8,
+    "news": false,
     "practice": [
      "library",
      "evening"
@@ -2254,6 +2256,7 @@
     "id": "vesper-welding",
     "text": "learn to weld well enough to sign a mask",
     "steps": 5,
+    "news": false,
     "practice": [
      "workshop",
      "evening"

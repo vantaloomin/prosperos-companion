@@ -1,5 +1,6 @@
 """Life simulation, Today and Feed API (PRD T1–T7, F1, F2, F4)."""
 from datetime import date, datetime, time, timedelta
+from functools import partial
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Request
@@ -67,7 +68,7 @@ from companion.life import (
 )
 from companion.memory import pairs
 from companion.models import Input, KindChange, LifeSettingsUpdate, MessageCreate, TownsfolkPersonality
-from companion.world import inside, lifespans, paper, ships
+from companion.world import added_places, inside, lifespans, paper, ships
 
 router = APIRouter(prefix='/api/life')
 today_router = APIRouter(prefix='/api/today')
@@ -588,6 +589,14 @@ class MapPlaceInside(Input):
     spots: list[Annotated[str, Field(max_length=60)]] = Field(max_length=8)
 
 
+class MapPlaceDetails(Input):
+    """A place added to the map when the user named it (companion/world/added_places.py), in the user's words."""
+    name: Annotated[str, Field(max_length=80)] | None = None
+    kind: Literal[added_places.EDITABLE_KINDS] | None = None
+    neighborhood: Annotated[str, Field(max_length=80)] | None = None
+    about: Annotated[str, Field(max_length=300)] | None = None
+
+
 def map_change(request: Request, action=None):
     """The map, after `action(connection, companion, data, now)`; their home is set up (and kept in a neighbourhood
     that fits what is said about it, companion/life/home.py) before it is drawn."""
@@ -624,6 +633,26 @@ def edit_place_inside(request: Request, place_id: str, body: MapPlaceInside):
         require(any(place['id'] == place_id for place in data['places']), 'That place is not in their city.', 404)
         inside.edit(connection, data['id'], place_id, body.spots, now)
     return map_change(request, action)
+
+
+@router.patch('/map/places/{place_id}')
+def edit_added_place(request: Request, place_id: str, body: MapPlaceDetails):
+    """The name, kind, neighborhood or description of a place added when the user named it."""
+    return map_change(request, lambda connection, _companion, data, now: added_places.edit(
+        connection, data, place_id, body.model_dump(exclude_none=True), stamp(now)))
+
+
+@router.delete('/map/places/{place_id}')
+def remove_added_place(request: Request, place_id: str):
+    """Take a place added when the user named it off the map."""
+    return map_change(request, lambda connection, _companion, data, _now: added_places.remove(connection, data, place_id))
+
+
+@router.put('/map/places/{place_id}/back')
+def restore_added_place(request: Request, place_id: str):
+    """Undo taking a place added when the user named it off the map."""
+    return map_change(request, lambda connection, _companion, data, _now: added_places.remove(
+        connection, data, place_id, removed=False))
 
 
 @router.get('/outings')
@@ -707,14 +736,29 @@ def change_call(request: Request, call_id: str, action: Literal['answer', 'decli
         return calls.act(connection, require_current(connection), call_id, action, database.clock.now())
 
 
+class TripPlace(Input):
+    key: str | None = Field(default=None, max_length=200)
+
+
+@router.get('/trips/{trip_id}/places')
+def trip_places(request: Request, trip_id: str):
+    """The places a trip together still to come can go instead, the one first booked first (Today's place picker)."""
+    database = db(request)
+    with database.connect() as connection:
+        return away_together.places(connection, require_current(connection), trip_id, database.clock.now())
+
+
 @router.post('/trips/{trip_id}/{action}')
-def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo', 'elsewhere', 'home', 'stay']):
+def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo', 'elsewhere', 'home', 'stay'],
+                 body: TripPlace | None = None):
     """Call off a weekend visit or a trip together that has not started (companion/life/long_distance.py), or undo
-    that; send a trip together somewhere else, or head home from one early and undo that
-    (companion/life/away_together.py)."""
+    that; send a trip together somewhere else (the place picked, or one the app picks), or head home from one early
+    and undo that (companion/life/away_together.py)."""
     database = db(request)
     change = {'cancel': long_distance.cancel, 'undo': long_distance.undo, 'elsewhere': away_together.elsewhere,
               'home': away_together.head_home, 'stay': away_together.stay_on}[action]
+    if action == 'elsewhere' and body and body.key:
+        change = partial(away_together.elsewhere, key=body.key)
     with database.connect(write=True) as connection:
         changed = change(connection, require_current(connection), trip_id, database.clock.now())
     request.app.state.life.extend_agenda('return')

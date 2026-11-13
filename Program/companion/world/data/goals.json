@@ -6,6 +6,7 @@
    "text": "save up to open a place of their own",
    "period": "save enough to open a shop of their own",
    "steps": 6,
+   "news": true,
    "practice": null,
    "progress": "{name} put another chunk of pay into the savings",
    "done": "{name} finally signed for a little place of their own",
@@ -17,6 +18,7 @@
    "text": "run their first marathon",
    "period": "walk the long road to the coast and back",
    "steps": 5,
+   "news": true,
    "needs": {
     "ages": [
      18,
@@ -37,6 +39,7 @@
    "text": "get their band a real gig",
    "period": "get their troupe a proper engagement",
    "steps": 5,
+   "news": true,
    "practice": [
     "venue",
     "evening"
@@ -135,6 +138,7 @@
    "text": "get their paintings into a show",
    "period": "get their pictures hung in a proper gallery",
    "steps": 5,
+   "news": true,
    "practice": [
     "park",
     "afternoon"
@@ -199,6 +203,7 @@
    "text": "grow the biggest pumpkin at the fair",
    "period": "grow the prize marrow at the harvest fair",
    "steps": 5,
+   "news": true,
    "practice": null,
    "progress": "{name} measured the pumpkin again and it has grown a hand's width",
    "done": "{name} took the ribbon with a pumpkin nobody could lift alone",
@@ -221,6 +226,7 @@
    "text": "win the local chess tournament",
    "period": "win the chess prize at the coffee house",
    "steps": 5,
+   "news": true,
    "practice": [
     "cafe",
     "evening"
@@ -257,6 +263,7 @@
    "text": "turn a bare yard into a real garden",
    "period": "turn a muddy plot into a proper kitchen garden",
    "steps": 5,
+   "news": true,
    "practice": [
     "market",
     "morning"
@@ -282,6 +289,7 @@
    "text": "get a solo in the community choir",
    "period": "sing a solo at the chapel choir",
    "steps": 4,
+   "news": true,
    "practice": [
     "temple",
     "evening"
@@ -349,6 +357,7 @@
    "text": "get elected to the neighbourhood council",
    "period": "win a seat on the parish vestry",
    "steps": 6,
+   "news": true,
    "practice": null,
    "progress": "{name} knocked on another street's worth of doors",
    "done": "{name} won the seat and has already started a list of fixes",
@@ -385,6 +394,7 @@
    "text": "become a volunteer guide at the museum",
    "period": "become a guide at the town's cabinet of curiosities",
    "steps": 4,
+   "news": true,
    "practice": [
     "museum",
     "afternoon"
@@ -452,6 +462,7 @@
    "text": "win a match at the club tennis ladder",
    "period": "win a match at the lawn tennis club",
    "steps": 4,
+   "news": true,
    "practice": [
     "park",
     "afternoon"
@@ -466,6 +477,7 @@
    "text": "help set up a weekly free supper",
    "period": "help run a soup kitchen for the parish",
    "steps": 5,
+   "news": true,
    "practice": [
     "temple",
     "evening"
@@ -480,6 +492,7 @@
    "text": "paint a mural on the side of the corner shop",
    "period": "paint a sign board for the corner shop",
    "steps": 4,
+   "news": true,
    "practice": null,
    "progress": "{name} sketched the mural's outline in chalk on the wall",
    "done": "{name} finished the mural and the whole street came to look",
@@ -491,6 +504,7 @@
    "text": "put together a photo book of the neighbourhood",
    "period": "fill an album with sketches of every street in the parish",
    "steps": 5,
+   "news": true,
    "practice": null,
    "progress": "{name} caught the light just right on a street they love",
    "done": "{name} printed the book and gave the first copy to the library",
@@ -530,6 +544,7 @@
    "text": "run a stall at the weekend market",
    "period": "keep a stall on market day",
    "steps": 4,
+   "news": true,
    "practice": [
     "market",
     "morning"
@@ -627,6 +642,7 @@
    "text": "read a poem aloud at an open mic",
    "period": "recite their own verse at the coffee house",
    "steps": 4,
+   "news": true,
    "practice": [
     "cafe",
     "evening"
@@ -641,6 +657,7 @@
    "text": "land a really big fish off the pier",
    "period": "land a great pike from the river",
    "steps": 4,
+   "news": true,
    "practice": [
     "beach",
     "morning"
@@ -655,6 +672,7 @@
    "text": "win the pub quiz with friends",
    "period": "win the parish trivia night with friends",
    "steps": 4,
+   "news": true,
    "practice": [
     "venue",
     "evening"
@@ -719,6 +737,7 @@
    "text": "organise a beach clean-up",
    "period": "organise the clearing of the town pond",
    "steps": 3,
+   "news": true,
    "practice": [
     "beach",
     "afternoon"
@@ -758,6 +777,7 @@
    "text": "land a part in a community play",
    "period": "get a speaking part with the players",
    "steps": 4,
+   "news": true,
    "practice": [
     "venue",
     "evening"
@@ -905,6 +925,7 @@
    "text": "raise money to fix up the playground",
    "period": "raise money to repair the parish hall",
    "steps": 5,
+   "news": true,
    "practice": null,
    "progress": "{name}'s bake sale raised more than expected",
    "done": "{name} handed over the money and the work starts next month",
@@ -930,6 +951,7 @@
    "text": "make the darts team",
    "period": "make the tavern's darts team",
    "steps": 4,
+   "news": true,
    "practice": [
     "venue",
     "evening"
@@ -1062,6 +1084,7 @@
    "text": "start a community garden on an empty lot",
    "period": "turn a waste corner into a shared green",
    "steps": 6,
+   "news": true,
    "practice": [
     "park",
     "afternoon"
@@ -1076,6 +1099,7 @@
    "text": "help restore the old temple",
    "period": "help restore the old chapel",
    "steps": 6,
+   "news": true,
    "practice": [
     "temple",
     "morning"
@@ -1104,6 +1128,7 @@
    "text": "win the sandcastle contest",
    "period": "win the sand sculpting contest at the summer fete",
    "steps": 4,
+   "news": true,
    "practice": [
     "beach",
     "afternoon"
@@ -1160,6 +1185,7 @@
    "text": "draw a map of the whole town",
    "period": "chart every lane of the town on one great map",
    "steps": 5,
+   "news": true,
    "practice": null,
    "progress": "{name} paced out another district for the map",
    "done": "{name} finished the map and hung it in the post office",
@@ -1207,6 +1233,7 @@
    "text": "foster animals for the shelter",
    "period": "foster stray animals for the parish",
    "steps": 4,
+   "news": true,
    "practice": null,
    "progress": "{name} took in a nervous foster pup for the week",
    "done": "{name} has fostered a dozen animals and found each a home",
@@ -1246,6 +1273,7 @@
    "text": "make the rowing crew",
    "period": "make the rowing crew for the regatta",
    "steps": 5,
+   "news": true,
    "needs": {
     "ages": [
      18,
@@ -1305,6 +1333,7 @@
    "text": "plant a hundred trees",
    "period": "plant a hundred trees on the common",
    "steps": 5,
+   "news": true,
    "practice": [
     "park",
     "morning"

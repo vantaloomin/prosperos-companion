@@ -105,7 +105,7 @@ def test_the_deck_shows_only_single_compatible_adults_and_likes_need_a_yes_back(
     # Their rules say yes or no the same way for the same user.
     sheet = townsfolk.find(data, matched['key'])
     mine = {**PROFILE, 'seed': ok_seed(client)}
-    assert dating.says_yes(sheet, dating.details(sheet, data), mine)
+    assert dating.says_yes(sheet, dating.details(sheet, data, date(2026, 10, 5)), mine)  # As the swipe read them.
 
     passed = state['deck'][0]['key']
     state = ok(client.post('/api/dating/swipes', json={'key': passed, 'like': False}))

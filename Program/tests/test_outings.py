@@ -35,9 +35,10 @@ def test_asking_out_is_read_from_the_message():
     assert asked('How about a date sometime?') == ('dinner', None, None, None)
     # The map's "Suggest going together" line names the place.
     assert asked('Want to go to Ouzo Bay one night this week?') == ('dinner', None, None, 'ouzo-bay')
-    # A short ask with the time and a place the map doesn't know (E2E 1.4).
-    assert asked('Dinner tonight at 7 at Woodberry Kitchen?') == ('dinner', '2026-10-05', '19:00', None)
-    assert asked('Drinks Friday at 9pm at the Owl Bar?') == ('drinks', '2026-10-09', '21:00', None)
+    # A short ask with the time and a place the map doesn't know (E2E 1.4): the app adds it (world/added_places.py).
+    assert asked('Dinner tonight at 7 at Woodberry Kitchen?') == ('dinner', '2026-10-05', '19:00',
+                                                                   'named-woodberry-kitchen')
+    assert asked('Drinks Friday at 9pm at the Owl Bar?') == ('drinks', '2026-10-09', '21:00', 'named-owl-bar')
 
 
 def test_questions_about_their_plans_the_past_and_refusals_are_not_asking():
@@ -74,6 +75,26 @@ def test_a_holiday_mentioned_in_passing_does_not_set_the_day():
     # Asked for the holiday itself, the holiday is the day.
     assert outings.proposal('Want to get dinner on thanksgiving?', TODAY, holidays, data)['day'] == date(2026, 11, 26)
     assert outings.proposal('Dinner, on thanksgiving?', TODAY, holidays, data)['day'] == date(2026, 11, 26)
+
+
+def test_a_place_the_map_does_not_have_is_filled_in_by_rules():
+    data = catalog.city('baltimore')
+    found = outings.proposal('Dinner tonight at 7 at Woodberry Kitchen?', TODAY, {}, data)['place']
+    hoods = {hood['id']: hood['name'] for hood in data['neighborhoods']}
+    assert (found['name'], found['kind'], found['added']) == ('Woodberry Kitchen', 'restaurant', 'named')
+    assert found['summary'] == '' and found['neighborhood'] in hoods and found['cost']
+    # Its kind from its name over what the ask is for; a neighborhood the sentence names; a cafe by its name.
+    found = outings.proposal("Drinks at Joe's Crab Shack in Hampden Saturday?", TODAY, {}, data)
+    assert (found['activity'], found['place']['kind'], found['place']['neighborhood']) == ('drinks', 'restaurant',
+                                                                                          'hampden')
+    assert outings.proposal('Want to get coffee at Spro Coffee Saturday?', TODAY, {}, data)['place']['name'] == \
+        'Spro Coffee'
+    # Not a place: someone's home, a neighborhood, a city, a holiday, or a name with nothing to say what it is.
+    for text in ("Wanna grab dinner at Sam's Friday?", 'Drinks in Hampden Friday? Or at Hampden?',
+                 'Dinner Friday at Charm City?', 'Want to get dinner at Christmas Eve?'):
+        place = outings.proposal(text, TODAY, {}, data)
+        assert place is None or place['place'] is None, text
+    assert outings.proposal('Want to go to Italy Friday?', TODAY, {}, data) is None
 
 
 def test_the_companion_only_makes_firm_plans_themselves():
@@ -177,6 +198,35 @@ def test_a_named_place_is_kept_and_the_bill_comes_out_of_their_budget(client, mi
     # The day line shows the dinner itself, not the routine block it landed in.
     day = next(line for line in preview.splitlines() if line.startswith('Your day today:'))
     assert 'with the user, dinner at Ouzo Bay' in day and '19:00-21:00' in day
+
+
+def test_a_place_they_named_goes_on_the_map_and_the_outing_happens_there(client, mira, provider, clock):
+    send(client, 'Dinner Wednesday at 7 at Woodberry Kitchen?', 'client-out-named')
+    [outing] = listing(client)['outings']
+    assert (outing['place']['name'], outing['place']['kind'], outing['named']) == ('Woodberry Kitchen', 'restaurant', 1)
+    assert 'dinner at Woodberry Kitchen' in provider.requests[-1]['prompt']
+    places = {place['id']: place for place in client.get('/api/life/map').json()['places']}
+    added = places['named-woodberry-kitchen']
+    assert added['added'] == 'named' and added['about'] == '' and added['spots']
+    # Asked again, it is the same place, not a second one.
+    send(client, 'Lunch Saturday at Woodberry Kitchen?', 'client-out-named-2')
+    assert [item['place']['id'] for item in listing(client)['outings']] == ['named-woodberry-kitchen'] * 2
+    # Theirs to change on the map: name, kind, neighborhood, description; then off the map.
+    changed = client.patch('/api/life/map/places/named-woodberry-kitchen', json={
+        'name': 'Woodberry Kitchen', 'kind': 'restaurant', 'neighborhood': 'hampden', 'about': 'Farm-to-table in a mill.'})
+    assert changed.status_code == 200, changed.text
+    added = next(place for place in changed.json()['places'] if place['id'] == 'named-woodberry-kitchen')
+    assert (added['hood'], added['about'], added['added']) == ('Hampden', 'Farm-to-table in a mill.', 'edited')
+    assert client.patch('/api/life/map/places/ouzo-bay', json={'name': 'Mine'}).status_code == 404
+    assert client.patch('/api/life/map/places/named-woodberry-kitchen', json={'kind': 'spaceport'}).status_code == 422
+    gone = client.delete('/api/life/map/places/named-woodberry-kitchen')
+    assert gone.status_code == 200 and 'named-woodberry-kitchen' not in {place['id'] for place in gone.json()['places']}
+    assert listing(client)['outings'][0]['place']['name'] == 'Woodberry Kitchen'  # Booked ones keep it.
+    back = client.put('/api/life/map/places/named-woodberry-kitchen/back')  # Undo: back as the user left it.
+    assert next(place for place in back.json()['places'] if place['id'] == 'named-woodberry-kitchen')['hood'] == 'Hampden'
+    client.delete('/api/life/map/places/named-woodberry-kitchen')
+    send(client, 'Coffee Sunday at Woodberry Kitchen?', 'client-out-named-3')  # Named again, it is back too.
+    assert 'named-woodberry-kitchen' in {place['id'] for place in client.get('/api/life/map').json()['places']}
 
 
 def test_an_outing_still_finishes_after_a_long_absence(client, mira, provider, clock):

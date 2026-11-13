@@ -15,9 +15,9 @@ A period or fantasy city gets a gazette instead of a weekly; the wording stays p
 from datetime import date, timedelta
 
 from companion.database import decode, many
-from companion.world import changes, couples, generators, skies, townsfolk, turnover
+from companion.world import changes, couples, generators, skies, temperature, townsfolk, turnover
 
-TOWNSFOLK_PER_HOOD, MOST_TOWNSFOLK, MOST_COMINGS = 12, 3, 3
+TOWNSFOLK_PER_HOOD, MOST_GOAL_STORIES, MOST_COMINGS = 12, 1, 3
 MOST_NEWS, MOST_SEEN, MOST_GOSSIP, MOST_COUPLES, MOST_POLITICS = 5, 4, 2, 3, 5
 # Places where being seen is public: a show, a festival, a game, a museum.
 SEEN_KINDS = {'event', 'venue', 'stadium', 'museum', 'attraction', 'landmark', 'market', 'garden'}
@@ -58,7 +58,7 @@ def issue(connection, data: dict, world, day: date) -> dict:
             'gossip': [{'text': item['text']} for item in talk],
             # Local politics (companion/life/politics.py): what happened in each issue, factions falling out.
             'politics': politics.paper_items(connection, data, week)[:MOST_POLITICS],
-            'ahead': coming_up(data, world, day, skies.level_of(connection))}
+            'ahead': coming_up(data, world, day, skies.level_of(connection), temperature.chosen(connection))}
 
 
 def companion_keys(connection) -> tuple[str, ...]:
@@ -97,18 +97,60 @@ def sample(data: dict, day: date | None = None) -> list[dict]:
 
 
 def townsfolk_news(data: dict, day: date) -> list[dict]:
-    """Townsfolk who reached a goal that week, in a seeded order."""
+    """A townsperson who reached a goal that week, picked in a seeded order: one story an issue, so the paper reads
+    like a paper and not a list of hobby wins, and only a goal the town could see (`townsfolk.newsworthy`): a race or a
+    mural, not a bird list or a rainy-day fund. It says how long the goal really took (`span`) and its wording is
+    drawn from a few shapes (`GOAL_STORIES`) so week after week doesn't read the same."""
     if not data.get('neighborhoods'):
         return []
     reached = []
     for sheet in sample(data, day):
         state = townsfolk.story(sheet, data, day)
-        if state['beat'] == 'achieved':
+        if state['beat'] == 'achieved' and townsfolk.newsworthy(data, state['done_id']):
             reached.append((sheet, state))
     reached.sort(key=lambda item: generators.unit(item[0]['key'], 'paper', day.isoformat()))
-    return [{'key': sheet['key'], 'headline': sentence(state['line']),
-             'text': f"{sheet['full']} ({sheet['role']}, {townsfolk.neighborhood_name(data, sheet['home'])}) had been "
-                     f"trying to {state['reached'][-1]} for weeks."} for sheet, state in reached[:MOST_TOWNSFOLK]]
+    return [{'key': sheet['key'], 'headline': sentence(state['line']), 'text': goal_text(data, sheet, state, day)}
+            for sheet, state in reached[:MOST_GOAL_STORIES]]
+
+
+# How a goal story reads: {full}, {role}, {hood}, {goal}, {span} ("for about two months"), {took} ("about two months").
+GOAL_STORIES = (
+    '{full} ({role}, {hood}) had been trying to {goal} {span}.',
+    'It took {full} ({role}, {hood}) {took} to {goal}.',
+    '{full} ({role}, {hood}) set out to {goal} {ago}.',
+    'Neighbors in {hood} say {full} ({role}) had been working to {goal} {span}.',
+)
+
+
+def span(weeks: int) -> tuple[str, str, str]:
+    """('for about two months', 'about two months', 'about two months ago') for a goal that took `weeks` weeks."""
+    if weeks <= 1:
+        took = 'a week'
+    elif weeks <= 2:
+        took = 'a couple of weeks'
+    elif weeks <= 5:
+        took = f"{('three', 'four', 'five')[weeks - 3]} weeks"
+    elif weeks <= 7:
+        took = 'about a month and a half'
+    elif weeks <= 11:
+        took = 'about two months'
+    elif weeks <= 15:
+        took = 'about three months'
+    elif weeks <= 30:
+        took = 'about half a year'
+    elif weeks <= 70:
+        took = 'about a year'
+    else:
+        took = 'years'
+    return (f'for {took}', took, f'{took} ago')
+
+
+def goal_text(data: dict, sheet: dict, state: dict, day: date) -> str:
+    """The story under a goal headline, in one of the shapes from `GOAL_STORIES`, seeded by person and issue."""
+    shape = GOAL_STORIES[int(generators.unit(sheet['key'], 'paper-goal-shape', day.isoformat()) * len(GOAL_STORIES))]
+    lasted, took, ago = span(state.get('took', 4))
+    return shape.format(full=sheet['full'], role=sheet['role'], hood=townsfolk.neighborhood_name(data, sheet['home']),
+                        goal=state['reached'][-1], span=lasted, took=took, ago=ago)
 
 
 def couples_news(data: dict, week: tuple[date, date]) -> list[dict]:
@@ -255,32 +297,32 @@ def gossip(connection, data: dict, week: tuple[date, date]) -> list[dict]:
                      'This column has its suspicions.'} for row in rows[:MOST_GOSSIP]]
 
 
-def coming_up(data: dict, world, day: date, level: int = skies.TRUE_TO_LIFE) -> dict:
+def coming_up(data: dict, world, day: date, level: int = skies.TRUE_TO_LIFE, unit: str = 'F') -> dict:
     """The week after the issue: annual events and holidays by day, and the weather (at this world's Weather step)."""
     days = [day + timedelta(days=offset) for offset in range(1, 8)]
     events = [{'date': when.isoformat(), 'name': item['name'], 'text': sentence(item['summary'])}
               for when in days for item in world.happenings(data['id'], when)]
     holidays = [{'date': item['date'].isoformat() if isinstance(item['date'], date) else item['date'],
                  'name': item['name']} for item in generators.holidays(data, days[0], days[-1])]
-    return {'events': events, 'holidays': holidays, 'weather': weather(data, days, level)}
+    return {'events': events, 'holidays': holidays, 'weather': weather(data, days, level, unit)}
 
 
 # The week's weather in the paper: the wet and foggy days by name, in this order.
 OUTLOOK = (('rain', 'Rain'), ('storm', 'Storms'), ('snow', 'Snow'), ('fog', 'Fog'))
 
 
-def weather(data: dict, days: list[date], level: int = skies.TRUE_TO_LIFE) -> str | None:
+def weather(data: dict, days: list[date], level: int = skies.TRUE_TO_LIFE, unit: str = 'F') -> str | None:
     """'Highs around 64°F, lows near 48°F. Rain Tuesday and Wednesday. Storms Thursday.'"""
     found = [(when, generators.conditions(data, when, level)) for when in days]
     found = [(when, item) for when, item in found if item]
     if not found:
         return None
-    high = round(sum(item['high_f'] for _when, item in found) / len(found))
-    low = round(sum(item['low_f'] for _when, item in found) / len(found))
+    high = temperature.text(sum(item['high_f'] for _when, item in found) / len(found), unit)
+    low = temperature.text(sum(item['low_f'] for _when, item in found) / len(found), unit)
     spells = [f' {label} {named([WEEKDAYS[when.weekday()] for when, item in found if item["sky"] == sky])}.'
               for sky, label in OUTLOOK if any(item['sky'] == sky for _when, item in found)]
     dry = '' if any(item['rain'] for _when, item in found) else ' Dry all week.'
-    return f"Highs around {high}°F, lows near {low}°F.{''.join(spells)}{dry}"
+    return f"Highs around {high}, lows near {low}.{''.join(spells)}{dry}"
 
 
 def named(days: list[str]) -> str:

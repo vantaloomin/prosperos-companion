@@ -23,6 +23,7 @@ from companion.life import (
     thoughts,
 )
 from companion.memory.records import OPEN_PLANS, eligible
+from companion.world import temperature
 
 AVAILABILITY = {'sleep': 'asleep', 'work': 'working', 'study': 'working', 'errand': 'out', 'social': 'out'}
 RECENT_LIMIT = 10
@@ -125,7 +126,7 @@ def day(connection, timeline_id, local_date) -> dict:
     birthdays = [{'id': person['id'], 'name': person['name']} for person in circle.people(connection, timeline_id)
                  if circle.birthday(person['id']) == local_date[5:]]
     return {'date': local_date, **found, 'tomorrow': agenda.day_on(connection, timeline_id, tomorrow)['weather'],
-            'birthdays': birthdays}
+            'birthdays': birthdays, 'temperature_unit': temperature.chosen(connection)}
 
 
 def view(database) -> dict:

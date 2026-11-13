@@ -25,7 +25,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import many, settings
 from companion.errors import require
 from companion.life import occasions
-from companion.memory import closeness
+from companion.memory import addressed, closeness
 from companion.memory.consolidation import excluded_sources, usable_summaries
 from companion.world import newcomers, wording
 
@@ -41,6 +41,16 @@ MOMENTS = {'week': 2, 'month': 3, 'year': 4}
 FINER = {'week': '', 'month': 'w', 'year': 'wm'}
 KEY = re.compile(r'^(w\d{4}-\d{2}-\d{2}|m\d{4}-\d{2}|y\d{4})$')
 QUOTED = re.compile(r'“(.+?)”')
+# Someone's own title, not the two of them: "Mom's calls", "Ex's behavior", "Jo's new job".
+OWNER = re.compile(r"^([A-Za-z][\w-]*)['’]s\b")
+MILESTONE = re.compile(r'\b(first|date|kiss\w*|met|trip|moved?|anniversary|birthday|together)\b', re.IGNORECASE)
+FILLER = {'a', 'an', 'the', 'our', 'your'}
+# A user's sentence that says something about them (words.telling).
+CLOSE = re.compile(r'\b(you|your|we|us|our)\b', re.IGNORECASE)
+HEART = re.compile(r'\b(feel|felt|happy|sad|afraid|scared|love\w*|kiss\w*|trust\w*|never|first|miss\w*|safe|warm\w*|'
+                   r'sorry|thank\w*|worth\w*|hand|scent|cr(?:y|ied)|proud|hurt)\b', re.IGNORECASE)
+CHORE = re.compile(r'\b(sales?|money|coffee|shower|bed|sleep\w*|eat|cook\w*|pharmacy|buy|bought|shopping|roof|'
+                   r'clean\w*|groceries|laundry|dishes|report)\b', re.IGNORECASE)
 MONTHS = ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
           'November', 'December')
 
@@ -166,13 +176,50 @@ def chapter_stages(connection, timeline_id: str, low, high) -> list[tuple[str, s
 
 
 def moments(connection, companion: dict, now, found: list[Stretch], timezone, skip: tuple = ()):
-    """The shared moments remembered in each stretch, and the days of those that were outings together."""
-    outings = in_person(connection, companion['id'])
+    """The shared moments remembered in each stretch, the ones that matter most first, and the days of those that
+    were outings together."""
+    outings, name = in_person(connection, companion['id']), first_name(companion)
+    picked: dict[str, list[dict]] = {}
     for memory in closeness.shared_moments(connection, companion, companion['active_timeline_id'], now, None):
-        if item := holding(found, happened(memory, timezone), skip):
-            item.moments.append(memory['subject'])
+        if (item := holding(found, happened(memory, timezone), skip)) and (memory['id'] in outings or ours(memory['subject'], name)):
+            picked.setdefault(item.key, []).append(memory)
             if memory['id'] in outings:
                 item.met.add(happened(memory, timezone))
+    for item in found:
+        ranked = sorted(picked.get(item.key, []), key=lambda memory: weight(memory, outings))
+        item.moments = once([titled(memory['subject'], name) for memory in ranked])
+
+
+def ours(subject: str, name: str) -> bool:
+    """A moment of theirs (an outing always is: "Willow's naming day"), not someone else's story the memory model filed beside them ("Mom's calls", "Ex's
+    behavior", Vanta on 1.4.0), nor a saved message's cut-off opening ("blackmail me all you want though,…")."""
+    owner = OWNER.match(subject)
+    return not subject.rstrip().endswith('…') and (not owner or owner[1].casefold() == name.casefold())
+
+
+def weight(memory: dict, outings: set[str]) -> tuple:
+    """Outings first, then firsts and dates, the user's own, a moment before a note on the relationship, then the
+    order they were saved: "A walk together" and "First date" before "Nickname"."""
+    return (memory['id'] not in outings, not MILESTONE.search(memory['subject']), memory['origin'] != 'user',
+            memory['layer'] != 'shared_experience', memory['created_at'])
+
+
+def titled(subject: str, name: str) -> str:
+    """The title as a line says it: the companion by name ("Trust in assistant", Vanta on 1.4.0), a capital first."""
+    text = addressed.title(' '.join(subject.split()), name) if name else ' '.join(subject.split())
+    return text[:1].upper() + text[1:]
+
+
+def once(titles: list[str]) -> list[str]:
+    """Each moment once: "First date" and "First date with Sett" are the same evening."""
+    seen, result = set(), []
+    for text in titles:
+        key = ' '.join(word for word in re.sub(r"[^\w\s’']", ' ', text.casefold()).split() if word not in FILLER)
+        key = re.sub(r'\bwith \w+$', '', key).strip()
+        if key not in seen:
+            seen.add(key)
+            result.append(text)
+    return result
 
 
 def in_person(connection, companion_id: str) -> set[str]:
@@ -191,17 +238,25 @@ def talked_days(connection, timeline_id, found, low, high, timezone):
 
 
 def words(connection, companion, found, skip=()):
-    """The user's own sentences from the day summaries: the longest of each day's, a few a stretch, in order."""
+    """The user's own sentences from the day summaries: each day's that says most about the two of them, a few a
+    stretch, in order. Not the longest: "it's black friday so lots of sales" lost to "now I know your scent"."""
     summaries = usable_summaries(connection, companion['active_timeline_id'],
                                  excluded_sources(connection, companion['id']))
     picked: dict[str, list[tuple[str, str]]] = {}
     for row in summaries:
         said = QUOTED.findall(row['text'])
         if said and (item := holding(found, row['day'], skip)):
-            picked.setdefault(item.key, []).append((row['day'], max(said, key=len)))
+            picked.setdefault(item.key, []).append((row['day'], max(said, key=telling)))
     for item in found:
-        best = sorted(picked.get(item.key, []), key=lambda pair: -len(pair[1]))[:SAY[item.kind]]
+        best = sorted(picked.get(item.key, []), key=lambda pair: telling(pair[1]), reverse=True)[:SAY[item.kind]]
         item.said = sorted(best)
+
+
+def telling(sentence: str) -> tuple[int, int]:
+    """How much a sentence says about them: to or about the two of them, a feeling or a first, then its length;
+    errands, meals and shopping last."""
+    score = 2 * bool(CLOSE.search(sentence)) + 2 * min(len(HEART.findall(sentence)), 2)
+    return score - 3 * bool(CHORE.search(sentence)), len(sentence)
 
 
 def merged(found: list[Stretch], fixed: dict[str, str]) -> list[Stretch]:

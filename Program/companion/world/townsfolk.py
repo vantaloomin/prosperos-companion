@@ -182,6 +182,8 @@ GOALS = tuple((item['id'], (item['text'], item['period']), item['steps'],
                tuple(item['practice']) if item['practice'] else None, item['progress'], item['done'])
               for item in GOAL_BANK)
 GOAL_INTERESTS = {item['id']: item['interest'] for item in GOAL_BANK}
+# Goals whose end anyone in town could see or hear of (a show, a race, a mural): the paper prints only these.
+GOAL_NEWS = frozenset(item['id'] for item in GOAL_BANK if item.get('news'))
 # What a goal asks of the person (Hit List #101): has a job, works for someone, retired or not, has a sibling, single,
 # partnered, an age range in human years. A goal with none fits anyone; the city's own goals have none.
 GOAL_NEEDS = {item['id']: item['needs'] for item in GOAL_BANK if item.get('needs')}
@@ -680,13 +682,27 @@ def story(sheet: dict, data: dict, day: date) -> dict:
         if fits_now(sheet, data, sheet['goals'][number % len(sheet['goals'])], week):
             finished = goal(sheet, data, number)
             return {'goal': now_or_stand_in(sheet, data, number + 1, week), 'progress': 0, 'beat': 'achieved',
-                    'line': finished['done'], 'reached': [*reached, finished['text']][-3:]}
+                    'line': finished['done'], 'reached': [*reached, finished['text']][-3:], 'took': took(history), 'done_id': finished['id']}
         number, progress, beat = number + 1, 0, 'stall'
     current = now_or_stand_in(sheet, data, number, week)
     progress = min(progress, current['steps'] - 1)
     line = current['progress'] if beat == 'progress' else \
         FLAWS[sheet['flaw']][2].format(name=sheet['name']) if beat == 'setback' else ''
     return {'goal': current, 'progress': progress, 'beat': beat, 'line': line, 'reached': reached}
+
+
+def newsworthy(data: dict, goal_id: str) -> bool:
+    """Whether a goal reached is something a paper would print. A city's own goals are its local color, so they
+    count unless the pack says `"news": false`; shared goals only when marked `"news": true` (data/goals.json)."""
+    own = {item['id']: item for item in town(data)['goals']}
+    return own[goal_id].get('news', True) if goal_id in own else goal_id in GOAL_NEWS
+
+
+def took(history: tuple) -> int:
+    """How many weeks the goal just reached took: from the week after the one before it was reached (or from when
+    their weeks began) through this one."""
+    earlier = [index for index, (_, _, beat) in enumerate(history[:-1]) if beat == 'achieved']
+    return len(history) - 1 - (earlier[-1] if earlier else -1)
 
 
 def now_or_stand_in(sheet: dict, data: dict, number: int, week: date) -> dict:

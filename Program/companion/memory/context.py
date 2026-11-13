@@ -111,7 +111,7 @@ from companion.memory.hybrid_recall import hybrid_hits
 from companion.memory.records import OPEN_PLANS, blocked_messages, eligible, told
 from companion.memory.retrieval import terms
 from companion.world import changes as city_changes
-from companion.world import intimacy, looks, newcomers, perception, personality, ships
+from companion.world import intimacy, looks, newcomers, perception, personality, ships, temperature
 
 # The conversation sent with each reply: at least RECENT_MESSAGES turns. Its first turn moves forward WINDOW_STEP
 # turns at a time, so the start of the conversation stays the same for several replies and can be reused (prompt
@@ -839,15 +839,16 @@ def offer_day(packet, connection, timeline_id, version, now, today):
     for item in occasions.occasions(connection, companion, now):
         packet.offer('occasions', item['key'], item['text'])
     day = agenda.day_on(connection, timeline_id, today)
+    unit = temperature.chosen(connection)
     if day['weather'] and day['weather'].get('observed'):
-        packet.offer('observed_weather', today, f"{agenda.weather_text(day['weather'])} "
+        packet.offer('observed_weather', today, f"{agenda.weather_text(day['weather'], unit)} "
                                                 f"({observed_weather.label(day['weather'])})")
     elif day['weather']:
-        packet.offer('weather', today, agenda.weather_text(day['weather']))
+        packet.offer('weather', today, agenda.weather_text(day['weather'], unit))
     ahead = agenda.day_on(connection, timeline_id, (date.fromisoformat(today) + timedelta(days=1)).isoformat())
     if ahead['weather']:
         # Tomorrow's sky is known (companion/world/skies.py), so plans can bend to it: "supposed to pour tomorrow".
-        packet.offer('weather', f'{today}:tomorrow', f"Tomorrow: {agenda.weather_text(ahead['weather'])}")
+        packet.offer('weather', f'{today}:tomorrow', f"Tomorrow: {agenda.weather_text(ahead['weather'], unit)}")
     if day['happenings']:
         packet.offer('weather', f'{today}:events', agenda.happenings_text(day['happenings']))
     if day['body']:
@@ -1026,9 +1027,10 @@ def offer_kitchen_and_media(packet, connection, timeline_id, version, now):
 def offer_home(packet, connection, companion, today: str):
     """Their home and belongings, the housework (companion/life/upkeep.py) and what is up at home for the season
     (companion/life/traditions.py)."""
-    for identity, text in home.context_lines(connection, companion['active_timeline_id'], date.fromisoformat(today)):
-        packet.offer('home', identity, text)
     timeline_id = companion['active_timeline_id']
+    for identity, text in home.context_lines(connection, timeline_id, date.fromisoformat(today),
+                                             definition_for_timeline(connection, timeline_id)):
+        packet.offer('home', identity, text)
     for identity, text in upkeep.context_lines(connection, timeline_id, definition_for_timeline(connection, timeline_id),
                                                date.fromisoformat(today)):
         packet.offer('housework', identity, text)

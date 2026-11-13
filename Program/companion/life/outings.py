@@ -27,7 +27,7 @@ from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import composer, money, onward, own_plans, routine
 from companion.memory.extraction import SENTENCE
-from companion.world import catalog, custom, generators, inside, skies
+from companion.world import added_places, catalog, custom, generators, inside, skies, temperature
 
 # key: (words that name it, city place kinds, usual start, hours, money.COSTS key, how it reads)
 ACTIVITIES = {
@@ -128,10 +128,11 @@ def activity_for_place(place: dict) -> str:
 
 
 def city_data(connection, definition: dict) -> dict | None:
+    """Their city, with the places added in this world (companion/world/added_places.py)."""
     extra = custom.all_cities(connection)
     for text in (definition.get('home_city'), definition.get('location')):
         if text and (found := catalog.resolve(text, extra)):
-            return catalog.city(found['city'], extra)
+            return added_places.merge(connection, catalog.city(found['city'], extra))
     return None
 
 
@@ -143,6 +144,13 @@ def named_place(sentence: str, data: dict | None) -> dict | None:
         if len(item['name']) >= 4 and re.search(rf"\b{re.escape(item['name'])}\b", sentence, re.IGNORECASE):
             return item
     return None
+
+
+def new_place(sentence: str, data: dict | None) -> dict | None:
+    """A place the user names that the city does not have, filled in by rules for what the ask is for
+    (companion/world/added_places.py); stored only once the outing is booked."""
+    activity = which(sentence, None)
+    return added_places.guess(sentence, data, kinds(activity) if activity else ())
 
 
 def asked(sentence: str, firm: bool, day: date | None) -> bool:
@@ -235,8 +243,8 @@ def proposal(text: str, today: date, holidays: dict, data: dict | None, firm: bo
             return found
         if not sentence or not asked(sentence, firm, day):
             continue
-        place = named_place(sentence, data)
         pastime = next((found['id'] for found in pastimes if found['pattern'].search(sentence)), None)
+        place = None if pastime else named_place(sentence, data) or new_place(sentence, data)
         activity = 'hobby' if pastime else which(sentence, place)
         if activity is None:
             continue
@@ -493,6 +501,7 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
                                          not affordable, wanted.get('word', ''), wanted.get('waterside', False))
     if item is None:
         return None
+    keep_added(connection, data, item, message['id'], timestamp)
     if item.get('cost') == 'free':
         cost, affordable = 0.0, True
     outing_id = identifier()
@@ -506,6 +515,13 @@ def save(connection, companion, message, wanted, data, day: date, at: str, times
     admin.make_room(connection, companion, day, at, parse(timestamp))
     onward.plan(connection, companion, outing_id)  # Whether it moves on to a second place (companion/life/onward.py).
     return get(connection, outing_id)
+
+
+def keep_added(connection, data: dict, item: dict, message_id: str, timestamp: str) -> None:
+    """A place the user named that the map did not have goes on it now that something is booked there, theirs to
+    change on the map (companion/world/added_places.py)."""
+    if item.get('added') and not catalog.find(data, item['id']):
+        added_places.add(connection, data, item, message_id, timestamp)
 
 
 def save_pastime(connection, companion, message, wanted, data, day: date, at: str, timestamp: str, cost: float):
@@ -818,7 +834,8 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
     conditions = generators.conditions(data, date.fromisoformat(outing['local_date']), skies.level_of(connection)) \
         if data else None
     if outing['activity'] in VISIT_DOING:
-        return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else ())
+        return visit_scene(outing, spot, conditions, here_too(connection, companion, outing, now) if now else (),
+                           temperature.chosen(connection))
     if outing['activity'] in MEETUPS:
         from companion.life import their_people
         return their_people.scene(connection, companion, outing, spot)
@@ -836,7 +853,7 @@ def scene(connection, companion: dict, outing: dict, now: datetime | None = None
             'Talk as if you are there together, face to face, not texting.') if part)
     parts = [f"Right now you are out with the user, in person: {what(outing)}, until about {outing['until_time']}.",
              f'You are {spot}.' if spot else '', place.get('summary', ''), menu(data, outing),
-             f'Weather: {agenda.weather_text(conditions)}' if conditions else '',
+             f'Weather: {agenda.weather_text(conditions, temperature.chosen(connection))}' if conditions else '',
              'Talk as if you are there together, face to face, not texting.']
     if place.get('proposal'):
         from companion.life import wedding
@@ -861,7 +878,7 @@ def here_too(connection, companion: dict, outing: dict, now: datetime) -> list[s
     return names
 
 
-def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
+def visit_scene(outing: dict, spot: str | None, conditions, others=(), unit: str = 'F') -> str:
     """Being at the user's place, or having them at yours, in person."""
     from companion.life import agenda
     place = outing['place']
@@ -880,7 +897,7 @@ def visit_scene(outing: dict, spot: str | None, conditions, others=()) -> str:
         food = ' for dinner, which they are cooking' if outing['activity'] == 'dinner-yours' else ''
         first = f"Right now you are over at the user's place{area}{food}, in person, until about {outing['until_time']}."
     spot = None if place.get('knock') else spot  # Just in from the door, not settled anywhere yet.
-    weather = f'Weather outside: {agenda.weather_text(conditions)}' if conditions else ''
+    weather = f'Weather outside: {agenda.weather_text(conditions, unit)}' if conditions else ''
     company = ' '.join(f'{name}, also visiting the user, is here too, in person.' for name in others)
     return '- ' + ' '.join(part for part in (first, company, f'You are {spot}.' if spot else '', weather, IN_PERSON)
                            if part)
@@ -1459,12 +1476,23 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     since = (now.astimezone(zone(version['timezone'])).date() - timedelta(days=14)).isoformat()
     found = in_force(connection, companion['active_timeline_id'], since, include_cancelled=True)
     from companion.life import our_child  # An evening out with a child at home: who watches them (screen only).
-    return [{**onward.here(outing, version['timezone'], now), 'state': state(outing, version['timezone'], now),
+    return [{**where_now(connection, companion, outing, now), 'state': state(outing, version['timezone'], now),
              'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
              'undo_move': onward.undoable(outing, version['timezone'], now),
              'cost_text': money_text(companion, outing).strip(),
              'sitter': our_child.sitter_view(connection, companion, outing),
              **choices(connection, companion, outing, now)} for outing in found]
+
+
+def where_now(connection, companion: dict, outing: dict, now: datetime) -> dict:
+    """The outing as Today shows it: under way, where they are now, the second place once they moved on
+    (companion/life/onward.py) or where the chat has taken them (companion/life/scene_now.py), as the chat strip has it."""
+    timezone = companion['version']['timezone']
+    here = onward.here(outing, timezone, now)
+    if state(outing, timezone, now) != 'now':
+        return here
+    from companion.life import scene_now
+    return scene_now.applied(connection, companion, outing, here, now)[0]
 
 
 def photo_ready(connection, now: datetime) -> list[dict]:

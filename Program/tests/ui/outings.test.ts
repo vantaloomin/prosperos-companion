@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { awayNowLine, awayTrips, meetLine, onwardLine, outingNote, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
+import { awayNowLine, awayTrips, meetLine, onwardLine, outingNote, outingPlace, outingTitle, outingWhen, placeLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from '../../src/features/today/outingText.ts'
 
 const outing: Outing = {
   id: 'o1', local_date: '2026-10-08', at_time: '19:00', until_time: '21:00', activity: 'dinner', asked_date: null,
@@ -80,4 +80,20 @@ test('moving on: Today says where next, then where they came from', () => {
   assert.match(onwardLine({ state: 'now', next: { place, activity: 'drinks', at: '21:00', asked: false }, came_from: null }), /^Then drinks at The Owl Bar, around 9:00/)
   assert.equal(onwardLine({ state: 'now', next: null, came_from: { name: 'Lupa', activity: 'dinner', neighborhood: '' } }), 'Came over from Lupa.')
   assert.equal(onwardLine({ state: 'planned', next: null, came_from: null }), '')
+})
+
+test('under way, the card follows where the chat took them, as the chat strip does', () => {
+  const scene = { back: true, to: 'Paper Moon Diner', kind: 'way' }
+  const moved: Outing = { ...outing, state: 'now', place: { id: '~scene', name: 'on the way to the harbor together', kind: 'scene', label: 'on the way to the harbor together', neighborhood: '', summary: '', cost: '', cuisine: '', city: '' },
+    came_from: { name: 'Paper Moon Diner', activity: 'dinner', neighborhood: 'Remington' }, moved_at: '19:30', scene }
+  assert.equal(outingTitle(moved), 'On the way to the harbor together')
+  assert.equal(outingPlace(moved), '')
+  assert.equal(onwardLine(moved), 'Left Paper Moon Diner.')
+  assert.equal(meetLine(moved), "You're together now.")
+  assert.match(outingWhen(moved, 'Mira'), /^Thu, Oct 8, 7:30/)
+  // There now: "at the harbor", with until again, and came over from the diner.
+  const there = { ...moved, place: { ...moved.place, label: 'at the harbor' }, scene: { ...scene, kind: 'there' } }
+  assert.equal(outingTitle(there), 'At the harbor')
+  assert.equal(onwardLine(there), 'Came over from Paper Moon Diner.')
+  assert.match(meetLine(there), /^You're there together until 9:00/)
 })

@@ -225,3 +225,27 @@ def test_a_week_they_saw_each_other_but_never_texted_is_not_a_week_they_didnt_ta
     quiet = [line for key, line in found.items() if key > week]
     assert quiet and all(line['together'] == 0 for line in quiet)
     assert "You didn't talk." in prompt, 'a week with neither still says so'
+
+
+def test_someone_elses_story_is_not_a_moment_of_theirs():
+    assert not history.ours("Mom's calls", 'Sett') and not history.ours('Ex’s behavior', 'Sett')
+    assert history.ours("Sett's smell", 'Sett') and history.ours('A walk together at The Scarred Wall', 'Sett')
+    assert not history.ours('blackmail me all you want though,…', 'Sett'), "a saved message's cut-off opening"
+
+
+def test_the_moments_that_matter_come_first_and_each_reads_once():
+    def memory(key, subject, layer='relationship', origin='automatic'):
+        return {'id': key, 'subject': subject, 'layer': layer, 'origin': origin, 'created_at': key}
+    found = [memory('1', 'Nickname'), memory('2', 'Trust in Sett'), memory('3', 'First date', 'shared_experience'),
+             memory('4', 'A walk together at The Wall', 'shared_experience'), memory('5', 'First date with Sett')]
+    ranked = sorted(found, key=lambda each: history.weight(each, {'4'}))
+    assert history.once([history.titled(each['subject'], 'Sett') for each in ranked])[:2] == \
+        ['A walk together at The Wall', 'First date']
+    assert history.titled('Trust in assistant', 'Sett') == 'Trust in Sett'
+    assert history.titled('flirt', 'Sett') == 'Flirt'
+
+
+def test_the_users_words_that_say_most_about_them_beat_the_longest():
+    sales = "Right now it's the black friday so lots of sales, but this year I don't have any money for presents"
+    hand = 'Checking the data, now I know your scent and warmth too and the feeling of your hand'
+    assert max([sales, hand], key=history.telling) == hand

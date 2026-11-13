@@ -40,7 +40,7 @@ def change(request: Request, action, include_removed=False) -> dict:
         home.evolve(connection, timeline_id, today, now)
         if action:
             action(connection, timeline_id, today, now)
-        return home.view(connection, timeline_id, today, include_removed)
+        return home.view(connection, timeline_id, today, include_removed, version['definition'])
 
 
 @router.get('')

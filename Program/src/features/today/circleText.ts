@@ -21,7 +21,8 @@ export function personNow(person: CirclePerson, aboard: Aboard = null): string {
   if (person.local === false) return `Lives ${placeWords(aboard).away.toLowerCase()}`
   if (person.met?.meeting === 'now') return 'Right now: meeting you'
   if (!person.now) return 'Free right now'
-  return person.now.kind === 'sleep' ? 'Asleep right now' : `Right now: ${person.now.label}`
+  // Asleep in a hospital bed is still "In the hospital".
+  return person.now.kind === 'sleep' && !person.now.stay ? 'Asleep right now' : `Right now: ${person.now.label}`
 }
 
 export function personWork(person: CirclePerson): string | null {
