@@ -1,5 +1,6 @@
 """Life simulation, Today and Feed API (PRD T1–T7, F1, F2, F4)."""
 from datetime import date, datetime, time, timedelta
+from functools import partial
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Request
@@ -735,14 +736,29 @@ def change_call(request: Request, call_id: str, action: Literal['answer', 'decli
         return calls.act(connection, require_current(connection), call_id, action, database.clock.now())
 
 
+class TripPlace(Input):
+    key: str | None = Field(default=None, max_length=200)
+
+
+@router.get('/trips/{trip_id}/places')
+def trip_places(request: Request, trip_id: str):
+    """The places a trip together still to come can go instead, the one first booked first (Today's place picker)."""
+    database = db(request)
+    with database.connect() as connection:
+        return away_together.places(connection, require_current(connection), trip_id, database.clock.now())
+
+
 @router.post('/trips/{trip_id}/{action}')
-def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo', 'elsewhere', 'home', 'stay']):
+def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo', 'elsewhere', 'home', 'stay'],
+                 body: TripPlace | None = None):
     """Call off a weekend visit or a trip together that has not started (companion/life/long_distance.py), or undo
-    that; send a trip together somewhere else, or head home from one early and undo that
-    (companion/life/away_together.py)."""
+    that; send a trip together somewhere else (the place picked, or one the app picks), or head home from one early
+    and undo that (companion/life/away_together.py)."""
     database = db(request)
     change = {'cancel': long_distance.cancel, 'undo': long_distance.undo, 'elsewhere': away_together.elsewhere,
               'home': away_together.head_home, 'stay': away_together.stay_on}[action]
+    if action == 'elsewhere' and body and body.key:
+        change = partial(away_together.elsewhere, key=body.key)
     with database.connect(write=True) as connection:
         changed = change(connection, require_current(connection), trip_id, database.clock.now())
     request.app.state.life.extend_agenda('return')
