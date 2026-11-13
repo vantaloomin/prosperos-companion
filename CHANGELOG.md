@@ -81,6 +81,9 @@
 - **Places you name join the map (#602):** a place the user names that the city lacks is added per world
   (added_places), filled in by rules (kind, neighborhood, hours, prices) and merged wherever the world reads the
   city. The map card edits or removes it, with Undo.
+- **Away together keeps what was agreed (#608):** a weekday is never the place, a one-day walk or meal is an
+  outing not a trip, a named day starts the trip; Change place is a picker of reachable, affordable places with
+  the first plan offered back (GET /api/life/trips/{id}/places), replacing the cycling pin.
 - **Hospital stays fit the cause (#601):** a health change said in chat keeps the person out of their days for a
   seeded length the words suggest (overnight, days, weeks, until said); "recovered" or Undo ends it.
 - **Out together card follows the scene (#600):** Today's card shows the scene_now spot under way, with Back to.
