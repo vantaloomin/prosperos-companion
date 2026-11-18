@@ -25,6 +25,7 @@ then, true to life (about one a week) or often.
 """
 import json
 import random
+import re
 from datetime import date, datetime, time, timedelta
 from functools import cache
 
@@ -740,6 +741,125 @@ def plan_part(connection, companion: dict, found: dict, now: datetime) -> str:
         return (f"You asked the user, and it is set for {outings.day_text(shown['local_date'])} at "
                 f"{shown['at_time']}; it has not happened yet.")
     return {'now': 'It is happening now.', 'done': PLAN_PART['went'], 'cancelled': PLAN_PART['called_off']}[state]
+
+
+# The screens (Today and the scrapbook) ----------------------------------------------------------------------------
+
+# A finished one stays on Today this many days after its last beat; after that the scrapbook keeps it (`kept`).
+STAYS = 7
+KEPT_TITLE = 'Things you were part of'
+
+
+def on_today(connection, companion: dict, items: list[dict], now: datetime) -> list[dict]:
+    """Today's storylines (storylines.listing) with the ones the user is part of made ready for their own section:
+    each beat says how it reached them (`via`) and what they did about it (`you`), and a finished one leaves
+    `STAYS` days after its last beat."""
+    since = (local(companion, now).date() - timedelta(days=STAYS)).isoformat()
+    kept = {row['id']: row for row in rows(connection, companion['active_timeline_id'])}
+    found = []
+    for item in items:
+        row = kept.get(item['id']) if item['with_you'] else None
+        if row is None:
+            found.append(item)
+        elif item['unfolding'] or item['beats'][-1]['on'] >= since:
+            story = bank().get(key_of(row))
+            name = companion['version']['definition']['name']
+            found.append(item | {'beats': [beat | {'text': first_name(beat['text'], name)}
+                                           | your_part(connection, companion, row, index, story, now)
+                                           for index, beat in enumerate(item['beats'])]})
+    return found
+
+
+def first_name(text: str, name: str) -> str:
+    """A beat as these screens tell it: the companion by first name (Iris, 2026-11-18)."""
+    return text.replace(name, their_people.first(name)) if name else text
+
+
+def named_once(text: str, name: str) -> str:
+    """A scrapbook entry names the companion once, by first name; after that "the two of you", "together" and
+    "their" stand in where they read right, and the first name stays where they would not."""
+    first = their_people.first(name)
+    text = first_name(text, name)
+    at = text.find(first)
+    if at < 0:
+        return text
+    head, rest = text[:at + len(first)], text[at + len(first):]
+    known = re.escape(first)
+    for pattern, words in ((rf'\bYou and {known}\b(?!\'s)', 'The two of you'), (rf'\byou and {known}\b(?!\'s)', 'the two of you'),
+                           (rf'\bwith {known}\b(?!\'s)', 'together'), (rf"\b{known}'s", 'their')):
+        rest = re.sub(pattern, words, rest)
+    return head + rest
+
+
+def your_part(connection, companion: dict, row: dict, index: int, story: dict | None, now: datetime) -> dict:
+    """A beat's `via` (text or plan) and `you`: what the user did about it as far as the app can tell for sure, in
+    the bank's words (`respond`), or where it stands: 'texted' (the text is out and still open), 'set' (the plan is
+    booked, with its day and time), 'now' (the plan is under way). No `you` for a beat nothing follows, or one that
+    has not reached the user yet."""
+    found = decode(row['stages'])[index]
+    beat = story['beats'].get(found.get('beat')) if story else None
+    if not beat:
+        return {}
+    via = {'via': beat.get('via', 'text')}
+    if not beat.get('then'):
+        return via
+    if beat.get('via') == 'plan':
+        return via | plan_you(connection, companion, found, now)
+    sent = optional(connection, 'SELECT id FROM openers WHERE timeline_id=? AND trigger_key=?',
+                    (row['timeline_id'], trigger_key(row, index)))
+    did = found.get('response') or (respond(connection, companion, row, index, story, now)
+                                    if row['status'] == 'running' else None)
+    did = did or ('texted' if sent else None)
+    return via | ({'you': {'did': did}} if did else {})
+
+
+def plan_you(connection, companion: dict, found: dict, now: datetime) -> dict:
+    outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (found.get('outing') or '',))
+    if found.get('response'):
+        return {'you': {'did': found['response']}}
+    if outing is None:
+        return {}
+    shown = outings.view(outing)
+    state = outings.state(shown, companion['version']['timezone'], now)
+    if state == 'planned':
+        return {'you': {'did': 'set', 'on': shown['local_date'], 'at': shown['at_time']}}
+    return {'you': {'did': {'now': 'now', 'done': 'went', 'cancelled': 'called_off'}[state]}}
+
+
+# The user's part in a beat as the scrapbook says it, where it turned the story (`turned`).
+DID = {'answered': 'You wrote back.', 'said_yes': 'You said yes.', 'said_no': 'You said no.',
+       'dropped_by': 'You came by.'}
+LET_GO = 'You let it go by.'
+
+
+def scrapbook_page(connection, companion: dict, low: str, high: str, now: datetime) -> dict | None:
+    """The scrapbook's page of the storylines the user was part of that began in this stretch and have run their
+    course: one entry each, from the day it began to its last beat, told beat by beat with the user's part where it
+    turned the story. One the user ended is not kept, and one still unfolding waits until it is over."""
+    kept = {row['id']: row for row in rows(connection, companion['active_timeline_id'])}
+    items = []
+    for item in storylines.visible(connection, companion, now, shown=True):
+        if not item['with_you'] or item['unfolding'] or not low <= item['started_on'] <= high:
+            continue
+        row, told = kept[item['id']], []
+        for found, beat in zip(decode(row['stages']), item['beats'], strict=False):
+            told += [beat['text'], turned(bank().get(key_of(row)), found)]
+        items.append({'date': item['started_on'], 'until': item['beats'][-1]['on'],
+                      'text': named_once(' '.join(part for part in told if part),
+                                         companion['version']['definition']['name'])})
+    if not items:
+        return None
+    return {'kind': 'with-you', 'title': KEPT_TITLE, 'items': sorted(items, key=lambda item: item['date'])}
+
+
+def turned(story: dict | None, found: dict) -> str:
+    """What the user did about a text, when the story has a way of its own for it ('' when whatever they did led to
+    the same place). A plan needs no line: the beat after it says whether they came."""
+    beat = story['beats'].get(found.get('beat')) if story else None
+    response = found.get('response')
+    if not beat or beat.get('via') == 'plan' or response not in (beat.get('then') or {}):
+        return ''
+    return LET_GO if response == 'passed' else DID[response]
 
 
 # Changing how it went, and forks ----------------------------------------------------------------------------------

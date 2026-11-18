@@ -1589,6 +1589,10 @@ export interface StoryBeat {
   on: string; text: string; share: string; tone: 'good' | 'bad' | 'mixed'
   /** The consequence engine's outcome this beat came from, when it could have gone more than one way. */
   consequence: string | null
+  /** In a storyline the user is part of: how the beat reached them, and their part in it (none for a beat nothing
+   * follows, or one that has not reached them yet). */
+  via?: 'text' | 'plan'
+  you?: YourPart
 }
 /** A lasting change to the companion's life (companion/life/chapters.py). */
 /** News travels (companion/news.py): the companion's recent news and who has heard it, in the order they did. */
@@ -1661,6 +1665,10 @@ export interface Storyline {
   /** The user is part of it (companion/life/shared_storylines.py): its beats say "you". */
   with_you: boolean
 }
+/** The user's part in a beat of a storyline they are part of, as far as the app can tell for sure: what they did
+ * about it, or where it stands ('texted': the text is out and still open; 'set': the plan is booked for `on` at
+ * `at`; 'now': the plan is under way). */
+export interface YourPart { did: 'texted' | 'answered' | 'said_yes' | 'said_no' | 'dropped_by' | 'passed' | 'set' | 'now' | 'went' | 'called_off'; on?: string; at?: string }
 
 export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary' | 'death_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }
 
@@ -1671,13 +1679,14 @@ export interface TraditionsView { traditions: Tradition[]; removed: Tradition[];
 /** Our year so far (companion/life/scrapbook.py): the stretches there are, and one stretch's pages. */
 export interface ScrapbookPeriod { key: string; title: string; start: string; end: string }
 export interface ScrapbookListing { periods: ScrapbookPeriod[]; featured: string | null; featured_days: number }
-export interface ScrapbookItem { date?: string; text: string }
+/** `until` on an entry that ran over several days (a storyline you were part of): its last day. */
+export interface ScrapbookItem { date?: string; until?: string; text: string }
 export type ScrapbookPage =
   | { kind: 'cover'; title: string; subtitle: string; stats: { value: string; label: string }[] }
   | { kind: 'first'; title: string; date: string; said: string; reply: string | null }
   | { kind: 'photos'; title: string; photos: { ref: string; summary: string; date: string | null }[] }
   | { kind: 'jokes'; title: string; items: ScrapbookItem[]; note: string | null }
-  | { kind: 'closer' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
+  | { kind: 'closer' | 'moments' | 'their-year' | 'with-you'; title: string; items: ScrapbookItem[] }
   | { kind: 'closing'; title: string; text: string }
   | { kind: 'wedding'; title: string; date: string; text: string; items: ScrapbookItem[]; guests: string[]; more?: number; photo: string | null; photo_alt: string }
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }

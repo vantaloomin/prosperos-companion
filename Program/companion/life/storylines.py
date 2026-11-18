@@ -839,7 +839,15 @@ def fresh_beats(connection, companion, now) -> list[tuple[str, dict]]:
 def listing(database, include_ended=False) -> list[dict]:
     from companion.characters import require_current
     with database.connect() as connection:
-        return visible(connection, require_current(connection), database.clock.now(), include_ended, shown=True)
+        return on_screen(connection, require_current(connection), database.clock.now(), include_ended)
+
+
+def on_screen(connection, companion, now, include_ended=False) -> list[dict]:
+    """Today's list: the ones the user is part of carry their part in each beat, and leave a week after they are
+    over (shared_storylines.on_today)."""
+    from companion.life import shared_storylines
+    found = visible(connection, companion, now, include_ended, shown=True)
+    return found if include_ended else shared_storylines.on_today(connection, companion, found, now)
 
 
 def end(database, storyline_id) -> list[dict]:
@@ -855,7 +863,7 @@ def end(database, storyline_id) -> list[dict]:
         connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (storyline_id,))
         # What it changed in their lives goes back: the diary line, the breakup, the new job (happenings.py).
         happenings.take_back(connection, row['timeline_id'], f'storyline:{storyline_id}:', database.clock.now())
-        return visible(connection, companion, database.clock.now(), shown=True)
+        return on_screen(connection, companion, database.clock.now())
 
 
 
