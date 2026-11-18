@@ -3030,6 +3030,7 @@ p.breakup-line { align-items: center; }
 .circle-tie { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 16rem); gap: 12px; align-items: center; min-width: 0; }
 .circle-tie label { overflow-wrap: anywhere; }
 .circle-tie select { width: 100%; min-width: 0; }
+.circle-tie-who { min-width: 0; } .circle-tie-who p { margin: 2px 0 0; font-size: 0.875rem; }
 .circle-tie-add { padding: var(--panel-pad); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .circle-tie-add .rename-row { grid-column: 1 / -1; }
 @media (max-width: 720px) {

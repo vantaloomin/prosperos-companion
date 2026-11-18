@@ -2,7 +2,7 @@
 
 "Omg, my dad just got a promotion." "The new person at work keeps taking credit for my work." "I got
 drunk and kissed my best friend." Each storyline is a fixed template with a cast drawn from the
-circle (or the companion's own work), and two or three beats spread over the following days. Which
+circle (or the companion's own work, or their own days outside it), and two or three beats spread over the following days. Which
 storyline starts on which day, who is in it and how each beat turns out are all decided by a seed
 when it starts, never by a model. Beats stay hidden until their day comes, like the agenda.
 
@@ -28,6 +28,8 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
 from companion.life import casting, circle, happenings, pronouns, routine, world_drama
+from companion.life.story_parts import Beat, Spent, Story, beat, either
+from companion.life.storyline_bank import MORE, MORE_EFFECTS
 from companion.world import lifespans, perception
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
@@ -46,46 +48,6 @@ SETTLED_DAYS = 60
 SPENT_AT = '19:00'
 SPENT_HOURS = (time(18, 0), time(21, 0))
 BUSY = {'work', 'study', 'sleep'}
-
-
-@dataclass(frozen=True)
-class Spent:
-    """A beat that says the companion spent real time with someone in it (v1.4.0): it takes a slot of the companion's
-    day (`summary`, their agenda entry) and the same slot of that person's day (`theirs`, companion/life/joint.py).
-    `short` and `short_share` tell the beat when no slot could take it, without saying where the evening went."""
-    activity: str
-    summary: str
-    theirs: str
-    short: str
-    short_share: str
-    mood: str = 'content'
-    with_cast: int = 0
-
-
-@dataclass(frozen=True)
-class Beat:
-    text: str
-    share: str
-    tone: str = 'mixed'
-    spent: Spent | None = None
-
-
-@dataclass(frozen=True)
-class Story:
-    key: str
-    level: int
-    cast: str
-    stages: tuple[tuple[Beat, ...], ...]
-    gap: tuple[int, int] = (2, 6)
-    own: bool = False  # Started by its own module, never by the drama roll, and outside its caps.
-
-
-def beat(text, share, tone='mixed', spent=None):
-    return (Beat(text, share, tone, spent),)
-
-
-def either(*beats):
-    return tuple(Beat(*item) for item in beats)
 
 
 STORIES = (
@@ -212,6 +174,9 @@ STORIES = (
 )
 
 
+# The rest of the bank, past a hundred stories in all (companion/life/storyline_bank.py, v1.5.0).
+STORIES += MORE
+
 # Births and growing families (companion/life/families.py) writes these beats out in full, with the baby's name, the
 # day each storyline starts; the stages here only stand for them.
 STORIES += tuple(Story(key, 0, 'family', (beat('{name} heard some family news from {a}.', 'family news from {a}!', 'good'),),
@@ -238,7 +203,7 @@ EFFECTS = {
     ('parent_health', 0, 0): ('health_scare', 'a'), ('parent_health', 1, 0): ('results_fine', 'a'),
     ('parent_health', 1, 1): ('treatment', 'a'),
     ('drunk_kiss', 2, 1): ('dating_companion', 'a'),
-}
+} | MORE_EFFECTS
 
 
 def find_story(key) -> Story:
@@ -275,6 +240,8 @@ def casts(story: Story, people: list[dict], definition: dict, known: casting.Fac
     known = known or casting.Facts(people=people)
     if story.cast == 'work':
         return [()] if circle.work_blocks(definition) and known.companion_employed else []
+    if story.cast == 'self':  # The companion's own days outside work: true for anyone.
+        return [()]
     if story.cast == 'best friend, single' and (definition.get('relationship') == 'romance' or
                                                  any(person['role'] in PARTNERS for person in people)):
         return []
@@ -635,7 +602,7 @@ def end_removed(connection, timeline_id, today: date, now):
 
 
 # The chat context speaks to the companion: a template's third person becomes "you" before it is filled.
-SECOND_PERSON = (("{name}'s", 'your'), ('{name} is ', 'you are '), ('{name} has ', 'you have '), ('{name} keeps ', 'you keep '),
+SECOND_PERSON = (("{name}'s", 'your'), ('{name} is ', 'you are '), ('{name} was ', 'you were '), ('{name} has ', 'you have '), ('{name} keeps ', 'you keep '),
                  ('but has not', 'but have not'), ('{name} heard they are', 'you heard you are'),
                  ('hitting on them', 'hitting on you'), ('to their manager', 'to your manager'),
                  ('their best friend', 'your best friend'), ('they never knew', 'you never knew'), ('{name}', 'you'))
@@ -895,8 +862,8 @@ def upcoming_odds(connection, companion, now) -> list[dict]:
             if not stage.get('pending'):
                 continue
             options = consequences.odds(stage['pending'], facts(connection, companion, row, now), names)
-            for item, beat in zip(options, story.stages[index], strict=True):
-                item['label'] = fill(beat.text, row, names_by_id(connection, row), definition)
+            for item, way in zip(options, story.stages[index], strict=True):
+                item['label'] = fill(way.text, row, names_by_id(connection, row), definition)
             found.append({'label': consequences.tables()[stage['pending']]['label'].format(**names), 'on': stage['on'],
                           'options': options})
     return found

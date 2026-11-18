@@ -464,6 +464,7 @@ TRIP_REASONS = {
     'too-far': ("{place} is too far to get to and back in the time you could take off", 'somewhere closer'),
     'no-time': ("you have no time off coming up for a trip that long", 'a long weekend somewhere closer'),
     'weekends': ("you have no free weekend for it in the next few months", 'another time'),
+    'that-day': ("the day they named doesn't work for you for a trip away", 'another weekend'),
     'money': ("you can't afford {place} any time soon; you pay your own way", 'somewhere cheaper'),
     'elsewhere': ("{place} is out of reach: there is no way to get there from your world", 'somewhere you can go'),
     'aboard': ("{place} is out of reach: you live aboard ship, and the ship goes nowhere near it",
