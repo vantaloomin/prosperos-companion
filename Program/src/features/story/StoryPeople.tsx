@@ -56,7 +56,7 @@ interface BecomeProps { person: StoryPerson; canSwitch: boolean; go: (view: View
 function Become({ person, canSwitch, go, starting }: BecomeProps) {
   if (person.companion_id) return null
   if (person.matched) return (<>
-    <button type="button" className="text-button" disabled={starting.busy !== null} onClick={() => void starting.startWith(person.key)}>
+    <button type="button" className="button primary" disabled={starting.busy !== null} onClick={() => void starting.startWith(person.key)}>
       {starting.busy === person.key ? 'Starting…' : `Start talking to ${first(person)}`}</button>
     <button type="button" className="text-button" onClick={() => go(`match/${encodeURIComponent(person.key)}`)}>Read their profile first</button>
   </>)

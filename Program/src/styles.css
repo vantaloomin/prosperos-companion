@@ -221,7 +221,7 @@ a.button { color: inherit; text-decoration: none; }
 .story-people summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); }
 .story-people ul { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: var(--card-gap); max-height: 40dvh; overflow-y: auto; }
 .story-people li { display: flex; flex-direction: column; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 10px; }
-.story-people .form-actions { gap: 14px; }
+.story-people .form-actions { flex-wrap: wrap; gap: 8px 14px; }
 .story-note { font-family: var(--read-font); font-size: 0.875rem; color: var(--muted); font-style: italic; }
 .story-opening { max-width: 760px; width: 100%; margin: 0 auto; padding: 20px 32px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .story-notice, .story-footer { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }

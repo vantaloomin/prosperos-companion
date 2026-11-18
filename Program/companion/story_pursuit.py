@@ -55,9 +55,9 @@ LINES = {
     'yes': '{first} said yes.',
     'already': '',
     'not_yet': "{first} didn't say yes this time.",
-    'taken': '{first} turned you down.',
-    'not_drawn': '{first} turned you down.',
-    'age': '{first} turned you down.',
+    'taken': '{first} said no.',
+    'not_drawn': '{first} said no.',
+    'age': '{first} said no.',
     'never': '',
 }
 STATUS_TEXT = {'seeing someone': 'seeing someone', 'married': 'married'}
@@ -157,7 +157,7 @@ def settle(connection, add, found: dict | None, user: dict, city_id: str, now: s
             'VALUES (?, ?, ?, 1, 1, ?, ?) ON CONFLICT(person_key) DO UPDATE SET liked=1, matched=1, '
             'town=excluded.town, created_at=excluded.created_at, source=excluded.source',
             (sheet['key'], city_id, found['town'], now, SOURCE))
-        story_people.meet(connection, sheet, city_id, now, day, ('Said yes when you asked them out.',))
+        story_people.meet(connection, sheet, city_id, now, day)  # They are someone the user has met.
     if found['line']:
         add(connection, now, 'cast', found['line'], user, reply_to=user['id'])
 

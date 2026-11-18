@@ -130,7 +130,7 @@ def test_a_no_is_told_by_the_narrator_and_leaves_no_match(client, clock, provide
     told = say(client, provider, f"{sheet['name']}, would you go out with me?", 'story-0001', 'A kind shake of the head.')
     note = provider.requests[-1]['messages'][-1]['content']
     assert f"{sheet['full']} does not say yes" in note and 'agrees to nothing' in note
-    assert told['replies'][-1]['text'] == f"{sheet['name']} turned you down."
+    assert told['replies'][-1]['text'] == f"{sheet['name']} said no."
     assert ok(client.get('/api/dating'))['matches'] == []
     # Stepping out of the story asks nobody anything.
     say(client, provider, f"OOC: could I ask {sheet['name']} out?", 'story-0002')

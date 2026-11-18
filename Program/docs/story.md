@@ -137,7 +137,7 @@ rules answer, the same ones the dating app reads (`companion/world/dating.py`). 
   narrator's answer matched the person's rules in 24 of 85 replies; with the line, in 85 of 89, and it never went
   the other way.
 - **In the story:** once the narrator has told it, a line says how it went ("Dana said yes.", "Dana didn't say yes
-  this time.", "Dana turned you down."). From then on the narrator knows who has said yes.
+  this time.", "Dana said no."). From then on the narrator knows who has said yes.
 - **A yes is a match**, kept where the dating app keeps its own (`dating_swipes` with `source` 'story'), so it
   uses the same path: the people list shows "said yes" with **Start talking to Dana** and "Read their profile
   first" (`#match/<key>`), and Matchlight lists them under Your matches as "Met in your story", with Meet in your
