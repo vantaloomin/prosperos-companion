@@ -1272,8 +1272,9 @@ CREATE TABLE IF NOT EXISTS companion_plans (
 );
 CREATE INDEX IF NOT EXISTS companion_plans_message ON companion_plans(message_id);
 
--- Story mode (companion/story.py): the user's own free-form story with a narrator, apart from every
--- companion. One scene (where the user is) and its history; no companion prompt ever reads them.
+-- Story mode (companion/story.py): the user's own free-form story with a narrator. One scene (where the user is)
+-- and its history. A companion who is in the scene speaks in their own lines (role 'companion', with `speaker` and
+-- `name`, companion/story_cast.py); a 'cast' line says they came or went. Nothing else of a companion's reads them.
 CREATE TABLE IF NOT EXISTS story_scene (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   city_id TEXT NOT NULL,
@@ -1284,7 +1285,7 @@ CREATE TABLE IF NOT EXISTS story_scene (
 CREATE TABLE IF NOT EXISTS story_messages (
   id TEXT PRIMARY KEY,
   seq INTEGER NOT NULL UNIQUE,
-  role TEXT NOT NULL CHECK (role IN ('user', 'narrator', 'scene')),
+  role TEXT NOT NULL CHECK (role IN ('user', 'narrator', 'scene', 'companion', 'cast')),
   text TEXT NOT NULL,
   client_id TEXT UNIQUE,
   reply_to TEXT,
@@ -3061,4 +3062,12 @@ CREATE TABLE IF NOT EXISTS added_places (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (city_id, place_id)
+);
+
+-- Companions in the Story's scene right now (companion/story_cast.py): each reads the story from the line they
+-- came in at, never what was said before.
+CREATE TABLE IF NOT EXISTS story_cast (
+  companion_id TEXT PRIMARY KEY,
+  since_seq INTEGER NOT NULL,
+  joined_at TEXT NOT NULL
 );

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aroundText, openingText, personLine, placeGroups, sceneTime } from '../../src/features/story/storyText.ts'
+import { aroundText, companionLine, openingAction, openingText, personLine, placeGroups, sceneTime, writingText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
@@ -43,4 +43,47 @@ test('a person met says how often and where they are now', () => {
 
 test('a story not begun says what it is in one line', () => {
   assert.equal(openingText({ city: { name: 'Grandport' } }), 'Your own story in Grandport, told by a narrator.')
+})
+
+test('a companion in the scene is named first among who is around', () => {
+  assert.equal(aroundText(['Mira']), 'Mira is here.')
+  assert.equal(aroundText(['Mira', 'the barista']), 'Mira and the barista are here.')
+})
+
+test('the first open names the companion and finds them when the story can go to them', () => {
+  const scene = { city: { name: 'Baltimore' } }
+  const mira = { key: 'companion:1', id: '1', name: 'Mira', main: true, here: false, doing: 'at work here', city: 'Baltimore',
+    place: { id: 'club-charles', name: 'Club Charles', city_id: 'baltimore' } }
+  assert.equal(openingText(scene), 'Your own story in Baltimore, told by a narrator.')
+  assert.deepEqual(openingAction(), { label: 'Look around', line: 'I look around.', find: null })
+  assert.equal(openingText(scene, mira), 'Play out a scene with Mira, anywhere in Baltimore.')
+  assert.deepEqual(openingAction(mira), { label: 'Find Mira', line: 'I look around for Mira.', find: 'companion:1' })
+  // Already where the story is: nowhere to go first.
+  assert.deepEqual(openingAction({ ...mira, here: true }), { label: 'Find Mira', line: 'I look around for Mira.', find: null })
+  // At home or asleep: the story is still there to play, and the line says why they are not in it.
+  const home = { ...mira, place: null, doing: '' }
+  assert.equal(openingText(scene, home), "Play out a scene anywhere in Baltimore. Mira isn't out right now.")
+  assert.deepEqual(openingAction(home), { label: 'Look around', line: 'I look around.', find: null })
+})
+
+test('a companion in the people list says where they are now', () => {
+  const mira = { key: 'companion:1', id: '1', name: 'Mira', main: true, here: false, doing: '', city: 'Baltimore',
+    place: { id: 'club-charles', name: 'Club Charles', city_id: 'baltimore' } }
+  assert.equal(companionLine({ ...mira, here: true }, 'Baltimore'), 'Here with you')
+  assert.equal(companionLine(mira, 'Baltimore'), 'Now at Club Charles')
+  assert.equal(companionLine(mira, 'New York'), 'Now at Club Charles, Baltimore')
+  assert.equal(companionLine({ ...mira, place: null }, 'Baltimore'), 'Not out right now')
+})
+
+test('while a line waits, the narrator writes first and then each companion in the scene answers', () => {
+  const row = (id: string, role: 'user' | 'narrator' | 'companion', extra: object = {}) => ({ id, seq: 1, role, text: '', reply_to: null,
+    status: 'complete' as const, error: null, city_id: 'b', place_id: 'p', created_at: '', client_id: null, speaker: null, name: null, ...extra })
+  const cast = [{ id: '1', name: 'Mira' }]
+  assert.equal(writingText([], 'c1', cast), 'The narrator is writing…')
+  const sent = row('u1', 'user', { client_id: 'c1' })
+  assert.equal(writingText([sent], 'c1', cast), 'The narrator is writing…')
+  const told = row('n1', 'narrator', { reply_to: 'u1' })
+  assert.equal(writingText([sent, told], 'c1', cast), 'Mira is answering…')
+  assert.equal(writingText([sent, told], 'c1', []), 'The narrator is writing…')
+  assert.equal(writingText([sent, told, row('m1', 'companion', { reply_to: 'u1', speaker: '1', name: 'Mira' })], 'c1', cast), 'The narrator is writing…')
 })
