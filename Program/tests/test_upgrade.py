@@ -205,3 +205,30 @@ def test_a_widened_table_keeps_the_columns_added_to_it_since(tmp_path):
         connection.execute("INSERT INTO circle_children (id, timeline_id, parent_id, storyline_id, name, pronouns, "
                            "title, born_on, status, created_at, updated_at, whose) VALUES ('c2', 't1', 'p1', 's2', "
                            "'Ivy', 'she/her', 'ours', '2027-01-01', 'born', 'x', 'x', 'companion')")
+
+
+def test_a_story_from_before_companions_were_in_it_keeps_its_lines(tmp_path):
+    """A 1.4 workspace: story_messages with the roles of then and no `speaker` or `name`. The story so far stays,
+    and a companion's own line can be saved (companion/story_cast.py)."""
+    path = tmp_path / 'companion.sqlite3'
+    older_workspace(path)
+    connection = sqlite3.connect(path)
+    connection.execute('DROP TABLE story_messages')
+    connection.execute(
+        "CREATE TABLE story_messages (id TEXT PRIMARY KEY, seq INTEGER NOT NULL UNIQUE, role TEXT NOT NULL CHECK "
+        "(role IN ('user', 'narrator', 'scene')), text TEXT NOT NULL, client_id TEXT UNIQUE, reply_to TEXT, status "
+        "TEXT NOT NULL DEFAULT 'complete' CHECK (status IN ('complete', 'failed')), error TEXT, city_id TEXT NOT NULL, "
+        'place_id TEXT NOT NULL, created_at TEXT NOT NULL)')
+    connection.execute("INSERT INTO story_messages (id, seq, role, text, city_id, place_id, created_at) VALUES "
+                       "('m1', 1, 'user', 'I look around.', 'baltimore', 'cafe', 'x')")
+    connection.commit()
+    connection.close()
+
+    database = Database(path)
+
+    with database.connect(write=True) as connection:
+        connection.execute("INSERT INTO story_messages (id, seq, role, text, city_id, place_id, created_at, speaker, "
+                           "name) VALUES ('m2', 2, 'companion', '\"You came.\"', 'baltimore', 'cafe', 'x', 'k1', 'Mira')")
+        rows = connection.execute('SELECT role, text, name FROM story_messages ORDER BY seq').fetchall()
+        assert [tuple(row) for row in rows] == [('user', 'I look around.', None), ('companion', '"You came."', 'Mira')]
+        assert connection.execute('SELECT COUNT(*) FROM story_cast').fetchone()[0] == 0

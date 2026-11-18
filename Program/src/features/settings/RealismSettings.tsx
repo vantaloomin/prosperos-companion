@@ -7,7 +7,7 @@ import { CHATS_KEY } from '../chats/useChats'
 import { CLOSENESS_KEY } from '../memories/closenessText'
 import { ClosenessRows } from '../memories/Closeness'
 import { firstName } from '../watch/watchText'
-import { DRAMA_LEVELS } from '../today/storyText'
+import { DRAMA_LEVELS, SHARED_STORY_LEVELS } from '../today/storyText'
 import { LOOKS_LEVELS } from '../character/looksLatelyText'
 import { KITCHEN_LEVELS } from '../character/kitchenText'
 import { WORK_LEVELS } from '../character/workText'
@@ -88,6 +88,8 @@ export function PaceSettings({ name }: { name: string }) {
       <div className="row-list">
         <SliderRow label={`Drama in ${world ?? 'this world'}`} levels={DRAMA_LEVELS} fallback={1} value={data.drama} onChange={(drama) => void save({ drama })}
           tip={`Only this world. Each of your worlds keeps its own drama level.${alone}`} />
+        <SliderRow label="Things that involve you" levels={SHARED_STORY_LEVELS} value={data.shared_storylines} onChange={(shared_storylines) => void save({ shared_storylines })}
+          tip="Nothing waits for you: ignore one and it carries on without you. How big they get follows the drama level. End any of them on Today." />
         {/* About you and them, so with Their life, after "Things that involve you" (Iris). */}
         <SwitchRow label="Story scenes count" checked={data.story_counts} onChange={(value) => void save({ story_counts: value })}
           tip="Time with them in Story is part of your life together: they remember it, it counts toward closeness, and steps you take there are real. Off: Story stays apart." />
