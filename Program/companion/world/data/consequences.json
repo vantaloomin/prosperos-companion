@@ -4659,6 +4659,518 @@
           ]
         }
       ]
+    },
+    "shared:took_advice": {
+      "label": "Whether {name} goes with what you said",
+      "options": [
+        {
+          "label": "{name} goes with what you said",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close, and {name} trusts your read"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is easygoing about taking a suggestion"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 0.7,
+              "why": "{name} is stubborn about doing things one way"
+            }
+          ]
+        },
+        {
+          "label": "{name} goes another way",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} is stubborn about doing things one way"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.3,
+              "why": "{name} decides fast and alone"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level is high"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:went_for_it": {
+      "label": "Whether {name} goes for it after talking it over with you",
+      "options": [
+        {
+          "label": "{name} goes for it",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "you two are close, and your word gives {name} a push"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.4,
+              "why": "{name} is driven"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name} is restless and likes a leap"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} holds off",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} is shy about putting it to the test"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.3,
+              "why": "{name} likes things settled"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.2,
+              "why": "money has been tight for {name}"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:kept_at_it": {
+      "label": "Whether {name} keeps at it",
+      "options": [
+        {
+          "label": "{name} keeps at it",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "you two are close, and {name} did not want to tell you it had slipped"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} is driven"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} eases off",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.6,
+              "why": "{name} drifts when nobody is checking"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name} is restless and on to the next thing"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "money has been tight for {name}"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:a_comes_round": {
+      "label": "Whether {a} comes round",
+      "options": [
+        {
+          "label": "{a} comes round",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "{name} and {a} are close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is quick to smooth things over"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.2,
+              "why": "you two are close, and {name} speaks well of you"
+            }
+          ]
+        },
+        {
+          "label": "{a} stays put out",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.4,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} is too proud to make the first move"
+            },
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 1.3,
+              "why": "{name} and {a} are not that close"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:came_off": {
+      "label": "Whether it comes off",
+      "options": [
+        {
+          "label": "It comes off",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name} had put the work in"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "you two are close, and having you in on it steadied {name}"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "It falls a little flat",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.4,
+              "why": "{name} left it late"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.3,
+              "why": "{name} is shy with eyes on"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level is high"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:how_taken": {
+      "label": "How {name} takes it",
+      "options": [
+        {
+          "label": "{name} takes it easily",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close, and {name} feels sure of you"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is easygoing"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "It stays with {name}",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} does not let things go easily"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "closeness",
+              "at_most": 2,
+              "times": 1.3,
+              "why": "you two are still finding your feet"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:told_them": {
+      "label": "Whether {name} says something",
+      "options": [
+        {
+          "label": "{name} says something",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.6,
+              "why": "{name} says things straight"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "you two are close, and talking to you settled it"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.2,
+              "why": "the drama level is high"
+            }
+          ]
+        },
+        {
+          "label": "{name} lets it lie",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name} avoids an awkward exchange"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} would sooner keep the peace"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:money_call": {
+      "label": "Whether {name} spends or saves",
+      "options": [
+        {
+          "label": "{name} keeps the money",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "you two are close, and {name} listened"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.4,
+              "why": "{name} is driven about a goal"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money has been tight for {name}"
+            }
+          ]
+        },
+        {
+          "label": "{name} spends it",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.4,
+              "why": "{name} is restless and acts on a whim"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "{name} has been low lately and wanted a treat"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.2,
+              "why": "{name} loses track of a plan"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:found_it": {
+      "label": "Whether it turns up",
+      "options": [
+        {
+          "label": "It turns up",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.2,
+              "why": "you two are close, and {name} went over the day with you carefully"
+            }
+          ]
+        },
+        {
+          "label": "It is gone",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.3,
+              "why": "{name} loses track of things"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:work_call": {
+      "label": "Whether {name} speaks up at work",
+      "options": [
+        {
+          "label": "{name} speaks up",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.6,
+              "why": "{name} says things straight"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name} is driven and wants the credit"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "you two are close, and talking to you gave {name} the nerve"
+            }
+          ]
+        },
+        {
+          "label": "{name} lets it go",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name} avoids a confrontation"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} lets a slight pass"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.2,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
     }
   }
 }

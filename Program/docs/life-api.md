@@ -668,7 +668,9 @@ followed it. A plan still ahead holds the next beat until the day after it.
 
 One runs at a time, never two beats on one day, nothing above the world's drama level, and a story fits only where
 it can be true (the relationship, how long the two have talked, the city's era, a plan in person only in the same
-city, a cast who has or has not met the user). The Life setting `shared_storylines` (0 off, 1 now and then, 2 true
+city, a visit to the companion's home only while the two live apart, a cast who has or has not met the user). The
+bank holds 110 stories in seven families: their people, favors, their work, around town, a third person (dramatic
+worlds only), growing closer and their goal. The Life setting `shared_storylines` (0 off, 1 now and then, 2 true
 to life, 3 often; default 2) sets the daily chance one starts (0, 10%, 35%, 60%), the rest after the last one (7, 2,
 1 days) and the quiet-spell floor: after 21, 6 or 3 days with none, one starts. Nothing starts before the two have
 talked for two days, while the user has not written for three, while one is under way, on a break, in a big rough
