@@ -1,5 +1,5 @@
 {
-  "about": "Storylines the user is part of (companion/life/shared_storylines.py, v1.5.0). Each story has a `family` (their people, favors, their work, around town, a third person, growing closer, their goal), the lowest drama `level` it can start at (0 quiet to 3 soap opera), an optional `cast` (who else is in it: friend, family, work for a story about the companion's job with nobody named, or a cast from companion/life/casting.py such as parent, cousin, coworker or close friend), and `beats` by id; the first listed opens it. Fit rules: `relationships` (the companion's relationship to the user), `met` (new: the cast has not met the user; known: they have), `days_known` ([least, most] days since the two first talked), `modern` (true: names things only today's cities have), `apart` (true: only while the two do not live together: a visit, a favor at the companion's home). A beat reaches the user `via` a first text (`text`) or an invitation that books a plan on Today (`plan`: {activity, with: 'a' for the cast, lead: [least, most] days ahead}). `text` is the beat as the screens and the companion's context tell it ({name} the companion, {a} the cast, {user}/{User}/{user_s} the user, {a_them}/{a_their}); `share` is the companion's own first text, with {day}, {time} and {place} for a plan; leave it empty for a beat that needs no text. `then` says what follows from what the user did, by what the app can detect for sure: for a text `answered`, `said_yes`, `said_no`, `dropped_by` or `passed` (they let it go by); for a plan `went`, `called_off` or `passed` (the invitation never went out); `any` covers the rest. Each is a beat id; or {choice, beats}, where the consequence engine picks among the beats by the odds table `choice` in consequences.json (options in the same order); or {impression: {warm, smitten, curious, protective, wary, any}}, the beat by what the cast made of the user when they met (companion/life/their_people.py). No beat waits: with no entry for what happened, the storyline is over. `gap` is the days to the next beat ([least, most], default [1, 3]). A plan `with` the cast is a meet-up, always drinks with a friend and dinner at a relative's (whatever `activity` says), so the words must say so: once it is over they have met the user, with a first impression. `effect` on a beat: warmer or cooler (the cast's opinion of the user moves a step, once they have met).",
+  "about": "Storylines the user is part of (companion/life/shared_storylines.py, v1.5.0). Each story has a `family` (their people, favors, their work, around town, a third person, growing closer, their goal), the lowest drama `level` it can start at (0 quiet to 3 soap opera), an optional `cast` (who else is in it: friend, family, work for a story about the companion's job with nobody named, or a cast from companion/life/casting.py such as parent, cousin, coworker or close friend), and `beats` by id; the first listed opens it. Fit rules: `relationships` (the companion's relationship to the user), `met` (new: the cast has not met the user; known: they have), `days_known` ([least, most] days since the two first talked), `modern` (true: names things only today's cities have), `apart` (true: only while the two do not live together: a visit, a favor at the companion's home). A beat reaches the user `via` a first text (`text`) or an invitation that books a plan on Today (`plan`: {activity, with: 'a' for the cast, lead: [least, most] days ahead}). `text` is the beat as the screens and the companion's context tell it ({name} the companion, {a} the cast, {user}/{User}/{user_s} the user, {a_them}/{a_their}); `share` is the companion's own first text, with {day}, {time} and {place} for a plan; leave it empty for a beat that needs no text. `then` says what follows from what the user did, by what the app can detect for sure: for a text `answered`, `said_yes`, `said_no`, `dropped_by` or `passed` (they let it go by); for a plan `went`, `called_off` or `passed` (the invitation never went out); `any` covers the rest. Each is a beat id; or {choice, beats}, where the consequence engine picks among the beats by the odds table `choice` in consequences.json (options in the same order); or {impression: {warm, smitten, curious, protective, wary, any}}, the beat by what the cast made of the user when they met (companion/life/their_people.py). No beat waits: with no entry for what happened, the storyline is over. `gap` is the days to the next beat ([least, most], default [1, 3]). A plan `with` the cast is a meet-up, always drinks with a friend and dinner at a relative's (whatever `activity` says), so the words must say so: once it is over they have met the user, with a first impression. `kept` on a beat that follows a plan the user did not come to (called off, or never asked): the companion kept the plan without them, and this line, in the past tense with {name} and {a} and never the user, is what their day says for that time (shared_storylines.as_plans); leave it out when they stayed in or dropped the plan. `effect` on a beat: warmer or cooler (the cast's opinion of the user moves a step, once they have met).",
   "stories": [
     {
       "key": "curious_friend",
@@ -36,6 +36,7 @@
         },
         "alone": {
           "via": "text",
+          "kept": "{name} went for drinks with {a}.",
           "text": "{name} went for drinks with {a} without {user} and got teased about the mystery person all evening.",
           "share": "went without you and got teased ALL night. {a} says you owe {a_them} a drink now"
         }
@@ -64,6 +65,7 @@
         },
         "asked_after": {
           "via": "text",
+          "kept": "{name} went out for drinks with {a}.",
           "text": "{name} went out with {a} without {user}, and {a} asked after {user}.",
           "share": "{a} asked where you were. I said next time. so there has to be a next time"
         }
@@ -147,6 +149,7 @@
         },
         "saved": {
           "via": "text",
+          "kept": "{name} went to try the new place for coffee.",
           "text": "{name} went to the new place without {user} and saved it to show {user} another time.",
           "share": "went on my own in the end. still want to take you sometime"
         }
@@ -299,11 +302,13 @@
         },
         "plate_saved": {
           "via": "text",
+          "kept": "{name} went to dinner at {a}'s.",
           "text": "{User} could not make dinner at {a}'s, and {a} sent a plate home with {name} for {user}.",
           "share": "{a} sent a plate home with me. it's yours if you come get it before I eat it"
         },
         "asked_where": {
           "via": "text",
+          "kept": "{name} went to dinner at {a}'s.",
           "text": "{name} went to dinner at {a}'s without {user}, and {a} asked where {user} had got to.",
           "share": "{a} asked where you were. I said next time"
         }
@@ -332,6 +337,7 @@
         },
         "missed_it": {
           "via": "text",
+          "kept": "{name} went to {a}'s birthday drinks.",
           "text": "{name} went to {a}'s birthday drinks without {user} and raised a glass for {user} anyway.",
           "share": "raised a glass for you at {a}'s birthday. you were missed"
         }
@@ -365,6 +371,7 @@
         },
         "short_handed": {
           "via": "text",
+          "kept": "{name} played quiz night with {a}, one short.",
           "text": "{name} and {a} played quiz night one short and came nowhere.",
           "share": "we came second to last. {a} blames the empty chair. so, you"
         }
@@ -726,6 +733,7 @@
         },
         "heard_all": {
           "via": "text",
+          "kept": "{name} went on the night out with {a} and the friends.",
           "text": "{name} went out with the friends without {user}, and {a} retold the whole evening the next day.",
           "share": "you missed a good one. {a} can give you the full retelling, it takes about an hour"
         }
@@ -900,6 +908,7 @@
         },
         "struggled": {
           "via": "text",
+          "kept": "{name} went to the shops and carried the bulky thing home alone.",
           "text": "{name} got it home alone, stopping to rest at every corner.",
           "share": "got it home by myself. stopped at every corner. a stranger offered to help and I said no out of pride"
         }
@@ -1133,6 +1142,7 @@
         },
         "undecided": {
           "via": "text",
+          "kept": "{name} went to the shops alone to look and bought nothing.",
           "text": "{name} went to look alone, could not choose, and came home with nothing.",
           "share": "went alone, tried on nine, bought none. I need supervision"
         }
@@ -1158,6 +1168,7 @@
         },
         "dragged": {
           "via": "text",
+          "kept": "{name} ran the dull errand across town alone.",
           "text": "{name} ran the errand alone, and it dragged.",
           "share": "errand done. it took forever and I had nobody to complain to"
         }
@@ -1323,6 +1334,7 @@
         },
         "small_talk": {
           "via": "text",
+          "kept": "{name} went to the work drinks alone.",
           "text": "{name} went to the work drinks alone and made small talk for two hours.",
           "share": "two hours of small talk. I talked about the weather four separate times"
         }
@@ -1548,6 +1560,7 @@
         },
         "long_way": {
           "via": "text",
+          "kept": "{name} walked home from work the long way, alone.",
           "text": "{name} took the long way home after work alone.",
           "share": "took the long way home. it's not the same without someone to complain to"
         }
@@ -1599,6 +1612,7 @@
         },
         "empty_seat": {
           "via": "text",
+          "kept": "{name} went to the show alone.",
           "text": "{name} went to the show with an empty seat alongside.",
           "share": "went on my own. good show. the seat next to me had my coat on it, very poor company"
         }
@@ -1624,6 +1638,7 @@
         },
         "one_bag": {
           "via": "text",
+          "kept": "{name} went round the market alone.",
           "text": "{name} went round the market alone and showed restraint.",
           "share": "did the market alone. bought one sensible thing. it was no fun at all"
         }
@@ -1649,6 +1664,7 @@
         },
         "audio_guide": {
           "via": "text",
+          "kept": "{name} went to see the new exhibit alone.",
           "text": "{name} went to see it alone and had nobody to disagree with.",
           "share": "saw it on my own. nobody to argue with about the best one. I won by default, which doesn't count"
         }
@@ -1674,6 +1690,7 @@
         },
         "short_loop": {
           "via": "text",
+          "kept": "{name} went for a short walk alone.",
           "text": "{name} did a short loop alone and turned back early.",
           "share": "did a short walk on my own. it's a talking walk really, that one. needs two"
         }
@@ -1730,6 +1747,7 @@
         },
         "for_one": {
           "via": "text",
+          "kept": "{name} had coffee at the usual place alone.",
           "text": "{name} had the coffee alone and people-watched.",
           "share": "had my coffee alone and judged strangers' shoes. you'd have enjoyed it"
         }
@@ -1755,6 +1773,7 @@
         },
         "peeked": {
           "via": "text",
+          "kept": "{name} had a quick look round the stalls alone.",
           "text": "{name} had a quick look round the stalls alone on the way past.",
           "share": "walked through the stalls on my way home. not the same alone. I didn't even get food on a stick"
         }
@@ -2258,6 +2277,7 @@
         },
         "went_alone": {
           "via": "text",
+          "kept": "{name} went to {a}'s drinks alone and left early.",
           "text": "{name} went to {a}'s drinks alone, said hello to the ex, and left early.",
           "share": "went on my own. said one hello to the ex, stayed an hour, came home. fine. dull, even"
         }

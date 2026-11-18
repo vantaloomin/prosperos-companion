@@ -58,6 +58,9 @@ PENDING = 'shared'
 SETTLES = ('shared_plan',)
 # A plan with someone from their circle is a meet-up (companion/life/their_people.py), by who they are.
 WITH = {'friends': their_people.OUT_WITH_FRIENDS, 'family': their_people.AT_FAMILY}
+# What a kept plan with one of them is in the companion's day (`as_plans`), and the places an entry does not name.
+WITH_ACTIVITY = {'friends': 'drinks', 'family': 'dinner'}
+HOMES = ('home', 'your-home', 'family-home')
 DROPPED_IN = ('in', 'work')
 WARMER, COOLER = 'a good time together', 'you did not come'
 
@@ -594,6 +597,62 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
         stages[-1]['on'] = max(stages[-1]['on'], (day + timedelta(days=1)).isoformat())
     save(connection, row, stages)
     return outings.get(connection, outing['id'])
+
+
+# The plan they kept without the user (companion/life/agenda.py) ---------------------------------------------------
+
+def kept_beat(story: dict, found: dict, outing: dict | None, today: str) -> str | None:
+    """The beat in which the companion keeps a plan the user is not coming to (the bank's `kept`), as soon as that is
+    sure: the plan was called off, or its day has come and the invitation never went out. None for any other."""
+    response = found.get('response')
+    if not response and outing:
+        response = 'called_off' if outing['status'] == 'cancelled' else None
+    elif not response:
+        response = 'passed' if found['plan_on'] <= today else None
+    then = story['beats'][found['beat']].get('then') or {}
+    after = then.get(response, then.get('any')) if response and response != 'went' else None
+    return after if isinstance(after, str) and story['beats'][after].get('kept') else None
+
+
+def as_plans(connection, companion: dict, since: str, now: datetime) -> dict[str, list[dict]]:
+    """The plans the companion keeps without the user, by local date in the shape own_plans.assign takes. The beat
+    that says so ("went for drinks with Nancy without you") comes the morning after; until v1.5.0 nothing held the
+    evening itself, so their day showed a night in and the chat said so (A/B of 2026-11-18: 3 to 10 of 30 replies).
+    It takes the time the plan was booked for, or the activity's usual time when the invitation never went out."""
+    today, result = local(companion, now).date().isoformat(), {}
+    for row in rows(connection, companion['active_timeline_id'], running=True):
+        story = bank().get(key_of(row))
+        for index, found in enumerate(decode(row['stages']) if story else []):
+            beat = story['beats'].get(found.get('beat')) or {}
+            if beat.get('via') != 'plan' or found.get('plan_on', '') < since:
+                continue
+            outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (found.get('outing') or '',))
+            after = kept_beat(story, found, outing, today)
+            if after is None:
+                continue
+            shown = outings.view(outing) if outing else None
+            person = person_of(connection, companion, row) if beat['plan'].get('with') else None
+            activity = WITH_ACTIVITY[person['group']] if person else beat['plan']['activity']
+            result.setdefault(found['plan_on'], []).append({
+                'id': f"shared:{row['id']}:{index}:{after}",
+                'at_time': shown['at_time'] if shown else outings.ACTIVITIES[activity][2],
+                'kept': {'id': row['id'], 'beat': index, 'activity': activity, 'place': shown and shown['place'],
+                         'with': person and {'id': person['id'], 'name': person['name']},
+                         'summary': storylines.fill(story['beats'][after]['kept'], row, storylines.names_by_id(
+                             connection, {'timeline_id': row['timeline_id']}), companion['version']['definition'])}})
+    return result
+
+
+def entry(plan: dict, block: dict, definition: dict) -> dict:
+    """The agenda entry for the slot a kept plan takes: the companion there, without the user. With someone from
+    their circle it names them, so that person's day holds the same evening (companion/life/joint.py). No post of
+    its own: the first text about it comes the morning after."""
+    kept = plan['kept']
+    place = kept['place'] if kept['place'] and kept['place'].get('kind') not in HOMES else None
+    return {'summary': kept['summary'], 'post': None, 'mood': 'content', 'activity': kept['activity'],
+            'place': place and {key: place.get(key) for key in ('id', 'name', 'kind', 'city', 'neighborhood')},
+            'with': kept['with'], 'weather': block.get('weather'),
+            'storyline': {'id': kept['id'], 'beat': kept['beat']}, 'composer_version': 'shared-kept-1'}
 
 
 # The chat context (companion/memory/context.py) -------------------------------------------------------------------
