@@ -214,6 +214,8 @@ a.button { color: inherit; text-decoration: none; }
 .story-said p { white-space: pre-wrap; margin-bottom: 1em; }
 .story-said p:last-child { margin-bottom: 0; }
 .story-said .story-speaker { font-family: var(--ui-font); font-size: 0.8125rem; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
+/* Their name in their own colour, as in their chats (Their look); the rule stays the app's accent. */
+.story-said.their-name .story-speaker { color: var(--their-name); }
 .story-user { margin: 0 0 20px auto; max-width: 85%; padding: 10px 14px; border-radius: 12px; background: var(--accent-tint); white-space: pre-wrap; overflow-wrap: anywhere; width: fit-content; }
 .story-move { margin-bottom: 20px; text-align: center; font-size: 0.8125rem; color: var(--muted); font-style: italic; }
 .story-people summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); }
@@ -326,6 +328,10 @@ a.button { color: inherit; text-decoration: none; }
   .composer { padding: 10px 12px 12px; }
   .conversation-notice { padding: 0 12px 8px; }
   .story-header, .story-log, .story-opening, .story-notice, .story-footer { padding-left: 16px; padding-right: 16px; }
+  /* Once the story is scrolled down, the header folds to the place and the people count; at the top it is whole again. */
+  .story-header-folded { padding-top: 10px; padding-bottom: 8px; }
+  .story-header-folded h1, .story-header-folded .story-scene > p:not(:first-child), .story-header-folded .story-scene > .form-actions:not(.story-go),
+  .story-header-folded .story-people > :not(summary) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) *, :root:not([data-motion='full']) *::before, :root:not([data-motion='full']) *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 :root[data-motion='reduce'] *, :root[data-motion='reduce'] *::before, :root[data-motion='reduce'] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
