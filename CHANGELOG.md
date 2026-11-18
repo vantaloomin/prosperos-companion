@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Finished work stays finished:** when your companion told you their project at work was done ("the register's
+  finally done"), the app kept them on it until its due date, so the next day they were back at it, even on a day
+  off. Now saying it is done ends it: the next project starts the day after, and choosing another version of that
+  reply brings it back. A project you wrote yourself, or gave a due date, stays until you change it.
+
 - **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat
   message. Posts now have a Comment button: your comment goes under the post, and whoever posted answers you there,
   your companion on their own posts and a friend on theirs, once they would have seen it (sooner or later by
