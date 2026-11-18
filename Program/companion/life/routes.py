@@ -749,13 +749,14 @@ def trip_places(request: Request, trip_id: str):
 
 
 @router.post('/trips/{trip_id}/{action}')
-def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo', 'elsewhere', 'home', 'stay'],
-                 body: TripPlace | None = None):
-    """Call off a weekend visit or a trip together that has not started (companion/life/long_distance.py), or undo
-    that; send a trip together somewhere else (the place picked, or one the app picks), or head home from one early
+def change_visit(request: Request, trip_id: str,
+                 action: Literal['cancel', 'remove', 'undo', 'elsewhere', 'home', 'stay'], body: TripPlace | None = None):
+    """Call off a weekend visit or a trip together that has not started, or remove one that was never really planned
+    with no calling off in the story (companion/life/long_distance.py), or undo either; send a trip together somewhere else (the place picked, or one the app picks), or head home from one early
     and undo that (companion/life/away_together.py)."""
     database = db(request)
-    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo, 'elsewhere': away_together.elsewhere,
+    change = {'cancel': long_distance.cancel, 'remove': long_distance.remove, 'undo': long_distance.undo,
+              'elsewhere': away_together.elsewhere,
               'home': away_together.head_home, 'stay': away_together.stay_on}[action]
     if action == 'elsewhere' and body and body.key:
         change = partial(away_together.elsewhere, key=body.key)

@@ -495,7 +495,27 @@ def visits(connection, companion: dict, since: date, now: datetime) -> list[dict
     rows = many(connection, "SELECT * FROM trips WHERE timeline_id=? AND visit!='' AND end_date>=? AND (status='planned' "
                 'OR cancelled_at>?) ORDER BY start_date', (companion['active_timeline_id'], since.isoformat(),
                                                            stamp(now - CALLED_OFF)))
-    return [trips.view(row) for row in rows]
+    return [trips.view(row) for row in rows if not untold(connection, row)]
+
+
+def untold(connection, row: dict) -> bool:
+    """A trip away together the app planned as their own idea (no message of the user's asked for it) whose news has
+    not gone out yet. Until it has, it is not a plan between them: the chat context and Today leave it out, so the
+    companion never covers for a trip the user never heard of ("booked it a while back", tester 2026-11-18)."""
+    return row['visit'] == TOGETHER and not row['message_id'] and not optional(
+        connection, 'SELECT id FROM openers WHERE timeline_id=? AND trigger_key=? AND message_id IS NOT NULL',
+        (row['timeline_id'], f"visit-news:{row['id']}"))
+
+
+def lapse_untold(connection, companion: dict, now: datetime) -> int:
+    """A trip together of their own idea whose news never went out in time (the user was always mid-chat, or first texts are off) quietly
+    lapses: taken off like a removed plan, with no Undo (removed_at is when it was planned) and nothing called off."""
+    rows = many(connection, "SELECT * FROM trips WHERE timeline_id=? AND visit!='' AND status='planned' AND "
+                'message_id IS NULL AND created_at<=?', (companion['active_timeline_id'], stamp(now - NEWS_WITHIN)))
+    lapsed = [row['id'] for row in rows if untold(connection, row)]
+    for trip_id in lapsed:
+        connection.execute("UPDATE trips SET status='cancelled', removed_at=created_at WHERE id=?", (trip_id,))
+    return len(lapsed)
 
 
 def visit_lines(trip: dict, today: date, now: datetime, fresh_ids: set[str]) -> list[tuple[str, str]]:
@@ -690,10 +710,22 @@ def cancel(connection, companion: dict, trip_id: str, now: datetime) -> dict:
     return trips.view(optional(connection, 'SELECT * FROM trips WHERE id=?', (trip_id,)))
 
 
+def remove(connection, companion: dict, trip_id: str, now: datetime) -> dict:
+    """Take a visit or trip together still to come off as never planned: the app got it wrong (tester 2026-11-18, a
+    trip away read from a Monday river day). Unlike calling it off, nobody in the story calls anything off: the chat
+    context never mentions it again (`visits` reads cancelled_at, which stays empty)."""
+    row = owned(connection, companion, trip_id)
+    today = now.astimezone(zone(companion['version']['timezone'])).date().isoformat()
+    require(row['status'] == 'planned' and row['start_date'] > today, 'Only a plan still to come can be removed.', 409)
+    connection.execute("UPDATE trips SET status='cancelled', removed_at=? WHERE id=?", (stamp(now), trip_id))
+    return trips.view(optional(connection, 'SELECT * FROM trips WHERE id=?', (trip_id,)))
+
+
 def undoable(row: dict, today: date, now: datetime) -> bool:
-    """Called off a little while ago, and it has not come yet."""
-    return bool(row.get('visit')) and row['status'] == 'cancelled' and bool(row.get('cancelled_at')) and \
-        now - parse(row['cancelled_at']) < UNDO and row['start_date'] > today.isoformat()
+    """Called off or removed a little while ago, and it has not come yet."""
+    when = row.get('cancelled_at') or row.get('removed_at')
+    return bool(row.get('visit')) and row['status'] == 'cancelled' and bool(when) and \
+        now - parse(when) < UNDO and row['start_date'] > today.isoformat()
 
 
 def undo(connection, companion: dict, trip_id: str, now: datetime) -> dict:
@@ -704,5 +736,5 @@ def undo(connection, companion: dict, trip_id: str, now: datetime) -> dict:
     days = [date.fromisoformat(row['start_date']), date.fromisoformat(row['end_date'])]
     require(not overlaps(connection, companion, days) and not trips.booked(connection, companion, days),
             'Another plan has those days now.', 409)
-    connection.execute("UPDATE trips SET status='planned', cancelled_at=NULL WHERE id=?", (trip_id,))
+    connection.execute("UPDATE trips SET status='planned', cancelled_at=NULL, removed_at=NULL WHERE id=?", (trip_id,))
     return trips.view(optional(connection, 'SELECT * FROM trips WHERE id=?', (trip_id,)))

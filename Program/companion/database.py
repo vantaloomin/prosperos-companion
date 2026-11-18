@@ -455,6 +455,9 @@ ADDED_COLUMNS = (
     # Celsius or Fahrenheit (companion/world/temperature.py): 'auto' picks by the companion's city.
     ('workspace_settings', 'temperature_unit',
      "TEXT NOT NULL DEFAULT 'auto' CHECK (temperature_unit IN ('auto', 'C', 'F'))"),
+    # A trip or visit the user took off Today as never planned (companion/life/long_distance.py `remove`): status
+    # 'cancelled' with no cancelled_at, so nobody in the story calls it off; this says when, for Undo.
+    ('trips', 'removed_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
