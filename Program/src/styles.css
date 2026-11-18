@@ -216,7 +216,7 @@ a.button { color: inherit; text-decoration: none; }
 .story-people li { display: flex; flex-direction: column; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 10px; }
 .story-people .form-actions { gap: 14px; }
 .story-note { font-family: var(--read-font); font-size: 0.875rem; color: var(--muted); font-style: italic; }
-.story-empty { text-align: center; margin-top: 24px; }
+.story-opening { max-width: 760px; width: 100%; margin: 0 auto; padding: 20px 32px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .story-notice, .story-footer { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 32px 10px; }
 .story-notice { padding-top: 12px; }
 .story-footer { padding-bottom: 16px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
@@ -320,7 +320,7 @@ a.button { color: inherit; text-decoration: none; }
   .reading-column { padding: 18px 16px 24px; }
   .composer { padding: 10px 12px 12px; }
   .conversation-notice { padding: 0 12px 8px; }
-  .story-header, .story-log, .story-notice, .story-footer { padding-left: 16px; padding-right: 16px; }
+  .story-header, .story-log, .story-opening, .story-notice, .story-footer { padding-left: 16px; padding-right: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) *, :root:not([data-motion='full']) *::before, :root:not([data-motion='full']) *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 :root[data-motion='reduce'] *, :root[data-motion='reduce'] *::before, :root[data-motion='reduce'] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }

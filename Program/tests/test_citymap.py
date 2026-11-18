@@ -27,7 +27,7 @@ def test_the_map_shows_every_place_in_their_city_near_its_neighbourhood(client):
     assert client.get('/api/life/map').status_code == 409
     make(client, 'Warm and curious.')
     found = read(client)
-    assert found['city']['id'] == 'baltimore' and found['city']['real'] is True and found['story'] is False
+    assert found['city']['id'] == 'baltimore' and found['city']['real'] is True
     hoods = {hood['id']: hood for hood in found['hoods']}
     assert all(len(hood['next']) == citymap.NEXT_TO and hood['id'] not in hood['next'] for hood in hoods.values())
     places = [place for place in found['places'] if not place['id'].startswith('~')]
@@ -61,12 +61,15 @@ def test_their_home_and_the_places_they_go_are_marked_with_what_happened_there(c
     assert [event['summary'] for event in cafe['history']] == ['Coffee number 0.', 'Coffee number 1.', 'Coffee number 2.']
 
 
-def test_story_mode_marks_the_scene_and_fictional_cities_get_a_sketch(client):
+def test_a_story_that_has_begun_marks_the_scene_and_fictional_cities_get_a_sketch(client):
     make(client, 'Warm and curious.')
-    assert client.put('/api/settings', json={'story_mode': True}).status_code == 200
     scene = client.get('/api/story').json()['scene']
+    # A story never opened puts no pin on the map.
+    assert not [place for place in read(client)['places'] if 'scene' in place['pins']]
+    other = next(place for place in scene['places'] if place['id'] != scene['place']['id'])
+    scene = client.put('/api/story/scene', json={'city_id': scene['city']['id'], 'place_id': other['id']}).json()['scene']
     found = read(client)
-    assert found['story'] is True and isinstance(found['water'], list)
+    assert 'story' not in found and isinstance(found['water'], list)
     assert [place['id'] for place in found['places'] if 'scene' in place['pins']] == [scene['place']['id']]
     assert citymap.real({'setting': 'fictional'}) is False and citymap.real({'distribution': 'private'}) is False
     assert citymap.real({'setting': 'real'}) is True

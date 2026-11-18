@@ -216,7 +216,7 @@ export function mapData(definition: Definition): CityMapData {
   return {
     city: { id: definition.id, name: definition.name, lat: definition.lat, lon: definition.lon, real: false, enclosed: definition.enclosed === true },
     hoods: definition.neighborhoods.map((hood) => ({ id: hood.id, name: hood.name, lat: hood.lat, lon: hood.lon, next: near(hood) })),
-    places, water: definition.water ?? [], story: false,
+    places, water: definition.water ?? [],
   }
 }
 

@@ -56,7 +56,7 @@ Releases come often, usually a few a week, and each one is a full release with a
 
 **Cities and worlds.** Built-in real cities (Baltimore, Chicago, New York, Miami, New Orleans, Los Angeles, San Diego, Las Vegas, London, Osaka, Jeju), period ones (Victorian London, 1920s New York), fantasy and public-domain ones (Camelot, the Emerald City), a generation ship, originals such as steampunk Calderwick and frontier Whitlock, and Grandport from Oak's dark fantasy world Neokosmos (CC BY-NC-SA 4.0, used with permission). Build your own, or have **Prospero's Draft Table** draw up a new place from one line. Cities change month to month as places open and close.
 
-**Yours to shape.** Guided character creation from a one-line idea, character cards and lorebooks from other apps, a full character editor, five chat styles, Story mode, timelines that branch from any message, a model per job, a Realism page for how life plays out, backups and restore, and phone access over your own Tailscale network or home Wi-Fi.
+**Yours to shape.** Guided character creation from a one-line idea, character cards and lorebooks from other apps, a full character editor, five chat styles, your own Story with a narrator, timelines that branch from any message, a model per job, a Realism page for how life plays out, backups and restore, and phone access over your own Tailscale network or home Wi-Fi.
 
 <table>
   <tr>
@@ -192,7 +192,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 - [Worlds and personas](Program/docs/worlds.md)
 - [Matchlight, the dating app](Program/docs/dating.md)
 - [Group chats](Program/docs/group-chat.md)
-- [Story mode](Program/docs/story.md)
+- [Story](Program/docs/story.md)
 - [Voice notes](Program/docs/voice-notes.md)
 - [Author's note](Program/docs/authors-note.md)
 - [Bring your characters](Program/docs/bring-your-characters.md)

@@ -9,7 +9,7 @@ from companion.world import temperature
 
 FLAGS = ('automatic_memory', 'sensitive_memory', 'share_profile_across_timelines', 'background_activity',
          'model_memory_suggestions', 'chat_sounds', 'chat_retro_dark', 'auto_launch', 'ask_about_people',
-         'story_mode', 'show_secret_slips', 'show_moods', 'show_news', 'show_odds', 'adult_side', 'show_adult_side',
+         'show_secret_slips', 'show_moods', 'show_news', 'show_odds', 'adult_side', 'show_adult_side',
          'record_model_calls', 'recall_more', 'ooc_to_helper', 'show_home_meters', 'period_words',
          'keep_my_colours', 'find_cli_accounts')
 # Changing any of these can make queued work stale, so they advance the permission revision.
@@ -19,6 +19,8 @@ OOC_MARKERS = [{'open': 'OOC:', 'close': ''}, {'open': '((', 'close': '))'}]
 
 
 def view(row: dict) -> dict:
+    # story_mode is a leftover column: the Story has been part of every world since 1.5.
+    row = {key: value for key, value in row.items() if key != 'story_mode'}
     return {**row, **{flag: bool(row[flag]) for flag in FLAGS},
             'paused': row['paused_at'] is not None, 'review_required': bool(row['review_required']),
             'ai_notice_confirmed': row['ai_notice_at'] is not None,

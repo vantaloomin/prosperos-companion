@@ -232,10 +232,6 @@ def test_a_match_can_be_met_on_a_date_in_story_mode(client, clock, provider):
     connect(client)
     match = match_someone(client)
     place = next(item for item in ok(client.get('/api/dating'))['matches'][0]['places'])
-    # Only with Story mode switched on.
-    assert ok(client.get('/api/dating'))['story'] is False
-    assert client.post('/api/dating/dates', json={'key': match['key'], 'place_id': place['id']}).status_code == 409
-    ok(client.put('/api/settings', json={'story_mode': True}))
     assert client.post('/api/dating/dates', json={'key': match['key'], 'place_id': 'nowhere'}).status_code == 404
     told = ok(client.post('/api/dating/dates', json={'key': match['key'], 'place_id': place['id']}))
     assert told['scene']['place']['id'] == place['id']

@@ -28,7 +28,7 @@ times the requests that grow with their number. Each figure is the median of sev
 | New day | Living one more day for everyone (`/api/life/reconcile`). The app does this in the background as time passes. |
 | Around town | Who is where in the city right now. |
 | Chat prompt | Building the prompt for one chat reply, without the model (`/api/context/preview`). |
-| Story | Opening the Story tab (only when Story mode is on). |
+| Story | Opening the Story tab. |
 | Start-up | Opening the database when the app starts. |
 
 `--speed 0.25` holds it to a quarter of one CPU core to stand in for a slower computer. On Windows it

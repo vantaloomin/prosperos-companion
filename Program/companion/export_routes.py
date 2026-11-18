@@ -2,12 +2,11 @@
 world (companion/carry.py). Plain GETs, so a link downloads it."""
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, Response
 from starlette.background import BackgroundTask
 
 from companion import carry, export
-from companion.story_routes import switched_on
 
 router = APIRouter(prefix='/api/export')
 Format = Literal['html', 'md']
@@ -25,7 +24,7 @@ def export_chat(request: Request, thread_id: str, format: Format = 'html'):
     return attachment(export.chat(request.app.state.database, thread_id), format)
 
 
-@router.get('/story', dependencies=[Depends(switched_on)])
+@router.get('/story')
 def export_story(request: Request, format: Format = 'html'):
     return attachment(export.story(request.app.state.database), format)
 

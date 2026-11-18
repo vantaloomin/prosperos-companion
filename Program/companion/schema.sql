@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   custom_palette TEXT NOT NULL DEFAULT '',
   -- Light or dark: 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
   theme TEXT NOT NULL DEFAULT 'system' CHECK (theme IN ('system', 'scheme', 'paper')),
-  -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
+  -- Unused since 1.5: the Story (companion/story.py) is part of every world, with no switch.
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   -- The note under a group message when someone lets a secret slip (companion/secrets.py).
   show_secret_slips INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1)),

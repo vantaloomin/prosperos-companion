@@ -1,12 +1,12 @@
 import type { StoryPerson, StoryPlace, StoryScene } from '../../types'
 
-/** "Tuesday, 9:40 am" from the scene's local time, which is the city's own clock with no offset. */
+/** "Tuesday, 9:40 AM" from the scene's local time, which is the city's own clock with no offset. */
 export function sceneTime(localTime: string): string {
   const [day, clock] = localTime.split('T')
   const [year, month, date] = day.split('-').map(Number)
   const [hour, minute] = clock.split(':').map(Number)
   const weekday = new Date(Date.UTC(year, month - 1, date)).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
-  return `${weekday}, ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'am' : 'pm'}`
+  return `${weekday}, ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`
 }
 
 const COUNTS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
@@ -69,4 +69,9 @@ export function personLine(person: StoryPerson): string {
   const times = person.meetings === 1 ? 'once' : person.meetings === 2 ? 'twice' : `${person.meetings} times`
   const where = person.place && !person.doing.includes(person.place.name) ? ` at ${person.place.name}` : ''
   return `Met ${times} · now ${person.doing}${where}`
+}
+
+/** A story's first open, before anything is said: "Your own story in Baltimore, told by a narrator." */
+export function openingText(scene: { city: { name: string } }): string {
+  return `Your own story in ${scene.city.name}, told by a narrator.`
 }

@@ -34,7 +34,6 @@ const VIEWS: NavView[] = [
 interface Props {
   view: View
   go: (view: View) => void
-  storyOn: boolean
   datingInstalled: boolean
   /** Matchlight is a phone app to install there (not a website, the paper or the matchmaker). */
   datingApp?: boolean
@@ -42,7 +41,7 @@ interface Props {
   watching?: boolean
 }
 
-export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, unread, watching }: Props) {
+export function AppNav({ view, go, datingInstalled, datingApp = true, unread, watching }: Props) {
   // Group chats share the Chats list now, so the rail's Chats counts both, as the phone's tab does.
   const counts: Partial<Record<string, number>> = { conversation: unread.companion + unread.group }
   const ready = useSettingsMark(view)
@@ -53,7 +52,7 @@ export function AppNav({ view, go, storyOn, datingInstalled, datingApp = true, u
     <nav className="app-nav" aria-label="Views">
       <WorldButton current={view === 'worlds'} onOpen={() => go('worlds')} />
       <ChatsTab view={view} go={go} unread={unread.companion + unread.group} />
-      {VIEWS.map((item) => watching && item.id === 'dating' ? WATCHING : item).filter(({ id }) => id !== 'story' || storyOn).map(({ id, label, icon: Icon, railOnly }) => (
+      {VIEWS.map((item) => watching && item.id === 'dating' ? WATCHING : item).map(({ id, label, icon: Icon, railOnly }) => (
         <Fragment key={id}>
           <button type="button" className={`nav-${id}${railOnly ? ' rail-only' : ''}`} aria-current={railCurrent(id, view) ? 'page' : undefined} onClick={() => go(id)}
             aria-label={id === 'settings' ? navLabel(ready) : undefined}>

@@ -609,7 +609,7 @@ def map_change(request: Request, action=None):
                     now)
         if action:
             action(connection, companion, network.city(connection, companion), now)
-        return citymap.build(connection, companion, now, bool(settings(connection)['story_mode']))
+        return citymap.build(connection, companion, now)
 
 
 @router.get('/map')
@@ -828,7 +828,7 @@ def read_web(request: Request):
     database = db(request)
     with database.connect() as connection:
         require_current(connection)
-        return web.build(connection, database.clock.now(), bool(settings(connection)['story_mode']))
+        return web.build(connection, database.clock.now())
 
 
 @router.get('/townsfolk')
