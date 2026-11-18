@@ -154,8 +154,88 @@ def test_neighbors_are_met_on_the_way_out(client, clock, chatty, monkeypatch):
     clock.instant = clock.now() + timedelta(days=14)
     met = [row for row in build(client) if row['entry'] and row['entry'].get('townsfolk')]
     assert met and all(decode(row['block'])['kind'] in encounters.COMMUTE_KINDS for row in met)
-    assert all('On the way out that morning, got talking with ' in row['entry']['summary'] and 'a neighbor' in
-               row['entry']['summary'] for row in met if row['entry']['townsfolk']['times'] == 1)
+    first = [row['entry']['summary'] for row in met if row['entry']['townsfolk']['times'] == 1]
+    assert any('On the way out that morning, got talking with ' in text and 'a neighbor' in text for text in first)
+    opens = ('On the way out that morning, got talking with ', 'On the way out, got talking with ',
+             'On the way home, got talking with ', 'At work, got talking with ', 'Got talking with ')
+    assert all(any(text_ in text for text_ in opens) for text in first)
+
+
+def shift(start='15:00', end='23:00', kind='work'):
+    block = {'key': 'shift', 'label': 'Shift', 'kind': kind, 'days': [0], 'start': start, 'end': end, 'themes': []}
+    return block, {'key': 'shift@2026-11-02', 'block': block, 'local_date': '2026-11-02',
+                   'starts_at': '2026-11-02T20:00:00+00:00', 'ends_at': '2026-11-03T04:00:00+00:00'}
+
+
+def test_a_shift_has_its_own_chances_to_meet_someone(client, monkeypatch):
+    """A companion who mostly works and stays in still crosses paths with the town: a lunch out during a shift counts
+    like any outing, the street is tried on the way out and on the way home, and an ordinary shift may bring someone
+    at the place they work."""
+    make(client, 'Warm and curious.')
+    monkeypatch.setattr(encounters, 'ACTIVE', True)
+    office = {'id': 'the-office', 'name': 'The Office', 'kind': 'office'}
+    monkeypatch.setattr(encounters, 'workplace', lambda *_args: office)
+    block, view = shift()
+    cafe = {'id': 'daily-grind', 'name': 'Daily Grind', 'kind': 'cafe'}
+    with client.app.state.database.connect() as connection:
+        companion = require_current(connection)
+        lunch = encounters.spots(connection, companion, {'activity': 'lunch-out', 'place': cafe}, view, block)
+        steady = encounters.spots(connection, companion, {'activity': 'steady-shift', 'place': None}, view, block)
+        early = encounters.spots(connection, companion, {'activity': 'busy-shift', 'place': None},
+                                 *reversed(shift('08:00', '16:00')))
+        other = encounters.spots(connection, companion, {'activity': 'sick-day', 'place': None}, view, block)
+        home = encounters.spots(connection, companion, {'activity': 'reading', 'place': None},
+                                *reversed(shift(kind='leisure')))
+        class_ = encounters.spots(connection, companion, {'activity': 'library', 'place': None},
+                                  *reversed(shift(kind='study')))
+    assert [(place['id'], opens) for place, _times, opens in lunch] == [('daily-grind', '')]
+    assert [opens for _place, _times, opens in steady] == ['On the way out, ', 'On the way home, ', 'At work, ']
+    street, times, _opens = steady[0]
+    assert street['id'].startswith('~') and times == [datetime(2026, 11, 2, 14, 35), datetime(2026, 11, 2, 14, 50)]
+    assert steady[1][1] == [datetime(2026, 11, 2, 23, 10), datetime(2026, 11, 2, 23, 25)]
+    assert steady[2][0] == office and steady[2][1][0] == datetime(2026, 11, 2, 15, 0)
+    assert early[0][2] == 'On the way out that morning, '
+    # A shift that wasn't an ordinary one (off sick, say) isn't spent at the workplace; time at home is no setting.
+    assert [opens for _place, _times, opens in other] == ['On the way out, ', 'On the way home, ']
+    assert [opens for _place, _times, opens in class_] == ['On the way out, ', 'On the way home, ']
+    assert home == []
+
+
+def test_a_meeting_is_overdue_after_some_quiet_days(client):
+    make(client, 'Warm and curious.')
+    with client.app.state.database.connect() as connection:
+        timeline = require_current(connection)['active_timeline_id']
+        met = {'town:baltimore:x:0': [{'local_date': '2026-11-01'}], 'town:baltimore:x:1': [{'local_date': '2026-11-05'}]}
+        assert not encounters.overdue(connection, timeline, met, '2026-11-07')
+        assert encounters.overdue(connection, timeline, met, '2026-11-08')
+        # Having met nobody yet, the days count from their first day here (nothing planned yet: from today).
+        assert not encounters.overdue(connection, timeline, {}, '2026-11-08')
+    first = build(client)[0]['local_date']
+    with client.app.state.database.connect() as connection:
+        later = (date.fromisoformat(first) + timedelta(days=encounters.QUIET_DAYS)).isoformat()
+        assert encounters.overdue(connection, timeline, {}, later)
+        assert not encounters.overdue(connection, timeline, {}, first)
+    here = {'known': {'doing': ''}}
+    assert encounters.pick(here, {'known': [{}]}, True, 'seed') in (None, 'known')
+    assert all(encounters.pick(here, {'known': [{}]}, True, f'seed-{index}', sure=True) == 'known'
+               for index in range(20))
+    assert all(encounters.pick({'new': {}, **here}, {'known': [{}]}, True, f'seed-{index}', sure=True)
+               in ('new', 'known') for index in range(20))
+
+
+def test_a_quiet_stretch_ends_with_a_meeting_whatever_the_luck(client, clock, monkeypatch):
+    """With every lucky roll failing, the companion still meets someone about every QUIET_DAYS days, never twice a
+    day."""
+    make(client, 'Warm and curious.')
+    monkeypatch.setattr(encounters, 'ACTIVE', True)
+    for chance in ('CHANCE', 'FAMILIAR_CHANCE', 'FELLOW_CHANCE', 'NOTABLE_CHANCE'):
+        monkeypatch.setattr(encounters, chance, 0)
+    build(client)
+    clock.instant = clock.now() + timedelta(days=21)
+    met = [row for row in build(client) if row['entry'] and row['entry'].get('townsfolk')]
+    days = sorted(date.fromisoformat(row['local_date']) for row in met)
+    assert len(days) >= 3, days
+    assert all((later - earlier).days >= encounters.QUIET_DAYS for earlier, later in zip(days, days[1:]))
 
 
 def test_the_city_view_lists_everyone_at_a_place(client):
