@@ -422,7 +422,11 @@ city. None of this runs on a timer: asking where someone is at any moment gives 
 simulation would, and costs nothing for the people nobody asks about.
 
 When the agenda sends the companion somewhere real for leisure, an errand or a social plan, someone there by
-their rules may cross paths with them (`companion/life/encounters.py`; at most one a day). The first time is
+their rules may cross paths with them (`companion/life/encounters.py`; at most one a day). A week of work and
+evenings in has its chances too: a lunch out during a shift counts, neighbors may be on their street on the way
+out to a shift or class and on the way home, and an ordinary shift may bring someone at the place they work when
+it is on the map. After three days without meeting anyone (`QUIET_DAYS`), the next time someone is around they
+get talking for sure. The first time is
 a chat with a stranger; the second reveals what they are working toward; from the third the companion knows
 their flaw and what they seem to want, and later meetings bring their news. People already met can turn up
 wherever their rules take them. A meeting counts once its slot has happened and the entry still records it

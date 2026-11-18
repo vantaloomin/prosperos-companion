@@ -6,6 +6,10 @@ stranger ("Got talking with Dana Kim, the barista there, who talked a mile a min
 the companion learns more: what they are working toward and how it is going, then their flaw and what
 they seem to want. One meeting a day at most, so the city feels lived in without crowding the diary.
 
+A week that is mostly work and evenings in has its chances too: a lunch out during a shift, the street on the way
+out and on the way home, and the place they work. And after QUIET_DAYS without meeting anyone, the next time
+someone is around they get talking for sure, whatever the luck.
+
 Only the meeting is saved (timeline, person key, slot). Like acquaintances (companion/life/network.py), a
 meeting counts once its slot has happened and the agenda entry still records it, so a rebuilt day can't
 leave a stale one behind. The person themself is rebuilt from their key each time. No model is involved.
@@ -27,9 +31,14 @@ FELLOW_CHANCE = 0.5
 # there, they get talking this often, ahead of anyone else around.
 NOTABLE_CHANCE = 0.5
 KINDS = {'leisure', 'errand', 'social'}
-# On the way out to a morning shift or class, the companion may meet neighbors on their street.
+# On the way out to a shift or class, or home after it, the companion may meet neighbors on their street; a lunch out
+# during one counts like any outing, and an ordinary shift may bring someone at the place they work.
 COMMUTE_KINDS = {'work', 'study'}
 MORNING = ('05:00', '11:00')
+AT_WORK = {'steady-shift', 'busy-shift'}
+# After this many days without meeting anyone, the next time someone is around they get talking for sure, so a
+# companion whose week keeps them at work or at home still gets to know the town.
+QUIET_DAYS = 3
 STEP = timedelta(minutes=45)
 CONTEXT_LIMIT = 6
 # How many meetings before the companion knows their goal, then their flaw and desire.
@@ -52,23 +61,68 @@ def moments(view: dict) -> list[datetime]:
     return result
 
 
-def setting(connection, companion: dict | None, entry: dict | None, view: dict, block: dict):
-    """Where a meeting could happen in this slot, as (place, local moments, on the way out), or None: the
-    entry's place on a leisure, errand or social outing, or the companion's own street on the way to a
-    morning shift or class (neighbors at the stop)."""
+def spots(connection, companion: dict | None, entry: dict | None, view: dict, block: dict) -> list[tuple]:
+    """Where a meeting could happen in this slot, likeliest first, each as (place, local moments, how the line
+    opens): the entry's place on an outing or a lunch out; on a shift or class the companion's own street on the
+    way out and on the way home (neighbors at the stop, or out front), then the place they work on an ordinary
+    shift."""
     if not ACTIVE or not companion or not entry or entry.get('ran_into') or entry.get('gathering') \
             or entry.get('townsfolk'):
-        return None
-    place = entry.get('place')
-    if block['kind'] in KINDS and isinstance(place, dict) and place.get('id'):
-        return place, moments(view), False
-    if block['kind'] in COMMUTE_KINDS and MORNING[0] <= block['start'] < MORNING[1]:
-        data = network.city(connection, companion)
-        hood = home_hood(data, companion['version']['definition'])
-        if hood:
-            start = moments(view)[0]
-            return townsfolk.street(data, hood), [start - timedelta(minutes=25), start - timedelta(minutes=10)], True
-    return None
+        return []
+    place, kind = entry.get('place'), block['kind']
+    if kind in KINDS | COMMUTE_KINDS and isinstance(place, dict) and place.get('id'):
+        return [(place, moments(view), '')]
+    if kind not in COMMUTE_KINDS:
+        return []
+    found = commute(connection, companion, view, block)
+    if kind == 'work' and entry.get('activity') in AT_WORK and (job := workplace(connection, companion)):
+        found.append((job, moments(view), 'At work, '))
+    return found
+
+
+def commute(connection, companion: dict, view: dict, block: dict) -> list[tuple]:
+    """The companion's street just before a shift or class and just after it."""
+    data = network.city(connection, companion)
+    hood = home_hood(data, companion['version']['definition'])
+    if not hood:
+        return []
+    street, around = townsfolk.street(data, hood), moments(view)
+    start = around[0]
+    end = datetime.combine(start.date(), datetime.strptime(block['end'], '%H:%M').time())
+    end = end if end > start else end + timedelta(days=1)
+    out = 'On the way out that morning, ' if MORNING[0] <= block['start'] < MORNING[1] else 'On the way out, '
+    return [(street, [start - timedelta(minutes=25), start - timedelta(minutes=10)], out),
+            (street, [end + timedelta(minutes=10), end + timedelta(minutes=25)], 'On the way home, ')]
+
+
+def workplace(connection, companion: dict) -> dict | None:
+    """The place on the map the companion works at, if their job names one (companion/life/drop_by.py)."""
+    from companion.life import drop_by
+    return drop_by.workplace(connection, companion)
+
+
+def overdue(connection, timeline_id: str, history: dict, local_date: str) -> bool:
+    """True once QUIET_DAYS have passed since the companion last met anyone (or, having met nobody yet, since their
+    days here began)."""
+    last = max((meeting['local_date'] for meetings in history.values() for meeting in meetings), default=None)
+    if last is None:
+        row = optional(connection, "SELECT MIN(local_date) AS first FROM life_agenda WHERE timeline_id=? AND "
+                       "subject='companion'", (timeline_id,))
+        last = row['first'] if row and row['first'] else local_date
+    return (date.fromisoformat(local_date) - date.fromisoformat(last)).days >= QUIET_DAYS
+
+
+def found_at(data: dict, spot: tuple, history: dict, cast: dict, plans_for, chances: dict, seed: str):
+    """Who the companion gets talking with at one of the slot's settings, as (key, moment, people here), or None."""
+    place, times_of_day, _opens = spot
+    plans = plans_for(times_of_day)
+    seen = present(data, place['id'], times_of_day, history, cast, plans)
+    key = seen and pick(seen[1], history, chances['lucky'], seed, chances['fellow'] and plans, chances['overdue'])
+    standout = chances['famous'] and key not in plans and \
+        notable_here(data, place['id'], times_of_day, history, cast, seed)
+    if standout:
+        seen, key = standout, next(iter(standout[1]))
+    return (key, seen[0], seen[1], plans) if key else None
 
 
 def home_hood(data: dict, definition: dict) -> str | None:
@@ -91,41 +145,43 @@ def meet(connection, companion: dict | None, entry: dict | None, view: dict, blo
     data = network.city(connection, companion)
     cast = town_cast(connection, companion, data)
     history = history_for(connection, companion, cast, None, before=view['starts_at'])
-    lucky, fellow = roll(seed, 'stranger') < CHANCE, roll(seed, 'fellow') < FELLOW_CHANCE
-    famous = bool(data.get('notables')) and roll(seed, 'notable') < NOTABLE_CHANCE
-    if (not lucky and not fellow and not famous and not history) or many(
+    late = overdue(connection, timeline_id, history, view['local_date'])
+    chances = {'lucky': late or roll(seed, 'stranger') < CHANCE, 'fellow': roll(seed, 'fellow') < FELLOW_CHANCE,
+               'famous': bool(data.get('notables')) and roll(seed, 'notable') < NOTABLE_CHANCE, 'overdue': late}
+    if (not chances['lucky'] and not chances['fellow'] and not chances['famous'] and not history) or many(
             connection, 'SELECT 1 FROM townsfolk_encounters WHERE timeline_id=? AND local_date=? AND slot_key!=?',
             (timeline_id, view['local_date'], view['key'])):
         return entry
-    found = setting(connection, companion, entry, view, block)
-    if not found:
-        return entry
-    place, times_of_day, on_the_way = found
-    plans = cast_plans(connection, cast, times_of_day)
-    seen = present(data, place['id'], times_of_day, history, cast, plans)
-    key = seen and pick(seen[1], history, lucky, seed, fellow and plans)
-    standout = famous and key not in plans and notable_here(data, place['id'], times_of_day, history, cast, seed)
-    if standout:
-        seen, key = standout, next(iter(standout[1]))
-    if not key:
-        return entry
-    moment, here = seen
+    for spot in spots(connection, companion, entry, view, block):
+        found = found_at(data, spot, history, cast, lambda times: cast_plans(connection, cast, times), chances, seed)
+        if found:
+            return met(connection, companion, data, cast, history, entry, view, spot, found)
+    return entry
+
+
+def met(connection, companion: dict, data: dict, cast: dict, history: dict, entry: dict, view: dict, spot: tuple,
+        found: tuple) -> dict:
+    """Save the meeting and add its line to the entry."""
+    (place, _times, opens), (key, moment, here, plans) = spot, found
     sheet, times = resolve(data, key, cast), len(history.get(key, ()))
     home = home_hood(data, companion['version']['definition'])
     last = date.fromisoformat(history[key][-1]['local_date']) if times else None
     told = line(sheet, data, times, place, moment.date(), home, here[key].get('doing', ''), last)
-    told = f'On the way out that morning, {told[:1].lower()}{told[1:]}' if on_the_way else told
+    told = f'{opens}{told[:1].lower()}{told[1:]}' if opens else told
     connection.execute('INSERT OR REPLACE INTO townsfolk_encounters (timeline_id, key, slot_key, place, local_date, '
                        'met_at) VALUES (?, ?, ?, ?, ?, ?)',
-                       (timeline_id, key, view['key'], place.get('name', ''), view['local_date'], view['ends_at']))
+                       (companion['active_timeline_id'], key, view['key'], place.get('name', ''), view['local_date'],
+                        view['ends_at']))
     if key in plans:
         mirror(connection, companion, data, plans[key], place, moment, times, last)
     return {**entry, 'summary': f"{entry['summary']} {told}", 'townsfolk': {'key': key, 'times': times + 1}}
 
 
-def pick(here: dict, history: dict, lucky: bool, seed: str, fellows: dict | None = None) -> str | None:
+def pick(here: dict, history: dict, lucky: bool, seed: str, fellows: dict | None = None,
+         sure: bool = False) -> str | None:
     """Who of the people here the companion talks to: another companion out on their own day when `fellows`
-    (cast_plans) has them here, else someone familiar now and then, else a stranger on a lucky day."""
+    (cast_plans) has them here, else someone familiar now and then, else a stranger on a lucky day. When a
+    meeting is overdue (`sure`), someone familiar will do when no stranger is around."""
     among = sorted(key for key in here if key in (fellows or {}))
     if among:
         return among[int(roll(seed, 'fellow-who') * len(among))]
@@ -135,6 +191,8 @@ def pick(here: dict, history: dict, lucky: bool, seed: str, fellows: dict | None
         return familiar[int(roll(seed, 'familiar-who') * len(familiar))]
     if lucky and strangers:
         return strangers[int(roll(seed, 'stranger-who') * len(strangers))]
+    if sure and familiar:
+        return familiar[int(roll(seed, 'familiar-who') * len(familiar))]
     return None
 
 
