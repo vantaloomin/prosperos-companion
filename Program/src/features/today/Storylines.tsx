@@ -4,6 +4,7 @@ import { api } from '../../api'
 import type { Storyline } from '../../types'
 import { STORYLINES_KEY as KEY, storyDate, withYou } from './storyText'
 import { WhyItWent } from './WhyItWent'
+import { firstName } from '../character/panelText'
 
 /** What is unfolding in the companion's life and their people's: the beats so far, never what comes next. The ones
  * the user is part of have their own section above (InvolvesYou.tsx). */
@@ -17,8 +18,8 @@ export function Storylines({ name }: { name: string }) {
   }
   return (
     <section className="today-section" aria-labelledby="storylines-heading">
-      <h2 id="storylines-heading">Going on in {name}'s world</h2>
-      <p className="subtle">Fiction about {name} and their people. How much happens is set by the drama level in Settings.</p>
+      <h2 id="storylines-heading">Going on in {firstName(name)}'s world</h2>
+      <p className="subtle">Fiction about {firstName(name)} and their people. How much happens is set by the drama level in Settings.</p>
       <ul className="plain-list">
         {found.map((item) => (
           <li key={item.id}>

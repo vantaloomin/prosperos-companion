@@ -612,7 +612,7 @@ def test_today_lists_it_and_the_context_tells_it(client, clock, only, monkeypatc
     row = plan_started(client, clock, only, monkeypatch)
     listed = client.get('/api/life/storylines').json()
     assert listed[0]['with_you'] is True and listed[0]['unfolding'] is True
-    assert 'keeps asking who Mira Costa is always texting.' in listed[0]['beats'][0]['text']
+    assert 'keeps asking who Mira is always texting.' in listed[0]['beats'][0]['text']
     with client.app.state.database.connect() as connection:
         companion = current(connection)
         lines = [line for _key, line in shared_storylines.context_lines(connection, companion, clock.now())]
@@ -739,6 +739,7 @@ def test_today_says_the_users_part_in_each_beat(client, clock, only, monkeypatch
     talk(client, clock, 'Ha, who is asking?')
     assert shown(client)[0]['beats'][0]['you'] == {'did': 'answered'}
     _trigger, outing = invited(client, clock)
+    assert shown(client)[0]['beats'][1]['text'].startswith('Mira asked you along for drinks with')  # First name.
     assert shown(client)[0]['beats'][1]['you'] == {'did': 'set', 'on': outing['local_date'], 'at': outing['at_time']}
     # The plan card on Today points back to the storyline.
     listed = client.get('/api/life/outings').json()['outings']
@@ -776,8 +777,9 @@ def test_it_stays_on_today_a_week_and_then_the_scrapbook_keeps_it(client, clock,
     entry = found['items'][0]
     assert entry['date'] == row['started_on'] and entry['until'] == last.isoformat()
     # Told beat by beat; a plan needs no line of its own, the beat after it says they came.
-    assert 'keeps asking who Mira Costa is always texting.' in entry['text']
+    assert 'keeps asking who Mira is always texting.' in entry['text']  # First name, and the name once.
     assert 'who wants to meet you. You came along for drinks' in entry['text'] and 'You went.' not in entry['text']
+    assert 'Costa' not in entry['text']
     assert '{' not in entry['text']
     # One the user ended is not kept.
     assert client.post(f"/api/life/storylines/{row['id']}/end").status_code == 200
@@ -800,3 +802,16 @@ def test_the_scrapbook_says_the_users_part_where_a_text_turned_the_story():
         for response in beat.get('then') or {}:
             if beat.get('via') != 'plan' and response != 'any':
                 assert shared_storylines.turned(found, {'beat': beat_id, 'response': response})
+
+
+def test_a_scrapbook_entry_names_them_once():
+    once = shared_storylines.named_once
+    assert once('Mira Costa wanted company for a morning round the market and asked you. You went round the market '
+                'with Mira Costa, and both came away with arms full.', 'Mira Costa') == (
+        'Mira wanted company for a morning round the market and asked you. You went round the market together, and '
+        'both came away with arms full.')
+    assert once('Mira Costa asked you to come along. You and Mira Costa tried the place for dinner.', 'Mira Costa') == (
+        'Mira asked you to come along. The two of you tried the place for dinner.')
+    assert once("Mira asked. You carried Mira's bags, with Mira's thanks.", 'Mira') == (
+        "Mira asked. You carried their bags, with their thanks.")
+    assert once('Emma took to you. Mira was glad.', 'Mira') == 'Emma took to you. Mira was glad.'

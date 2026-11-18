@@ -25,6 +25,7 @@ then, true to life (about one a week) or often.
 """
 import json
 import random
+import re
 from datetime import date, datetime, time, timedelta
 from functools import cache
 
@@ -762,9 +763,32 @@ def on_today(connection, companion: dict, items: list[dict], now: datetime) -> l
             found.append(item)
         elif item['unfolding'] or item['beats'][-1]['on'] >= since:
             story = bank().get(key_of(row))
-            found.append(item | {'beats': [beat | your_part(connection, companion, row, index, story, now)
+            name = companion['version']['definition']['name']
+            found.append(item | {'beats': [beat | {'text': first_name(beat['text'], name)}
+                                           | your_part(connection, companion, row, index, story, now)
                                            for index, beat in enumerate(item['beats'])]})
     return found
+
+
+def first_name(text: str, name: str) -> str:
+    """A beat as these screens tell it: the companion by first name (Iris, 2026-11-18)."""
+    return text.replace(name, their_people.first(name)) if name else text
+
+
+def named_once(text: str, name: str) -> str:
+    """A scrapbook entry names the companion once, by first name; after that "the two of you", "together" and
+    "their" stand in where they read right, and the first name stays where they would not."""
+    first = their_people.first(name)
+    text = first_name(text, name)
+    at = text.find(first)
+    if at < 0:
+        return text
+    head, rest = text[:at + len(first)], text[at + len(first):]
+    known = re.escape(first)
+    for pattern, words in ((rf'\bYou and {known}\b(?!\'s)', 'The two of you'), (rf'\byou and {known}\b(?!\'s)', 'the two of you'),
+                           (rf'\bwith {known}\b(?!\'s)', 'together'), (rf"\b{known}'s", 'their')):
+        rest = re.sub(pattern, words, rest)
+    return head + rest
 
 
 def your_part(connection, companion: dict, row: dict, index: int, story: dict | None, now: datetime) -> dict:
@@ -821,7 +845,8 @@ def scrapbook_page(connection, companion: dict, low: str, high: str, now: dateti
         for found, beat in zip(decode(row['stages']), item['beats'], strict=False):
             told += [beat['text'], turned(bank().get(key_of(row)), found)]
         items.append({'date': item['started_on'], 'until': item['beats'][-1]['on'],
-                      'text': ' '.join(part for part in told if part)})
+                      'text': named_once(' '.join(part for part in told if part),
+                                         companion['version']['definition']['name'])})
     if not items:
         return None
     return {'kind': 'with-you', 'title': KEPT_TITLE, 'items': sorted(items, key=lambda item: item['date'])}
