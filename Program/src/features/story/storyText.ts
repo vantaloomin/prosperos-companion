@@ -1,4 +1,4 @@
-import type { StoryPerson, StoryPlace, StoryScene } from '../../types'
+import type { StoryCompanion, StoryMessage, StoryPerson, StoryPlace, StoryScene } from '../../types'
 
 /** "Tuesday, 9:40 AM" from the scene's local time, which is the city's own clock with no offset. */
 export function sceneTime(localTime: string): string {
@@ -71,7 +71,34 @@ export function personLine(person: StoryPerson): string {
   return `Met ${times} · now ${person.doing}${where}`
 }
 
-/** A story's first open, before anything is said: "Your own story in Baltimore, told by a narrator." */
-export function openingText(scene: { city: { name: string } }): string {
-  return `Your own story in ${scene.city.name}, told by a narrator.`
+/** A story's first open, before anything is said: "Your own story in Baltimore, told by a narrator.", or with a
+ * companion "Play out a scene with Mira, anywhere in Baltimore." When their day has them nowhere the story can go,
+ * the line says so: "Play out a scene anywhere in Baltimore. Mira isn't out right now." */
+export function openingText(scene: { city: { name: string } }, companion?: StoryCompanion): string {
+  if (!companion) return `Your own story in ${scene.city.name}, told by a narrator.`
+  if (companion.here || companion.place) return `Play out a scene with ${companion.name}, anywhere in ${scene.city.name}.`
+  return `Play out a scene anywhere in ${scene.city.name}. ${companion.name} isn't out right now.`
+}
+
+/** What the first-open button says and the first line it sends for the user: finding the companion when the story
+ * can go to them, else looking around. */
+export function openingAction(companion?: StoryCompanion): { label: string; line: string; find: string | null } {
+  if (!companion || !(companion.here || companion.place)) return { label: 'Look around', line: 'I look around.', find: null }
+  return { label: `Find ${companion.name}`, line: `I look around for ${companion.name}.`, find: companion.here ? null : companion.key }
+}
+
+/** "Here with you", "Now at Club Charles" (with the city when it is another one), or "Not out right now". */
+export function companionLine(companion: StoryCompanion, city: string): string {
+  if (companion.here) return 'Here with you'
+  if (!companion.place) return 'Not out right now'
+  return `Now at ${companion.place.name}${companion.city && companion.city !== city ? `, ${companion.city}` : ''}`
+}
+
+/** Who is writing while a sent line waits for its replies: the narrator first, then each companion in the scene
+ * who has not answered it yet. */
+export function writingText(messages: StoryMessage[], clientId: string, companions: { id: string; name: string }[]): string {
+  const sent = messages.find((message) => message.client_id === clientId)
+  const replies = sent ? messages.filter((message) => message.reply_to === sent.id && message.status === 'complete') : []
+  const next = companions.find((companion) => !replies.some((reply) => reply.speaker === companion.id))
+  return replies.some((reply) => reply.role === 'narrator') && next ? `${next.name} is answering…` : 'The narrator is writing…'
 }

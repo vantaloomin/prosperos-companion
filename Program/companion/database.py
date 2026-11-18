@@ -455,6 +455,10 @@ ADDED_COLUMNS = (
     # Celsius or Fahrenheit (companion/world/temperature.py): 'auto' picks by the companion's city.
     ('workspace_settings', 'temperature_unit',
      "TEXT NOT NULL DEFAULT 'auto' CHECK (temperature_unit IN ('auto', 'C', 'F'))"),
+    # A companion's own line in the Story (companion/story_cast.py): whose it is and the name it shows under; on a
+    # 'cast' line, who came or went.
+    ('story_messages', 'speaker', 'TEXT'),
+    ('story_messages', 'name', 'TEXT'),
     # Storylines you are part of (companion/life/shared_storylines.py, Settings > Realism > Their days > Things that
     # involve you): how often the world starts one, 0 off, 1 now and then, 2 true to life, 3 often; and the last day
     # its daily roll was made on a timeline.
@@ -479,6 +483,8 @@ WIDENED_CHECKS = (
     ('circle_children', "'friend', 'ours')"),
     # Trips away together (companion/life/away_together.py).
     ('trips', "'host', 'together')"),
+    # Companions in the Story's scene, in their own lines (companion/story_cast.py).
+    ('story_messages', "'scene', 'companion', 'cast')"),
 )
 
 

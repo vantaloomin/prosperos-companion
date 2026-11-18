@@ -2002,20 +2002,30 @@ export interface StoryScene {
   local_time: string
   weather: string
   places: StoryPlace[]
-  /** Who is around, as the user would see them ("the barista there"); never names they have not been given. */
+  /** Who is around, as the user would see them ("the barista there"); never names they have not been given.
+   * A companion who is here comes first, by name. */
   around: string[]
+  /** Companions in the scene right now (companion/story_cast.py): each answers in their own lines. */
+  companions: { id: string; name: string }[]
 }
 export interface StoryMessage {
-  id: string; seq: number; role: 'user' | 'narrator' | 'scene'; text: string; reply_to: string | null
+  /** 'companion' is a companion's own line in the scene (`speaker`, `name`); 'cast' says one came or went. */
+  id: string; seq: number; role: 'user' | 'narrator' | 'scene' | 'companion' | 'cast'; text: string; reply_to: string | null
   status: 'complete' | 'failed'; error: string | null; city_id: string; place_id: string; created_at: string
+  client_id: string | null; speaker: string | null; name: string | null
   crisis_help?: boolean
+}
+/** A companion as the Story has them now: in the scene (`here`), somewhere the story can go (`place`), or neither. */
+export interface StoryCompanion {
+  key: string; id: string; name: string; main: boolean; here: boolean; doing: string; city: string | null
+  place: { id: string; name: string; city_id: string } | null
 }
 /** Someone the user has met in their story (companion/story_people.py), with where their rules put them now. */
 export interface StoryPerson {
   key: string; name: string; role: string; city: string; meetings: number; last_met_at: string; notes: string[]
   doing: string; place: { id: string; name: string; city_id: string } | null
 }
-export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; ready: boolean; can_switch: boolean }
+export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; companions: StoryCompanion[]; ready: boolean; can_switch: boolean }
 
 /** The dating app (companion/dating.py): the user's profile, the deck, matches and any Story mode date. */
 export type DatingGender = 'woman' | 'man' | 'nonbinary'

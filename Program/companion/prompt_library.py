@@ -147,6 +147,11 @@ PROMPTS = {prompt.name: prompt for prompt in (
            'Opens every reply in the Story tab, before the scene: the place, the hour, the weather and who is '
            'there, which the app decides. OOC answers are also enforced by the app.',
            constant('companion.story', 'NARRATOR')),
+    Prompt('story-companion', CHAT, 'Companions in the Story',
+           "Opens a companion's own line when the Story is where they are: before the scene and the story since "
+           'they came in. The app decides who is there and whose turn it is; who they are and what they know come '
+           'from their usual chat sections.',
+           constant('companion.story_cast', 'RULES'), {'name': "the companion's first name"}),
     Prompt('authors-note', CHAT, "Author's note",
            "Goes right before your author's note, the last thing the model reads before your message in a chat "
            'that has a note switched on. Your note follows this line.',
