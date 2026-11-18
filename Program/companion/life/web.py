@@ -5,7 +5,7 @@ and their ties to each other (companion/memory/pairs.py), each companion's circl
 each other (companion/life/circle.py), someone one companion's circle shares with another
 (companion/life/shared_people.py), people met through them (companion/life/network.py), townsfolk met
 around town (companion/life/encounters.py), the people the user has told a companion about
-(companion/memory/people.py), Matchlight matches (companion/dating.py) and people the user met in Story mode
+(companion/memory/people.py), who in a circle knows the user (companion/life/knows_you.py), Matchlight matches (companion/dating.py) and people the user met in Story mode
 (companion/story_people.py). Secrets, closeness and moods are left out, so the web shows only who knows who.
 
 A node is {id, name, kind, detail, hood, companion_id?, main?}; a link is {source, target, label, kind}.
@@ -13,7 +13,7 @@ Townsfolk and network people keep their keys as ids, so someone two companions m
 """
 from companion.database import many
 from companion.errors import DomainError
-from companion.life import circle, encounters, network, shared_people
+from companion.life import circle, encounters, knows_you, network, shared_people
 from companion.memory import pairs
 from companion.world import turnover
 
@@ -78,7 +78,19 @@ def build(connection, now, story_on: bool = False) -> dict:
         for person in shared_people.shared_with(connection, companion, now):
             web.link(pairs.companion_key(companion['id']), person['key'], person['role'])
     add_yours(connection, web, cast, story_on)
+    for companion in cast:  # Who in their circle knows the user, or has heard of them (companion/life/knows_you.py).
+        add_knows_you(web, knows_you.for_circle(connection, companion, now).values())
+    for key in knows_you.chatted(connection):  # Townsfolk who were in a group chat with the user.
+        if web.nodes.get(key, {}).get('kind') == 'townsperson':
+            web.link(key, YOU, 'in a group chat together', 'you')
     return web.view()
+
+
+def add_knows_you(web: Web, people) -> None:
+    """A link from each person to the user: solid when they know the user, dotted when they only know of them."""
+    for found in people:
+        if found['how']:
+            web.link(found['key'], YOU, knows_you.label(found), 'you' if found['how'] == knows_you.KNOWS else 'met')
 
 
 def add_companion(connection, web: Web, companion: dict, now):
