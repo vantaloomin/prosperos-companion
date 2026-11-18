@@ -79,6 +79,11 @@
 - **Duplicate a model profile:** each profile in Settings > Models has a Duplicate button that copies
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
+- **More storylines:** the things that unfold over days in a companion's life and their circle's came from a bank
+  of nineteen stories, so a long world met the same few again. The bank now holds over a hundred: more good news
+  for a quiet world, more everyday trouble at Realistic, and more to go wrong at Dramatic and Soap opera. New ones
+  are about a sibling, a grandparent, a neighbor, any friend, and the companion's own days outside work. How often
+  one starts is unchanged (Settings > Realism > Drama).
 
 ## v1.4.1 (2026-11-12)
 
