@@ -64,11 +64,12 @@ export function spotsText(spots: string[]): string {
   return `Inside: ${spots.join(', ')}`
 }
 
-/** "Met once · now working as the barista at The Daily Grind" */
+/** "Met once · now working as the barista at The Daily Grind"; "Met 3 times · said yes · now …" once they said yes
+ * to the user asking them out. */
 export function personLine(person: StoryPerson): string {
   const times = person.meetings === 1 ? 'once' : person.meetings === 2 ? 'twice' : `${person.meetings} times`
   const where = person.place && !person.doing.includes(person.place.name) ? ` at ${person.place.name}` : ''
-  return `Met ${times} · now ${person.doing}${where}`
+  return `Met ${times}${person.matched ? ' · said yes' : ''} · now ${person.doing}${where}`
 }
 
 /** A story's first open, before anything is said: "Your own story in Baltimore, told by a narrator.", or with a

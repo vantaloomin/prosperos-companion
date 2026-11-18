@@ -146,7 +146,7 @@ function Matches({ data, go, onUnmatch, onDate }: MatchesProps) {
       {error && <Notice tone="error">{error}</Notice>}
       <ul>
         {data.matches.map((match) => <li key={match.key}>
-          <p><strong>{cardHeading(match)}</strong>{humanTerms(match) && <span className="subtle"> ({humanTerms(match)})</span>}{matchJob(match)} · {match.city.name}</p>
+          <p><strong>{cardHeading(match)}</strong>{humanTerms(match) && <span className="subtle"> ({humanTerms(match)})</span>}{matchJob(match)} · {match.city.name}{match.in_story ? ' · Met in your story' : ''}</p>
           {match.left ? <div className="form-actions">
             <p className="subtle">{townLeft(match.left)}</p>
             <button type="button" className="text-button" onClick={() => onUnmatch(match.key)}>Unmatch</button>

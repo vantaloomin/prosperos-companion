@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Ask someone out in your story:** charming someone in a scene used to lead nowhere. Now you can ask them out,
+  in your own words or with "Ask Dana out" on their card under People you've met. Their own life answers: someone
+  seeing someone says so, someone not drawn to you turns you down, and anyone else is likelier to say yes the more
+  days you have come by. Someone who says yes can become a companion with Start talking, as a Matchlight match
+  does, in the same world as the companions you already have. They also show under Your matches in Matchlight as
+  "Met in your story". No dating profile is needed.
 - **Story is part of every world:** the Story tab used to be hidden behind a switch in Settings > Advanced. It is
   now always there, between Matchlight and Today, with no switch. A story you have not begun opens on one line and
   a Look around button. On the map, a place offers "Go there in your story" under "Suggest going together" and
