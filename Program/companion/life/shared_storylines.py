@@ -203,8 +203,9 @@ def plans(story: dict) -> list[dict]:
 
 def fits(connection, companion: dict, story: dict, today: date, now: datetime) -> list[tuple]:
     """The casts this story could have today, [] when it does not fit this world: its drama level, the relationship,
-    how long the two have talked, the city's era, and a plan in person only where they can meet."""
-    from companion.life import long_distance
+    how long the two have talked, the city's era, a plan in person only where they can meet, and a visit to the
+    companion's home only while the two live apart."""
+    from companion.life import long_distance, moving_in
     from companion.memory import closeness
     definition = companion['version']['definition']
     if story['level'] > storylines.drama(connection):
@@ -219,6 +220,8 @@ def fits(connection, companion: dict, story: dict, today: date, now: datetime) -
         if not story['days_known'][0] <= known <= story['days_known'][1]:
             return []
     if plans(story) and (long_distance.far(connection, companion) or not outings.city_data(connection, definition)):
+        return []
+    if story.get('apart') and moving_in.living(connection, companion):
         return []
     return casts(connection, companion, story, today)
 

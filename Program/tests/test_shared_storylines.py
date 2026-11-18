@@ -169,6 +169,73 @@ def test_every_beat_fills_in_for_the_screens_and_for_the_companion():
         assert '{' not in storylines.fill(share, row, names, {'name': 'Mira'}) if share else True
 
 
+def test_the_bank_is_big_enough_in_every_family_and_at_every_drama_level():
+    bank = shared_storylines.bank().values()
+    assert len(bank) >= 100  # The data bank rule: at least 100 entries.
+    for family in FAMILIES:
+        assert sum(story['family'] == family for story in bank) >= 10, family
+    # Plenty can start in the quietest world, and in one where the two never meet in person (texts only).
+    assert sum(story['level'] == 0 for story in bank) >= 50
+    assert sum(not shared_storylines.plans(story) for story in bank) >= 50
+    # "A third person" needs a dramatic world.
+    assert all(story['level'] >= 2 for story in bank if story['family'] == 'a third person')
+
+
+def test_every_turning_of_the_bank_has_its_odds_table_and_no_table_is_left_over():
+    used = {found['choice'] for _story, _beat_id, beat in every_beat() for found in (beat.get('then') or {}).values()
+            if isinstance(found, dict) and 'choice' in found}
+    tables = consequences.tables()
+    assert used == {key for key in tables if key.startswith('shared:')}
+    for key in used:
+        for option in tables[key]['options']:
+            option['label'].format(name='Mira', a='Ana')
+            for rule in option['rules']:
+                rule['why'].format(name='Mira', a='Ana')
+
+
+def test_the_words_of_the_bank_keep_to_the_writing_rules():
+    family_casts = ('family', 'parent', 'employed parent', 'independent parent', 'unmarried sibling')
+    for story, beat_id, beat in every_beat():
+        where, text, share = (story['key'], beat_id), beat['text'], beat.get('share', '')
+        # The companion is only ever {name} (the context turns it into "you"), never at the start of a later
+        # sentence, and the share is in their own voice.
+        assert not re.search(r'[.;:!?] \{name\}', text) and '{name}' not in share and '{user' not in share.lower(), where
+        # "You" and "the user" take the same verb only in the past tense.
+        assert not re.search(r'\{[uU]ser\} (?:is|was|has|does|needs|wants|says|likes|hopes|knows|thinks)\b', text), where
+        assert not re.search(r"\{name\} (?:was|wants|says|asks|goes|plans|needs|knows|thinks|feels|does|isn't|hasn't|"
+                             r"doesn't)\b", text), where
+        # Someone has to be in the cast to be named.
+        assert '{a' not in text + share or story.get('cast') not in (None, 'work'), where
+        # A city of another era gets no story that names a phone or the internet.
+        assert story.get('modern') or not re.search(r'\b(phone|online|text(?:ed|ing|s)?|internet|messaged|alarm|quiz)\b',
+                                                    text + ' ' + share), where
+        if beat['via'] != 'plan':
+            continue
+        plan = beat['plan']
+        assert '{day}' in share and '{time}' in share, where
+        if plan['activity'] == 'visit-in':
+            assert story.get('apart'), where  # Asked over to their place: only while the two live apart.
+        elif plan.get('with') and story['cast'] in family_casts:
+            assert plan['activity'] == 'dinner' and 'dinner' in text, where  # With a relative it is dinner at theirs.
+        else:
+            assert '{place}' in share, where
+            assert not plan.get('with') or plan['activity'] == 'drinks', where  # With a friend it is drinks.
+
+
+def test_a_visit_to_their_place_only_fits_while_the_two_live_apart(client, clock):
+    make(client)
+    settled_in(client, clock)
+    bank = shared_storylines.bank()
+    with client.app.state.database.connect(write=True) as connection:
+        companion, today = current(connection), clock.now().date()
+        fits = lambda key: shared_storylines.fits(connection, companion, bank[key], today, clock.now())  # noqa: E731
+        assert fits('flat_pack') and fits('hang_a_shelf') and fits('found_a_spot')
+        connection.execute("INSERT INTO moving_in (id, timeline_id, plan, status, decided_on, moved_on, created_at) "
+                           "VALUES ('m1', ?, 'theirs', 'moved', ?, ?, 'x')",
+                           (companion['active_timeline_id'], today.isoformat(), today.isoformat()))
+        assert not fits('flat_pack') and not fits('hang_a_shelf') and fits('found_a_spot')
+
+
 def test_the_user_is_you_on_the_screens_and_the_user_to_the_companion():
     story = shared_storylines.bank()['curious_friend']
     names, row = {'p1': {'name': 'Kaito', 'role': 'friend', 'pronouns': 'he/him'}}, {'cast_ids': '["p1"]'}
