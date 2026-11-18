@@ -1,12 +1,10 @@
 """Companions in the Story's scene (1.5, docs/story.md): when the story is where a companion is at that hour, they
 are there, and they speak for themselves.
 
-Rules decide who is there, as for everyone else in the scene:
-- the main character by their own day (the agenda the life sim keeps): at work during a shift, at the city place
-  their slot happens at, or at one their block names. Asleep, off sick, at home or anywhere the city has no place
-  for, they are not in the story.
-- companions who stepped back by their own days too where they have them, else by the town's rules, as the town
-  already places them for each other (companion/life/encounters.py).
+Rules decide who is there, as for everyone else in the scene. Every companion, the main character and those who
+stepped back alike, is where their own day has them (the agenda the life sim keeps, else their routine): at work
+during a shift, at the city place their slot happens at, or at one their block names. Asleep, off sick, at home or
+anywhere the city has no place for, they are not in the story.
 
 `story_cast` keeps who is in the scene with the user and the line they came in at: a companion reads the story from
 there on, never what was said before. A 'cast' line in the story says when one comes or goes. Someone the user is
@@ -25,7 +23,7 @@ from companion.characters import by_id, current
 from companion.clock import parse, stamp
 from companion.database import decode, many, optional
 from companion.images import places
-from companion.life import encounters, pacing
+from companion.life import pacing
 from companion.life import pronouns as words
 from companion.memory import context
 from companion.memory.budget import token_estimate
@@ -67,6 +65,9 @@ SPEAKS = ('- {full}, {pronouns}, {doing}. The user knows {name} well. {name} spe
 # Added under the scene while a companion is in it.
 BESIDE = ('While the user is talking with {names}, keep your part short: a paragraph at most about the place and the '
           'other people, and stop before {names} would answer.')
+# Last thing the narrator reads, after the user's line: small models follow what is nearest.
+AFTER = ('[{names} will answer in {their} own words right after you. Write nothing {names} says or does: leave that '
+         'to {them}.]')
 OWN_LINE = '[{name}, in {their} own words:]\n{text}'
 LABELS = {'user': 'User', 'narrator': 'Narrator'}
 YOU = re.compile(r'^You(r)?\b')
@@ -81,13 +82,9 @@ def member(companion: dict, doing: str, main: bool) -> dict:
             'pronouns': looks.pronouns_of(definition), 'companion': companion}
 
 
-def lives_here(connection, companion: dict, data: dict) -> bool:
-    return newcomers.city_for(connection, companion['version']['definition'])['id'] == data['id']
-
-
 def place_now(connection, companion: dict, data: dict, now: datetime) -> tuple[dict, str] | None:
-    """(city place, what they are doing there) by the main character's own day right now, or None: asleep, off sick,
-    at home, or somewhere the city has no place for."""
+    """(city place, what they are doing there) by a companion's own day right now, or None: asleep, off sick, at
+    home, or somewhere the city has no place for."""
     row = optional(connection, "SELECT block, entry FROM life_agenda WHERE timeline_id=? AND subject='companion' "
                    'AND starts_at<=? AND ends_at>? ORDER BY starts_at DESC LIMIT 1',
                    (companion['active_timeline_id'], stamp(now), stamp(now)))
@@ -113,32 +110,32 @@ def work_place(connection, companion: dict, data: dict, block: dict, now: dateti
     return (place, AT_WORK) if place and place in data['places'] else None
 
 
-def others(connection, main: dict, data: dict, place_id: str, moment: datetime) -> list[dict]:
-    """Companions who stepped back and are at the place now, as the town's rules and their own days put them."""
-    cast = encounters.town_cast(connection, main, data)
-    if not cast['sheets']:
+def everyone(connection) -> list[tuple[dict, bool]]:
+    """Every companion in the workspace with a character, the main one first."""
+    rows = many(connection, 'SELECT id, slot FROM companions WHERE active_version_id IS NOT NULL '
+                'ORDER BY slot IS NULL, slot, created_at, id')
+    found = [(by_id(connection, row['id']), row['slot'] == 1) for row in rows]
+    return [(companion, main) for companion, main in found if companion]
+
+
+def whereabouts(connection, data_for, now: datetime) -> list[dict]:
+    """Every companion with where their day has them now: a member with `city` (their city's data, None when it
+    is gone) and `place` (None: at home, asleep, somewhere the story can't go). `data_for(city_id)` is the Story's
+    own city data (companion/story.py), or None."""
+    if not ACTIVE:
         return []
-    found = encounters.present(data, place_id, [moment], {}, cast, encounters.cast_plans(connection, cast, [moment]))
     result = []
-    for key, here in (found[1] if found else {}).items():
-        sheet = encounters.resolve(data, key, cast)
-        companion = by_id(connection, sheet['cast']) if sheet and sheet.get('cast') else None
-        if companion:
-            result.append(member(companion, here.get('doing') or OWN_TIME, False))
+    for companion, main in everyone(connection):
+        data = data_for(newcomers.city_for(connection, companion['version']['definition'])['id'])
+        found = place_now(connection, companion, data, now) if data else None
+        result.append({**member(companion, found[1] if found else '', main), 'place': found and found[0], 'city': data})
     return result
 
 
-def ruled(connection, data: dict, place_id: str, moment: datetime, now: datetime) -> list[dict]:
-    """Every companion the rules put at the place right now, the main character first."""
-    main = current(connection)
-    if not ACTIVE or main is None:
-        return []
-    result = []
-    if lives_here(connection, main, data):
-        found = place_now(connection, main, data, now)
-        if found and found[0]['id'] == place_id:
-            result.append(member(main, found[1], True))
-    return result + others(connection, main, data, place_id, moment)
+def ruled(connection, data: dict, place_id: str, now: datetime) -> list[dict]:
+    """Every companion whose day puts them at the place right now, the main character first."""
+    found = whereabouts(connection, lambda city_id: data if city_id == data['id'] else None, now)
+    return [item for item in found if item['place'] and item['place']['id'] == place_id]
 
 
 def lingering(connection, known: set[str], now: datetime) -> list[dict]:
@@ -153,32 +150,9 @@ def lingering(connection, known: set[str], now: datetime) -> list[dict]:
     return [member(companion, OWN_TIME, bool(main) and companion['id'] == main['id']) for companion in found if companion]
 
 
-def here(connection, data: dict, place_id: str, moment: datetime, now: datetime) -> list[dict]:
-    found = ruled(connection, data, place_id, moment, now)
+def here(connection, data: dict, place_id: str, now: datetime) -> list[dict]:
+    found = ruled(connection, data, place_id, now)
     return found + lingering(connection, {item['id'] for item in found}, now)
-
-
-def whereabouts(connection, data_for, now: datetime, moment_for) -> list[dict]:
-    """Every companion with where the rules put them now, for the Story's people list: {member, place or None}.
-    `data_for(city_id)` and `moment_for(data)` are the Story's own (companion/story.py)."""
-    main = current(connection)
-    if not ACTIVE or main is None:
-        return []
-    data = data_for(newcomers.city_for(connection, main['version']['definition'])['id'])
-    found = place_now(connection, main, data, now) if data else None
-    result = [{**member(main, found[1] if found else '', True), 'place': found and found[0], 'city': data}]
-    if not data:
-        return result
-    cast, moment = encounters.town_cast(connection, main, data), moment_for(data)
-    plans = encounters.cast_plans(connection, cast, [moment])
-    for key, sheet in cast['sheets'].items():
-        companion = by_id(connection, sheet['cast'])
-        spot = encounters.planned(plans[key], moment) if key in plans else townsfolk.whereabouts(sheet, data, moment)
-        place = spot['place'] and catalog.find(data, spot['place']['id'])
-        if companion:
-            result.append({**member(companion, spot.get('doing') or (OWN_TIME if place else ''), False),
-                           'place': place if place in data['places'] else None, 'city': data})
-    return result
 
 
 # Coming and going ---------------------------------------------------------------------------------
@@ -232,6 +206,15 @@ def narrator_lines(present: list[dict]) -> list[str]:
 
 def beside(present: list[dict]) -> str:
     return BESIDE.format(names=names_text([item['name'] for item in present])) if present else ''
+
+
+def after(chat: list[dict], present: list[dict]) -> list[dict]:
+    """The narrator's conversation with the reminder after the user's latest line, while a companion is there."""
+    if not present or not AFTER or not chat or chat[-1]['role'] != 'user':
+        return chat
+    forms = words.person(present[0]['pronouns'] if len(present) == 1 else None)
+    note = AFTER.format(names=names_text([item['name'] for item in present]), **forms)
+    return [*chat[:-1], {'role': 'user', 'content': f"{chat[-1]['content']}\n\n{note}"}]
 
 
 def names_text(names: list[str]) -> str:

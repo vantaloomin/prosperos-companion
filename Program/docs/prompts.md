@@ -21,6 +21,7 @@ for comparison.
 | Noting the companion's own facts | The memory model reading its replies for their people, team, work | `RULES` in `companion/memory/self_suggest.py` |
 | Describing your pictures | The "Seeing pictures" model | `DESCRIBE` in `companion/pictures.py` |
 | The Story narrator | Every reply in the Story tab, before the scene ([story.md](story.md)) | `NARRATOR` in `companion/story.py` |
+| Companions in the Story | A companion's own line when the Story is where they are, before the scene and the story since they came in ([story.md](story.md#companions-in-the-scene)) | `RULES` in `companion/story_cast.py` |
 | Group chats | Every group chat reply, before who is in the group and the chat so far ([group-chat.md](group-chat.md)) | `RULES` in `companion/groups.py` |
 | Groups starting a conversation | Someone in a group shares something from their day on their own ([group-chat.md](group-chat.md)) | `INSTRUCTION` in `companion/group_openers.py` |
 | Guests in group chats | Who a guest is, in their own reply: someone from a member's circle or around town ([group-chat.md](group-chat.md#guests)) | `SHEET` in `companion/group_guests.py` |

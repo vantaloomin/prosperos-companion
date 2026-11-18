@@ -156,7 +156,7 @@ def scene(connection, now: datetime) -> dict:
             'people': present(connection, data, place['id'], moment), 'data': data, 'now': now,
             'known': story_people.known(connection),
             # Companions who are here at this hour, in their own right (companion/story_cast.py).
-            'companions': story_cast.here(connection, data, place['id'], moment, now)}
+            'companions': story_cast.here(connection, data, place['id'], now)}
 
 
 def person_line(person: dict, place: dict, data: dict, known: dict | None = None) -> str:
@@ -268,8 +268,7 @@ def companions(connection, view: dict) -> list[dict]:
              'here': item['id'] in here, 'doing': item['doing'], 'city': item['city'] and item['city']['name'],
              'place': item['place'] and {'id': item['place']['id'], 'name': item['place']['name'],
                                          'city_id': item['city']['id']}}
-            for item in story_cast.whereabouts(connection, data_for, view['now'],
-                                               lambda data: local_moment(data, view['now']))]
+            for item in story_cast.whereabouts(connection, data_for, view['now'])]
 
 
 def people(connection, view: dict) -> list[dict]:
@@ -380,6 +379,7 @@ def prompt(connection, now: datetime, config: dict, latest: dict) -> dict:
     chat = model_messages(rows, max(budget, 2000), {item['id']: item['pronouns'] for item in view['companions']})
     if not in_character.out_of_character(latest['text']):
         chat = steered(chat, authors_note.prompt_text(connection, 'story'))
+        chat = story_cast.after(chat, view['companions'])  # A companion there answers for themself.
     return {'system': system, 'messages': chat, 'people': view['people'], 'view': view,
             'city_id': view['city']['id'], 'day': datetime.fromisoformat(view['local_time']).date()}
 
