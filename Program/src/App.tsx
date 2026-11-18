@@ -8,7 +8,7 @@ import type { SettingsTab } from './features/settings/sections'
 import { useReconcile } from './features/today/useReconcile'
 import { useNotifications } from './features/notifications/useNotifications'
 import { useTexts } from './features/conversation/useTexts'
-import { Loading, Notice } from './components/Feedback'
+import { Loading } from './components/Feedback'
 import { ErrorNotice } from './components/ErrorNotice'
 import { DebugBanner } from './features/settings/DebugBanner'
 import { ReadyNotice } from './features/ready/ReadyNotice'
@@ -85,8 +85,6 @@ export default function App() {
   // Unread one-to-one and group chats both count on Chats, on the rail and the phone's tab bar.
   const unread = { companion: unreadOf(chats, 'companion'), group: unreadOf(chats, 'group') }
   useFocusOnViewChange(view)
-  // Story mode is opt-in (Settings > Advanced), so its tab shows only once it is on.
-  const storyOn = !!useWorkspaceSettings().data?.story_mode
   useAppColors()
   const sidecarOpen = useSidecarOpen()
   // The dating app shows a download badge until the user has set it up (src/features/dating).
@@ -95,7 +93,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">Skip to content</a>
-      <AppNav view={shown} go={go} storyOn={storyOn} datingInstalled={datingInstalled} datingApp={datingApp} unread={unread} watching={watching} />
+      <AppNav view={shown} go={go} datingInstalled={datingInstalled} datingApp={datingApp} unread={unread} watching={watching} />
       <main id="main" className="app-main" tabIndex={-1}>
         <DebugBanner onOpen={() => go('settings/data')} />
         <ReadyNotice openModels={() => go('settings/models')} />
@@ -169,15 +167,12 @@ function inWorkspace(view: View) {
 }
 
 function WorkspaceView({ view, companion, go, openTab }: CurrentViewProps) {
-  const storyOn = useWorkspaceSettings().data?.story_mode
-  const page = { chats: <ChatsHome go={go} />, worlds: <Worlds />, watch: <Watch go={go} />, dating: <Dating go={go} />,
+  const page = { story: <Story go={go} />, chats: <ChatsHome go={go} />, worlds: <Worlds />, watch: <Watch go={go} />, dating: <Dating go={go} />,
     secrets: <SecretsPage /> }[view as string]
   if (page) return page
   if (view.startsWith('group/')) return <GroupChat key={view} id={decodeURIComponent(view.slice(6))} go={go} />
   if (view.startsWith('match/')) return <SwitchTo townKey={decodeURIComponent(view.slice(6))} go={go} />
-  if (view !== 'story') return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} onHome={() => go('settings')} onCreate={() => go('character')} />
-  return storyOn ? <Story go={go} />
-    : <Notice action={<button type="button" className="text-button" onClick={() => go('settings/advanced')}>Open Settings</button>}>Story mode is off. Turn it on in Settings &gt; Advanced.</Notice>
+  return <Settings companion={companion} tab={view.split('/')[1]} onTab={openTab} onHome={() => go('settings')} onCreate={() => go('character')} />
 }
 
 /** Memories, and Our year so far opened from it. */

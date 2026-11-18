@@ -92,7 +92,7 @@ for medieval and fantasy cities ("Ask for an introduction").
 
 ## Dates in Story mode
 
-With Story mode on (Settings > Advanced, `story_mode`), a match can be met in the story: the user picks a place in their city (their usual spot
+A match can be met in the story: the user picks a place in their city (their usual spot
 first), the story moves there and the narrator is told the date is there, what they look like and what they
 are looking for. Story mode's only hook is `dating.with_date`, which `story.present` calls to add the date
 to whoever the townsfolk rules put there; the date's line in the scene comes from its `note`, and the screen
@@ -110,7 +110,7 @@ shows them as "your date, Maya". Going somewhere else, starting a new story or *
 | `POST /api/dating/swipes` `{key, like}` | Pass or like; returns the state with `matched` set to the person on a match. 409 for someone not in the deck or already answered. |
 | `DELETE /api/dating/swipes/passed` | Shows people the user passed on again. |
 | `DELETE /api/dating/matches/{key}` | Unmatches. |
-| `POST /api/dating/dates` `{key, place_id}` | Meets a match in Story mode (409 with it off); returns the story. |
+| `POST /api/dating/dates` `{key, place_id}` | Meets a match in the story; returns the story. |
 | `DELETE /api/dating/dates/current` | Ends the date. |
 | `POST /api/dating/photos` `{key}` | Their photo: the saved one, or one queued now (409 with the refusal when no backend may make it). |
 | `GET /api/dating/photos/{key}` | `{status, error, url}`; `status` is `none`, `queued`, `running`, `completed` or `failed`. |

@@ -157,7 +157,10 @@ def known_pins(connection, companion: dict, data: dict, hoods: dict, now) -> lis
 
 
 def scene_place(connection, data: dict) -> str | None:
+    """Where the user's story is, once it has begun: a story never opened puts no pin on the map."""
     from companion import story
+    if connection.execute('SELECT 1 FROM story_messages LIMIT 1').fetchone() is None:
+        return None
     row = story.scene_row(connection)
     return row['place_id'] if row['city_id'] == data['id'] else None
 
@@ -174,12 +177,12 @@ def place_view(place: dict, hood: dict, pins: set[str], events: list[dict], peop
             'regulars': sorted(set(people))}
 
 
-def build(connection, companion: dict, now, story_on: bool) -> dict:
+def build(connection, companion: dict, now) -> dict:
     data = network.city(connection, companion)
     hoods = {hood['id']: hood for hood in data['neighborhoods']}
     events = history(connection, companion['active_timeline_id'], now)
     marked = marks(events, now)
-    scene = scene_place(connection, data) if story_on else None
+    scene = scene_place(connection, data)
     people = regulars(connection, companion, now)
     by_place = {}
     for event in events:
@@ -208,4 +211,4 @@ def build(connection, companion: dict, now, story_on: bool) -> dict:
                      'enclosed': data.get('enclosed') is True},
             'hoods': [{'id': hood['id'], 'name': hood['name'], 'lat': hood['lat'], 'lon': hood['lon'],
                        'next': next_to[hood['id']]} for hood in hoods.values()],
-            'places': homes + places, 'water': data.get('water') or [], 'story': story_on}
+            'places': homes + places, 'water': data.get('water') or []}

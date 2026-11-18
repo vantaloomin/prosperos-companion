@@ -37,7 +37,7 @@ test('history, suggestions and the list read plainly', () => {
 })
 
 const city = (water: CityMapData['water'] = []): CityMapData => ({
-  city: { id: 'c', name: 'C', lat: 40, lon: -70, real: false }, story: false, water,
+  city: { id: 'c', name: 'C', lat: 40, lon: -70, real: false }, water,
   hoods: [{ id: 'a', name: 'Alder', lat: 40, lon: -70, next: ['b'] }, { id: 'b', name: 'Birch', lat: 40.0001, lon: -70.0001, next: ['a'] },
     { id: 'c', name: 'Cedar', lat: 40.01, lon: -69.99, next: ['b'] }],
   places: [place('p1', 'a'), place('p2', 'a'), place('p3', 'b'), place('p4', 'c', ['home'])],

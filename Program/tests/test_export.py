@@ -224,8 +224,6 @@ def test_a_group_chat_names_each_speaker(client, companion, chat):
 
 
 def test_the_story_exports_with_its_narrator_and_places(client, chat):
-    assert client.get('/api/export/story').status_code == 404  # Story mode is off.
-    ok(client.put('/api/settings', json={'story_mode': True}))
     database = client.app.state.database
     where = {'city_id': 'baltimore', 'place_id': 'somewhere'}
     with database.connect(write=True) as connection:

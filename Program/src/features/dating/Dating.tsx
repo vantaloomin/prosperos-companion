@@ -154,7 +154,7 @@ function Matches({ data, go, onUnmatch, onDate }: MatchesProps) {
             {match.companion_id
               ? <button type="button" className="button primary" disabled={busy !== null} onClick={() => void switchTo(match.companion_id!)}>Talk to {match.name}</button>
               : <StartTalking name={match.name} matchKey={match.key} go={go} primary />}
-            {data.story && <MeetInStory match={match} onDate={onDate} />}
+            <MeetInStory match={match} onDate={onDate} />
             {!match.companion_id && <button type="button" className="text-button" onClick={() => onUnmatch(match.key)}>Unmatch</button>}
           </div>}
         </li>)}

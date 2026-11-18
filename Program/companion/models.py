@@ -435,7 +435,6 @@ class SettingsUpdate(Input):
     # 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
     theme: Literal['system', 'scheme', 'paper'] | None = None
     ask_about_people: bool | None = None
-    story_mode: bool | None = None
     show_secret_slips: bool | None = None
     show_moods: bool | None = None
     show_news: bool | None = None

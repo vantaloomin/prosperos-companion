@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aroundText, personLine, placeGroups, sceneTime } from '../../src/features/story/storyText.ts'
+import { aroundText, openingText, personLine, placeGroups, sceneTime } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 am')
@@ -39,4 +39,8 @@ test('a person met says how often and where they are now', () => {
   assert.equal(personLine(person), 'Met 3 times · now working as the barista at The Daily Grind')
   assert.equal(personLine({ ...person, meetings: 1, doing: 'at home', place: null }), 'Met once · now at home')
   assert.equal(personLine({ ...person, doing: 'at their usual spot at The Daily Grind' }), 'Met 3 times · now at their usual spot at The Daily Grind')
+})
+
+test('a story not begun says what it is in one line', () => {
+  assert.equal(openingText({ city: { name: 'Grandport' } }), 'Your own story in Grandport, told by a narrator.')
 })

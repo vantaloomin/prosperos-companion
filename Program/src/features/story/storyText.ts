@@ -70,3 +70,8 @@ export function personLine(person: StoryPerson): string {
   const where = person.place && !person.doing.includes(person.place.name) ? ` at ${person.place.name}` : ''
   return `Met ${times} · now ${person.doing}${where}`
 }
+
+/** A story's first open, before anything is said: "Your own story in Baltimore, told by a narrator." */
+export function openingText(scene: { city: { name: string } }): string {
+  return `Your own story in ${scene.city.name}, told by a narrator.`
+}

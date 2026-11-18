@@ -1,17 +1,16 @@
-# Story mode
+# Story
 
 The **Story** tab is the user's own free-form story: they play themself in one of the cities, and a
 narrator describes the place and voices the people there. It is apart from every companion. The
 story has its own tables (`story_scene`, `story_messages`), and no companion prompt reads them, so
 nothing said in the story reaches the companion's chat, memories or life.
 
-## Turning it on
+## Part of every world
 
-Story mode is opt-in and off by default. It sits beside the companion rather than at the heart of the
-app. Turn it on under Settings > Advanced (shown with "Show advanced settings") > Story mode > "Show the
-Story tab". That is the `story_mode` workspace setting (`PUT /api/settings {"story_mode": true}`). While it
-is off, the Story tab is hidden and every `/api/story` request answers 404 with code `story_off`.
-The dating app is its own feature and does not depend on this setting.
+The Story is a normal part of the app since 1.5: its tab is always in the side rail and the phone's tab bar,
+with or without a companion, and there is no switch for it. It makes a model call only when the user plays, as
+chat does. A story with nothing in it yet opens on one line saying what it is and a Look around button, which
+says "I look around." for the user; the box below takes any other first line. The dating app is its own feature.
 
 ## Who decides what
 
@@ -75,5 +74,5 @@ Starting a new story clears the people met too.
 
 ## Planned
 
-- Narrator-played dates with a dating-app match, when Story mode is on. The dating app itself is a
+- Narrator-played dates with a dating-app match. The dating app itself is a
   standalone feature for finding new companions.
