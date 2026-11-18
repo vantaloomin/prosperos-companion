@@ -464,6 +464,9 @@ ADDED_COLUMNS = (
     # its daily roll was made on a timeline.
     ('life_settings', 'shared_storylines', 'INTEGER NOT NULL DEFAULT 2 CHECK (shared_storylines BETWEEN 0 AND 3)'),
     ('storyline_days', 'shared_through', 'TEXT'),
+    # Where a match was made: 'app' on the dating app, 'story' when someone said yes to the user in their own story
+    # (companion/story_pursuit.py).
+    ('dating_swipes', 'source', "TEXT NOT NULL DEFAULT 'app' CHECK (source IN ('app', 'story'))"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
