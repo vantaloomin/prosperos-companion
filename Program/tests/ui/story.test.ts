@@ -3,9 +3,9 @@ import { test } from 'node:test'
 import { aroundText, openingText, personLine, placeGroups, sceneTime } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
-  assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 am')
-  assert.equal(sceneTime('2026-10-06T00:30'), 'Tuesday, 12:30 am')
-  assert.equal(sceneTime('2026-10-06T21:40'), 'Tuesday, 9:40 pm')
+  assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
+  assert.equal(sceneTime('2026-10-06T00:30'), 'Tuesday, 12:30 AM')
+  assert.equal(sceneTime('2026-10-06T21:40'), 'Tuesday, 9:40 PM')
 })
 
 test('who is around reads as a sentence', () => {

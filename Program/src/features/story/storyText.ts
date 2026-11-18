@@ -1,12 +1,12 @@
 import type { StoryPerson, StoryPlace, StoryScene } from '../../types'
 
-/** "Tuesday, 9:40 am" from the scene's local time, which is the city's own clock with no offset. */
+/** "Tuesday, 9:40 AM" from the scene's local time, which is the city's own clock with no offset. */
 export function sceneTime(localTime: string): string {
   const [day, clock] = localTime.split('T')
   const [year, month, date] = day.split('-').map(Number)
   const [hour, minute] = clock.split(':').map(Number)
   const weekday = new Date(Date.UTC(year, month - 1, date)).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
-  return `${weekday}, ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'am' : 'pm'}`
+  return `${weekday}, ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`
 }
 
 const COUNTS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
