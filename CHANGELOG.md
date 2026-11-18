@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **More storylines:** the things that unfold over days in a companion's life and their circle's came from a bank
+  of nineteen stories, so a long world met the same few again. The bank now holds over a hundred: more good news
+  for a quiet world, more everyday trouble at Realistic, and more to go wrong at Dramatic and Soap opera. New ones
+  are about a sibling, a grandparent, a neighbor, any friend, and the companion's own days outside work. How often
+  one starts is unchanged (Settings > Realism > Drama).
 - **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat
   message. Posts now have a Comment button: your comment goes under the post, and whoever posted answers you there,
   your companion on their own posts and a friend on theirs, once they would have seen it (sooner or later by

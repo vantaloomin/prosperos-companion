@@ -187,6 +187,23 @@ def single_best_friend(row: dict, facts: Facts) -> bool:
     return close_friend(row, facts) and single(row, facts) and facts.love_level > 0
 
 
+def friend(row: dict, facts: Facts) -> bool:
+    """Any friend who confides in the companion, family aside."""
+    return confidant(row, facts) and not family(row)
+
+
+def sibling(row: dict, facts: Facts) -> bool:
+    return kind(row) == 'sibling' and circle.knowing(row) == 'both'
+
+
+def grandparent(row: dict, facts: Facts) -> bool:
+    return kind(row) in circle.GRANDPARENTS and circle.knowing(row) == 'both'
+
+
+def neighbor(row: dict, facts: Facts) -> bool:
+    return kind(row) == 'neighbor' and circle.knowing(row) == 'both' and not adversary(row)
+
+
 SINGLE = {
     'employed parent': employed_parent,
     'independent parent': independent_parent,
@@ -198,6 +215,10 @@ SINGLE = {
     'friend seeing someone': friend_seeing_someone,
     'close friend': close_friend,
     'best friend, single': single_best_friend,
+    'friend': friend,
+    'sibling': sibling,
+    'grandparent': grandparent,
+    'neighbor': neighbor,
 }
 
 
