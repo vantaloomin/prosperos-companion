@@ -836,7 +836,8 @@ def context_lines(connection, companion, now) -> list[tuple[str, str]]:
     today = local_today(companion, now)
     recent, pinned = ((today - timedelta(days=days)).isoformat() for days in (RECENT_DAYS, SETTLED_DAYS))
     result = []
-    for item in visible(connection, companion, now, you=True):
+    # One the user is part of is told with their part in it (shared_storylines.context_lines).
+    for item in visible(connection, companion, now, you=True, with_you=False):
         last = item['beats'][-1]
         if last['on'] >= recent:
             text = ' Then: '.join(beat_['text'] for beat_ in item['beats'])
