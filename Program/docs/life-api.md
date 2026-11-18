@@ -632,7 +632,10 @@ left to the consequence engine on its day (below). Later beats stay hidden until
 opera; default 1) sets how often one starts (about 4%, 8%, 15% or 28% of days), how many run at once
 (1 to 4) and which templates can happen: quiet keeps to good news; realistic adds everyday trouble
 (a coworker taking credit, a friend's breakup, layoff rumors); dramatic adds health scares, feuds and
-secret romances; soap opera adds drunk kisses, separations and family secrets. A template doesn't
+secret romances; soap opera adds drunk kisses, separations and family secrets. The bank holds over a hundred
+templates (the first nineteen in `storylines.py`, the rest in `companion/life/storyline_bank.py`, which also says
+how a line must be written), about the companion's work, their own days outside it, a coworker, a parent or both,
+a sibling, a grandparent, a cousin, a neighbor, a friend or two friends. A template doesn't
 repeat within 90 days, a person is in one running storyline at a time, and a companion in a romance
 with the user never gets one about their own love life.
 
