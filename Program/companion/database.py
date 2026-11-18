@@ -467,6 +467,11 @@ ADDED_COLUMNS = (
     # Scenes count (companion/story_visits.py, Settings > Realism > Story scenes count): time with a companion in the
     # Story leaves a shared moment, counts toward closeness and can reach a relationship step. On unless turned off.
     ('life_settings', 'story_counts', 'INTEGER NOT NULL DEFAULT 1 CHECK (story_counts IN (0, 1))'),
+    # A plan played in the Story (companion/story_plans.py): the outing a visit was part of. It leaves its own memory,
+    # so the visit adds none.
+    ('story_visits', 'outing_id', 'TEXT'),
+    # A line the app said for the user to start a plan's scene: the models read it, the screen and exports do not.
+    ('story_messages', 'hidden', 'INTEGER NOT NULL DEFAULT 0'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

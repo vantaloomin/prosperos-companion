@@ -27,6 +27,8 @@ export interface Outing {
   /** The scene keeps up (companion/life/scene_now.py): the chat took them somewhere ('place', 'yours', 'theirs', or on
    * the move: 'transit', 'way', 'there', 'outside'); `back` for a minute or two after, to be back at `to`. */
   scene?: OutingScene | null
+  /** Under way somewhere the Story can go: it can be played there as a scene (companion/story_plans.py). */
+  story?: boolean
 }
 export interface OutingScene { back: boolean; to: string; kind: string }
 export interface OutingNext { place: OutingPlace; activity: string; at: string; asked: boolean }

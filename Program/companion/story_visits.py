@@ -38,7 +38,12 @@ CAME = {'user': 'the user came by {place} while you were {doing}',
 DOING = {story_cast.AT_WORK: 'at work there'}
 TOLD = ('- {when}, {came}, and the two of you spent time together in person. It really happened, and you remember '
         'it. You are apart again now, texting.')
+# A plan played in the Story (companion/story_plans.py): the 'together' section already says what and where, and
+# while it is still going on they are not apart.
+TOLD_PLAN = ('- {when}, at {place}, the two of you talked face to face, on the plan you had made. It really '
+             'happened, and you remember it.')
 ENDED = ' How it ended, in the words that were said:'
+SAID = ' The latest of what was said:'
 
 
 def counts(connection) -> bool:
@@ -60,9 +65,10 @@ def start(connection, item: dict, user: dict, view: dict, now: datetime) -> dict
     day = now.astimezone(zone(companion['version']['timezone'])).date().isoformat()
     connection.execute(
         'INSERT INTO story_visits (id, companion_id, timeline_id, city_id, place_id, place_name, doing, came, '
-        'local_date, first_seq, last_seq, started_at, last_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'local_date, first_seq, last_seq, started_at, last_at, outing_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (visit_id, item['id'], companion['active_timeline_id'], view['city']['id'], view['place']['id'],
-         view['place']['name'], item['doing'], came, day, user['seq'], user['seq'], stamp(now), stamp(now)))
+         view['place']['name'], item['doing'], came, day, user['seq'], user['seq'], stamp(now), stamp(now),
+         item['plan']['id'] if item.get('plan') else None))
     return optional(connection, 'SELECT * FROM story_visits WHERE id=?', (visit_id,))
 
 
@@ -125,7 +131,7 @@ def fresh_lines(connection, companion: dict, user: dict, now: datetime) -> list[
 
 def lines_of(connection, visit: dict) -> list[dict]:
     """What the two of them said during the visit: the user's lines and the companion's own, in order."""
-    return many(connection, "SELECT role, text FROM story_messages WHERE seq>=? AND seq<=? AND status='complete' AND "
+    return many(connection, "SELECT role, text FROM story_messages WHERE seq>=? AND seq<=? AND status='complete' AND hidden=0 AND "
                 "(role='user' OR (role=? AND speaker=?)) ORDER BY seq",
                 (visit['first_seq'], visit['last_seq'], story_cast.ROLE, visit['companion_id']))
 
@@ -145,7 +151,8 @@ def close(connection, visit: dict, now: datetime) -> None:
     lines = lines_of(connection, visit)
     spoke = sum(line['role'] != 'user' for line in lines)
     ended = min(stamp(now), stamp(parse(visit['last_at']) + IDLE))
-    memory_id = remember(connection, visit) if visit['said'] >= MEMORY_SAID and spoke else None
+    # A plan leaves its own memory when it ends (companion/life/outings.py): the visit adds none.
+    memory_id = remember(connection, visit) if visit['said'] >= MEMORY_SAID and spoke and not visit['outing_id'] else None
     connection.execute('UPDATE story_visits SET ended_at=?, heard=?, excerpt=?, memory_id=? WHERE id=?',
                        (ended, spoke, encode(excerpt(lines)), memory_id, visit['id']))
 
@@ -215,13 +222,17 @@ def when_text(ended: datetime, now: datetime, timezone) -> str:
 
 
 def told_text(visit: dict, lines: list[dict], now: datetime, timezone) -> str:
-    came = CAME[visit['came']].format(place=visit['place_name'],
-                                      doing=DOING.get(visit['doing'], 'there on your own time'))
-    text = TOLD.format(when=when_text(parse(visit['ended_at'] or visit['last_at']), now, timezone), came=came)
+    when = when_text(parse(visit['ended_at'] or visit['last_at']), now, timezone)
+    if visit['outing_id']:
+        text = TOLD_PLAN.format(when=when, place=visit['place_name'])
+    else:
+        came = CAME[visit['came']].format(place=visit['place_name'],
+                                          doing=DOING.get(visit['doing'], 'there on your own time'))
+        text = TOLD.format(when=when, came=came)
     if not lines:
         return text
     said_lines = '\n'.join(f"  {'The user' if line['who'] == 'user' else 'You'}: {line['text']}" for line in lines)
-    return f'{text}{ENDED}\n{said_lines}'
+    return f"{text}{ENDED if visit['ended_at'] or not visit['outing_id'] else SAID}\n{said_lines}"
 
 
 def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str, str]]:

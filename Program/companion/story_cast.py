@@ -4,7 +4,8 @@ are there, and they speak for themselves.
 Rules decide who is there, as for everyone else in the scene. Every companion, the main character and those who
 stepped back alike, is where their own day has them (the agenda the life sim keeps, else their routine): at work
 during a shift, at the city place their slot happens at, or at one their block names. Asleep, off sick, at home or
-anywhere the city has no place for, they are not in the story.
+anywhere the city has no place for, they are not in the story. While a plan with the user is under way they are
+where the plan is, as the person the user came with (companion/story_plans.py).
 
 `story_cast` keeps who is in the scene with the user and the line they came in at: a companion reads the story from
 there on, never what was said before. A 'cast' line in the story says when one comes or goes. Someone the user is
@@ -19,7 +20,7 @@ leaves behind is companion/story_visits.py.
 import re
 from datetime import datetime, timedelta
 
-from companion import prompt_library, texting
+from companion import prompt_library, story_plans, texting
 from companion.characters import by_id, current
 from companion.clock import parse, stamp
 from companion.database import decode, many, optional
@@ -128,8 +129,11 @@ def whereabouts(connection, data_for, now: datetime) -> list[dict]:
     result = []
     for companion, main in everyone(connection):
         data = data_for(newcomers.city_for(connection, companion['version']['definition'])['id'])
-        found = place_now(connection, companion, data, now) if data else None
-        result.append({**member(companion, found[1] if found else '', main), 'place': found and found[0], 'city': data})
+        # A plan with the user under way is where they are, whatever the rest of their day says (story_plans.py).
+        plan = story_plans.under_way(connection, companion, now)
+        found = story_plans.placed(plan, data) if plan else place_now(connection, companion, data, now) if data else None
+        result.append({**member(companion, found[1] if found else '', main), 'place': found and found[0], 'city': data,
+                       'plan': plan if found else None})
     return result
 
 
@@ -172,7 +176,8 @@ def sync(connection, add, present: list[dict], now: str, where: dict) -> None:
     kept = {row['companion_id'] for row in many(connection, 'SELECT companion_id FROM story_cast')}
     for item in present:
         if item['id'] not in kept:
-            line = add(connection, now, NOTE, f"{item['name']} is here.", where, speaker=item['id'], name=item['name'])
+            text = story_plans.arrived(item) if item.get('plan') else f"{item['name']} is here."
+            line = add(connection, now, NOTE, text, where, speaker=item['id'], name=item['name'])
             connection.execute('INSERT INTO story_cast (companion_id, since_seq, joined_at) VALUES (?, ?, ?)',
                                (item['id'], line['seq'], now))
 
@@ -261,7 +266,7 @@ def scene_part(view: dict, item: dict, seen) -> str:
     screen shows them. `seen` is the Story's own (companion/story.py)."""
     place, moment = view['place'], datetime.fromisoformat(view['local_time'])
     part = townsfolk.part_of_day(moment.hour * 60 + moment.minute)
-    around = [seen(person, view) for person in view['people']] + \
+    around = story_plans.around(view['companions']) + [seen(person, view) for person in view['people']] + \
         [other['name'] for other in view['companions'] if other['id'] != item['id']]
     lines = [f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {view['city']['name']}. "
              f"{place['summary']}".rstrip(),
@@ -283,6 +288,18 @@ def story_lines(connection, view: dict, item: dict, rows: list[dict], now: datet
     """Their own view of the scene, private to them: where they are and why, who came to whom, and how they stand
     with any other companion there (as in a group chat, companion/groups.py)."""
     from companion import groups
+    lines = story_plans.own_lines(connection, item, view['place'], now) if item.get('plan') else \
+        chance_lines(connection, view, item)
+    lines.append(('story:sealed', 'What happens here is in person. You have seen only what the lines above show.'))
+    for other in view['companions']:
+        if other['id'] != item['id']:
+            lines += groups.member_lines(connection, groups.member_key(item['id']),
+                                         {'member': groups.member_key(other['id']), 'name': other['name']}, now)
+    return lines
+
+
+def chance_lines(connection, view: dict, item: dict) -> list[tuple[str, str]]:
+    """With no plan between them: where they are and why, and who came to whom."""
     place = view['place']
     doing = 'at work here' if item['doing'] == AT_WORK else 'here on your own time'
     lines = [(f"story:{place['id']}", f"You are {item['name']}, in person with the user at {place['name']}. "
@@ -292,11 +309,6 @@ def story_lines(connection, view: dict, item: dict, rows: list[dict], now: datet
         lines.append(('story:came', 'You were here first. The user has come in; you did not know they were coming.'))
     else:
         lines.append(('story:came', 'The user was here before you. You have come in and found them here.'))
-    lines.append(('story:sealed', 'What happens here is in person. You have seen only what the lines above show.'))
-    for other in view['companions']:
-        if other['id'] != item['id']:
-            lines += groups.member_lines(connection, groups.member_key(item['id']),
-                                         {'member': groups.member_key(other['id']), 'name': other['name']}, now)
     return lines
 
 
