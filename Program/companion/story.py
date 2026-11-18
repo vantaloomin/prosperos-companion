@@ -14,7 +14,16 @@ narrator's reply comes first, then each companion's own line, written by their o
 """
 from datetime import datetime
 
-from companion import authors_note, in_character, prompt_library, safety, story_cast, story_people, story_visits
+from companion import (
+    authors_note,
+    in_character,
+    prompt_library,
+    safety,
+    story_cast,
+    story_people,
+    story_plans,
+    story_visits,
+)
 from companion.characters import current
 from companion.clock import zone
 from companion.database import identifier, many, one, optional
@@ -157,7 +166,9 @@ def scene(connection, now: datetime) -> dict:
             'people': present(connection, data, place['id'], moment), 'data': data, 'now': now,
             'known': story_people.known(connection),
             # Companions who are here at this hour, in their own right (companion/story_cast.py).
-            'companions': story_cast.here(connection, data, place['id'], now)}
+            'companions': (found := story_cast.here(connection, data, place['id'], now)),
+            # The people a plan under way here is with, for the narrator to voice (companion/story_plans.py).
+            'along': story_plans.narrator_people(connection, found)}
 
 
 def person_line(person: dict, place: dict, data: dict, known: dict | None = None) -> str:
@@ -196,11 +207,12 @@ def scene_text(view: dict) -> str:
     if view['weather']:
         lines.append(f"Weather: {view['weather']}")
     lines.append('Who is here (their names are for you; the user knows only the names of people they have met):')
-    lines += story_cast.narrator_lines(view['companions']) + \
+    lines += story_cast.narrator_lines(view['companions']) + view['along'] + \
         [person_line(person, {'id': place['id']}, data, view['known'].get(person['sheet']['key']))
          for person in view['people']] or ['- Nobody the story knows; only passers-by.']
     if view['companions']:
         lines.append(story_cast.beside(view['companions']))
+    lines += story_plans.narrator_plan(view['companions'])  # They came together, on purpose.
     return '## Scene\n' + '\n'.join(lines)
 
 
@@ -211,8 +223,11 @@ def scene_view(view: dict) -> dict:
         'places': [{'id': item['id'], 'name': item['name'], 'kind': item['kind'],
                     'neighborhood': townsfolk.neighborhood_name(data, item['neighborhood'])} for item in data['places']],
         # A companion is someone the user knows: by name, and first.
-        'around': [item['name'] for item in view['companions']] + [seen(person, view) for person in view['people']],
-        'companions': [{'id': item['id'], 'name': item['name']} for item in view['companions']]}
+        'around': [item['name'] for item in view['companions']] + story_plans.around(view['companions'])
+        + [seen(person, view) for person in view['people']],
+        'companions': [{'id': item['id'], 'name': item['name']} for item in view['companions']],
+        # The plan being played here (companion/story_plans.py), or None.
+        'plan': next((story_plans.view(item) for item in view['companions'] if item.get('plan')), None)}
 
 
 def seen(person: dict, view: dict) -> str:
@@ -267,6 +282,8 @@ def companions(connection, view: dict) -> list[dict]:
     here = {item['id'] for item in view['companions']}
     return [{'key': f"companion:{item['id']}", 'id': item['id'], 'name': item['name'], 'main': item['main'],
              'here': item['id'] in here, 'doing': item['doing'], 'city': item['city'] and item['city']['name'],
+             # Their plan with the user under way, when the story can go to it (companion/story_plans.py).
+             'plan': story_plans.view(item) if item.get('plan') else None,
              'place': item['place'] and {'id': item['place']['id'], 'name': item['place']['name'],
                                          'city_id': item['city']['id']}}
             for item in story_cast.whereabouts(connection, data_for, view['now'])]
@@ -306,6 +323,20 @@ def find(database, key: str) -> dict:
     require(place is not None and not place['id'].startswith('~'),
             f"{person['name'].split()[0]} isn't anywhere you can go right now{doing}.", 409)
     return move(database, place['city_id'], place['id'])
+
+
+def play(database, outing_id: str) -> dict:
+    """Play a plan under way as a scene: the story goes to where the plan is (companion/story_plans.py). The
+    companion and the people it is with are there because the plan is, not because the story came."""
+    with database.connect() as connection:
+        companion, plan = story_plans.find(connection, outing_id, database.clock.now())
+        try:
+            data = city_data(connection, newcomers.city_for(connection, companion['version']['definition'])['id'])
+        except DomainError:
+            data = None
+        place = story_plans.place_of(plan, data)
+    require(place is not None, "This plan isn't somewhere your story can go.", 409)
+    return move(database, data['id'], place['id'])
 
 
 def move(database, city_id: str, place_id: str | None) -> dict:

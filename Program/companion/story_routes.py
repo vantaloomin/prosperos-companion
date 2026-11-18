@@ -38,6 +38,15 @@ def find(request: Request, body: StoryPerson):
     return story.find(request.app.state.database, body.key)
 
 
+class StoryPlan(Input):
+    outing_id: str = Field(min_length=1, max_length=80)
+
+
+@router.post('/plan')
+def play(request: Request, body: StoryPlan):
+    return story.play(request.app.state.database, body.outing_id)
+
+
 @router.post('/messages')
 async def send(request: Request, body: StoryMessage):
     return await story.send(request.app.state, body.text, body.client_id)

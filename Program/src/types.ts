@@ -2011,6 +2011,14 @@ export interface StoryScene {
   around: string[]
   /** Companions in the scene right now (companion/story_cast.py): each answers in their own lines. */
   companions: { id: string; name: string }[]
+  /** The plan being played here (companion/story_plans.py): the companion came with the user, on purpose. */
+  plan: StoryPlan | null
+}
+/** A plan with a companion under way somewhere the story can go: `what` reads after "for" ("dinner"), `until` is
+ * '21:00', `people` are who it is with besides the two of them, `storyline` marks one a storyline booked. */
+export interface StoryPlan {
+  outing_id: string; companion_id: string; name: string; what: string; until: string; place: string; storyline: boolean
+  people: { name: string; role: string }[]
 }
 export interface StoryMessage {
   /** 'companion' is a companion's own line in the scene (`speaker`, `name`); 'cast' says one came or went. */
@@ -2023,6 +2031,8 @@ export interface StoryMessage {
 export interface StoryCompanion {
   key: string; id: string; name: string; main: boolean; here: boolean; doing: string; city: string | null
   place: { id: string; name: string; city_id: string } | null
+  /** Their plan with the user under way, at `place` (companion/story_plans.py). */
+  plan: StoryPlan | null
 }
 /** Someone the user has met in their story (companion/story_people.py), with where their rules put them now. */
 export interface StoryPerson {

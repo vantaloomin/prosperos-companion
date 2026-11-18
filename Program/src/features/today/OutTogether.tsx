@@ -67,7 +67,19 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
 function MeetLine({ outing }: { outing: Outing }) {
   const line = meetLine(outing)
   if (!line) return null
-  return <p className="subtle together-how">{line}{outing.state === 'now' && <> <a className="text-button inline" href="#conversation">Talk face to face</a></>}</p>
+  return <p className="subtle together-how">{line}{outing.state === 'now' && <> <a className="text-button inline" href="#conversation">Talk face to face</a></>}{outing.story && <> or <PlayInStory outing={outing} /></>}</p>
+}
+
+/** Under way somewhere the Story can go: play it there as a scene, at that place with those people
+ * (companion/story_plans.py). The story goes there; the chat stays face to face too. */
+function PlayInStory({ outing }: { outing: Outing }) {
+  const client = useQueryClient()
+  const play = async () => {
+    try { await api('/story/plan', { outing_id: outing.id }) } catch { /* The Story says what is wrong when it opens. */ }
+    void client.invalidateQueries({ queryKey: ['story'] })
+    window.location.hash = '#story'
+  }
+  return <button type="button" className="text-button inline" onClick={() => void play()}>play it in Story</button>
 }
 
 /** An evening out with a child of yours at home: who is watching them that night (words only). */

@@ -3,13 +3,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Map as MapIcon, MapPin, RotateCcw, Send } from 'lucide-react'
 import { api, newId } from '../../api'
 import type { View } from '../../companion'
-import type { CitySummary, Story as StoryData, StoryCompanion, StoryMessage, StoryScene } from '../../types'
+import type { CitySummary, Story as StoryData, StoryMessage, StoryScene } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { InfoTip } from '../../components/InfoTip'
 import { AiFooter, CrisisNote } from '../../components/Safety'
-import { aroundText, openingAction, openingText, placeGroups, sceneTime, spotsText, whereText, writingText } from './storyText'
+import { aroundText, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, whereText, writingText } from './storyText'
 import { StoryPeople } from './StoryPeople'
 import { CityOptions } from '../world/CityOptions'
 import { ExportLinks } from '../chats/ExportLinks'
@@ -66,7 +66,7 @@ export function Story({ go }: { go: (view: View) => void }) {
   const main = story.data.companions.find((companion) => companion.main)
   /** The first-open button: go to the companion when they are somewhere else the story can go, then say the first line. */
   const start = () => {
-    const action = openingAction(main)
+    const action = openingAction(main, story.data.scene.plan)
     const clientId = newId()
     return run({ text: action.line, clientId }, async () => {
       if (action.find) await find(action.find)
@@ -83,9 +83,10 @@ export function Story({ go }: { go: (view: View) => void }) {
       </header>
       {!story.data.ready && <div className="story-notice"><Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Models</button>}>
         Add a text model in Settings &gt; Models to tell the story.</Notice></div>}
-      {!story.data.messages.some((message) => message.role === 'user') && !busy && <Opening scene={story.data.scene} companion={main} ready={story.data.ready} onStart={() => void start()} />}
+      <Opening at="top" story={story.data} busy={busy} onStart={() => void start()} />
       <StoryLog messages={story.data.messages} pending={pending} companions={story.data.scene.companions} lookFor={lookFor}
         onScrolled={onScrolled} onRetry={() => void run(null, () => api('/story/retry', {}))} />
+      <Opening at="bottom" story={story.data} busy={busy} onStart={() => void start()} />
       {error && <div className="story-notice"><Notice tone="error">{error}</Notice></div>}
       <StoryComposer busy={busy} onSend={(text) => void send(text)} />
       <NewStory empty={!story.data.messages.length} onClear={() => run(null, () => api<StoryData>('/story', undefined, 'DELETE').then(update))} />
@@ -94,12 +95,15 @@ export function Story({ go }: { go: (view: View) => void }) {
 }
 
 /** A story with nothing in it yet: what it is in one line and one way in. The button says the first line for the
- * user; the box below takes any other. Without a model the notice above says what is needed instead. */
-function Opening({ scene, companion, ready, onStart }: { scene: StoryScene; companion?: StoryCompanion; ready: boolean; onStart: () => void }) {
+ * user; the box below takes any other. Without a model the notice above says what is needed instead. A plan under way
+ * here (companion/story_plans.py) opens the same way under the lines that say who came, until something is said. */
+function Opening({ at, story, busy, onStart }: { at: 'top' | 'bottom'; story: StoryData; busy: boolean; onStart: () => void }) {
+  if (busy || openingPlace(story) !== at) return null
+  const companion = story.companions.find((item) => item.main)
   return (
     <div className="story-opening">
-      <p>{openingText(scene, companion)}</p>
-      {ready && <button type="button" className="button primary" onClick={onStart}>{openingAction(companion).label}</button>}
+      <p>{openingText(story.scene, companion)}</p>
+      {story.ready && <button type="button" className="button primary" onClick={onStart}>{openingAction(companion, story.scene.plan).label}</button>}
     </div>
   )
 }
@@ -112,6 +116,7 @@ function SceneBar({ scene, onMap, onMove }: { scene: StoryScene; onMap: () => vo
       <p className="subtle">{sceneTime(scene.local_time)}{scene.weather ? ` · ${scene.weather}` : ''}</p>
       {!!scene.place.spots?.length && <p className="subtle">{spotsText(scene.place.spots)}</p>}
       <p>{aroundText(scene.around)}</p>
+      {scene.plan && <p className="story-plan">{planText(scene.plan)}{scene.plan.storyline && ' Part of a storyline.'}</p>}
       {moving ? <GoElsewhere scene={scene} onDone={() => setMoving(false)} onMove={onMove} />
         : <div className="form-actions">
           <button type="button" className="button" onClick={() => setMoving(true)}>Go somewhere else…</button>

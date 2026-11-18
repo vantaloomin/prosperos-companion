@@ -1475,13 +1475,15 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     version = companion['version']
     since = (now.astimezone(zone(version['timezone'])).date() - timedelta(days=14)).isoformat()
     found = in_force(connection, companion['active_timeline_id'], since, include_cancelled=True)
+    from companion import story_plans  # Under way somewhere the Story can go: it can be played there.
     from companion.life import our_child  # An evening out with a child at home: who watches them (screen only).
-    return [{**where_now(connection, companion, outing, now), 'state': state(outing, version['timezone'], now),
-             'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
-             'undo_move': onward.undoable(outing, version['timezone'], now),
-             'cost_text': money_text(companion, outing).strip(),
-             'sitter': our_child.sitter_view(connection, companion, outing),
-             **choices(connection, companion, outing, now)} for outing in found]
+    shown = [{**where_now(connection, companion, outing, now), 'state': state(outing, version['timezone'], now),
+              'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
+              'undo_move': onward.undoable(outing, version['timezone'], now),
+              'cost_text': money_text(companion, outing).strip(),
+              'sitter': our_child.sitter_view(connection, companion, outing),
+              **choices(connection, companion, outing, now)} for outing in found]
+    return [{**item, 'story': story_plans.playable(connection, companion, item)} for item in shown]
 
 
 def where_now(connection, companion: dict, outing: dict, now: datetime) -> dict:
