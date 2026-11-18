@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftRight, Home, Undo2, X } from 'lucide-react'
+import { ArrowLeftRight, Home, Trash2, Undo2, X } from 'lucide-react'
 import { api } from '../../api'
 import { Notice } from '../../components/Feedback'
 import { WHERE_KEY } from '../conversation/whereText'
@@ -74,8 +74,9 @@ function PlacePicker({ trip, onPick, onClose }: { trip: Trip; onPick: (key: stri
   )
 }
 
-/** Coming up: "Away in Asheville with Mira", its days, how they get there and their share, with Change place and
- * Call it off (Undo once called off). */
+/** Coming up: "Away in Asheville with Mira", its days, how they get there and their share, with Change place,
+ * Call it off (a story beat: they hear it was called off) and Remove (a plan the app got wrong, taken off with nothing
+ * said; tester 2026-11-18), each with Undo for a while after. */
 export function AwayRows({ trips, name }: { trips: Trip[]; name: string }) {
   const { act, error } = useAct()
   const [picking, setPicking] = useState('')
@@ -92,12 +93,13 @@ export function AwayRows({ trips, name }: { trips: Trip[]; name: string }) {
           <li key={trip.id} className={trip.state === 'cancelled' ? 'admin-item admin-skipped' : 'admin-item'}>
             <div className="admin-head"><strong>{title}</strong></div>
             <div className="admin-when">
-              <p className="subtle">{trip.state === 'cancelled' ? 'Called off.' : when}</p>
+              <p className="subtle">{trip.state !== 'cancelled' ? when : trip.removed ? 'Removed.' : 'Called off.'}</p>
               {trip.state === 'cancelled'
-                ? <button type="button" className="text-button" aria-label={`Undo calling off ${title}`} onClick={() => void act(`/life/trips/${trip.id}/undo`)}><Undo2 aria-hidden="true" />Undo</button>
+                ? <button type="button" className="text-button" aria-label={`Undo ${trip.removed ? 'removing' : 'calling off'} ${title}`} onClick={() => void act(`/life/trips/${trip.id}/undo`)}><Undo2 aria-hidden="true" />Undo</button>
                 : <span className="admin-actions">
                     <button type="button" className="text-button admin-move" aria-label={`Change place for ${title}`} aria-expanded={open} title="Change place" onClick={() => setPicking(open ? '' : trip.id)}><ArrowLeftRight aria-hidden="true" /><span className="admin-move-words">Change place</span></button>
                     <button type="button" className="text-button admin-move" aria-label={`Call off ${title}`} title="Call it off" onClick={() => void act(`/life/trips/${trip.id}/cancel`)}><X aria-hidden="true" /><span className="admin-move-words">Call it off</span></button>
+                    <button type="button" className="text-button admin-move" aria-label={`Remove ${title}, never planned`} title="Remove: never planned" onClick={() => void act(`/life/trips/${trip.id}/remove`)}><Trash2 aria-hidden="true" /><span className="admin-move-words">Remove</span></button>
                   </span>}
             </div>
             {open && trip.state !== 'cancelled' && <PlacePicker trip={trip} onClose={() => setPicking('')}
