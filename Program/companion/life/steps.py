@@ -1035,6 +1035,53 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     return answers(connection, companion, found, key, message, now)
 
 
+def said_in_person(connection, companion: dict, line: dict, their_last: str = '') -> bool:
+    """A line the user says to them face to face in the Story (companion/story_visits.py), read as `note` reads a
+    text: an answer to a step they brought up, feelings told to a friend, or a step the user brings up (starting a
+    family stays with chat). There is no chat turn to go by, so an answer counts only when it names the step, or is a
+    plain yes or no right after their own line in the scene named it. True when it was one of those."""
+    if not ACTIVE or not companion.get('active_timeline_id'):
+        return False
+    if optional(connection, 'SELECT id FROM step_asks WHERE message_id=? OR answer_id=?', (line['id'], line['id'])):
+        return True
+    now, text = parse(line['created_at']), out_loud(line['text'])
+    found = state(connection, companion, now)
+    if found is None or apart(connection, companion):
+        return False
+    open_ask = next(iter(asks(connection, companion['active_timeline_id'], ('open',))), None)
+    # Starting a family or separating is settled in chat, where the whole turn is read.
+    if open_ask and open_ask['ladder'] != FAMILY_LADDER and \
+            (said := answer_in_person(open_ask, text, out_loud(their_last))):
+        settle_answer(connection, companion, open_ask, said, line, now)
+        return True
+    if found['ladder'] == 'friendship' and confessed(text) and may_fall(connection, companion, now):
+        return friend_answers(connection, companion, found, line, now)
+    keys = upcoming(found)
+    key = raised(text, keys) if keys else None
+    return answers(connection, companion, found, key, line, now) if key else False
+
+
+SPOKEN = re.compile(r'"([^"\n]+)"|“([^”\n]+)”')
+
+
+def out_loud(text: str) -> str:
+    """What a line of the story says out loud: the words in quotation marks when it has any (the rest is what they
+    do), else all of it. In a text, quoted words are someone else's and are left out (`plain`); in a scene they are
+    the speech."""
+    said = [first or second for first, second in SPOKEN.findall(text)]
+    return ' '.join(said) if said else text
+
+
+def answer_in_person(row: dict, text: str, their_last: str) -> str | None:
+    """'yes', 'not_yet' or 'no' when a line said in person answers the step that is waiting, else None."""
+    reader = stay_answer if row['step'] == STAY.key else answer
+    if said_itself(row['step'], text):
+        return 'yes'
+    if names_step(row['step'], text):
+        return reader(text)
+    return clear(text, reader) if names_step(row['step'], their_last) else None
+
+
 def raised_family(connection, companion: dict, found: dict, message: dict, now) -> bool:
     """The user brings up starting a family once they live together, or another child once one has been home a
     while (companion/life/parenthood.py answers)."""

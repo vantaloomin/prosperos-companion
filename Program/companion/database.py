@@ -464,6 +464,9 @@ ADDED_COLUMNS = (
     # its daily roll was made on a timeline.
     ('life_settings', 'shared_storylines', 'INTEGER NOT NULL DEFAULT 2 CHECK (shared_storylines BETWEEN 0 AND 3)'),
     ('storyline_days', 'shared_through', 'TEXT'),
+    # Scenes count (companion/story_visits.py, Settings > Realism > Story scenes count): time with a companion in the
+    # Story leaves a shared moment, counts toward closeness and can reach a relationship step. On unless turned off.
+    ('life_settings', 'story_counts', 'INTEGER NOT NULL DEFAULT 1 CHECK (story_counts IN (0, 1))'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

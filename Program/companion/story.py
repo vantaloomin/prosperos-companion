@@ -1,7 +1,8 @@
 """The Story: free-form roleplay with a narrator around the cities (docs/story.md).
 
 The story has its own scene (`story_scene`: the city and place the user is at) and its own history
-(`story_messages`). A companion's chat never reads either, and nothing said here is saved to their memories.
+(`story_messages`). Time spent with a companion here counts in their
+life together (companion/story_visits.py): their chat is told of it and it leaves a shared moment.
 
 The app decides the scene from the city data and the townsfolk rules: the place, the local time and
 weather, and who is there at that hour, the same people the companion's world has. The narrator model
@@ -13,7 +14,7 @@ narrator's reply comes first, then each companion's own line, written by their o
 """
 from datetime import datetime
 
-from companion import authors_note, in_character, prompt_library, safety, story_cast, story_people
+from companion import authors_note, in_character, prompt_library, safety, story_cast, story_people, story_visits
 from companion.characters import current
 from companion.clock import zone
 from companion.database import identifier, many, one, optional
@@ -326,6 +327,7 @@ def move(database, city_id: str, place_id: str | None) -> dict:
             hood = townsfolk.neighborhood_name(data, place['neighborhood'])
             add(connection, database.now(), 'scene', f"You arrive at {place['name']}, {hood}, {data['name']}.", where)
             # Whoever was with them stays behind; a companion who is at the new place is there when they walk in.
+            story_visits.close_all(connection, database.clock.now())  # Their time together ends here.
             story_cast.leave(connection)
             story_cast.sync(connection, add, scene(connection, database.clock.now())['companions'], database.now(), where)
     return story(database)
@@ -334,6 +336,8 @@ def move(database, city_id: str, place_id: str | None) -> dict:
 def clear(database) -> dict:
     """A new story: the history and the people met go, the scene stays where it is."""
     with database.connect(write=True) as connection:
+        # Time spent with a companion still happened (companion/story_visits.py): it is settled before the lines go.
+        story_visits.close_all(connection, database.clock.now())
         connection.execute('DELETE FROM story_messages')
         connection.execute('DELETE FROM story_people')
         story_cast.leave(connection)
@@ -453,8 +457,10 @@ async def speak(state, user: dict, item: dict) -> dict:
     status = 'complete' if text and not error else 'failed'
     error = None if status == 'complete' else error or f"The model returned nothing for {item['name']}."
     with database.connect(write=True) as connection:
-        return add(connection, database.now(), story_cast.ROLE, text, user, reply_to=user['id'], status=status,
+        line = add(connection, database.now(), story_cast.ROLE, text, user, reply_to=user['id'], status=status,
                    error=error, speaker=item['id'], name=item['name'])
+        story_visits.heard(connection, line, database.clock.now())
+        return line
 
 
 async def answer(state, user: dict) -> list[dict]:
@@ -481,9 +487,11 @@ def record(database, text: str, client_id: str) -> dict:
     with database.connect(write=True) as connection:
         user = optional(connection, 'SELECT * FROM story_messages WHERE client_id=?', (client_id,))
         if user is None:
-            where = scene_row(connection)
-            story_cast.sync(connection, add, scene(connection, database.clock.now())['companions'], database.now(), where)
+            where, view = scene_row(connection), scene(connection, database.clock.now())
+            story_cast.sync(connection, add, view['companions'], database.now(), where)
             user = add(connection, database.now(), 'user', text, where, client_id=client_id)
+            # Time with a companion counts (companion/story_visits.py): read before anyone answers the line.
+            story_visits.said(connection, user, view, database.clock.now())
         return user
 
 

@@ -13,7 +13,8 @@ in the middle of talking with stays a little longer than their day says (LINGER)
 Each reply in such a scene is the narrator's, then one ordinary model call for each companion there, the group chat
 way (companion/groups.py): the scene rules, the scene and the story since they came in, the same for every speaker,
 then that companion's own 1:1 sections with one `story` section (memory/context.py), then the turn. The narrator is
-told who speaks for themself and never writes their lines. Nothing here is saved to a companion's memories.
+told who speaks for themself and never writes their lines. What the time together
+leaves behind is companion/story_visits.py.
 """
 import re
 from datetime import datetime, timedelta
@@ -309,13 +310,16 @@ def here_first(connection, since_seq: int) -> bool:
 
 def prompt(connection, view: dict, item: dict, config: dict, user: dict, seen) -> dict:
     """One companion's request: the shared part, then their private sections, then the turn."""
+    from companion import story_visits  # Imported here: it reads this module.
     budget = config['context_tokens'] - config['max_output_tokens']
     rows = visible(connection, item['id'])
     shared = shared_part(connection, view, item, rows, budget, seen)
     private = context.build(connection, item['companion'], view['now'], max(budget - token_estimate(shared), 1000),
                             group={'older': [], 'query': user['text'], 'previous': None, 'shared': shared,
                                    'in_person': True, 'section': 'story',
-                                   'lines': story_lines(connection, view, item, rows, view['now'])})
+                                   'lines': story_lines(connection, view, item, rows, view['now'])
+                                   # A relationship step the user's line just settled (companion/story_visits.py).
+                                   + story_visits.fresh_lines(connection, item['companion'], user, view['now'])})
     turn = TURN.format(name=item['name'])
     return {'system': f"{shared}\n\n{private['system']}", 'turn': turn,
             'messages': [{'role': 'user', 'content': f"{context.NOTE_OPEN}\n{private['note']}\n\n{turn}"}]}

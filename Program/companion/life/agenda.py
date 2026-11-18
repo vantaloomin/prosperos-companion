@@ -171,6 +171,8 @@ def extend(connection, companion, world, now) -> dict:
     long_distance.finish_due(connection, companion, now)
     onward.plan_due(connection, companion, now)  # A second place for meetups (companion/life/onward.py).
     outings.finish_due(connection, companion, now)
+    from companion import story_visits  # Imported here: the Story reads the agenda.
+    story_visits.settle(connection, now)  # Time together in the Story that has ended.
     if work.plan_ahead(connection, companion, world, now).get('shifts'):
         companion = by_id(connection, companion['id'])  # This week's shifts or gigs shape the days ahead.
     admin.plan_ahead(connection, companion, world, now)

@@ -90,6 +90,9 @@ export function PaceSettings({ name }: { name: string }) {
           tip={`Only this world. Each of your worlds keeps its own drama level.${alone}`} />
         <SliderRow label="Things that involve you" levels={SHARED_STORY_LEVELS} value={data.shared_storylines} onChange={(shared_storylines) => void save({ shared_storylines })}
           tip="Nothing waits for you: ignore one and it carries on without you. How big they get follows the drama level. End any of them on Today." />
+        {/* About you and them, so with Their life, after "Things that involve you" (Iris). */}
+        <SwitchRow label="Story scenes count" checked={data.story_counts} onChange={(value) => void save({ story_counts: value })}
+          tip="Time with them in Story is part of your life together: they remember it, it counts toward closeness, and steps you take there are real. Off: Story stays apart." />
         {data.weather !== false && <SliderRow label={`Weather in ${world ?? 'this world'}`} levels={WEATHER_LEVELS} fallback={1} value={data.weather_realism} onChange={(weather_realism) => void save({ weather_realism })}
           tip={'Only this world, from tomorrow on. Their plans follow the weather, so a stormy day keeps them in.\n\nIn a real city, turning on their weather in World > Real-world lookups uses the real weather instead.'} />}
         <SliderRow label="Their looks change" levels={LOOKS_LEVELS} value={data.looks_realism} onChange={(looks_realism) => void save({ looks_realism })}

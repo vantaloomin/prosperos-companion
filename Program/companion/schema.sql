@@ -1274,7 +1274,7 @@ CREATE INDEX IF NOT EXISTS companion_plans_message ON companion_plans(message_id
 
 -- Story mode (companion/story.py): the user's own free-form story with a narrator. One scene (where the user is)
 -- and its history. A companion who is in the scene speaks in their own lines (role 'companion', with `speaker` and
--- `name`, companion/story_cast.py); a 'cast' line says they came or went. Nothing else of a companion's reads them.
+-- `name`, companion/story_cast.py); a 'cast' line says they came or went. Time together there counts (story_visits, below).
 CREATE TABLE IF NOT EXISTS story_scene (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   city_id TEXT NOT NULL,
@@ -3071,3 +3071,28 @@ CREATE TABLE IF NOT EXISTS story_cast (
   since_seq INTEGER NOT NULL,
   joined_at TEXT NOT NULL
 );
+
+-- Time with a companion in the Story (companion/story_visits.py): one row for each stretch of the story a companion
+-- was in the scene with the user. `said` counts the user's lines to them and `heard` their own; `came` is who came to
+-- whom. An ended visit keeps how it ended (`excerpt`) for their chat and the shared moment it left (`memory_id`).
+CREATE TABLE IF NOT EXISTS story_visits (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL,
+  timeline_id TEXT NOT NULL,
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  place_name TEXT NOT NULL,
+  doing TEXT NOT NULL DEFAULT '',
+  came TEXT NOT NULL DEFAULT 'user' CHECK (came IN ('user', 'them')),
+  local_date TEXT NOT NULL,
+  first_seq INTEGER NOT NULL,
+  last_seq INTEGER NOT NULL,
+  said INTEGER NOT NULL DEFAULT 0,
+  heard INTEGER NOT NULL DEFAULT 0,
+  started_at TEXT NOT NULL,
+  last_at TEXT NOT NULL,
+  ended_at TEXT,
+  excerpt TEXT NOT NULL DEFAULT '[]',
+  memory_id TEXT
+);
+CREATE INDEX IF NOT EXISTS story_visits_timeline ON story_visits(timeline_id, last_at);
