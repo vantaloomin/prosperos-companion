@@ -186,7 +186,7 @@
       "beats": {
         "tells": {
           "via": "text",
-          "text": "An ex of {name}'s got back in touch out of nowhere, and {name} told {user} about it.",
+          "text": "{name}'s ex got back in touch out of nowhere, and {name} told {user} about it.",
           "share": "so my ex got in touch out of nowhere. I'm telling you because I'd want to know if it were you",
           "then": {"answered": {"choice": "shared:ex_reply", "beats": ["moved_on", "left_it"]}, "any": "left_it"},
           "gap": [1, 3]

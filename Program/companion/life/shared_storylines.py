@@ -596,6 +596,93 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
     return outings.get(connection, outing['id'])
 
 
+# The chat context (companion/memory/context.py) -------------------------------------------------------------------
+
+# Its own section of the context: the other storylines' heading says "these happened to you and your people, never
+# to the user", which is not true of these. A/B of 2026-11-18 (three rounds, 1,800 replies, 10 models): told among
+# the others, in this section, and in this section with each beat's day all read the same within the noise, and no
+# reply in any arm pressed the user or told them their own part as news. This wording is kept for being true.
+HEADING = ('What is going on that the user is part of (decided, and the user lived their part of it: never contradict '
+           'it and never tell them their own part as news; never make up what comes next or how it ends; never press '
+           'them to answer or to come, and never hold it against them when they did not)')
+# The user's part in the latest beat, told to the companion, by what the app can tell for sure (`respond`). None
+# is a beat still open: the text or the invitation is out and nothing has come of it yet.
+TEXT_PART = {None: 'You texted the user about it, and they have not written back yet.',
+             'answered': 'The user knows about it.', 'said_yes': 'The user said yes.',
+             'said_no': 'The user said no.', 'dropped_by': 'The user came by after you told them.',
+             'passed': 'The user did not write back about it.'}
+PLAN_PART = {'went': 'The user came.', 'called_off': 'The user called it off.',
+             'passed': 'In the end you never asked the user.'}
+UNTOLD = 'You have not told the user yet.'
+UNASKED = 'You have not asked the user yet.'
+OPEN = 'What comes next is not decided yet.'
+
+
+def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str, str]]:
+    """The storylines the user is part of, told to the companion: each beat with its day, the user's part in the
+    latest one (`part`) and whether more is to come. One stays as long as any storyline does
+    (storylines.context_lines): told in full while recent, by its outcome once settled."""
+    today = local(companion, now).date()
+    recent, pinned = ((today - timedelta(days=days)).isoformat()
+                      for days in (storylines.RECENT_DAYS, storylines.SETTLED_DAYS))
+    kept = {row['id']: row for row in rows(connection, companion['active_timeline_id'])}
+    result = []
+    for item in storylines.visible(connection, companion, now, you=True):
+        if not item['with_you']:
+            continue
+        last, row = item['beats'][-1], kept[item['id']]
+        if last['on'] >= recent:
+            told = [f"on {outings.day_text(day)}: {beat['text']}"
+                    for day, beat in zip(days(row), item['beats'], strict=False)]
+            tail = part(connection, companion, row, len(told) - 1, now)
+            result.append((item['id'], f"- O{' Then, '.join(told)[1:]}{tail}"))
+        elif not item['unfolding'] and last['on'] >= pinned:
+            result.append((item['id'], f"- Settled on {last['on']}: {last['text']}"))
+    return result
+
+
+def days(row: dict) -> list[str]:
+    """The day each beat tells of: its own, or for one that says how a plan went, the day of the plan (the beat
+    itself comes the morning after, and "went for drinks" read as that day's)."""
+    found, before = [], {}
+    for item in decode(row['stages']):
+        found.append(before.get('plan_on') or item['on'])
+        before = item
+    return found
+
+
+def part(connection, companion: dict, row: dict, index: int, now: datetime) -> str:
+    """What the user did about a storyline's latest beat, and that more is to come; '' once it is over, when its
+    last beat says how it went."""
+    found, story = decode(row['stages'])[index], bank().get(key_of(row))
+    beat = story['beats'].get(found.get('beat')) if story else None
+    if not beat or not beat.get('then') or row['status'] != 'running':
+        return ''
+    if beat.get('via') == 'plan':
+        said = plan_part(connection, companion, found, now)
+    else:
+        sent = optional(connection, 'SELECT id FROM openers WHERE timeline_id=? AND trigger_key=?',
+                        (row['timeline_id'], trigger_key(row, index)))
+        response = found.get('response') or respond(connection, companion, row, index, story, now)
+        said = TEXT_PART[response] if sent or response else UNTOLD
+    return f' {said} {OPEN}'
+
+
+def plan_part(connection, companion: dict, found: dict, now: datetime) -> str:
+    """An invitation's state: not out yet, set for a day (Today's "Out together" has the place), under way, or how
+    it went."""
+    response = found.get('response')
+    outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (found.get('outing') or '',))
+    if response or outing is None:
+        return PLAN_PART[response] if response else UNASKED
+    shown = outings.view(outing)
+    state = outings.state(shown, companion['version']['timezone'], now)
+    if state == 'planned':
+        return (f"You asked the user, and it is set for {outings.day_text(shown['local_date'])} at "
+                f"{shown['at_time']}; it has not happened yet.")
+    return {'now': 'It is happening now.', 'done': PLAN_PART['went'], 'cancelled': PLAN_PART['called_off']}[state]
+
+
 # Changing how it went, and forks ----------------------------------------------------------------------------------
 
 def change(connection, companion: dict, consequence_id: str, option: int, now: datetime) -> dict:

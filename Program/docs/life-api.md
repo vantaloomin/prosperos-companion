@@ -657,6 +657,13 @@ storyline is a row in the same table with the story `shared:<key>` and `with_you
 lists it, the context tells it and the user can end it like any other. Its text says "you" for the user on the
 screens and "the user" when told to the companion.
 
+In the chat context it has a section of its own (`shared_storylines.HEADING`; the other storylines' heading says
+"never to the user"), one line per storyline: each beat with the day it tells of (a beat that says how a plan went
+carries the plan's day, not the morning after), then the user's part in the latest beat as far as the app can tell
+(not told yet, told and not answered, knows about it, said yes or no, came by, let it go by; for a plan not asked
+yet, set for a day and not happened yet, happening now, came, called it off) and "What comes next is not decided
+yet." while more is to come. Wording A/B of 2026-11-18: it reads no worse and no better than the line it replaced.
+
 Each beat reaches the user through something that exists: a first text, or an invitation whose first text books an
 outing (Today's "Out together"; with someone from their circle it is a meet-up, and going makes that person someone
 who has met the user). No beat waits. When the next beat's day comes, the app reads what the user did about the
