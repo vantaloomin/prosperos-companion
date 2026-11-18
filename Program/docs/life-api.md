@@ -676,6 +676,15 @@ names the beat that follows each; where it could go more than one way the conseq
 `shared:*`, subject `shared:<storyline id>:<beat>`), and the user can make it go the other way while nothing has
 followed it. A plan still ahead holds the next beat until the day after it.
 
+A plan the companion keeps without the user is in their day. When the user calls a plan off, or its day comes and
+the invitation never went out, and the beat that follows has a `kept` line in the bank ("went for drinks with Nancy
+without you"), `shared_storylines.as_plans` gives the agenda that time as one of the companion's plans: the hour
+the plan was booked for (the activity's usual hour when it was never booked), the place it was booked at, and the
+person from their circle when the plan was with them, so that person's day holds it too. The entry carries
+`storyline: {id, beat}` and no post. It is held as soon as the user is known not to be coming, not the morning
+after when the beat is told. A beat without `kept` (they stayed in, or dropped the plan) holds nothing, and a slot
+that is already past, or taken by work, stays as it was.
+
 One runs at a time, never two beats on one day, nothing above the world's drama level, and a story fits only where
 it can be true (the relationship, how long the two have talked, the city's era, a plan in person only in the same
 city, a visit to the companion's home only while the two live apart, a cast who has or has not met the user). The
