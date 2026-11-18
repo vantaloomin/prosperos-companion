@@ -175,9 +175,12 @@ export const PAST_LAYERS: Layer[] = ['user_fact', 'shared_experience', 'relation
 /** Kinds that are moments rather than facts that hold for a while. */
 const MOMENT_LAYERS: Layer[] = ['shared_experience', 'companion_life']
 
-/** A card's date line. A moment with only a start leads with when it happened (Iris), else when it was said. */
+/** A card's date line. A moment with only a start leads with when it happened (Iris), else when it was said; a
+ * moment from the Story says so. */
 export function dateParts(memory: Memory, show: (value: string) => string): string[] {
   const { applies_from: from, applies_until: until } = memory
+  // Time together in the Story (companion/story_visits.py): nothing was said, it happened there (Iris).
+  if (memory.in_story) return [`In Story · ${show(memory.stated_at)}`]
   if (from && !until && MOMENT_LAYERS.includes(memory.layer)) return [`Happened ${show(from)} · said ${show(memory.stated_at)}`]
   return [`Said ${show(memory.stated_at)}`, ...(from || until ? [appliesText(from, until, show)] : [])]
 }

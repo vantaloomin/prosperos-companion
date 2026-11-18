@@ -435,6 +435,8 @@ export interface Memory {
   in_timeline?: boolean
   /** A value the user said was never true: replaced by nothing, and its old words are marked as wrong. */
   retracted?: boolean
+  /** A shared moment left by time together in the Story (companion/story_visits.py). */
+  in_story?: boolean
   /** Set on what you said about someone in your life; see Person. */
   person_id?: string | null
 }
@@ -574,6 +576,8 @@ export interface LifeSettings {
   friends_fall: boolean
   /** Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life. */
   breakups: boolean
+  /** Scenes count (companion/story_visits.py): time with a companion in the Story is part of their life together. */
+  story_counts: boolean
   /** Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on. */
   love_life: number
   /** Life's big turns (companion/life/big_turns.py): how often life chapters come, 0 off, 1 gentle (good turns only), 2 true to life, 3 eventful. */

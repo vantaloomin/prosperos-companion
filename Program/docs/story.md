@@ -72,6 +72,36 @@ Other features that put the user with someone (a date, say) record the meeting w
 
 Starting a new story clears the people met too.
 
+## Scenes count
+
+Time the user spends with a companion in the Story is part of their life together (`companion/story_visits.py`,
+table `story_visits`). A visit is one stretch of the story with a companion in the scene. It opens with the
+user's first line while they are there. It ends when the user goes somewhere else or starts a new story, when the
+companion's day takes them away, or when nothing has been said for two hours. Everything here is rules, with no
+model call:
+
+- **Closeness:** a day the user talked with them in person counts as a day talked, the same as a day of texting
+  (`closeness.talk_days`). A day with both still counts once.
+- **A shared moment:** a visit with a real exchange (two of the user's lines to them and one of their own) leaves
+  one memory, "In person at Club Charles: Mira and you spent time together at Club Charles." There is at most one
+  a day for each companion, and one for each place: time at the same place again is the same moment. Its card on
+  Memories says "In Story" and the date (`in_story` on `GET /api/memories`). It also shows in the scrapbook and in
+  "Our history", and counts toward closeness as any shared moment does.
+- **Relationship steps:** what the user says to them is read by the step rules chat uses
+  (`steps.said_in_person`). The user can bring a step up ("I think we should be exclusive") or answer one the
+  companion brought up. The words in quotation marks are the speech. With no chat turn to go by, an answer counts
+  only when it names the step, or is a plain yes or no right after the companion's own line named it. The
+  companion's line in the scene is written knowing the answer. Starting a family and separating stay with chat.
+- **Their chat afterward:** for a day and a half, the 'where' section of their 1:1 chat says when and where they
+  were together, who came to whom, and the last six lines the two of them said (`story_visits.context_lines`).
+  After that it is the memory.
+
+A line to someone else in the scene, or one out of the story (OOC: or ((...))), counts for nothing. A new story
+clears the lines but not the time spent: visits are settled before the lines go.
+
+Settings > Realism > "Story scenes count" (`life_settings.story_counts`, on by default) turns all of it off. The
+story is then apart from the companion's life, as it was before 1.5.
+
 ## Planned
 
 - Narrator-played dates with a dating-app match. The dating app itself is a

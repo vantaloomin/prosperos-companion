@@ -88,6 +88,9 @@ export function PaceSettings({ name }: { name: string }) {
       <div className="row-list">
         <SliderRow label={`Drama in ${world ?? 'this world'}`} levels={DRAMA_LEVELS} fallback={1} value={data.drama} onChange={(drama) => void save({ drama })}
           tip={`Only this world. Each of your worlds keeps its own drama level.${alone}`} />
+        {/* About you and them, so with Their life, after "Things that involve you" (Iris). */}
+        <SwitchRow label="Story scenes count" checked={data.story_counts} onChange={(value) => void save({ story_counts: value })}
+          tip="Time with them in Story is part of your life together: they remember it, it counts toward closeness, and steps you take there are real. Off: Story stays apart." />
         {data.weather !== false && <SliderRow label={`Weather in ${world ?? 'this world'}`} levels={WEATHER_LEVELS} fallback={1} value={data.weather_realism} onChange={(weather_realism) => void save({ weather_realism })}
           tip={'Only this world, from tomorrow on. Their plans follow the weather, so a stormy day keeps them in.\n\nIn a real city, turning on their weather in World > Real-world lookups uses the real weather instead.'} />}
         <SliderRow label="Their looks change" levels={LOOKS_LEVELS} value={data.looks_realism} onChange={(looks_realism) => void save({ looks_realism })}

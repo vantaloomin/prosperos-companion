@@ -954,6 +954,7 @@ def offer_together(packet, connection, companion, now, recent, group=None):
     being answered, so an outing they settled is one the reply announces."""
     if group is not None:
         return
+    from companion import story_visits  # Imported here: the Story reads this module.
     turn = set()
     for message in reversed(recent):
         if message['role'] != 'user':
@@ -965,7 +966,9 @@ def offer_together(packet, connection, companion, now, recent, group=None):
     for identity, text in [*together.context_lines(connection, companion, now, turn),
                            *calls.context_lines(connection, companion, now, turn),
                            *long_distance.context_lines(connection, companion, now, turn),
-                           *moving_in.context_lines(connection, companion, now, turn)]:
+                           *moving_in.context_lines(connection, companion, now, turn),
+                           # Time together in the Story lately (companion/story_visits.py).
+                           *story_visits.context_lines(connection, companion, now)]:
         packet.offer('where', identity, text)
 
 
