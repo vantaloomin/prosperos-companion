@@ -75,7 +75,7 @@ function PlacePicker({ trip, onPick, onClose }: { trip: Trip; onPick: (key: stri
 }
 
 /** Coming up: "Away in Asheville with Mira", its days, how they get there and their share, with Change place,
- * Call it off (a story beat: they hear it was called off) and Remove (a plan the app got wrong, taken off with nothing
+ * Call it off (a story beat: they hear it was called off) and Never planned (a plan the app got wrong, taken off with nothing
  * said; tester 2026-11-18), each with Undo for a while after. */
 export function AwayRows({ trips, name }: { trips: Trip[]; name: string }) {
   const { act, error } = useAct()
@@ -99,7 +99,7 @@ export function AwayRows({ trips, name }: { trips: Trip[]; name: string }) {
                 : <span className="admin-actions">
                     <button type="button" className="text-button admin-move" aria-label={`Change place for ${title}`} aria-expanded={open} title="Change place" onClick={() => setPicking(open ? '' : trip.id)}><ArrowLeftRight aria-hidden="true" /><span className="admin-move-words">Change place</span></button>
                     <button type="button" className="text-button admin-move" aria-label={`Call off ${title}`} title="Call it off" onClick={() => void act(`/life/trips/${trip.id}/cancel`)}><X aria-hidden="true" /><span className="admin-move-words">Call it off</span></button>
-                    <button type="button" className="text-button admin-move" aria-label={`Remove ${title}, never planned`} title="Remove: never planned" onClick={() => void act(`/life/trips/${trip.id}/remove`)}><Trash2 aria-hidden="true" /><span className="admin-move-words">Remove</span></button>
+                    <button type="button" className="text-button admin-move" aria-label={`Never planned: take ${title} off quietly`} title="Never planned: takes it off quietly" onClick={() => void act(`/life/trips/${trip.id}/remove`)}><Trash2 aria-hidden="true" /><span className="admin-move-words">Never planned</span></button>
                   </span>}
             </div>
             {open && trip.state !== 'cancelled' && <PlacePicker trip={trip} onClose={() => setPicking('')}
