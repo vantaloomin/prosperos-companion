@@ -70,6 +70,7 @@ from companion.life import (
     rough_patches,
     scene_now,
     shared_people,
+    shared_storylines,
     so_far,
     stays,
     steps,
@@ -263,6 +264,9 @@ HEADINGS = {
             'storylines': "What is going on in your life and your people's lives (these happened to you and your "
                           'people, never to the user; decided: bring it up the way a friend would, never contradict '
                           'it, and never invent how an unfolding one ends)',
+            # Storylines the user is part of (companion/life/shared_storylines.py): changes with each beat and with
+            # what the user did about it.
+            'shared_storylines': shared_storylines.HEADING,
             # Secrets they learned from others, or that the user declared (companion/secrets.py).
             'knowledge': 'What you know that others may not (keep each one as private as it says)',
             # News about people they know that reached them by word of mouth (companion/news.py).
@@ -911,6 +915,7 @@ def offer_people(packet, connection, companion, now, today):
     for identity, text in [*chapters.context_lines(connection, companion, now),
                            *storylines.context_lines(connection, companion, now)]:
         packet.offer('storylines', identity, text)
+    offer_all(packet, 'shared_storylines', shared_storylines.context_lines(connection, companion, now))
 
 
 def offer_life(packet, connection, companion, now):

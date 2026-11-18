@@ -1,5 +1,5 @@
 {
-  "about": "Storylines the user is part of (companion/life/shared_storylines.py, v1.5.0). Each story has a `family` (their people, favors, their work, around town, a third person, growing closer, their goal), the lowest drama `level` it can start at (0 quiet to 3 soap opera), an optional `cast` (who else is in it: friend, family, coworker, or a cast from companion/life/casting.py), and `beats` by id; the first listed opens it. Fit rules: `relationships` (the companion's relationship to the user), `met` (new: the cast has not met the user; known: they have), `days_known` ([least, most] days since the two first talked), `modern` (true: names things only today's cities have). A beat reaches the user `via` a first text (`text`) or an invitation that books a plan on Today (`plan`: {activity, with: 'a' for the cast, lead: [least, most] days ahead}). `text` is the beat as the screens and the companion's context tell it ({name} the companion, {a} the cast, {user}/{User}/{user_s} the user, {a_them}/{a_their}); `share` is the companion's own first text, with {day}, {time} and {place} for a plan; leave it empty for a beat that needs no text. `then` says what follows from what the user did, by what the app can detect for sure: for a text `answered`, `said_yes`, `said_no`, `dropped_by` or `passed` (they let it go by); for a plan `went`, `called_off` or `passed` (the invitation never went out); `any` covers the rest. Each is a beat id; or {choice, beats}, where the consequence engine picks among the beats by the odds table `choice` in consequences.json (options in the same order); or {impression: {warm, smitten, curious, protective, wary, any}}, the beat by what the cast made of the user when they met (companion/life/their_people.py). No beat waits: with no entry for what happened, the storyline is over. `gap` is the days to the next beat ([least, most], default [1, 3]). A plan `with` the cast is a meet-up: once it is over they have met the user, with a first impression. `effect` on a beat: warmer or cooler (the cast's opinion of the user moves a step, once they have met).",
+  "about": "Storylines the user is part of (companion/life/shared_storylines.py, v1.5.0). Each story has a `family` (their people, favors, their work, around town, a third person, growing closer, their goal), the lowest drama `level` it can start at (0 quiet to 3 soap opera), an optional `cast` (who else is in it: friend, family, work for a story about the companion's job with nobody named, or a cast from companion/life/casting.py such as parent, cousin, coworker or close friend), and `beats` by id; the first listed opens it. Fit rules: `relationships` (the companion's relationship to the user), `met` (new: the cast has not met the user; known: they have), `days_known` ([least, most] days since the two first talked), `modern` (true: names things only today's cities have), `apart` (true: only while the two do not live together: a visit, a favor at the companion's home). A beat reaches the user `via` a first text (`text`) or an invitation that books a plan on Today (`plan`: {activity, with: 'a' for the cast, lead: [least, most] days ahead}). `text` is the beat as the screens and the companion's context tell it ({name} the companion, {a} the cast, {user}/{User}/{user_s} the user, {a_them}/{a_their}); `share` is the companion's own first text, with {day}, {time} and {place} for a plan; leave it empty for a beat that needs no text. `then` says what follows from what the user did, by what the app can detect for sure: for a text `answered`, `said_yes`, `said_no`, `dropped_by` or `passed` (they let it go by); for a plan `went`, `called_off` or `passed` (the invitation never went out); `any` covers the rest. Each is a beat id; or {choice, beats}, where the consequence engine picks among the beats by the odds table `choice` in consequences.json (options in the same order); or {impression: {warm, smitten, curious, protective, wary, any}}, the beat by what the cast made of the user when they met (companion/life/their_people.py). No beat waits: with no entry for what happened, the storyline is over. `gap` is the days to the next beat ([least, most], default [1, 3]). A plan `with` the cast is a meet-up, always drinks with a friend and dinner at a relative's (whatever `activity` says), so the words must say so: once it is over they have met the user, with a first impression. `kept` on a beat that follows a plan the user did not come to (called off, or never asked): the companion kept the plan without them, and this line, in the past tense with {name} and {a} and never the user, is what their day says for that time (shared_storylines.as_plans); leave it out when they stayed in or dropped the plan. `effect` on a beat: warmer or cooler (the cast's opinion of the user moves a step, once they have met).",
   "stories": [
     {
       "key": "curious_friend",
@@ -21,10 +21,7 @@
           "plan": {"activity": "drinks", "with": "a", "lead": [2, 4]},
           "text": "{name} asked {user} along for drinks with {a}, who wants to meet {user}.",
           "share": "{a} wants to meet you. Drinks at {place}, {day} at {time}? Say yes",
-          "then": {
-            "went": {"impression": {"warm": "hit_it_off", "smitten": "hit_it_off", "any": "polite"}},
-            "any": "alone"
-          }
+          "then": {"went": {"impression": {"warm": "hit_it_off", "smitten": "hit_it_off", "any": "polite"}}, "any": "alone"}
         },
         "hit_it_off": {
           "via": "text",
@@ -39,6 +36,7 @@
         },
         "alone": {
           "via": "text",
+          "kept": "{name} went for drinks with {a}.",
           "text": "{name} went for drinks with {a} without {user} and got teased about the mystery person all evening.",
           "share": "went without you and got teased ALL night. {a} says you owe {a_them} a drink now"
         }
@@ -67,6 +65,7 @@
         },
         "asked_after": {
           "via": "text",
+          "kept": "{name} went out for drinks with {a}.",
           "text": "{name} went out with {a} without {user}, and {a} asked after {user}.",
           "share": "{a} asked where you were. I said next time. so there has to be a next time"
         }
@@ -77,6 +76,7 @@
       "family": "favors",
       "level": 0,
       "modern": true,
+      "apart": true,
       "beats": {
         "asks": {
           "via": "plan",
@@ -108,10 +108,7 @@
           "via": "text",
           "text": "{name} has a big presentation at work in a few days and told {user} about the nerves.",
           "share": "big presentation at work in a few days and I'm weirdly nervous about it. tell me I'll be fine",
-          "then": {
-            "answered": {"choice": "shared:steadied", "beats": ["went_well", "went_fine"]},
-            "any": "got_through"
-          },
+          "then": {"answered": {"choice": "shared:steadied", "beats": ["went_well", "went_fine"]}, "any": "got_through"},
           "gap": [2, 4]
         },
         "went_well": {
@@ -152,6 +149,7 @@
         },
         "saved": {
           "via": "text",
+          "kept": "{name} went to try the new place for coffee.",
           "text": "{name} went to the new place without {user} and saved it to show {user} another time.",
           "share": "went on my own in the end. still want to take you sometime"
         }
@@ -165,7 +163,7 @@
       "beats": {
         "asks": {
           "via": "text",
-          "text": "{name} has been wondering what {user} was like as a kid, and asked.",
+          "text": "{name} has been wondering about {user_s} childhood, and asked.",
           "share": "random question. what were you like as a kid? I've been trying to picture it",
           "then": {"answered": "turning_it_over", "any": "let_go"},
           "gap": [1, 2]
@@ -178,7 +176,7 @@
         },
         "let_go": {
           "via": "text",
-          "text": "{name} never got an answer about what {user} was like as a kid, and let it go.",
+          "text": "{name} never got an answer about {user_s} childhood, and let it go.",
           "share": ""
         }
       }
@@ -191,12 +189,9 @@
       "beats": {
         "tells": {
           "via": "text",
-          "text": "An ex of {name}'s got back in touch out of nowhere, and {name} told {user} about it.",
+          "text": "{name}'s ex got back in touch out of nowhere, and {name} told {user} about it.",
           "share": "so my ex got in touch out of nowhere. I'm telling you because I'd want to know if it were you",
-          "then": {
-            "answered": {"choice": "shared:ex_reply", "beats": ["moved_on", "left_it"]},
-            "any": "left_it"
-          },
+          "then": {"answered": {"choice": "shared:ex_reply", "beats": ["moved_on", "left_it"]}, "any": "left_it"},
           "gap": [1, 3]
         },
         "moved_on": {
@@ -209,6 +204,2929 @@
           "via": "text",
           "text": "{name} left the ex's message unanswered.",
           "share": "never answered my ex btw. nothing to say"
+        }
+      }
+    },
+    {
+      "key": "parent_wants_dinner",
+      "family": "their people",
+      "level": 0,
+      "cast": "parent",
+      "met": "new",
+      "beats": {
+        "asking": {
+          "via": "text",
+          "text": "{name}'s {a_rel} {a} has been asking about {user}.",
+          "share": "my {a_rel} keeps asking about you. I've said almost nothing and it's driving {a_them} up the wall",
+          "then": {"any": "invite"},
+          "gap": [1, 2]
+        },
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "dinner", "with": "a", "lead": [3, 6]},
+          "text": "{name}'s {a_rel} {a} told {name} to bring {user} to dinner.",
+          "share": "{a} wants you at dinner. {day} at {time}. I'll protect you, promise",
+          "then": {"went": {"impression": {"warm": "leftovers", "smitten": "leftovers", "protective": "questions", "wary": "questions", "any": "went_fine"}}, "any": "rain_check"}
+        },
+        "leftovers": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came to dinner, and {a} sent {user} home with leftovers.",
+          "share": "you got leftovers. {a} does not hand out leftovers to just anyone"
+        },
+        "questions": {
+          "via": "text",
+          "text": "{User} came to dinner and sat through every one of {a}'s questions.",
+          "share": "sorry about the interrogation. {a} means well. mostly"
+        },
+        "went_fine": {
+          "via": "text",
+          "text": "{User} came to dinner with {name}'s {a_rel} {a}, and it went fine.",
+          "share": "that went fine, right? {a} is still making up {a_their} mind but you did good"
+        },
+        "rain_check": {
+          "via": "text",
+          "text": "The dinner with {a} did not happen, and {a} told {name} the invitation stands.",
+          "share": "{a} says the invitation stands. no pressure. some pressure"
+        }
+      }
+    },
+    {
+      "key": "sibling_adopts_you",
+      "family": "their people",
+      "level": 0,
+      "cast": "family",
+      "met": "known",
+      "beats": {
+        "asks_after": {
+          "via": "text",
+          "text": "{name}'s {a_rel} {a} has started asking after {user} whenever the two talk.",
+          "share": "{a} asks about you every single time now. I think you've been adopted. anything you want me to pass on?",
+          "then": {"answered": "passed_on", "any": "made_up"},
+          "gap": [1, 2]
+        },
+        "passed_on": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{name} passed {user_s} hello on to {a}, who was pleased to get it.",
+          "share": "passed your hello on to {a}. got a very smug 'told you they like me' back"
+        },
+        "made_up": {
+          "via": "text",
+          "text": "{name} told {a} that {user} said hello, without having heard back from {user}.",
+          "share": "told {a} you said hi. you didn't, but you would have. I'm covering for you"
+        }
+      }
+    },
+    {
+      "key": "family_dinner_again",
+      "family": "their people",
+      "level": 0,
+      "cast": "family",
+      "met": "known",
+      "beats": {
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "dinner", "with": "a", "lead": [3, 6]},
+          "text": "{name}'s {a_rel} {a} is having people round for dinner and asked for {user} by name.",
+          "share": "{a} is cooking and asked for you by name. {day} at {time}. come hungry",
+          "then": {"went": "seconds", "called_off": "plate_saved", "any": "asked_where"}
+        },
+        "seconds": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{User} came to dinner at {a}'s, had seconds and stayed late.",
+          "share": "{a} is thrilled you had seconds. you've made a friend for life"
+        },
+        "plate_saved": {
+          "via": "text",
+          "kept": "{name} went to dinner at {a}'s.",
+          "text": "{User} could not make dinner at {a}'s, and {a} sent a plate home with {name} for {user}.",
+          "share": "{a} sent a plate home with me. it's yours if you come get it before I eat it"
+        },
+        "asked_where": {
+          "via": "text",
+          "kept": "{name} went to dinner at {a}'s.",
+          "text": "{name} went to dinner at {a}'s without {user}, and {a} asked where {user} had got to.",
+          "share": "{a} asked where you were. I said next time"
+        }
+      }
+    },
+    {
+      "key": "friend_birthday_drinks",
+      "family": "their people",
+      "level": 0,
+      "cast": "friend",
+      "met": "known",
+      "beats": {
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "with": "a", "lead": [3, 6]},
+          "text": "{a} is having birthday drinks and told {name} to bring {user}.",
+          "share": "it's {a}'s birthday. drinks at {place}, {day} at {time}, and I've been told to bring you",
+          "then": {"went": "toast", "any": "missed_it"}
+        },
+        "toast": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{User} came to {a}'s birthday drinks and got pulled into the toast.",
+          "share": "{a} says best birthday in years. the toast was a lot. you handled it"
+        },
+        "missed_it": {
+          "via": "text",
+          "kept": "{name} went to {a}'s birthday drinks.",
+          "text": "{name} went to {a}'s birthday drinks without {user} and raised a glass for {user} anyway.",
+          "share": "raised a glass for you at {a}'s birthday. you were missed"
+        }
+      }
+    },
+    {
+      "key": "friend_needs_a_fourth",
+      "family": "their people",
+      "level": 0,
+      "cast": "friend",
+      "met": "new",
+      "modern": true,
+      "beats": {
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "with": "a", "lead": [2, 4]},
+          "text": "{a} needed one more for a table at quiz night, and {name} put {user} forward.",
+          "share": "{a} needs one more for quiz night and I said I know someone. {place}, {day} at {time}. please say you know things",
+          "then": {"went": {"impression": {"warm": "ringer", "smitten": "ringer", "curious": "ringer", "any": "good_sport"}}, "any": "short_handed"}
+        },
+        "ringer": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came to quiz night, got a few nobody else knew, and {a} wants {user} back.",
+          "share": "{a} wants you on the team permanently. I've created a monster"
+        },
+        "good_sport": {
+          "via": "text",
+          "text": "{User} came to quiz night with {name} and {a}; the table lost, and {user} took it well.",
+          "share": "we lost and you were a good sport about it. {a} noticed"
+        },
+        "short_handed": {
+          "via": "text",
+          "kept": "{name} played quiz night with {a}, one short.",
+          "text": "{name} and {a} played quiz night one short and came nowhere.",
+          "share": "we came second to last. {a} blames the empty chair. so, you"
+        }
+      }
+    },
+    {
+      "key": "friend_doubts_you_exist",
+      "family": "their people",
+      "level": 1,
+      "cast": "close friend",
+      "met": "new",
+      "beats": {
+        "teased": {
+          "via": "text",
+          "text": "{a} has started joking that {name} made {user} up.",
+          "share": "{a} has decided you don't exist. apparently I 'talk about you too much for a real person'",
+          "then": {"answered": "invite", "any": "still_joking"},
+          "gap": [1, 2]
+        },
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "with": "a", "lead": [2, 4]},
+          "text": "{name} set out to prove {user} real to {a}, and asked {user} along for drinks.",
+          "share": "right, we're settling this. drinks with {a}, {place}, {day} at {time}. come be real at {a_them}",
+          "then": {"went": {"impression": {"warm": "proved", "smitten": "proved", "curious": "proved", "any": "real_enough"}}, "any": "still_joking"}
+        },
+        "proved": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} turned up for drinks, and {a} had to admit to being wrong, and liked {user} besides.",
+          "share": "{a} concedes you're real. also that you're funnier than me, which I did not ask for"
+        },
+        "real_enough": {
+          "via": "text",
+          "text": "{User} turned up for drinks, and {a} spent the evening sizing {user} up.",
+          "share": "well {a} believes in you now. still deciding what to make of you, I think"
+        },
+        "still_joking": {
+          "via": "text",
+          "text": "{a} is still joking that {name} made {user} up.",
+          "share": "{a} is still telling people you're imaginary. it's a whole bit now"
+        }
+      }
+    },
+    {
+      "key": "parent_sends_something",
+      "family": "their people",
+      "level": 0,
+      "cast": "parent",
+      "met": "known",
+      "beats": {
+        "sends": {
+          "via": "text",
+          "text": "{name}'s {a_rel} {a} sent {name} home with something for {user}.",
+          "share": "{a} gave me a jar of something homemade and said it's for you. I'm only the courier",
+          "then": {"answered": "thanked", "any": "kept"},
+          "gap": [1, 3]
+        },
+        "thanked": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{name} passed {user_s} thanks on to {a}, who is already planning the next jar.",
+          "share": "told {a} you said thanks. there will be more jars. you've started something"
+        },
+        "kept": {
+          "via": "text",
+          "text": "The jar {a} sent is still waiting for {user} on {name}'s shelf.",
+          "share": "your jar from {a} is still here. it's judging me every time I open the cupboard"
+        }
+      }
+    },
+    {
+      "key": "friends_compare_notes",
+      "family": "their people",
+      "level": 1,
+      "cast": "friend",
+      "met": "known",
+      "beats": {
+        "asked": {
+          "via": "text",
+          "text": "{a} asked {name} to describe {user}, and {name} did not know where to start.",
+          "share": "{a} asked me to describe you in three words and I blanked. help me out. what are your three?",
+          "then": {"answered": "used_them", "any": "own_three"},
+          "gap": [1, 2]
+        },
+        "used_them": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} gave {a} the three words {user} picked, and {a} said that sounded about right.",
+          "share": "gave {a} your three words. got a 'yeah, that tracks'"
+        },
+        "own_three": {
+          "via": "text",
+          "text": "{name} came up with three words for {user} alone and told {a}.",
+          "share": "I gave {a} my own three words for you in the end. not telling you what they were"
+        }
+      }
+    },
+    {
+      "key": "cousin_in_town",
+      "family": "their people",
+      "level": 0,
+      "cast": "cousin",
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{name}'s cousin {a} is in town for a few days, and {name} told {user} about the plans.",
+          "share": "my cousin {a} is in town for a few days. I'm on tour guide duty. where would you take someone?",
+          "then": {"answered": "took_tip", "any": "winged_it"},
+          "gap": [2, 3]
+        },
+        "took_tip": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} took {a} where {user} suggested, and it went over well.",
+          "share": "took {a} where you said. big hit. I took the credit, obviously"
+        },
+        "winged_it": {
+          "via": "text",
+          "text": "{name} showed {a} around without a plan, and the two mostly ended up eating.",
+          "share": "{a} has gone home. we mostly just ate our way round town. no regrets"
+        }
+      }
+    },
+    {
+      "key": "friend_matchmaking_you_two",
+      "family": "their people",
+      "level": 1,
+      "cast": "friend",
+      "met": "known",
+      "relationships": ["friendship"],
+      "beats": {
+        "hints": {
+          "via": "text",
+          "text": "{a} keeps hinting that {name} and {user} would make a good couple.",
+          "share": "{a} will not stop hinting about you and me. I told {a_them} we're friends. {a_them} just raised an eyebrow. you'd tell me if this was weird, right?",
+          "then": {"answered": "laughed", "any": "dropped"},
+          "gap": [1, 3]
+        },
+        "laughed": {
+          "via": "text",
+          "text": "{name} and {user} had a laugh about {a}'s hinting, and {name} told {a} to give it a rest.",
+          "share": "told {a} to give it a rest. {a_them} said 'sure' in a voice that meant no"
+        },
+        "dropped": {
+          "via": "text",
+          "text": "{a} let the hinting about {name} and {user} drop, for now.",
+          "share": "{a} has gone quiet about us. suspiciously quiet"
+        }
+      }
+    },
+    {
+      "key": "meet_the_friends_properly",
+      "family": "their people",
+      "level": 1,
+      "cast": "friend",
+      "met": "new",
+      "relationships": ["romance"],
+      "beats": {
+        "nervous": {
+          "via": "text",
+          "text": "{name} has been wanting {user} to meet {a}, nerves and all.",
+          "share": "I want you to meet {a}. {a} has known me forever and has opinions about everyone I've ever dated. you up for it?",
+          "then": {"said_no": "not_yet", "answered": "invite", "any": "not_yet"},
+          "gap": [1, 2]
+        },
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "with": "a", "lead": [2, 4]},
+          "text": "{name} set up drinks so {user} and {a} could finally meet.",
+          "share": "ok it's happening. you, me, {a}. {place}, {day} at {time}. be yourself. maybe 90 percent yourself",
+          "then": {"went": {"impression": {"warm": "blessing", "smitten": "blessing", "protective": "the_talk", "wary": "the_talk", "any": "jury_out"}}, "any": "not_yet"}
+        },
+        "blessing": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} met {a} over drinks, and {a} told {name} afterwards to hold on to {user}.",
+          "share": "{a} pulled me aside after and said 'keep this one'. so. no pressure"
+        },
+        "the_talk": {
+          "via": "text",
+          "text": "{User} met {a} over drinks, and {a} took {user} aside for a word about treating {name} right.",
+          "share": "I heard {a} gave you The Talk. I'm so sorry. it means {a_them} takes you seriously though"
+        },
+        "jury_out": {
+          "via": "text",
+          "text": "{User} met {a} over drinks; it was friendly, and {a} is keeping {a_their} verdict for later.",
+          "share": "{a} says you're 'interesting'. from {a_them} I genuinely don't know what that means yet"
+        },
+        "not_yet": {
+          "via": "text",
+          "text": "{name} put off having {user} meet {a} for now.",
+          "share": "we'll do the {a} thing another time. no rush"
+        }
+      }
+    },
+    {
+      "key": "friend_moving_day",
+      "family": "their people",
+      "level": 0,
+      "cast": "friend",
+      "met": "known",
+      "beats": {
+        "roped_in": {
+          "via": "text",
+          "text": "{a} is moving some furniture this weekend and has roped {name} in, and {name} asked whether {user} could spare an hour.",
+          "share": "{a} is shifting furniture this weekend and I've been drafted. any chance you could spare an hour? there's food in it",
+          "then": {"said_yes": "many_hands", "said_no": "two_did_it", "answered": "two_did_it", "any": "two_did_it"},
+          "gap": [2, 3]
+        },
+        "many_hands": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{User} lent a hand with {a}'s furniture, and it was done in half the time.",
+          "share": "{a} says you're hired. we were done in half the time"
+        },
+        "two_did_it": {
+          "via": "text",
+          "text": "{name} and {a} got the furniture moved without help, slowly.",
+          "share": "furniture is moved. my back has filed a complaint. {a} owes me forever"
+        }
+      }
+    },
+    {
+      "key": "parent_worries",
+      "family": "their people",
+      "level": 1,
+      "cast": "parent",
+      "met": "new",
+      "beats": {
+        "worried": {
+          "via": "text",
+          "text": "{name}'s {a_rel} {a} has been worrying about how much time {name} has for someone {a} has never met.",
+          "share": "my {a_rel} thinks I'm being 'secretive' about you. {a} worries. it's what {a} does. what should I tell {a_them} about you?",
+          "then": {"answered": {"choice": "shared:a_comes_round", "beats": ["eased", "still_fretting"]}, "any": "still_fretting"},
+          "gap": [1, 3]
+        },
+        "eased": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} told {a} more about {user}, and {a} eased up.",
+          "share": "told {a} about you. {a_them} relaxed about ten percent, which for {a} is a landslide"
+        },
+        "still_fretting": {
+          "via": "text",
+          "text": "{name}'s {a_rel} {a} is still fretting about {user}.",
+          "share": "{a} is still fretting about you. it'll pass. or you'll meet and it'll pass faster"
+        }
+      }
+    },
+    {
+      "key": "friend_feels_left_out",
+      "family": "their people",
+      "level": 2,
+      "cast": "close friend",
+      "met": "known",
+      "beats": {
+        "said_it": {
+          "via": "text",
+          "tone": "bad",
+          "text": "{a} told {name} that {name} has had less time for old friends since {user} came along.",
+          "share": "{a} said I've been hard to pin down lately. since you, basically. I don't think it's fair but it stung a bit. am I that bad?",
+          "then": {"answered": {"choice": "shared:a_comes_round", "beats": ["cleared", "sore"]}, "any": "sore"},
+          "gap": [2, 3]
+        },
+        "cleared": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{name} made time for {a} and the two cleared the air; {a} has nothing against {user}.",
+          "share": "had a proper catch-up with {a}. we're fine. {a} says it was never about you, just missing me"
+        },
+        "sore": {
+          "via": "text",
+          "tone": "bad",
+          "text": "{a} is still a little sore with {name} about being left out.",
+          "share": "{a} is still a bit off with me. I'll fix it. not your fault, before you start"
+        }
+      }
+    },
+    {
+      "key": "group_photo",
+      "family": "their people",
+      "level": 0,
+      "cast": "friend",
+      "met": "known",
+      "modern": true,
+      "beats": {
+        "sent": {
+          "via": "text",
+          "text": "{a} sent round a photo from the last night out, with {user} in it.",
+          "share": "{a} sent round a photo from the other night and you're in it. you look good. I look like I'm mid-sneeze",
+          "then": {"answered": "framed", "any": "saved"},
+          "gap": [1, 2]
+        },
+        "framed": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} kept the photo with {user} in it, sneeze and all.",
+          "share": "keeping that photo btw. sneeze and all"
+        },
+        "saved": {
+          "via": "text",
+          "text": "{name} saved the photo {a} sent of the night out with {user}.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "sibling_needs_advice",
+      "family": "their people",
+      "level": 1,
+      "cast": "family",
+      "met": "known",
+      "beats": {
+        "asked": {
+          "via": "text",
+          "text": "{name}'s {a_rel} {a} is stuck on a decision and asked what {user} would do.",
+          "share": "this is new. {a} is stuck on something and asked what YOU would do. not me. you. apparently you're the sensible one",
+          "then": {"answered": "weighed_in", "any": "on_own"},
+          "gap": [1, 3]
+        },
+        "weighed_in": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{name} passed {user_s} take on to {a}, who is thinking it over.",
+          "share": "passed your take on to {a}. got a long 'hmm'. that's a good sign with {a_them}"
+        },
+        "on_own": {
+          "via": "text",
+          "text": "{a} made the decision without hearing from {user}.",
+          "share": "{a} decided on {a_their} own in the end. you're off the hook"
+        }
+      }
+    },
+    {
+      "key": "friends_big_night",
+      "family": "their people",
+      "level": 1,
+      "cast": "friend",
+      "met": "known",
+      "beats": {
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "show", "lead": [3, 6]},
+          "text": "{name} and the friends have a night out planned, and {name} got {user} a place in it.",
+          "share": "a few of us are going out, {a} included, and there's a spare place with your name on it. {place}, {day} at {time}. you in?",
+          "then": {"went": "good_night", "any": "heard_all"}
+        },
+        "good_night": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{User} came out with {name} and the friends, and it turned into a late one.",
+          "share": "that was a NIGHT. {a} is still talking about it. so am I"
+        },
+        "heard_all": {
+          "via": "text",
+          "kept": "{name} went on the night out with {a} and the friends.",
+          "text": "{name} went out with the friends without {user}, and {a} retold the whole evening the next day.",
+          "share": "you missed a good one. {a} can give you the full retelling, it takes about an hour"
+        }
+      }
+    },
+    {
+      "key": "family_recipe",
+      "family": "their people",
+      "level": 0,
+      "cast": "parent",
+      "met": "known",
+      "apart": true,
+      "beats": {
+        "taught": {
+          "via": "text",
+          "text": "{name}'s {a_rel} {a} finally wrote down the family recipe, and {name} has been wanting to try it out on {user}.",
+          "share": "{a} finally wrote the family recipe down for me. I need a test subject. you",
+          "then": {"any": "invite"},
+          "gap": [1, 2]
+        },
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "visit-in", "lead": [2, 4]},
+          "text": "{name} asked {user} over to try {a}'s recipe.",
+          "share": "come over {day} at {time}. I'm making {a}'s recipe and you have to be honest. kind, but honest",
+          "then": {"went": "close_enough", "any": "ate_alone"}
+        },
+        "close_enough": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{User} came over and tried {name}'s go at {a}'s recipe; not quite {a}'s, and good all the same.",
+          "share": "told {a} you had two helpings. {a_them} says that's the only review that counts"
+        },
+        "ate_alone": {
+          "via": "text",
+          "text": "{name} made {a}'s recipe alone and ate it for three days.",
+          "share": "made the recipe. it made enough for eight. I have been eating it for three days"
+        }
+      }
+    },
+    {
+      "key": "second_opinion",
+      "family": "favors",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} could not decide between two things to wear to an occasion and asked {user} to pick.",
+          "share": "need a second opinion. the safe outfit or the one I'd never normally wear? you pick, I'll obey",
+          "then": {"answered": {"choice": "shared:took_advice", "beats": ["wore_it", "wore_other"]}, "any": "safe_one"},
+          "gap": [1, 3]
+        },
+        "wore_it": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} wore what {user} picked and got compliments on it.",
+          "share": "wore what you picked. three compliments. you're my stylist now"
+        },
+        "wore_other": {
+          "via": "text",
+          "text": "{name} asked {user} to pick, then went with the other one anyway.",
+          "share": "ok confession. I asked you and then wore the other one. it was fine. yours would've been better"
+        },
+        "safe_one": {
+          "via": "text",
+          "text": "{name} went with the safe choice without hearing from {user}.",
+          "share": "went with the safe one in the end. nobody noticed either way"
+        }
+      }
+    },
+    {
+      "key": "hang_a_shelf",
+      "family": "favors",
+      "level": 0,
+      "apart": true,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "visit-in", "lead": [1, 3]},
+          "text": "{name} has a shelf that needs two pairs of hands and asked {user} to come over and help.",
+          "share": "I have a shelf, a wall, and no idea. come over {day} at {time} and hold things while I panic?",
+          "then": {"went": "up", "any": "leaning"}
+        },
+        "up": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came over to help, and the shelf went up level.",
+          "share": "the shelf is UP and it is LEVEL. I keep walking past it to check"
+        },
+        "leaning": {
+          "via": "text",
+          "text": "{name} never got the shelf up; it is leaning against the wall where it was.",
+          "share": "the shelf is still leaning against the wall. it's a design choice now"
+        }
+      }
+    },
+    {
+      "key": "taste_tester",
+      "family": "favors",
+      "level": 0,
+      "modern": true,
+      "apart": true,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "visit-in", "lead": [1, 3]},
+          "text": "{name} is trying out a new dish and asked {user} over to taste it.",
+          "share": "I'm attempting a new recipe and need someone brave. come over {day} at {time}? worst case we order in",
+          "then": {"went": {"choice": "shared:came_off", "beats": ["a_hit", "ordered_in"]}, "any": "no_witness"}
+        },
+        "a_hit": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came over to taste {name}'s new dish, and it came out well.",
+          "share": "you had seconds. I saw. that recipe is staying"
+        },
+        "ordered_in": {
+          "via": "text",
+          "text": "{User} came over to taste {name}'s new dish; it did not survive, and the two ordered in.",
+          "share": "we do not speak of the dish. the takeaway was good though"
+        },
+        "no_witness": {
+          "via": "text",
+          "text": "{name} tried the new dish alone, and nobody will ever know how it went.",
+          "share": "made the dish alone. no witnesses. I'm saying it was perfect"
+        }
+      }
+    },
+    {
+      "key": "read_this_over",
+      "family": "favors",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} wrote something that matters and asked {user} to look it over before it goes out.",
+          "share": "can I read you something before I send it? it matters and I've rewritten it six times",
+          "then": {"answered": "sent_better", "any": "sent_as_is"},
+          "gap": [1, 2]
+        },
+        "sent_better": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} sent it off after {user} looked it over, and feels better about it.",
+          "share": "sent it. your changes made it better. I've stopped rereading it, which is a first"
+        },
+        "sent_as_is": {
+          "via": "text",
+          "text": "{name} sent it off as it was, without a second pair of eyes.",
+          "share": "sent it as it was. I've reread it eleven times since. it's fine. it's probably fine"
+        }
+      }
+    },
+    {
+      "key": "carry_it_home",
+      "family": "favors",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "market", "lead": [1, 3]},
+          "text": "{name} has something bulky to bring home from the shops and asked {user} to come and help carry it.",
+          "share": "favor. I'm buying something too big to carry alone. meet me at {place}, {day} at {time}? lunch is on me after",
+          "then": {"went": "carried", "any": "struggled"}
+        },
+        "carried": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} helped {name} carry it home, and {name} bought lunch as promised.",
+          "share": "thank you for being my second pair of arms. it looks great where we put it"
+        },
+        "struggled": {
+          "via": "text",
+          "kept": "{name} went to the shops and carried the bulky thing home alone.",
+          "text": "{name} got it home alone, stopping to rest at every corner.",
+          "share": "got it home by myself. stopped at every corner. a stranger offered to help and I said no out of pride"
+        }
+      }
+    },
+    {
+      "key": "wake_up_call",
+      "family": "favors",
+      "level": 0,
+      "modern": true,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} has an early start tomorrow that cannot be missed and asked {user} to make sure {name} is up.",
+          "share": "I have to be up horribly early tomorrow and I don't trust my alarm. if you're awake, text me? anything. a single word",
+          "then": {"any": "next_day"},
+          "gap": [1, 1]
+        },
+        "next_day": {
+          "via": "text",
+          "text": "{name} made the early start.",
+          "share": "made it. barely. did you text? I honestly can't tell what was you and what was the alarm",
+          "then": {"answered": "thanks", "any": "made_it"},
+          "gap": [1, 1]
+        },
+        "thanks": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} made the early start and thanked {user} for checking in.",
+          "share": ""
+        },
+        "made_it": {
+          "via": "text",
+          "text": "{name} made the early start on the alarm alone.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "pick_a_present",
+      "family": "favors",
+      "level": 0,
+      "cast": "friend",
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} has to find a present for {a} and is out of ideas, so {name} asked {user}.",
+          "share": "I need a present for {a} and my mind is blank. {a} likes cooking, being outdoors, and complaining. ideas?",
+          "then": {"answered": {"choice": "shared:took_advice", "beats": ["your_idea", "own_idea"]}, "any": "last_minute"},
+          "gap": [2, 4]
+        },
+        "your_idea": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} went with {user_s} idea for {a}'s present, and {a} loved it.",
+          "share": "{a} loved it. I said it was my idea. it's what you'd have wanted"
+        },
+        "own_idea": {
+          "via": "text",
+          "text": "{name} heard {user} out, then thought of something else for {a}; it went down fine.",
+          "share": "ended up getting {a} something else, sorry. your idea is saved for next year"
+        },
+        "last_minute": {
+          "via": "text",
+          "text": "{name} bought {a} something at the last minute, and {a} was polite about it.",
+          "share": "panic-bought {a} a present on the way there. got a very polite thank you. ouch"
+        }
+      }
+    },
+    {
+      "key": "practice_run",
+      "family": "favors",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} has to say a few words in front of people soon and asked {user} to listen to a practice run.",
+          "share": "I have to say a few words in front of people this week. can I practise on you? you're allowed to laugh in the right places",
+          "then": {"answered": {"choice": "shared:came_off", "beats": ["landed", "got_through"]}, "any": "winged"},
+          "gap": [2, 4]
+        },
+        "landed": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} said the few words after practising on {user}, and they landed.",
+          "share": "it went so well. people laughed where you laughed. thank you for sitting through the rough version"
+        },
+        "got_through": {
+          "via": "text",
+          "text": "{name} said the few words after practising on {user}; a little fast, and got through it.",
+          "share": "done. I rushed it but I got through. the practice helped, I'd have been a wreck otherwise"
+        },
+        "winged": {
+          "via": "text",
+          "text": "{name} said the few words without a practice run and cannot remember any of them.",
+          "share": "it's over. I blacked out and have no idea what I said. people clapped so it can't have been terrible"
+        }
+      }
+    },
+    {
+      "key": "borrow_something",
+      "family": "favors",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} is in need of an umbrella for a day and asked {user} for the loan of one.",
+          "share": "odd question. do you own a decent umbrella? mine died and I've got somewhere to be that I can't arrive soaked to",
+          "then": {"said_yes": "lent", "answered": "made_do", "any": "made_do"},
+          "gap": [1, 2]
+        },
+        "lent": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came through with a loan, and {name} promised to return it in one piece.",
+          "share": "you're a lifesaver. I'll bring it back in one piece. probably"
+        },
+        "made_do": {
+          "via": "text",
+          "text": "{name} made do without and arrived a little damp.",
+          "share": "arrived damp. survived. buying a new umbrella is now a priority"
+        }
+      }
+    },
+    {
+      "key": "plant_sitting",
+      "family": "favors",
+      "level": 0,
+      "apart": true,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} is away overnight and asked {user} to look in on the plants.",
+          "share": "I'm away overnight later this week. would you look in on my plants? they're dramatic, they'll act like it's been a month",
+          "then": {"said_yes": "thriving", "dropped_by": "thriving", "answered": "drooping", "any": "drooping"},
+          "gap": [2, 4]
+        },
+        "thriving": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} came home to plants that looked better than when {name} left, thanks to {user}.",
+          "share": "what did you DO to my plants. they look better than when I left. they like you more than me"
+        },
+        "drooping": {
+          "via": "text",
+          "text": "{name} came home to one sulking plant and talked it round with water.",
+          "share": "home. one plant was sulking. we've made up"
+        }
+      }
+    },
+    {
+      "key": "be_my_excuse",
+      "family": "favors",
+      "level": 1,
+      "modern": true,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} is stuck at a gathering and asked {user} for an excuse to leave.",
+          "share": "I am trapped at a thing and it will not end. I need an excuse to leave. give me one. anything",
+          "then": {"answered": "escaped", "any": "stayed"},
+          "gap": [1, 1]
+        },
+        "escaped": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} used {user_s} excuse and got away early.",
+          "share": "it WORKED. I'm free. I owe you one"
+        },
+        "stayed": {
+          "via": "text",
+          "text": "{name} stayed to the end of the gathering, with no excuse to hand.",
+          "share": "I stayed till the end. three hours. I've aged"
+        }
+      }
+    },
+    {
+      "key": "settle_a_bet",
+      "family": "favors",
+      "level": 0,
+      "cast": "friend",
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} and {a} have a bet running, and the two agreed {user} should settle it.",
+          "share": "you're the judge. {a} says soup is a meal. I say it's a drink with ambitions. so: is soup a meal? yes or no. loser buys the drinks",
+          "then": {"said_yes": "a_wins", "said_no": "name_wins", "answered": "split", "any": "unsettled"},
+          "gap": [1, 2]
+        },
+        "a_wins": {
+          "via": "text",
+          "effect": ["warmer"],
+          "text": "{User} ruled for {a}, and {name} bought the drinks.",
+          "share": "I can't believe you sided with {a}. I bought the drinks. the betrayal is noted"
+        },
+        "name_wins": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} ruled for {name}, and {a} bought the drinks.",
+          "share": "justice. {a} bought the drinks and says you're biased. you are, and I love that"
+        },
+        "split": {
+          "via": "text",
+          "text": "{User} weighed in without picking a side, and {name} and {a} split the drinks.",
+          "share": "you sat on the fence so we split the bill. {a} says you should go into politics"
+        },
+        "unsettled": {
+          "via": "text",
+          "text": "The bet between {name} and {a} is still unsettled.",
+          "share": "the bet stands unsettled. {a} and I have agreed to disagree, loudly"
+        }
+      }
+    },
+    {
+      "key": "help_me_choose",
+      "family": "favors",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "market", "lead": [1, 4]},
+          "text": "{name} is choosing something that has to last and asked {user} to come and give an honest opinion.",
+          "share": "I'm buying a coat that has to last me years and I don't trust myself. come with me? {place}, {day} at {time}. be brutal",
+          "then": {"went": "chosen", "any": "undecided"}
+        },
+        "chosen": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} went along and talked {name} out of the wrong one and into the right one.",
+          "share": "wearing the coat. you were right about the other one. I looked like a tent"
+        },
+        "undecided": {
+          "via": "text",
+          "kept": "{name} went to the shops alone to look and bought nothing.",
+          "text": "{name} went to look alone, could not choose, and came home with nothing.",
+          "share": "went alone, tried on nine, bought none. I need supervision"
+        }
+      }
+    },
+    {
+      "key": "ride_along",
+      "family": "favors",
+      "level": 1,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "coffee", "lead": [1, 3]},
+          "text": "{name} has a dull errand across town and asked {user} along for company, with coffee after.",
+          "share": "I have the world's dullest errand {day}. come keep me company? coffee after at {place}, around {time}",
+          "then": {"went": "flew_by", "any": "dragged"}
+        },
+        "flew_by": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} kept {name} company on the errand, and it went by quickly.",
+          "share": "that was the most fun I've ever had running that errand. low bar, but still"
+        },
+        "dragged": {
+          "via": "text",
+          "kept": "{name} ran the dull errand across town alone.",
+          "text": "{name} ran the errand alone, and it dragged.",
+          "share": "errand done. it took forever and I had nobody to complain to"
+        }
+      }
+    },
+    {
+      "key": "cover_story",
+      "family": "favors",
+      "level": 2,
+      "cast": "family",
+      "met": "known",
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} is planning a surprise for {a} and asked {user} to help keep it quiet.",
+          "share": "I'm planning a surprise for {a} and you're now in on it. if {a} asks you anything, you know nothing. can you do that?",
+          "then": {"said_no": "slipped", "answered": {"choice": "shared:came_off", "beats": ["surprised", "slipped"]}, "any": "surprised"},
+          "gap": [2, 4]
+        },
+        "surprised": {
+          "via": "text",
+          "tone": "good",
+          "text": "The surprise for {a} came off, and {a} never saw it coming.",
+          "share": "{a} had NO idea. the face was priceless. thank you for holding the line"
+        },
+        "slipped": {
+          "via": "text",
+          "text": "{a} worked out the surprise ahead of time and played along anyway.",
+          "share": "{a} guessed. nobody slipped, {a} is just impossible to surprise. {a_them} acted shocked for my sake"
+        }
+      }
+    },
+    {
+      "key": "sick_day_soup",
+      "family": "favors",
+      "level": 1,
+      "relationships": ["romance"],
+      "apart": true,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} is under the weather and feeling sorry about it, and told {user} so.",
+          "share": "I've got a cold and I'm being a baby about it. no need to do anything. I just want sympathy",
+          "then": {"dropped_by": "looked_after", "answered": "sympathy", "any": "slept_it_off"},
+          "gap": [1, 2]
+        },
+        "looked_after": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came by while {name} had a cold, and {name} has not stopped being touched by it.",
+          "share": "you came over. with a cold going round. I'm fine now and I'm still thinking about that"
+        },
+        "sympathy": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} got the sympathy asked for and is on the mend.",
+          "share": "on the mend. the sympathy helped more than the tea did"
+        },
+        "slept_it_off": {
+          "via": "text",
+          "text": "{name} slept the cold off.",
+          "share": "slept for about fourteen hours. I'm human again"
+        }
+      }
+    },
+    {
+      "key": "rough_day_at_work",
+      "family": "their work",
+      "level": 0,
+      "cast": "work",
+      "beats": {
+        "vents": {
+          "via": "text",
+          "text": "{name} had a rough day at work and told {user} about it.",
+          "share": "today at work was a lot. nothing went wrong exactly, it just all landed on me at once. can I complain at you for a minute?",
+          "then": {"answered": "lighter", "any": "slept_on_it"},
+          "gap": [1, 2]
+        },
+        "lighter": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} went back to work the next day feeling lighter for having talked it through with {user}.",
+          "share": "today was better. honestly just saying it all out loud to you helped"
+        },
+        "slept_on_it": {
+          "via": "text",
+          "text": "{name} slept on the rough day at work and got on with the next one.",
+          "share": "work was calmer today. yesterday can stay in yesterday"
+        }
+      }
+    },
+    {
+      "key": "ask_for_more",
+      "family": "their work",
+      "level": 1,
+      "cast": "work",
+      "beats": {
+        "thinking": {
+          "via": "text",
+          "text": "{name} has been thinking about asking for more at work and told {user}.",
+          "share": "I've been thinking about asking for more at work. more pay, more say, I'm not sure which. is that mad?",
+          "then": {"answered": {"choice": "shared:went_for_it", "beats": ["asked", "held_off"]}, "any": "held_off"},
+          "gap": [3, 5]
+        },
+        "asked": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} asked for more at work after talking it over with {user}, and is waiting to hear.",
+          "share": "I asked. my voice only shook a little. now we wait. thank you for the push"
+        },
+        "held_off": {
+          "via": "text",
+          "text": "{name} decided this was not the week to ask for more at work.",
+          "share": "didn't ask in the end. not the right week. the thought isn't going anywhere though"
+        }
+      }
+    },
+    {
+      "key": "coworker_takes_credit",
+      "family": "their work",
+      "level": 2,
+      "cast": "coworker",
+      "beats": {
+        "fuming": {
+          "via": "text",
+          "tone": "bad",
+          "text": "{a} took the credit for something {name} did at work, and {name} told {user} about it.",
+          "share": "{a} just presented my work as {a_their} own. in front of everyone. I smiled. I am not smiling inside. what would you do?",
+          "then": {"answered": {"choice": "shared:work_call", "beats": ["spoke_up", "let_go"]}, "any": "let_go"},
+          "gap": [1, 3]
+        },
+        "spoke_up": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} had a quiet word with {a} about the credit after talking to {user}, and {a} set it right.",
+          "share": "I talked to {a}. calmly! {a_them} corrected it with the whole team. I'm a bit proud of myself"
+        },
+        "let_go": {
+          "via": "text",
+          "text": "{name} let it go with {a} this once, and is keeping a closer eye on things.",
+          "share": "I let the {a} thing go. this once. I'm keeping receipts from now on"
+        }
+      }
+    },
+    {
+      "key": "work_do_plus_one",
+      "family": "their work",
+      "level": 1,
+      "cast": "work",
+      "beats": {
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "lead": [3, 6]},
+          "text": "There are drinks after work that people bring someone to, and {name} asked {user} along.",
+          "share": "there's a work drinks thing and we're allowed to bring someone. come and save me from small talk? {place}, {day} at {time}",
+          "then": {"went": "charmed", "any": "small_talk"}
+        },
+        "charmed": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came to the work drinks, and {name}'s coworkers have been asking about {user} since.",
+          "share": "everyone at work now asks about you. you were only supposed to save me from small talk, not get a fan club"
+        },
+        "small_talk": {
+          "via": "text",
+          "kept": "{name} went to the work drinks alone.",
+          "text": "{name} went to the work drinks alone and made small talk for two hours.",
+          "share": "two hours of small talk. I talked about the weather four separate times"
+        }
+      }
+    },
+    {
+      "key": "lunch_near_work",
+      "family": "their work",
+      "level": 0,
+      "cast": "work",
+      "beats": {
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "lunch-out", "lead": [1, 3]},
+          "text": "{name} has a long break coming at work and asked {user} to lunch nearby.",
+          "share": "I've got a long break {day}. lunch? {place} at {time}. I need to see a face that isn't from work",
+          "then": {"went": "best_part", "any": "at_desk"}
+        },
+        "best_part": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} met {name} for lunch in the middle of the working day, and it was the best part of it.",
+          "share": "that lunch got me through the whole afternoon. let's make it a habit"
+        },
+        "at_desk": {
+          "via": "text",
+          "text": "{name} ate lunch at work, alone, in a hurry.",
+          "share": "ate at my post in about six minutes. glamorous"
+        }
+      }
+    },
+    {
+      "key": "big_deadline",
+      "family": "their work",
+      "level": 0,
+      "cast": "work",
+      "beats": {
+        "buried": {
+          "via": "text",
+          "text": "{name} is buried under a deadline at work and warned {user} it will be a quiet few days.",
+          "share": "fair warning, I'm buried at work till the end of the week. if I go quiet it's not you. send me something nice to look forward to?",
+          "then": {"answered": "kept_going", "any": "came_up_for_air"},
+          "gap": [3, 4]
+        },
+        "kept_going": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} made the deadline, and what {user} sent kept {name} going.",
+          "share": "DONE. made it. what you said got me through the last stretch, I reread it twice"
+        },
+        "came_up_for_air": {
+          "via": "text",
+          "text": "{name} made the deadline and came up for air.",
+          "share": "I'm alive. deadline made. what did I miss?"
+        }
+      }
+    },
+    {
+      "key": "new_at_work",
+      "family": "their work",
+      "level": 0,
+      "cast": "work",
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{name} has been asked to show a new starter the ropes at work and told {user} about it.",
+          "share": "they've put me in charge of showing the new person around at work. me! what's the one thing you wish someone had told you on a first day?",
+          "then": {"answered": "passed_on", "any": "own_way"},
+          "gap": [2, 4]
+        },
+        "passed_on": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} passed {user_s} first-day advice on to the new starter, who took it to heart.",
+          "share": "gave the new person your advice. saw them actually write it down"
+        },
+        "own_way": {
+          "via": "text",
+          "text": "{name} showed the new starter around and mostly pointed out where the good cups are kept.",
+          "share": "the new person survived my tour. I mainly showed them where the good cups are"
+        }
+      }
+    },
+    {
+      "key": "good_news_first",
+      "family": "their work",
+      "level": 0,
+      "cast": "work",
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{name} got some good news at work and told {user} before anyone else.",
+          "share": "good news at work and you're the first person I'm telling. something I worked on got noticed. like, by name",
+          "then": {"answered": "celebrate", "any": "quiet_win"},
+          "gap": [1, 2]
+        },
+        "celebrate": {
+          "via": "plan",
+          "plan": {"activity": "dinner", "lead": [2, 4]},
+          "text": "{name} wanted to mark the good news at work and asked {user} out to dinner.",
+          "share": "I want to celebrate properly. dinner, {place}, {day} at {time}. I'm buying, don't argue",
+          "then": {"went": "toasted", "any": "quiet_win"}
+        },
+        "toasted": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} toasted the good news from work over dinner.",
+          "share": "that was exactly the celebration I wanted. thank you for making a fuss of me"
+        },
+        "quiet_win": {
+          "via": "text",
+          "text": "{name} marked the good news from work quietly.",
+          "share": "celebrated my work thing with a very nice dessert for one. still counts"
+        }
+      }
+    },
+    {
+      "key": "difficult_customer",
+      "family": "their work",
+      "level": 1,
+      "cast": "work",
+      "beats": {
+        "story": {
+          "via": "text",
+          "text": "{name} dealt with someone impossible at work today and told {user} the whole story.",
+          "share": "you will not BELIEVE the person I had to deal with at work today. do you want the short version or the full performance?",
+          "then": {"answered": "full_version", "any": "saved_up"},
+          "gap": [1, 2]
+        },
+        "full_version": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} gave {user} the full performance of the day at work, and felt better for the telling.",
+          "share": "thank you for letting me act that out. I feel cleansed"
+        },
+        "saved_up": {
+          "via": "text",
+          "text": "{name} is saving the story from work for a proper telling to {user}.",
+          "share": "I'm saving the work story for you. it deserves a proper audience"
+        }
+      }
+    },
+    {
+      "key": "coworker_leaving_do",
+      "family": "their work",
+      "level": 1,
+      "cast": "coworker",
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{a} is leaving {name}'s work, and {name} has to say something at the send-off.",
+          "share": "{a} is leaving work and I've been volunteered to say a few words at the send-off. give me one good line. I'll take all the credit",
+          "then": {"answered": {"choice": "shared:came_off", "beats": ["got_a_laugh", "polite_clap"]}, "any": "kept_short"},
+          "gap": [2, 4]
+        },
+        "got_a_laugh": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} used {user_s} line at {a}'s send-off, and it got the laugh of the afternoon.",
+          "share": "your line got the biggest laugh of the whole send-off. {a} asked who wrote it. I said me"
+        },
+        "polite_clap": {
+          "via": "text",
+          "text": "{name} used {user_s} line at {a}'s send-off to polite applause.",
+          "share": "your line got a polite clap. tough room. {a} liked it though"
+        },
+        "kept_short": {
+          "via": "text",
+          "text": "{name} kept the words at {a}'s send-off short.",
+          "share": "said about two sentences at {a}'s send-off and sat down. short and sweet. mostly short"
+        }
+      }
+    },
+    {
+      "key": "what_would_you_do",
+      "family": "their work",
+      "level": 1,
+      "cast": "work",
+      "beats": {
+        "torn": {
+          "via": "text",
+          "text": "{name} has been offered a bit more responsibility at work, the kind without more pay, and asked what {user} would do.",
+          "share": "they've offered me more responsibility at work. no more money, just more. flattering or a trap? what would you do?",
+          "then": {"answered": {"choice": "shared:took_advice", "beats": ["your_way", "own_way"]}, "any": "stalled"},
+          "gap": [2, 4]
+        },
+        "your_way": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} gave work an answer along the lines {user} suggested and feels settled about it.",
+          "share": "gave them my answer. pretty much what you said. I feel good about it"
+        },
+        "own_way": {
+          "via": "text",
+          "text": "{name} heard {user} out and gave work a different answer in the end.",
+          "share": "I went the other way from what you said, in the end. I did think about it though. properly"
+        },
+        "stalled": {
+          "via": "text",
+          "text": "{name} told work there would be an answer next week.",
+          "share": "told work I need a week to think. classic me"
+        }
+      }
+    },
+    {
+      "key": "walk_me_home",
+      "family": "their work",
+      "level": 0,
+      "cast": "work",
+      "beats": {
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "walk", "lead": [1, 3]},
+          "text": "{name} has a short day at work coming and asked {user} to meet afterwards for a walk.",
+          "share": "I finish early {day}. meet me after? I want to walk it off. {place} at {time}",
+          "then": {"went": "unwound", "any": "long_way"}
+        },
+        "unwound": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} met {name} after work, and the two walked until the working day had worn off.",
+          "share": "I needed that walk. I'd stopped thinking about work by the second corner"
+        },
+        "long_way": {
+          "via": "text",
+          "kept": "{name} walked home from work the long way, alone.",
+          "text": "{name} took the long way home after work alone.",
+          "share": "took the long way home. it's not the same without someone to complain to"
+        }
+      }
+    },
+    {
+      "key": "proud_of_this",
+      "family": "their work",
+      "level": 0,
+      "cast": "work",
+      "beats": {
+        "shows": {
+          "via": "text",
+          "text": "{name} finished something at work to be proud of and wanted {user} to hear about it.",
+          "share": "finished something at work today that I'm actually proud of. can I tell you about it? I'll try not to be boring",
+          "then": {"answered": "told_all", "any": "kept_it"},
+          "gap": [1, 2]
+        },
+        "told_all": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} told {user} all about the piece of work, and {user} asked good questions.",
+          "share": "thanks for listening to all that. you asked better questions than my boss did"
+        },
+        "kept_it": {
+          "via": "text",
+          "text": "{name} is quietly pleased about the piece of work all the same.",
+          "share": "still pleased with my work thing. I'll bore you with it another day"
+        }
+      }
+    },
+    {
+      "key": "two_tickets",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "show", "lead": [2, 5]},
+          "text": "{name} ended up with two tickets to a show and asked {user} to take the other.",
+          "share": "I've ended up with two tickets for {place}, {day} at {time}. the other one's yours if you want it",
+          "then": {"went": "good_seats", "any": "empty_seat"}
+        },
+        "good_seats": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} took the other ticket, and {name} and {user} talked about the show all the way home.",
+          "share": "still thinking about last night. glad that ticket went to you"
+        },
+        "empty_seat": {
+          "via": "text",
+          "kept": "{name} went to the show alone.",
+          "text": "{name} went to the show with an empty seat alongside.",
+          "share": "went on my own. good show. the seat next to me had my coat on it, very poor company"
+        }
+      }
+    },
+    {
+      "key": "market_morning",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "market", "lead": [1, 4]},
+          "text": "{name} wanted company for a morning round the market and asked {user}.",
+          "share": "market morning? {place}, {day} at {time}. I want to buy things I don't need and I'd like a witness",
+          "then": {"went": "arms_full", "any": "one_bag"}
+        },
+        "arms_full": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} went round the market with {name}, and both came away with arms full.",
+          "share": "I've used almost nothing we bought and regret none of it"
+        },
+        "one_bag": {
+          "via": "text",
+          "kept": "{name} went round the market alone.",
+          "text": "{name} went round the market alone and showed restraint.",
+          "share": "did the market alone. bought one sensible thing. it was no fun at all"
+        }
+      }
+    },
+    {
+      "key": "new_exhibit",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "museum", "lead": [2, 5]},
+          "text": "There is something new on show in town, and {name} asked {user} to come and see it.",
+          "share": "there's something new on at {place} and I'd like to see it with someone who'll have opinions. {day} at {time}?",
+          "then": {"went": "argued", "any": "audio_guide"}
+        },
+        "argued": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} went to see it and disagreed happily about the best piece.",
+          "share": "you're still wrong about the best one. I had a great time being right"
+        },
+        "audio_guide": {
+          "via": "text",
+          "kept": "{name} went to see the new exhibit alone.",
+          "text": "{name} went to see it alone and had nobody to disagree with.",
+          "share": "saw it on my own. nobody to argue with about the best one. I won by default, which doesn't count"
+        }
+      }
+    },
+    {
+      "key": "long_walk",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "walk", "lead": [1, 3]},
+          "text": "{name} has been wanting a long walk and asked {user} along.",
+          "share": "I need a long walk. {day}, {place}, {time}. come with me? I'll bring something to eat",
+          "then": {"went": "miles", "any": "short_loop"}
+        },
+        "miles": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} walked for miles and talked the whole way.",
+          "share": "my legs hurt and I don't care. good walk. good company"
+        },
+        "short_loop": {
+          "via": "text",
+          "kept": "{name} went for a short walk alone.",
+          "text": "{name} did a short loop alone and turned back early.",
+          "share": "did a short walk on my own. it's a talking walk really, that one. needs two"
+        }
+      }
+    },
+    {
+      "key": "try_the_new_place",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "dinner", "lead": [2, 5]},
+          "text": "{name} has been meaning to try a place for dinner and asked {user} to come along.",
+          "share": "I keep walking past {place} and wanting to try it. {day} at {time}? I'm not going in alone like some kind of confident person",
+          "then": {"went": {"choice": "shared:came_off", "beats": ["new_regular", "never_again"]}, "any": "still_curious"}
+        },
+        "new_regular": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} tried the place for dinner, and it is going on the list of regulars.",
+          "share": "ok that place is OURS now. we're regulars. I've decided"
+        },
+        "never_again": {
+          "via": "text",
+          "text": "{User} and {name} tried the place for dinner; the food was poor and the evening was good anyway.",
+          "share": "the food was bad and I still had a great night, which says a lot about you"
+        },
+        "still_curious": {
+          "via": "text",
+          "text": "{name} is still walking past the place and wondering.",
+          "share": "still haven't tried that place. it's becoming a thing. we have to go eventually"
+        }
+      }
+    },
+    {
+      "key": "usual_table",
+      "family": "around town",
+      "level": 0,
+      "days_known": [21, 3650],
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "coffee", "lead": [1, 3]},
+          "text": "{name} asked {user} for coffee at the usual place, for no reason at all.",
+          "share": "coffee? no reason. {place}, {day} at {time}. I just feel like it",
+          "then": {"went": "no_reason", "any": "for_one"}
+        },
+        "no_reason": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} had coffee for no reason and stayed for a second one.",
+          "share": "we should do things for no reason more often"
+        },
+        "for_one": {
+          "via": "text",
+          "kept": "{name} had coffee at the usual place alone.",
+          "text": "{name} had the coffee alone and people-watched.",
+          "share": "had my coffee alone and judged strangers' shoes. you'd have enjoyed it"
+        }
+      }
+    },
+    {
+      "key": "street_fair",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "market", "lead": [1, 4]},
+          "text": "There are stalls out in town this week, and {name} asked {user} to come and wander them.",
+          "share": "there are stalls out near {place} this week. wander round with me? {day} at {time}. I'm told there's food on sticks",
+          "then": {"went": "won_prize", "any": "peeked"}
+        },
+        "won_prize": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} wandered the stalls, ate too much, and came home with something silly.",
+          "share": "I've put the silly thing we bought where I can see it. no regrets"
+        },
+        "peeked": {
+          "via": "text",
+          "kept": "{name} had a quick look round the stalls alone.",
+          "text": "{name} had a quick look round the stalls alone on the way past.",
+          "share": "walked through the stalls on my way home. not the same alone. I didn't even get food on a stick"
+        }
+      }
+    },
+    {
+      "key": "sunset_spot",
+      "family": "around town",
+      "level": 0,
+      "relationships": ["romance"],
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "walk", "lead": [1, 3]},
+          "text": "{name} has a favourite spot with a view at the end of the day and asked {user} to come and see it.",
+          "share": "there's a spot near {place} where the light goes gold at the end of the day. I want to show you. {day} at {time}?",
+          "then": {"went": "gold", "any": "next_clear_day"}
+        },
+        "gold": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} showed {user} the spot with the view, and the two stayed until the light went.",
+          "share": "I've been to that spot a hundred times. it was better with you in it"
+        },
+        "next_clear_day": {
+          "via": "text",
+          "text": "{name} is saving the spot with the view for the next clear evening with {user}.",
+          "share": "the view will keep. next clear evening, you and me"
+        }
+      }
+    },
+    {
+      "key": "indoor_afternoon",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "museum", "lead": [1, 3]},
+          "text": "{name} wanted an afternoon indoors somewhere interesting and asked {user} along.",
+          "share": "I want an afternoon of looking at things and having opinions. {place}, {day} at {time}? come have opinions with me",
+          "then": {"went": "dry", "any": "window"}
+        },
+        "dry": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} spent the afternoon indoors and lost track of the time.",
+          "share": "best afternoon in ages. I didn't check the time once"
+        },
+        "window": {
+          "via": "text",
+          "text": "{name} spent the afternoon at home instead.",
+          "share": "stayed in instead. cosy. a bit dull. mostly cosy"
+        }
+      }
+    },
+    {
+      "key": "late_drink",
+      "family": "around town",
+      "level": 1,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "lead": [1, 3]},
+          "text": "{name} had a long week and asked {user} out for a drink at the end of it.",
+          "share": "long week. I want one drink somewhere with low lights. {place}, {day} at {time}. come with?",
+          "then": {"went": "one_became_two", "any": "early_night"}
+        },
+        "one_became_two": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} joined {name} for one drink, which became two.",
+          "share": "one drink, I said. you're a bad influence. same time next week?"
+        },
+        "early_night": {
+          "via": "text",
+          "text": "{name} skipped the drink and had an early night.",
+          "share": "skipped the drink, went to bed early. sensible. boring. sensible"
+        }
+      }
+    },
+    {
+      "key": "lost_scarf",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "lost": {
+          "via": "text",
+          "tone": "bad",
+          "text": "{name} lost a favourite scarf somewhere in town and asked whether {user} remembered seeing it.",
+          "share": "I've lost my favourite scarf somewhere between home and town. this is a long shot, but do you remember me having it last time?",
+          "then": {"answered": {"choice": "shared:found_it", "beats": ["turned_up", "gone"]}, "any": "gone"},
+          "gap": [1, 3]
+        },
+        "turned_up": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} retraced the day with {user_s} help, and the scarf turned up.",
+          "share": "FOUND IT. it was exactly where you made me think to look. I'm wearing it indoors out of relief"
+        },
+        "gone": {
+          "via": "text",
+          "tone": "bad",
+          "text": "{name}'s scarf never turned up.",
+          "share": "the scarf is gone. I've accepted it. I hope whoever found it appreciates it"
+        }
+      }
+    },
+    {
+      "key": "longest_queue",
+      "family": "around town",
+      "level": 0,
+      "modern": true,
+      "beats": {
+        "soaked": {
+          "via": "text",
+          "text": "{name} is stuck in a very long queue in town and told {user} about it.",
+          "share": "I am in the longest queue of my life and it has not moved. entertain me",
+          "then": {"answered": "waited_it_out", "any": "ran_for_it"},
+          "gap": [1, 1]
+        },
+        "waited_it_out": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} got to the front of the queue with {user} for company.",
+          "share": "thanks for keeping me company in that queue yesterday. I got to the front eventually"
+        },
+        "ran_for_it": {
+          "via": "text",
+          "text": "{name} gave up on the queue and went home.",
+          "share": "gave up on the queue in the end. I'll try again on a quieter day"
+        }
+      }
+    },
+    {
+      "key": "picnic",
+      "family": "around town",
+      "level": 0,
+      "relationships": ["romance"],
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "walk", "lead": [2, 4]},
+          "text": "{name} is planning a picnic and asked {user} to share it.",
+          "share": "I'm packing a picnic. a real one, with a blanket. {place}, {day} at {time}. bring nothing but yourself",
+          "then": {"went": "crumbs", "called_off": "indoor_picnic", "any": "indoor_picnic"}
+        },
+        "crumbs": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} had the picnic and stayed until there was nothing left but crumbs.",
+          "share": "I'm still finding crumbs in the blanket. worth it"
+        },
+        "indoor_picnic": {
+          "via": "text",
+          "text": "{name} ate the picnic at home, on the floor, on the blanket.",
+          "share": "had the picnic on my floor. blanket and everything. I committed"
+        }
+      }
+    },
+    {
+      "key": "show_you_my_street",
+      "family": "around town",
+      "level": 0,
+      "days_known": [7, 120],
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "walk", "lead": [1, 4]},
+          "text": "{name} offered to show {user} round {name}'s own part of town.",
+          "share": "you've never had the proper tour of my bit of town. {day} at {time}, starting at {place}. I do voices",
+          "then": {"went": "the_tour", "any": "another_time"}
+        },
+        "the_tour": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} gave {user} the tour, stories and all.",
+          "share": "you were a very good audience for the tour. you even laughed at the bit about the statue"
+        },
+        "another_time": {
+          "via": "text",
+          "text": "{name} is keeping the tour for another time.",
+          "share": "the tour is postponed, not cancelled. the voices need rehearsing anyway"
+        }
+      }
+    },
+    {
+      "key": "early_breakfast",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "coffee", "lead": [1, 2]},
+          "text": "{name} woke up wanting breakfast out and asked {user} to come.",
+          "share": "I want breakfast I didn't make. {place}, {day} at {time}? I know it's early. I'll make it worth it",
+          "then": {"went": "lingered", "any": "toast"}
+        },
+        "lingered": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} met {name} for breakfast, and the two lingered until nearly noon.",
+          "share": "breakfast that turns into nearly lunch is the best kind"
+        },
+        "toast": {
+          "via": "text",
+          "text": "{name} had toast at home.",
+          "share": "had toast at home instead. it was toast"
+        }
+      }
+    },
+    {
+      "key": "free_afternoon",
+      "family": "around town",
+      "level": 1,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} has an afternoon with nothing in it and asked {user} what to do with it.",
+          "share": "I have a whole free afternoon and no plan. you choose. I'll do whatever you say, within reason",
+          "then": {"answered": {"choice": "shared:took_advice", "beats": ["did_it", "did_nothing"]}, "any": "did_nothing"},
+          "gap": [1, 2]
+        },
+        "did_it": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} spent the free afternoon the way {user} said and enjoyed it.",
+          "share": "did what you said with my afternoon. good call. you can plan all my days off"
+        },
+        "did_nothing": {
+          "via": "text",
+          "text": "{name} spent the free afternoon doing nothing much, and it went quickly.",
+          "share": "did nothing with my afternoon in the end. it was over very fast for a nothing"
+        }
+      }
+    },
+    {
+      "key": "bumped_into_someone",
+      "family": "around town",
+      "level": 1,
+      "cast": "friend",
+      "met": "known",
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{name} ran into {a} in town, and {a} asked {name} to say hello to {user}.",
+          "share": "ran into {a} in town. {a} says hi, and wants to know when we're all doing something again",
+          "then": {"answered": "invite", "any": "said_hi_back"},
+          "gap": [1, 2]
+        },
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "with": "a", "lead": [2, 4]},
+          "text": "{name} took {a} at {a_their} word and set up drinks for all three.",
+          "share": "right, {a} asked for it. drinks, the three of us. {place}, {day} at {time}",
+          "then": {"went": "three", "any": "said_hi_back"}
+        },
+        "three": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{User}, {name} and {a} had drinks together, and it was easy.",
+          "share": "that was easy, wasn't it? {a} says same again next month"
+        },
+        "said_hi_back": {
+          "via": "text",
+          "text": "{name} passed {user_s} hello back to {a}.",
+          "share": "told {a} you said hi back. we'll find a date some other time"
+        }
+      }
+    },
+    {
+      "key": "someone_asked_them_out",
+      "family": "a third person",
+      "level": 2,
+      "relationships": ["romance"],
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "Someone asked {name} out, and {name} told {user} about it straight away.",
+          "share": "so someone asked me out today. I said I'm with someone. I'm only telling you because it'd feel strange not to",
+          "then": {"answered": "glad_told", "any": "nothing_more"},
+          "gap": [1, 2]
+        },
+        "glad_told": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} is glad to have told {user} about being asked out; nothing more came of it.",
+          "share": "I'm glad I told you. it was nothing, and it stays nothing"
+        },
+        "nothing_more": {
+          "via": "text",
+          "text": "Nothing more came of {name} being asked out.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "coworker_flirts",
+      "family": "a third person",
+      "level": 2,
+      "cast": "coworker",
+      "relationships": ["romance"],
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{a} at work has been a bit too friendly with {name} lately, and {name} told {user}.",
+          "share": "{a} at work has been getting a bit flirty. I haven't encouraged it. I wanted you to hear it from me. how do you want me to handle it?",
+          "then": {"answered": {"choice": "shared:told_them", "beats": ["drew_line", "kept_distance"]}, "any": "kept_distance"},
+          "gap": [2, 4]
+        },
+        "drew_line": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} told {a} plainly about being with someone, after talking to {user}, and {a} backed off.",
+          "share": "told {a} straight that I'm taken. {a_them} was fine about it. bit awkward for a day, done now"
+        },
+        "kept_distance": {
+          "via": "text",
+          "text": "{name} has been keeping a polite distance from {a} at work, and the flirting has cooled.",
+          "share": "been keeping it brisk with {a}. seems to have got the message without a conversation"
+        }
+      }
+    },
+    {
+      "key": "old_flame_in_town",
+      "family": "a third person",
+      "level": 2,
+      "relationships": ["romance"],
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "Someone {name} used to see is back in town for a visit and suggested a coffee, and {name} asked how {user} would feel about it.",
+          "share": "someone I used to see is back in town and suggested a coffee. it's ancient history. I'd still rather ask you than not. would it bother you?",
+          "then": {"said_yes": "declined", "said_no": "went_brief", "answered": {"choice": "shared:went_for_it", "beats": ["went_brief", "declined"]}, "any": "declined"},
+          "gap": [1, 3]
+        },
+        "went_brief": {
+          "via": "text",
+          "text": "{name} had the coffee; it was short and friendly, and {name} told {user} all of it.",
+          "share": "had the coffee. forty minutes. we talked about work and the weather. I'd forgotten how little we had to say to each other"
+        },
+        "declined": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} passed on the coffee with the old flame.",
+          "share": "said no to the coffee. didn't need it. I'd rather have coffee with you"
+        }
+      }
+    },
+    {
+      "key": "friend_fancies_you",
+      "family": "a third person",
+      "level": 2,
+      "cast": "friend",
+      "met": "known",
+      "relationships": ["romance"],
+      "beats": {
+        "noticed": {
+          "via": "text",
+          "text": "{name} has noticed that {a} lights up a little too much around {user}.",
+          "share": "is it me or does {a} get very giggly when you're around? I'm not jealous. I'm observing. loudly",
+          "then": {"answered": {"choice": "shared:how_taken", "beats": ["laughed_off", "niggled"]}, "any": "niggled"},
+          "gap": [1, 3]
+        },
+        "laughed_off": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} and {user} had a laugh about {a}, and {name} thought no more of it.",
+          "share": "ok I feel silly now. {a} is just like that with everyone. forget I said anything"
+        },
+        "niggled": {
+          "via": "text",
+          "tone": "bad",
+          "text": "It still niggles at {name} a little, the way {a} is around {user}.",
+          "share": "the {a} thing still niggles a bit. I know it's nothing. I'm allowed one niggle"
+        }
+      }
+    },
+    {
+      "key": "who_was_that",
+      "family": "a third person",
+      "level": 2,
+      "relationships": ["romance"],
+      "days_known": [14, 3650],
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} has been wondering about someone {user} mentioned in passing, and asked.",
+          "share": "you mentioned someone the other day and I've been wondering since. who are they to you? you can tell me to mind my own business",
+          "then": {"answered": {"choice": "shared:how_taken", "beats": ["settled", "still_wondering"]}, "any": "still_wondering"},
+          "gap": [1, 3]
+        },
+        "settled": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} told {name} who it was, and that settled it.",
+          "share": "thank you for just telling me. I'd built it up into something in my head. it's gone now"
+        },
+        "still_wondering": {
+          "via": "text",
+          "text": "{name} is still wondering a little about the person {user} mentioned.",
+          "share": "still a bit curious about your mystery person. I'll live"
+        }
+      }
+    },
+    {
+      "key": "admirer_at_the_usual",
+      "family": "a third person",
+      "level": 2,
+      "relationships": ["romance"],
+      "modern": true,
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "Someone who works at {name}'s usual place has taken a shine to {name}, and {name} told {user}.",
+          "share": "the person who serves me my coffee wrote a little heart on my cup today. I thought you'd want to know you have competition. it's a small heart",
+          "then": {"answered": "invite", "any": "new_cafe"},
+          "gap": [1, 2]
+        },
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "coffee", "lead": [2, 4]},
+          "text": "{name} asked {user} along for coffee, partly to be seen together.",
+          "share": "come for coffee with me. {place}, {day} at {time}. no reason. some reason",
+          "then": {"went": "hint_taken", "any": "new_cafe"}
+        },
+        "hint_taken": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} went for coffee with {name}, and the hearts on the cups have stopped.",
+          "share": "no heart on my cup today. I think your being there did the trick. I sort of miss the heart"
+        },
+        "new_cafe": {
+          "via": "text",
+          "text": "{name} has started getting coffee somewhere else for a while.",
+          "share": "getting my coffee somewhere else for a bit. simpler"
+        }
+      }
+    },
+    {
+      "key": "new_friend_takes_time",
+      "family": "a third person",
+      "level": 2,
+      "cast": "friend",
+      "met": "new",
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{name} has been spending a lot of time with {a} lately and noticed there has been less of it for {user}.",
+          "share": "I've realised {a} has been eating all my free time lately and you've been getting the leftovers. I'm sorry. have you felt it?",
+          "then": {"answered": {"choice": "shared:took_advice", "beats": ["made_time", "same_as_ever"]}, "any": "same_as_ever"},
+          "gap": [2, 4]
+        },
+        "made_time": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} made a point of keeping more time for {user}.",
+          "share": "I've blocked out time that's just ours. {a} will cope"
+        },
+        "same_as_ever": {
+          "via": "text",
+          "text": "{name} is still splitting the days between {a} and {user} much as before.",
+          "share": "still juggling you and {a}. I'm working on it"
+        }
+      }
+    },
+    {
+      "key": "their_ex_at_a_party",
+      "family": "a third person",
+      "level": 3,
+      "cast": "friend",
+      "met": "known",
+      "relationships": ["romance"],
+      "beats": {
+        "warned": {
+          "via": "text",
+          "text": "{a} is getting people together for drinks where an ex of {name}'s will be, and {name} asked whether {user} would still come.",
+          "share": "heads up. {a} is having drinks and my ex is going to be there. I'd like you with me. I'd also understand if you'd rather skip it",
+          "then": {"said_no": "went_alone", "answered": "invite", "any": "went_alone"},
+          "gap": [1, 2]
+        },
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "with": "a", "lead": [2, 4]},
+          "text": "{name} asked {user} to come to {a}'s drinks, ex or no ex.",
+          "share": "ok. {a}'s drinks, {place}, {day} at {time}. stay near me. or near the snacks. either works",
+          "then": {"went": {"choice": "shared:how_taken", "beats": ["civil", "awkward"]}, "any": "went_alone"}
+        },
+        "civil": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came to {a}'s drinks; the ex was civil, and {name} barely noticed after the first hour.",
+          "share": "that was fine! civil hello, done. I forgot they were even there. having you with me helped"
+        },
+        "awkward": {
+          "via": "text",
+          "tone": "bad",
+          "text": "{User} came to {a}'s drinks; the ex made it awkward, and {name} and {user} left early together.",
+          "share": "sorry about my ex. that was uncomfortable. thank you for getting me out of there"
+        },
+        "went_alone": {
+          "via": "text",
+          "kept": "{name} went to {a}'s drinks alone and left early.",
+          "text": "{name} went to {a}'s drinks alone, said hello to the ex, and left early.",
+          "share": "went on my own. said one hello to the ex, stayed an hour, came home. fine. dull, even"
+        }
+      }
+    },
+    {
+      "key": "rumor_about_you_two",
+      "family": "a third person",
+      "level": 3,
+      "cast": "friend",
+      "met": "known",
+      "beats": {
+        "heard": {
+          "via": "text",
+          "tone": "bad",
+          "text": "{a} passed on some talk going round about {name} and {user}, and {name} told {user} what was said.",
+          "share": "{a} says people have been talking about you and me. nothing awful. just wrong. do you want me to set it straight or leave it?",
+          "then": {"answered": {"choice": "shared:told_them", "beats": ["set_straight", "let_lie"]}, "any": "let_lie"},
+          "gap": [1, 3]
+        },
+        "set_straight": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} set the talk about {name} and {user} straight, and it died down.",
+          "share": "I set it straight. took about two conversations and it's dead. people get bored fast"
+        },
+        "let_lie": {
+          "via": "text",
+          "text": "{name} let the talk about {name} and {user} lie, and it is fading without help.",
+          "share": "left the gossip alone. it's fading. something new will come along for people to chew on"
+        }
+      }
+    },
+    {
+      "key": "set_up_attempt",
+      "family": "a third person",
+      "level": 2,
+      "cast": "family",
+      "met": "new",
+      "relationships": ["romance"],
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{name}'s {a_rel} {a}, who has not met {user}, tried to set {name} up with someone else.",
+          "share": "my {a_rel} tried to set me up with a 'lovely person' from down the road. I said I'm seeing someone. {a} said 'well I haven't met them'. fair. can we fix that?",
+          "then": {"said_no": "in_time", "answered": "invite", "any": "in_time"},
+          "gap": [1, 3]
+        },
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "dinner", "with": "a", "lead": [3, 6]},
+          "text": "{name} arranged dinner so {name}'s {a_rel} {a} could finally meet {user}.",
+          "share": "dinner with {a}. {day} at {time}. this ends the matchmaking. bring your best manners",
+          "then": {"went": "matchmaking_over", "any": "in_time"}
+        },
+        "matchmaking_over": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came to dinner, and {a} has stopped mentioning the lovely person from down the road.",
+          "share": "not one word about the lovely person from down the road since dinner. you've won"
+        },
+        "in_time": {
+          "via": "text",
+          "text": "{name} told {a} the two will meet in good time, and {a} has let the matchmaking rest for now.",
+          "share": "told {a} you'll meet in good time. the matchmaking is paused. paused, not over"
+        }
+      }
+    },
+    {
+      "key": "someone_new_in_the_circle",
+      "family": "a third person",
+      "level": 2,
+      "cast": "friend",
+      "met": "known",
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{a} has a new friend who rubs {name} the wrong way, and {name} asked what {user} made of it.",
+          "share": "{a} has brought someone new round and I can't warm to them. I can't even say why. is it worth saying anything to {a}, or do I keep my mouth shut?",
+          "then": {"answered": {"choice": "shared:told_them", "beats": ["said_piece", "kept_quiet"]}, "any": "kept_quiet"},
+          "gap": [2, 4]
+        },
+        "said_piece": {
+          "via": "text",
+          "text": "{name} said a careful word to {a} after talking to {user}, and {a} took it well enough.",
+          "share": "I said something to {a}. gently. {a_them} heard me out and said 'noted'. we're fine"
+        },
+        "kept_quiet": {
+          "via": "text",
+          "text": "{name} kept quiet with {a} about it and is giving the new person a chance.",
+          "share": "I've said nothing to {a}. giving the new person a fair go. you'll hear about it if that changes"
+        }
+      }
+    },
+    {
+      "key": "something_never_told",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [30, 3650],
+      "beats": {
+        "offers": {
+          "via": "text",
+          "text": "{name} told {user} something few people know, and asked for one in return.",
+          "share": "I'll tell you something hardly anyone knows about me if you tell me one back. I was terrified of the dark until I was far too old. your turn",
+          "then": {"answered": "traded", "any": "one_sided"},
+          "gap": [1, 2]
+        },
+        "traded": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} traded one back, and {name} is keeping it safe.",
+          "share": "your secret is safe with me. I like knowing it"
+        },
+        "one_sided": {
+          "via": "text",
+          "text": "{name} told {user} something few people know and got nothing back yet.",
+          "share": "you still owe me a secret. I'm keeping count"
+        }
+      }
+    },
+    {
+      "key": "favorite_place_as_a_kid",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [10, 3650],
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} asked {user} about the place {user} loved most growing up.",
+          "share": "where was your favourite place when you were small? mine was under the kitchen table. I ran a whole kingdom from there",
+          "then": {"answered": "pictured", "any": "kingdom"},
+          "gap": [1, 2]
+        },
+        "pictured": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} told {name} about it, and {name} has been picturing it since.",
+          "share": "I keep picturing the place you told me about. I'd like to see it one day"
+        },
+        "kingdom": {
+          "via": "text",
+          "text": "{name} is still waiting to hear about {user_s} favourite place growing up.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "first_impression",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [45, 3650],
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} asked {user} what {user} made of {name} at the very start.",
+          "share": "be honest. what did you make of me at the very start? I can take it. I think",
+          "then": {"answered": "confessed", "any": "own_version"},
+          "gap": [1, 2]
+        },
+        "confessed": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} told {name}, and {name} told {user} the other side of it in return.",
+          "share": "I've been smiling about what you said all day. my first impression of you was wrong, for the record. you're better"
+        },
+        "own_version": {
+          "via": "text",
+          "text": "{name} never got an answer about first impressions and kept the other half of the story back.",
+          "share": "fine, keep your first impression of me a secret. I'm keeping mine of you, then"
+        }
+      }
+    },
+    {
+      "key": "how_long_now",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [60, 95],
+      "beats": {
+        "counts": {
+          "via": "text",
+          "text": "{name} worked out how long it has been since {name} and {user} first talked, and was surprised.",
+          "share": "I just worked out how long we've been talking and it's longer than I'd have guessed. it doesn't feel like it. does it to you?",
+          "then": {"answered": "mark_it", "any": "noted"},
+          "gap": [1, 2]
+        },
+        "mark_it": {
+          "via": "plan",
+          "plan": {"activity": "dinner", "lead": [2, 4]},
+          "text": "{name} wanted to mark how long it has been, and asked {user} to dinner.",
+          "share": "let's mark it. nothing fancy. dinner at {place}, {day} at {time}",
+          "then": {"went": "marked", "any": "noted"}
+        },
+        "marked": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} marked the occasion over dinner and went back over how it all started.",
+          "share": "I liked going back over how we started. you remember it differently from me and I like your version"
+        },
+        "noted": {
+          "via": "text",
+          "text": "{name} made a note of the date all the same.",
+          "share": "I've written the date down anyway. I'm sentimental. sue me"
+        }
+      }
+    },
+    {
+      "key": "inside_joke",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [20, 3650],
+      "beats": {
+        "laughs": {
+          "via": "text",
+          "text": "Something reminded {name} of a joke only {name} and {user} would get, and {name} had to share it.",
+          "share": "something just reminded me of that thing you said and I laughed out loud in public. a stranger looked at me. it was worth it",
+          "then": {"answered": "still_laughing", "any": "private_laugh"},
+          "gap": [1, 2]
+        },
+        "still_laughing": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} and {user} were both still laughing about it the next day.",
+          "share": ""
+        },
+        "private_laugh": {
+          "via": "text",
+          "text": "{name} kept the laugh private.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "what_do_you_need",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [30, 3650],
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} has been wondering what helps {user} on a bad day, and asked.",
+          "share": "serious question. when you've had a bad day, what actually helps? I want to get it right when it counts",
+          "then": {"answered": "remembered", "any": "guessing"},
+          "gap": [1, 3]
+        },
+        "remembered": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} told {name}, and {name} is keeping it in mind for when it counts.",
+          "share": "I've filed that away. next bad day, I'm ready"
+        },
+        "guessing": {
+          "via": "text",
+          "text": "{name} still has to guess what helps {user} on a bad day.",
+          "share": "I still don't know what helps you on a bad day. I'll keep guessing till you tell me"
+        }
+      }
+    },
+    {
+      "key": "song_stuck",
+      "family": "growing closer",
+      "level": 0,
+      "beats": {
+        "shares": {
+          "via": "text",
+          "text": "{name} has had a tune going round all day and asked {user} for something new to listen to.",
+          "share": "I've had the same tune in my head since I woke up. what have you been listening to lately? I need a replacement",
+          "then": {"answered": "listened", "any": "same_tune"},
+          "gap": [1, 2]
+        },
+        "listened": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} tried what {user} suggested and has a new tune going round now.",
+          "share": "listened to what you said. it's in my head now. I can't tell if I should thank you"
+        },
+        "same_tune": {
+          "via": "text",
+          "text": "{name} still has the same tune going round.",
+          "share": "still the same tune. day three. send help"
+        }
+      }
+    },
+    {
+      "key": "something_i_admire",
+      "family": "growing closer",
+      "level": 1,
+      "days_known": [40, 3650],
+      "beats": {
+        "says": {
+          "via": "text",
+          "text": "{name} told {user} something {name} has come to admire about {user}.",
+          "share": "I don't say this sort of thing much. I like how you listen. you actually listen. it's rarer than you'd think",
+          "then": {"answered": "said_back", "any": "stands"},
+          "gap": [1, 3]
+        },
+        "said_back": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} had something to say back, and {name} has been carrying it around since.",
+          "share": "I keep thinking about what you said back. I'm not good at taking a compliment. I'm keeping that one"
+        },
+        "stands": {
+          "via": "text",
+          "text": "{name} meant what was said to {user}, answer or no answer.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "small_tradition",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [45, 3650],
+      "beats": {
+        "proposes": {
+          "via": "text",
+          "text": "{name} suggested that {name} and {user} start a small tradition, only for the two.",
+          "share": "I think we need a tradition. something small that's just ours. same day every week, we tell each other one good thing. deal?",
+          "then": {"said_no": "no_deal", "answered": "first_one", "any": "no_deal"},
+          "gap": [5, 8]
+        },
+        "first_one": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} kept to the new tradition and told {user} one good thing from the week.",
+          "share": "it's tradition day. my one good thing: a stranger held a door and said 'after you, boss' and I felt like a boss. yours?",
+          "then": {"answered": "kept_up", "any": "lapsed"},
+          "gap": [5, 8]
+        },
+        "kept_up": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} and {user} kept the tradition up for a second week.",
+          "share": ""
+        },
+        "lapsed": {
+          "via": "text",
+          "text": "The tradition between {name} and {user} lapsed after the first go.",
+          "share": "our tradition lasted one week. a short tradition. still counts as one, I looked it up"
+        },
+        "no_deal": {
+          "via": "text",
+          "text": "{name} let the idea of a tradition drop.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "perfect_day",
+      "family": "growing closer",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} asked {user} how {user} would spend a perfect day with nothing to do.",
+          "share": "if you had one whole day with nothing you had to do, how would you spend it? be specific. I'm taking notes",
+          "then": {"answered": "took_notes", "any": "own_answer"},
+          "gap": [1, 2]
+        },
+        "took_notes": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} described the perfect day, and {name} took notes for later.",
+          "share": "notes taken. I'm not saying I'm planning anything. I'm not saying I'm not"
+        },
+        "own_answer": {
+          "via": "text",
+          "text": "{name} answered the question alone: a slow morning and a long walk.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "i_was_wrong",
+      "family": "growing closer",
+      "level": 1,
+      "days_known": [30, 3650],
+      "beats": {
+        "admits": {
+          "via": "text",
+          "text": "{name} has been thinking back on something said to {user} a while ago and wanted to take it back.",
+          "share": "I've been thinking about something I said to you a while back. I was a bit sharp and you didn't deserve it. I'm sorry. I should have said so sooner",
+          "then": {"answered": "cleared", "any": "said_anyway"},
+          "gap": [1, 3]
+        },
+        "cleared": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} heard {name} out, and the air between the two is clearer for it.",
+          "share": "thank you for being kind about it. I feel lighter"
+        },
+        "said_anyway": {
+          "via": "text",
+          "text": "{name} is glad to have said sorry, whether or not it was needed.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "meet_me_halfway",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [60, 3650],
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "lunch-out", "lead": [1, 4]},
+          "text": "{name} had a free middle of the day and asked {user} to lunch, only to talk.",
+          "share": "lunch, {day}, {place} at {time}. no occasion. I just realised we always talk in the evenings and I want to know what you're like at midday",
+          "then": {"went": "midday", "any": "evenings"}
+        },
+        "midday": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} and {name} had lunch, and midday suited the two as well as evenings do.",
+          "share": "verdict: you're just as good at midday. slightly hungrier"
+        },
+        "evenings": {
+          "via": "text",
+          "text": "{name} and {user} are keeping to evenings for now.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "worried_about_you",
+      "family": "growing closer",
+      "level": 1,
+      "days_known": [21, 3650],
+      "beats": {
+        "checks": {
+          "via": "text",
+          "text": "{name} thought {user} had seemed tired lately, and checked in.",
+          "share": "you've seemed a bit worn out lately. tell me if I'm imagining it. are you looking after yourself?",
+          "then": {"answered": "reassured", "any": "kept_an_eye"},
+          "gap": [2, 3]
+        },
+        "reassured": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} talked to {name} about it, and {name} felt better for knowing.",
+          "share": "thanks for telling me how you're really doing. I'd rather know than guess"
+        },
+        "kept_an_eye": {
+          "via": "text",
+          "text": "{name} is keeping a quiet eye on {user}.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "said_your_name",
+      "family": "growing closer",
+      "level": 1,
+      "relationships": ["romance"],
+      "days_known": [30, 3650],
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "{name} talked about {user} to a stranger for ten minutes straight and told {user} about it.",
+          "share": "I talked about you to a complete stranger today. for ten minutes. they asked one polite question and I didn't stop. is that embarrassing?",
+          "then": {"answered": "not_sorry", "any": "bit_sorry"},
+          "gap": [1, 2]
+        },
+        "not_sorry": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} is not sorry about talking {user} up to a stranger.",
+          "share": "good. I'm not sorry either. the stranger now knows a great deal about you"
+        },
+        "bit_sorry": {
+          "via": "text",
+          "text": "{name} is only a little embarrassed about talking {user} up to a stranger.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "where_this_is_going",
+      "family": "growing closer",
+      "level": 1,
+      "relationships": ["romance"],
+      "days_known": [60, 3650],
+      "beats": {
+        "wonders": {
+          "via": "text",
+          "text": "{name} has been thinking about what the next year might look like and asked about {user_s} hopes for it.",
+          "share": "I was daydreaming about next year. where do you hope you'll be by then? I'm asking for selfish reasons",
+          "then": {"answered": {"choice": "shared:how_taken", "beats": ["same_page", "thinking_on_it"]}, "any": "daydream"},
+          "gap": [2, 4]
+        },
+        "same_page": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} told {name} about the year ahead, and the two turned out to want much the same.",
+          "share": "I liked your answer. a lot of it sounded like mine"
+        },
+        "thinking_on_it": {
+          "via": "text",
+          "text": "{User} told {name} about the year ahead, and {name} is turning it over.",
+          "share": "still thinking about what you said about next year. in a good way. I think. yes, a good way"
+        },
+        "daydream": {
+          "via": "text",
+          "text": "{name} kept the daydream about next year private for now.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "teach_me_something",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [14, 3650],
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} asked {user} to teach {name} something.",
+          "share": "what's something you're properly good at? I want you to teach me one thing. I'm a terrible student, you've been warned",
+          "then": {"answered": "first_lesson", "any": "no_teacher"},
+          "gap": [2, 4]
+        },
+        "first_lesson": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} tried what {user} taught and was bad at it and pleased anyway.",
+          "share": "tried the thing you taught me. I'm awful at it. I want another lesson"
+        },
+        "no_teacher": {
+          "via": "text",
+          "text": "{name} is still waiting for a first lesson from {user}.",
+          "share": "still waiting on my first lesson. I'm an eager student with no teacher"
+        }
+      }
+    },
+    {
+      "key": "tempted_to_spend",
+      "family": "their goal",
+      "level": 0,
+      "beats": {
+        "tempted": {
+          "via": "text",
+          "text": "{name} saw something tempting while saving up and asked {user} to talk {name} out of it.",
+          "share": "I've seen something I want and absolutely should not buy. I'm meant to be saving. talk me out of it. or into it. I'm weak",
+          "then": {"answered": {"choice": "shared:money_call", "beats": ["walked_away", "bought_it"]}, "any": "still_looking"},
+          "gap": [1, 3]
+        },
+        "walked_away": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} walked away from it after talking to {user}, and the savings are untouched.",
+          "share": "I walked away. savings intact. I feel very grown up and a bit sad"
+        },
+        "bought_it": {
+          "via": "text",
+          "text": "{name} talked it over with {user} and bought it anyway.",
+          "share": "I bought it. I know. I'll make it up next month. it's very nice though"
+        },
+        "still_looking": {
+          "via": "text",
+          "text": "{name} is still going back to look at it.",
+          "share": "I've been back to look at it twice. haven't bought it. yet"
+        }
+      }
+    },
+    {
+      "key": "saving_milestone",
+      "family": "their goal",
+      "level": 0,
+      "beats": {
+        "tells": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} passed a mark in what {name} has been saving, and told {user} first.",
+          "share": "small victory. I hit a number I set myself for my savings. it's not the finish line but it's a line. I wanted to tell someone and you're my someone",
+          "then": {"answered": "cheered", "any": "quiet_pride"},
+          "gap": [1, 2]
+        },
+        "cheered": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} cheered {name} on, and {name} is all the keener to keep saving.",
+          "share": "you being pleased for me made it feel real. onwards"
+        },
+        "quiet_pride": {
+          "via": "text",
+          "text": "{name} is quietly proud of the savings so far.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "goal_wobble",
+      "family": "their goal",
+      "level": 1,
+      "beats": {
+        "doubts": {
+          "via": "text",
+          "text": "{name} has been wondering whether what {name} is saving for is still worth it, and told {user}.",
+          "share": "can I be honest? I've been saving for ages and today I wondered if I even still want the thing. does that happen to you?",
+          "then": {"answered": {"choice": "shared:kept_at_it", "beats": ["recommitted", "eased_off"]}, "any": "eased_off"},
+          "gap": [2, 4]
+        },
+        "recommitted": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} talked it through with {user} and is sure again about what the saving is for.",
+          "share": "I thought about what you said. I do still want it. I just needed to hear myself say why"
+        },
+        "eased_off": {
+          "via": "text",
+          "text": "{name} is going easier on the saving for a while.",
+          "share": "I'm easing off the saving for a bit. not giving up. just breathing"
+        }
+      }
+    },
+    {
+      "key": "cheap_night_in",
+      "family": "their goal",
+      "level": 0,
+      "apart": true,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "visit-in", "lead": [1, 3]},
+          "text": "{name} is watching the pennies and asked {user} over for a cheap night in.",
+          "share": "I'm on a budget this month so I can't do anything fancy. come over {day} at {time}? I'll make something simple and we can do nothing, cheaply",
+          "then": {"went": "cost_nothing", "any": "saved_anyway"}
+        },
+        "cost_nothing": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came over for the cheap night in, and it was better than most expensive ones.",
+          "share": "best night I've had in ages and it cost almost nothing. this budget thing has upsides"
+        },
+        "saved_anyway": {
+          "via": "text",
+          "text": "{name} stayed in alone and saved the money all the same.",
+          "share": "stayed in on my own. saved money. was a bit bored. the price of discipline"
+        }
+      }
+    },
+    {
+      "key": "keep_me_honest",
+      "family": "their goal",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} set a small weekly target and asked {user} to ask about it at the end of the week.",
+          "share": "I've set myself a small target for this week. I'm not telling you what, I just need you to ask me on the weekend whether I did it. I behave better when someone's checking",
+          "then": {"any": "reckoning"},
+          "gap": [4, 6]
+        },
+        "reckoning": {
+          "via": "text",
+          "text": "The week {name} set a target for is up.",
+          "share": "the week's up. go on, ask me if I did it",
+          "then": {"answered": {"choice": "shared:kept_at_it", "beats": ["did_it", "nearly"]}, "any": "nearly"},
+          "gap": [1, 2]
+        },
+        "did_it": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} hit the week's target and was glad {user} asked.",
+          "share": "I DID IT. and I'm glad you asked, I was dying to say so"
+        },
+        "nearly": {
+          "via": "text",
+          "text": "{name} came close to the week's target and is trying again.",
+          "share": "I nearly did it. nearly. going again this week"
+        }
+      }
+    },
+    {
+      "key": "window_shopping",
+      "family": "their goal",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "market", "lead": [1, 4]},
+          "text": "{name} wanted to go and look at what the saving is for, only to look, and asked {user} along.",
+          "share": "I want to go and look at the thing I'm saving for. just look. come with me so I don't do anything rash? {place}, {day} at {time}",
+          "then": {"went": "just_looked", "any": "stayed_away"}
+        },
+        "just_looked": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} went along, and {name} looked, did nothing rash, and came home keener than ever.",
+          "share": "we only looked. I'm proud of us. I want it even more now though, so thanks for that"
+        },
+        "stayed_away": {
+          "via": "text",
+          "text": "{name} stayed away from temptation.",
+          "share": "didn't go and look in the end. safer. out of sight, out of wallet"
+        }
+      }
+    },
+    {
+      "key": "good_week_for_it",
+      "family": "their goal",
+      "level": 0,
+      "beats": {
+        "tells": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} had a good week for putting money by and told {user}.",
+          "share": "good week. I said no to three things I'd normally say yes to and put the difference aside. small but it adds up. tell me I'm doing well",
+          "then": {"answered": "encouraged", "any": "kept_on"},
+          "gap": [1, 2]
+        },
+        "encouraged": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} took heart from what {user} said and is keeping it up.",
+          "share": ""
+        },
+        "kept_on": {
+          "via": "text",
+          "text": "{name} is keeping up the saving.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "setback",
+      "family": "their goal",
+      "level": 1,
+      "beats": {
+        "tells": {
+          "via": "text",
+          "tone": "bad",
+          "text": "An unexpected cost left {name} nothing to put aside this month, and {name} told {user}.",
+          "share": "something broke and fixing it ate everything I'd have put aside this month. I know these things happen. I'm still annoyed. let me sulk for one day",
+          "then": {"answered": "picked_up", "any": "sulked"},
+          "gap": [1, 3]
+        },
+        "picked_up": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} sulked for a day, with {user} for company, and started saving again.",
+          "share": "sulk complete. thank you for letting me. back to it"
+        },
+        "sulked": {
+          "via": "text",
+          "text": "{name} sulked about the setback for a day and started saving again.",
+          "share": "I've finished sulking. back to saving"
+        }
+      }
+    },
+    {
+      "key": "what_are_you_working_toward",
+      "family": "their goal",
+      "level": 0,
+      "days_known": [14, 3650],
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} has been talking a lot about saving up and asked about {user_s} own plans.",
+          "share": "I go on about what I'm saving for all the time. what about you? what are you working toward right now? big or small",
+          "then": {"answered": "rooting", "any": "open_question"},
+          "gap": [1, 3]
+        },
+        "rooting": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} told {name}, and {name} is rooting for {user}.",
+          "share": "I'm rooting for you on that. properly. ask me to check in on it if it helps"
+        },
+        "open_question": {
+          "via": "text",
+          "text": "{name} is still curious about {user_s} own plans.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "side_money",
+      "family": "their goal",
+      "level": 1,
+      "beats": {
+        "idea": {
+          "via": "text",
+          "text": "{name} had an idea for making a little extra toward the savings and ran it past {user}.",
+          "share": "I've had an idea for making a bit extra on the side. clearing out things I don't use and selling them. sensible, or will I regret it?",
+          "then": {"answered": {"choice": "shared:went_for_it", "beats": ["sold_some", "kept_all"]}, "any": "kept_all"},
+          "gap": [3, 5]
+        },
+        "sold_some": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} sold a few things after talking to {user} and put what they fetched aside.",
+          "share": "sold a few bits. made more than I thought. my shelves look better and so do my savings"
+        },
+        "kept_all": {
+          "via": "text",
+          "text": "{name} got everything out, looked at it, and kept the lot.",
+          "share": "I got everything out to sell and then couldn't part with any of it. so that went well"
+        }
+      }
+    },
+    {
+      "key": "earned_treat",
+      "family": "their goal",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "coffee", "lead": [1, 3]},
+          "text": "{name} has been good about saving lately and asked {user} out for a small treat to mark it.",
+          "share": "I've been so good about saving lately that I'm allowing myself one small treat. coffee and something sweet, {place}, {day} at {time}. my shout",
+          "then": {"went": "marked", "any": "skipped_treat"}
+        },
+        "marked": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} helped {name} mark a good stretch of saving with coffee and something sweet.",
+          "share": "one treat, well earned, and I got to share it with you. back to being good now"
+        },
+        "skipped_treat": {
+          "via": "text",
+          "text": "{name} skipped the treat and put the money toward the goal.",
+          "share": "skipped my treat. put the money in the pot. I'm insufferable, I know"
+        }
+      }
+    },
+    {
+      "key": "the_day_it_is_done",
+      "family": "their goal",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} has been daydreaming about the day the saving is done and asked {user} how to mark it.",
+          "share": "when I finally get there with my savings, how should I celebrate? I want something to look forward to. ideas, please",
+          "then": {"answered": "pinned_up", "any": "undecided"},
+          "gap": [1, 3]
+        },
+        "pinned_up": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} has {user_s} idea down as the plan for the day the saving is done.",
+          "share": "your idea is the plan. I've written it down so I can't back out"
+        },
+        "undecided": {
+          "via": "text",
+          "text": "{name} is still deciding how to mark the day the saving is done.",
+          "share": ""
         }
       }
     }

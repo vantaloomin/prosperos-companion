@@ -58,6 +58,9 @@ PENDING = 'shared'
 SETTLES = ('shared_plan',)
 # A plan with someone from their circle is a meet-up (companion/life/their_people.py), by who they are.
 WITH = {'friends': their_people.OUT_WITH_FRIENDS, 'family': their_people.AT_FAMILY}
+# What a kept plan with one of them is in the companion's day (`as_plans`), and the places an entry does not name.
+WITH_ACTIVITY = {'friends': 'drinks', 'family': 'dinner'}
+HOMES = ('home', 'your-home', 'family-home')
 DROPPED_IN = ('in', 'work')
 WARMER, COOLER = 'a good time together', 'you did not come'
 
@@ -203,8 +206,9 @@ def plans(story: dict) -> list[dict]:
 
 def fits(connection, companion: dict, story: dict, today: date, now: datetime) -> list[tuple]:
     """The casts this story could have today, [] when it does not fit this world: its drama level, the relationship,
-    how long the two have talked, the city's era, and a plan in person only where they can meet."""
-    from companion.life import long_distance
+    how long the two have talked, the city's era, a plan in person only where they can meet, and a visit to the
+    companion's home only while the two live apart."""
+    from companion.life import long_distance, moving_in
     from companion.memory import closeness
     definition = companion['version']['definition']
     if story['level'] > storylines.drama(connection):
@@ -219,6 +223,8 @@ def fits(connection, companion: dict, story: dict, today: date, now: datetime) -
         if not story['days_known'][0] <= known <= story['days_known'][1]:
             return []
     if plans(story) and (long_distance.far(connection, companion) or not outings.city_data(connection, definition)):
+        return []
+    if story.get('apart') and moving_in.living(connection, companion):
         return []
     return casts(connection, companion, story, today)
 
@@ -591,6 +597,149 @@ def settle(connection, companion: dict, message: dict, trigger, timestamp: str) 
         stages[-1]['on'] = max(stages[-1]['on'], (day + timedelta(days=1)).isoformat())
     save(connection, row, stages)
     return outings.get(connection, outing['id'])
+
+
+# The plan they kept without the user (companion/life/agenda.py) ---------------------------------------------------
+
+def kept_beat(story: dict, found: dict, outing: dict | None, today: str) -> str | None:
+    """The beat in which the companion keeps a plan the user is not coming to (the bank's `kept`), as soon as that is
+    sure: the plan was called off, or its day has come and the invitation never went out. None for any other."""
+    response = found.get('response')
+    if not response and outing:
+        response = 'called_off' if outing['status'] == 'cancelled' else None
+    elif not response:
+        response = 'passed' if found['plan_on'] <= today else None
+    then = story['beats'][found['beat']].get('then') or {}
+    after = then.get(response, then.get('any')) if response and response != 'went' else None
+    return after if isinstance(after, str) and story['beats'][after].get('kept') else None
+
+
+def as_plans(connection, companion: dict, since: str, now: datetime) -> dict[str, list[dict]]:
+    """The plans the companion keeps without the user, by local date in the shape own_plans.assign takes. The beat
+    that says so ("went for drinks with Nancy without you") comes the morning after; until v1.5.0 nothing held the
+    evening itself, so their day showed a night in and the chat said so (A/B of 2026-11-18: 3 to 10 of 30 replies).
+    It takes the time the plan was booked for, or the activity's usual time when the invitation never went out."""
+    today, result = local(companion, now).date().isoformat(), {}
+    for row in rows(connection, companion['active_timeline_id'], running=True):
+        story = bank().get(key_of(row))
+        for index, found in enumerate(decode(row['stages']) if story else []):
+            beat = story['beats'].get(found.get('beat')) or {}
+            if beat.get('via') != 'plan' or found.get('plan_on', '') < since:
+                continue
+            outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (found.get('outing') or '',))
+            after = kept_beat(story, found, outing, today)
+            if after is None:
+                continue
+            shown = outings.view(outing) if outing else None
+            person = person_of(connection, companion, row) if beat['plan'].get('with') else None
+            activity = WITH_ACTIVITY[person['group']] if person else beat['plan']['activity']
+            result.setdefault(found['plan_on'], []).append({
+                'id': f"shared:{row['id']}:{index}:{after}",
+                'at_time': shown['at_time'] if shown else outings.ACTIVITIES[activity][2],
+                'kept': {'id': row['id'], 'beat': index, 'activity': activity, 'place': shown and shown['place'],
+                         'with': person and {'id': person['id'], 'name': person['name']},
+                         'summary': storylines.fill(story['beats'][after]['kept'], row, storylines.names_by_id(
+                             connection, {'timeline_id': row['timeline_id']}), companion['version']['definition'])}})
+    return result
+
+
+def entry(plan: dict, block: dict, definition: dict) -> dict:
+    """The agenda entry for the slot a kept plan takes: the companion there, without the user. With someone from
+    their circle it names them, so that person's day holds the same evening (companion/life/joint.py). No post of
+    its own: the first text about it comes the morning after."""
+    kept = plan['kept']
+    place = kept['place'] if kept['place'] and kept['place'].get('kind') not in HOMES else None
+    return {'summary': kept['summary'], 'post': None, 'mood': 'content', 'activity': kept['activity'],
+            'place': place and {key: place.get(key) for key in ('id', 'name', 'kind', 'city', 'neighborhood')},
+            'with': kept['with'], 'weather': block.get('weather'),
+            'storyline': {'id': kept['id'], 'beat': kept['beat']}, 'composer_version': 'shared-kept-1'}
+
+
+# The chat context (companion/memory/context.py) -------------------------------------------------------------------
+
+# Its own section of the context: the other storylines' heading says "these happened to you and your people, never
+# to the user", which is not true of these. A/B of 2026-11-18 (three rounds, 1,800 replies, 10 models): told among
+# the others, in this section, and in this section with each beat's day all read the same within the noise, and no
+# reply in any arm pressed the user or told them their own part as news. This wording is kept for being true.
+HEADING = ('What is going on that the user is part of (decided, and the user lived their part of it: never contradict '
+           'it and never tell them their own part as news; never make up what comes next or how it ends; never press '
+           'them to answer or to come, and never hold it against them when they did not)')
+# The user's part in the latest beat, told to the companion, by what the app can tell for sure (`respond`). None
+# is a beat still open: the text or the invitation is out and nothing has come of it yet.
+TEXT_PART = {None: 'You texted the user about it, and they have not written back yet.',
+             'answered': 'The user knows about it.', 'said_yes': 'The user said yes.',
+             'said_no': 'The user said no.', 'dropped_by': 'The user came by after you told them.',
+             'passed': 'The user did not write back about it.'}
+PLAN_PART = {'went': 'The user came.', 'called_off': 'The user called it off.',
+             'passed': 'In the end you never asked the user.'}
+UNTOLD = 'You have not told the user yet.'
+UNASKED = 'You have not asked the user yet.'
+OPEN = 'What comes next is not decided yet.'
+
+
+def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str, str]]:
+    """The storylines the user is part of, told to the companion: each beat with its day, the user's part in the
+    latest one (`part`) and whether more is to come. One stays as long as any storyline does
+    (storylines.context_lines): told in full while recent, by its outcome once settled."""
+    today = local(companion, now).date()
+    recent, pinned = ((today - timedelta(days=days)).isoformat()
+                      for days in (storylines.RECENT_DAYS, storylines.SETTLED_DAYS))
+    kept = {row['id']: row for row in rows(connection, companion['active_timeline_id'])}
+    result = []
+    for item in storylines.visible(connection, companion, now, you=True):
+        if not item['with_you']:
+            continue
+        last, row = item['beats'][-1], kept[item['id']]
+        if last['on'] >= recent:
+            told = [f"on {outings.day_text(day)}: {beat['text']}"
+                    for day, beat in zip(days(row), item['beats'], strict=False)]
+            tail = part(connection, companion, row, len(told) - 1, now)
+            result.append((item['id'], f"- O{' Then, '.join(told)[1:]}{tail}"))
+        elif not item['unfolding'] and last['on'] >= pinned:
+            result.append((item['id'], f"- Settled on {last['on']}: {last['text']}"))
+    return result
+
+
+def days(row: dict) -> list[str]:
+    """The day each beat tells of: its own, or for one that says how a plan went, the day of the plan (the beat
+    itself comes the morning after, and "went for drinks" read as that day's)."""
+    found, before = [], {}
+    for item in decode(row['stages']):
+        found.append(before.get('plan_on') or item['on'])
+        before = item
+    return found
+
+
+def part(connection, companion: dict, row: dict, index: int, now: datetime) -> str:
+    """What the user did about a storyline's latest beat, and that more is to come; '' once it is over, when its
+    last beat says how it went."""
+    found, story = decode(row['stages'])[index], bank().get(key_of(row))
+    beat = story['beats'].get(found.get('beat')) if story else None
+    if not beat or not beat.get('then') or row['status'] != 'running':
+        return ''
+    if beat.get('via') == 'plan':
+        said = plan_part(connection, companion, found, now)
+    else:
+        sent = optional(connection, 'SELECT id FROM openers WHERE timeline_id=? AND trigger_key=?',
+                        (row['timeline_id'], trigger_key(row, index)))
+        response = found.get('response') or respond(connection, companion, row, index, story, now)
+        said = TEXT_PART[response] if sent or response else UNTOLD
+    return f' {said} {OPEN}'
+
+
+def plan_part(connection, companion: dict, found: dict, now: datetime) -> str:
+    """An invitation's state: not out yet, set for a day (Today's "Out together" has the place), under way, or how
+    it went."""
+    response = found.get('response')
+    outing = optional(connection, 'SELECT * FROM outings WHERE id=?', (found.get('outing') or '',))
+    if response or outing is None:
+        return PLAN_PART[response] if response else UNASKED
+    shown = outings.view(outing)
+    state = outings.state(shown, companion['version']['timezone'], now)
+    if state == 'planned':
+        return (f"You asked the user, and it is set for {outings.day_text(shown['local_date'])} at "
+                f"{shown['at_time']}; it has not happened yet.")
+    return {'now': 'It is happening now.', 'done': PLAN_PART['went'], 'cancelled': PLAN_PART['called_off']}[state]
 
 
 # Changing how it went, and forks ----------------------------------------------------------------------------------

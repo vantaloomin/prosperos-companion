@@ -4,7 +4,7 @@ import re
 from datetime import date, datetime, timedelta
 
 import pytest
-from conftest import send, set_life
+from conftest import reconcile, send, set_life
 
 from companion import consequences, news
 from companion.characters import current
@@ -162,11 +162,80 @@ def test_every_beat_fills_in_for_the_screens_and_for_the_companion():
         # Told to the companion, they are "you" (never named, never "you wants") and the user is "the user".
         assert 'Mira' not in told and 'the user' not in shown
         assert not re.search(r"\b[Yy]ou (?:wants|says|is|has|keeps|was|asks|goes|plans)\b", told), told
+        # "An ex of {name}'s got back in touch" was told as "An ex of your got back in touch".
+        assert not re.search(r"\byour (?:got|is|was|has|had|and|who|did|came|went)\b", told), told
         share = beat.get('share', '')
         for word in ('{day}', '{time}', '{place}'):
             assert word not in share or beat['via'] == 'plan'
             share = share.replace(word, 'x')
         assert '{' not in storylines.fill(share, row, names, {'name': 'Mira'}) if share else True
+
+
+def test_the_bank_is_big_enough_in_every_family_and_at_every_drama_level():
+    bank = shared_storylines.bank().values()
+    assert len(bank) >= 100  # The data bank rule: at least 100 entries.
+    for family in FAMILIES:
+        assert sum(story['family'] == family for story in bank) >= 10, family
+    # Plenty can start in the quietest world, and in one where the two never meet in person (texts only).
+    assert sum(story['level'] == 0 for story in bank) >= 50
+    assert sum(not shared_storylines.plans(story) for story in bank) >= 50
+    # "A third person" needs a dramatic world.
+    assert all(story['level'] >= 2 for story in bank if story['family'] == 'a third person')
+
+
+def test_every_turning_of_the_bank_has_its_odds_table_and_no_table_is_left_over():
+    used = {found['choice'] for _story, _beat_id, beat in every_beat() for found in (beat.get('then') or {}).values()
+            if isinstance(found, dict) and 'choice' in found}
+    tables = consequences.tables()
+    assert used == {key for key in tables if key.startswith('shared:')}
+    for key in used:
+        for option in tables[key]['options']:
+            option['label'].format(name='Mira', a='Ana')
+            for rule in option['rules']:
+                rule['why'].format(name='Mira', a='Ana')
+
+
+def test_the_words_of_the_bank_keep_to_the_writing_rules():
+    family_casts = ('family', 'parent', 'employed parent', 'independent parent', 'unmarried sibling')
+    for story, beat_id, beat in every_beat():
+        where, text, share = (story['key'], beat_id), beat['text'], beat.get('share', '')
+        # The companion is only ever {name} (the context turns it into "you"), never at the start of a later
+        # sentence, and the share is in their own voice.
+        assert not re.search(r'[.;:!?] \{name\}', text) and '{name}' not in share and '{user' not in share.lower(), where
+        # "You" and "the user" take the same verb only in the past tense.
+        assert not re.search(r'\{[uU]ser\} (?:is|was|has|does|needs|wants|says|likes|hopes|knows|thinks)\b', text), where
+        assert not re.search(r"\{name\} (?:was|wants|says|asks|goes|plans|needs|knows|thinks|feels|does|isn't|hasn't|"
+                             r"doesn't)\b", text), where
+        # Someone has to be in the cast to be named.
+        assert '{a' not in text + share or story.get('cast') not in (None, 'work'), where
+        # A city of another era gets no story that names a phone or the internet.
+        assert story.get('modern') or not re.search(r'\b(phone|online|text(?:ed|ing|s)?|internet|messaged|alarm|quiz)\b',
+                                                    text + ' ' + share), where
+        if beat['via'] != 'plan':
+            continue
+        plan = beat['plan']
+        assert '{day}' in share and '{time}' in share, where
+        if plan['activity'] == 'visit-in':
+            assert story.get('apart'), where  # Asked over to their place: only while the two live apart.
+        elif plan.get('with') and story['cast'] in family_casts:
+            assert plan['activity'] == 'dinner' and 'dinner' in text, where  # With a relative it is dinner at theirs.
+        else:
+            assert '{place}' in share, where
+            assert not plan.get('with') or plan['activity'] == 'drinks', where  # With a friend it is drinks.
+
+
+def test_a_visit_to_their_place_only_fits_while_the_two_live_apart(client, clock):
+    make(client)
+    settled_in(client, clock)
+    bank = shared_storylines.bank()
+    with client.app.state.database.connect(write=True) as connection:
+        companion, today = current(connection), clock.now().date()
+        fits = lambda key: shared_storylines.fits(connection, companion, bank[key], today, clock.now())  # noqa: E731
+        assert fits('flat_pack') and fits('hang_a_shelf') and fits('found_a_spot')
+        connection.execute("INSERT INTO moving_in (id, timeline_id, plan, status, decided_on, moved_on, created_at) "
+                           "VALUES ('m1', ?, 'theirs', 'moved', ?, ?, 'x')",
+                           (companion['active_timeline_id'], today.isoformat(), today.isoformat()))
+        assert not fits('flat_pack') and not fits('hang_a_shelf') and fits('found_a_spot')
 
 
 def test_the_user_is_you_on_the_screens_and_the_user_to_the_companion():
@@ -421,6 +490,102 @@ def test_an_invitation_that_never_went_out_passes(client, clock, only, monkeypat
     assert decode(row['stages'])[0]['response'] == 'passed' and beats(row) == ['asks', 'saved']
 
 
+# The plan they kept without the user ------------------------------------------------------------------------------
+
+def kept_plans(client, clock):
+    with client.app.state.database.connect() as connection:
+        return shared_storylines.as_plans(connection, current(connection), '0001-01-01', clock.now())
+
+
+def slot_at(client, day, at):
+    """The companion's agenda row that holds this local time (the tests run in UTC)."""
+    moment = f'{day}T{at}:00'
+    with client.app.state.database.connect() as connection:
+        row = optional(connection, "SELECT * FROM life_agenda WHERE subject='companion' AND starts_at<=? AND ends_at>?",
+                       (moment + 'Z', moment + 'Z')) or optional(
+            connection, "SELECT * FROM life_agenda WHERE subject='companion' AND starts_at<=? AND ends_at>?",
+            (moment + '+00:00', moment + '+00:00'))
+    return row and {**row, 'entry': decode(row['entry']) if row['entry'] else None}
+
+
+def test_a_plan_called_off_that_they_keep_is_in_their_day(client, clock, only, monkeypatch):
+    row = plan_started(client, clock, only, monkeypatch)
+    with client.app.state.database.connect() as connection:
+        friend = optional(connection, 'SELECT * FROM circle_people WHERE id=?', (decode(row['cast_ids'])[0],))
+    _trigger, outing = invited(client, clock)
+    assert kept_plans(client, clock) == {}  # Still on: the evening is the outing's.
+    assert client.post(f"/api/life/outings/{outing['id']}/cancel").status_code == 200
+    # At once, not the morning after: the evening is theirs, with the friend, at the time it was booked for.
+    [plan] = kept_plans(client, clock)[outing['local_date']]
+    assert plan['at_time'] == outing['at_time'] and plan['kept']['with']['id'] == friend['id']
+    reconcile(client)
+    held = slot_at(client, outing['local_date'], outing['at_time'])
+    first = friend['name'].split()[0]
+    # A spot inside the place may follow (agenda.with_spot), as for any evening out.
+    assert held['entry']['summary'].startswith(f'Mira Costa went for drinks with {first}.')
+    assert held['entry']['storyline'] == {'id': row['id'], 'beat': 1} and held['entry']['with']['id'] == friend['id']
+    assert held['entry']['activity'] == 'drinks' and held['entry']['place']['name'] == outing['place']['name']
+    assert held['entry']['post'] is None and 'you' not in held['entry']['summary'].lower().split()
+    # The morning after, the beat says the same evening, and the entry is still the one their day holds.
+    to_morning(clock, (date.fromisoformat(outing['local_date']) - clock.now().date()).days + 1)
+    reconcile(client)
+    assert beats(rows(client)[0]) == ['asks', 'invite', 'alone']
+    assert [item['id'] for item in kept_plans(client, clock)[outing['local_date']]] == [plan['id']]
+    after = slot_at(client, outing['local_date'], outing['at_time'])
+    assert after['id'] == held['id'] and after['entry']['summary'] == held['entry']['summary']
+    with client.app.state.database.connect() as connection:
+        [(_id, line)] = shared_storylines.context_lines(connection, current(connection), clock.now())
+    assert f"on {outings.day_text(outing['local_date'])}: You went for drinks with {first} without the user" in line
+
+
+def test_a_plan_the_user_came_to_is_not_kept_alone(client, clock, only, monkeypatch):
+    plan_started(client, clock, only, monkeypatch)
+    _trigger, outing = invited(client, clock)
+    to_morning(clock, (date.fromisoformat(outing['local_date']) - clock.now().date()).days + 1)
+    advance(client, clock)
+    assert decode(rows(client)[0]['stages'])[1]['response'] == 'went' and kept_plans(client, clock) == {}
+
+
+def test_a_plan_never_asked_is_kept_from_its_day_at_the_usual_time(client, clock, only, monkeypatch):
+    row = plan_started(client, clock, only, monkeypatch, 'found_a_spot')
+    planned = decode(row['stages'])[0]['plan_on']
+    assert kept_plans(client, clock) == {}  # The invitation may still go out.
+    to_morning(clock, (date.fromisoformat(planned) - clock.now().date()).days)
+    [plan] = kept_plans(client, clock)[planned]
+    assert plan['at_time'] == outings.ACTIVITIES['coffee'][2] and plan['kept']['with'] is None
+    assert plan['kept']['summary'] == 'Mira Costa went to try the new place for coffee.' and plan['kept']['place'] is None
+    entry = shared_storylines.entry(plan, {'weather': None}, {'name': 'Mira'})
+    assert entry['place'] is None and entry['activity'] == 'coffee' and entry['storyline']['id'] == row['id']
+    to_morning(clock)
+    advance(client, clock)
+    assert beats(rows(client)[0]) == ['asks', 'saved']
+    assert [item['id'] for item in kept_plans(client, clock)[planned]] == [plan['id']]
+
+
+def test_a_plan_they_drop_holds_nothing(client, clock, only, monkeypatch):
+    plan_started(client, clock, only, monkeypatch, 'late_drink')
+    _trigger, outing = invited(client, clock)
+    assert client.post(f"/api/life/outings/{outing['id']}/cancel").status_code == 200
+    assert kept_plans(client, clock) == {}  # "Skipped the drink and had an early night."
+
+
+def test_every_kept_line_follows_a_plan_and_leaves_the_user_out():
+    after_plan = {(story['key'], found) for story, _beat_id, beat in every_beat() if beat.get('via') == 'plan'
+                  for answer, found in beat['then'].items() if answer != 'went' and isinstance(found, str)}
+    kept = [(story, beat_id, beat) for story, beat_id, beat in every_beat() if 'kept' in beat]
+    assert len(kept) >= 20
+    for story, beat_id, beat in kept:
+        where = f"{story['key']}.{beat_id}"
+        assert (story['key'], beat_id) in after_plan, where
+        assert beat['kept'].startswith('{name} ') and beat['kept'].endswith('.'), where
+        assert set(re.findall(r'{(\w+)}', beat['kept'])) <= {'name', 'a'}, where
+        assert not story['beats'][beat_id].get('then'), where
+    # A beat that says they went, after a plan the user did not come to, has its line.
+    for story, beat_id, beat in every_beat():
+        if (story['key'], beat_id) in after_plan and re.match(r'{name} went (?!with)', beat['text']):
+            assert 'kept' in beat, f"{story['key']}.{beat_id}"
+
+
 def test_a_plan_at_their_place(client, clock, only, monkeypatch):
     plan_started(client, clock, only, monkeypatch, 'flat_pack')
     trigger, outing = invited(client, clock)
@@ -450,15 +615,90 @@ def test_today_lists_it_and_the_context_tells_it(client, clock, only, monkeypatc
     assert 'keeps asking who Mira Costa is always texting.' in listed[0]['beats'][0]['text']
     with client.app.state.database.connect() as connection:
         companion = current(connection)
-        lines = [line for _key, line in storylines.context_lines(connection, companion, clock.now())]
-        assert any('keeps asking who you are always texting.' in line and 'Still unfolding' in line
-                   for line in lines)
+        lines = [line for _key, line in shared_storylines.context_lines(connection, companion, clock.now())]
+        assert len(lines) == 1 and 'keeps asking who you are always texting.' in lines[0]
+        # The storylines about other people leave it to that line (their heading says "never to the user").
+        assert not storylines.context_lines(connection, companion, clock.now())
         # It is not the town's news, and the generic storyline text leaves it to this module's own.
         assert not news.found(connection, companion, clock.now())
         assert not storylines.fresh_beats(connection, companion, clock.now())
     assert client.post(f"/api/life/storylines/{row['id']}/end").status_code == 200
     advance(client, clock)
     assert rows(client)[0]['status'] == 'ended' and not client.get('/api/life/storylines').json()
+
+
+# The chat context: the storyline, each beat's day and the user's part in it --------------------------------------
+
+def told(client, clock):
+    with client.app.state.database.connect() as connection:
+        (_key, line), = shared_storylines.context_lines(connection, current(connection), clock.now())
+    return line
+
+
+def test_the_context_says_whether_the_user_has_heard_and_answered(client, clock, only, monkeypatch):
+    row = plan_started(client, clock, only, monkeypatch)
+    day = outings.day_text(row['started_on'])
+    assert told(client, clock).startswith(f'- On {day}: ') and 'keeps asking who you are always texting.' in told(
+        client, clock)
+    assert told(client, clock).endswith(f'{shared_storylines.UNTOLD} {shared_storylines.OPEN}')
+    text_out(client, clock)
+    assert told(client, clock).endswith(f'{shared_storylines.TEXT_PART[None]} {shared_storylines.OPEN}')
+    talk(client, clock, 'Ha, who is asking?')
+    assert told(client, clock).endswith(f"{shared_storylines.TEXT_PART['answered']} {shared_storylines.OPEN}")
+
+
+def test_the_context_says_when_a_text_was_let_go_by(client, clock, only, monkeypatch):
+    monkeypatch.setattr(shared_storylines, 'CHANCE', (0, 1, 1, 1))
+    only('what_were_you_like')
+    make(client)
+    talk(client, clock)
+    clock.advance(timedelta(days=15))
+    talk(client, clock)
+    started(client, clock)
+    text_out(client, clock)
+    clock.advance(shared_storylines.WINDOW)
+    assert told(client, clock).endswith(f"{shared_storylines.TEXT_PART['passed']} {shared_storylines.OPEN}")
+
+
+def test_the_context_follows_an_invitation_to_how_it_went(client, clock, only, monkeypatch):
+    plan_started(client, clock, only, monkeypatch)
+    text_out(client, clock)
+    row = rows(client)[0]
+    to_morning(clock, (date.fromisoformat(decode(row['stages'])[-1]['on']) - clock.now().date()).days + 1)
+    advance(client, clock)
+    assert told(client, clock).endswith(f'{shared_storylines.UNASKED} {shared_storylines.OPEN}')
+    _trigger, outing = invited(client, clock)
+    when = f"it is set for {outings.day_text(outing['local_date'])} at {outing['at_time']}; it has not happened yet."
+    assert told(client, clock).endswith(f'You asked the user, and {when} {shared_storylines.OPEN}')
+    # The evening is over and the morning after has not come: they went, and what it led to is still open.
+    clock.advance(datetime.combine(date.fromisoformat(outing['local_date']), datetime.max.time(), clock.now().tzinfo)
+                  - clock.now())
+    assert told(client, clock).endswith(f"{shared_storylines.PLAN_PART['went']} {shared_storylines.OPEN}")
+    to_morning(clock)
+    advance(client, clock)
+    # Over: the last beat says how it went, dated to the evening itself, and nothing is left open.
+    line = told(client, clock)
+    assert f"Then, on {outings.day_text(outing['local_date'])}: The user came along for drinks" in line
+    assert shared_storylines.OPEN not in line and line.count('Then, on ') == 2
+
+
+def test_the_context_says_a_plan_was_called_off(client, clock, only, monkeypatch):
+    plan_started(client, clock, only, monkeypatch)
+    _trigger, outing = invited(client, clock)
+    assert client.post(f"/api/life/outings/{outing['id']}/cancel").status_code == 200
+    assert told(client, clock).endswith(f"{shared_storylines.PLAN_PART['called_off']} {shared_storylines.OPEN}")
+    to_morning(clock, (date.fromisoformat(outing['local_date']) - clock.now().date()).days + 1)
+    advance(client, clock)
+    assert f"Then, on {outings.day_text(outing['local_date'])}: You went for drinks with" in told(client, clock)
+
+
+def test_the_chat_prompt_tells_it_in_its_own_section(client, clock, only, monkeypatch, provider):
+    plan_started(client, clock, only, monkeypatch)
+    text_out(client, clock)
+    talk(client, clock, 'Ha, who is asking?')
+    prompt = provider.requests[-1]['prompt']
+    assert f'## {shared_storylines.HEADING}\n{told(client, clock)}\n' in prompt
+    assert 'never to the user' not in prompt  # No other storyline is running, so that section is not there.
 
 
 def test_the_first_text_goes_out_through_the_openers(client, clock, only, monkeypatch):

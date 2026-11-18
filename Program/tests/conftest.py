@@ -3,6 +3,7 @@ import json
 import os
 import zlib
 from datetime import UTC, datetime, time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -250,9 +251,25 @@ def no_character_sheets(monkeypatch):
     monkeypatch.setattr('companion.images.sheet.ENABLED', False)
 
 
+def slow_tests():
+    """The tests listed in tests/slow_tests.txt, as (file name, test name)."""
+    lines = (Path(__file__).parent / 'slow_tests.txt').read_text(encoding='utf-8').splitlines()
+    return {tuple(line.strip().split('::')) for line in lines if line.strip() and not line.startswith('#')}
+
+
+def pytest_configure(config):
+    config.addinivalue_line('markers', 'slow: one of the slowest tests (tests/slow_tests.txt); an ordinary pull '
+                                       'request leaves these out')
+
+
 def pytest_collection_modifyitems(config, items):
-    """COMPANION_TEST_SHARD=2/3 runs the second third of the tests, picked by test name, so a slow CI runner can
-    spread one suite over several jobs (.github/workflows/ci.yml)."""
+    """Marks the tests in tests/slow_tests.txt as slow. Then COMPANION_TEST_SHARD=2/3 runs the second third of the
+    tests, picked by test name, so a slow CI runner can spread one suite over several jobs
+    (.github/workflows/ci.yml)."""
+    slow = slow_tests()
+    for item in items:
+        if (Path(str(item.fspath)).name, item.originalname) in slow:
+            item.add_marker(pytest.mark.slow)
     shard = os.environ.get('COMPANION_TEST_SHARD')
     if not shard:
         return
