@@ -55,14 +55,14 @@ export function hoods(data: WebData): string[] {
   return [...new Set(data.nodes.map((node) => node.hood).filter(Boolean))].sort()
 }
 
-/** "Mira's coworker", "your sister": how one person is tied to another, from the first's side. */
+/** "Mira's coworker", "your sister": how one person is tied to another, from the first's side; the user first. */
 export interface Tie { id: string; name: string; label: string; kind: TieKind }
 export function tiesOf(data: WebData, id: string): Tie[] {
   const names = new Map(data.nodes.map((node) => [node.id, node.name]))
   return data.links.flatMap((link) => {
     const other = link.source === id ? link.target : link.target === id ? link.source : null
     return other ? [{ id: other, name: names.get(other) ?? '', label: link.label, kind: link.kind }] : []
-  }).sort((a, b) => a.name.localeCompare(b.name))
+  }).sort((a, b) => Number(b.id === 'you') - Number(a.id === 'you') || a.name.localeCompare(b.name))
 }
 
 /** People whose name matches the search, best first: names starting with it before names containing it. */

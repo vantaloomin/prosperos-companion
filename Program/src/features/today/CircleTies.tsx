@@ -29,7 +29,8 @@ export function CircleTies({ person, act }: { person: CirclePerson; act: Act }) 
       <p className="subtle">Changes here save on their own and show on both cards.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
       {person.knows_you && <KnowsYouRow id={headingId} name={person.name} found={person.knows_you}
-        onSave={(how) => act(() => api(`/life/circle/${person.id}/knows-you`, { how }, 'PUT'), savedKnowsYou(person.name, how), setFeedback)} />}
+        onSave={(how) => act(() => api(`/life/circle/${person.id}/knows-you`, { how }, 'PUT'), savedKnowsYou(person.name, how),
+          (found) => { if (found.tone === 'error') setFeedback(found) })} />}
       {knows.length === 0 && <p className="subtle">{person.name} doesn't know anyone else here yet.</p>}
       {knows.length > 0 && <ul className="circle-tie-list">{knows.map((item) => (
         <li key={item.id} className="circle-tie">
@@ -51,7 +52,10 @@ function KnowsYouRow({ id, name, found, onSave }: { id: string; name: string; fo
   return (
     <ul className="circle-tie-list">
       <li className="circle-tie">
-        <label htmlFor={`${id}-you`}>You</label>
+        <div className="circle-tie-who">
+          <label htmlFor={`${id}-you`}>You</label>
+          {(found.set || found.why) && <p className="subtle">{found.set ? 'Set by you' : `${found.why[0].toUpperCase()}${found.why.slice(1)}.`}</p>}
+        </div>
         <select id={`${id}-you`} aria-label={`Whether ${name} knows you`} value={found.how}
           onChange={(event) => void onSave(event.target.value === APP_PICK ? null : event.target.value)}>
           <option value="knows you">Knows you</option>
@@ -59,7 +63,6 @@ function KnowsYouRow({ id, name, found, onSave }: { id: string; name: string; fo
           <option value={NOT_AT_ALL}>Doesn't know you</option>
           {found.set && <option value={APP_PICK}>Let the app decide</option>}
         </select>
-        {!found.set && found.why && <p className="subtle">{found.why[0].toUpperCase() + found.why.slice(1)}.</p>}
       </li>
     </ul>
   )
