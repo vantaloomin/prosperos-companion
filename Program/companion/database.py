@@ -455,6 +455,11 @@ ADDED_COLUMNS = (
     # Celsius or Fahrenheit (companion/world/temperature.py): 'auto' picks by the companion's city.
     ('workspace_settings', 'temperature_unit',
      "TEXT NOT NULL DEFAULT 'auto' CHECK (temperature_unit IN ('auto', 'C', 'F'))"),
+    # Storylines you are part of (companion/life/shared_storylines.py, Settings > Realism > Their days > Things that
+    # involve you): how often the world starts one, 0 off, 1 now and then, 2 true to life, 3 often; and the last day
+    # its daily roll was made on a timeline.
+    ('life_settings', 'shared_storylines', 'INTEGER NOT NULL DEFAULT 2 CHECK (shared_storylines BETWEEN 0 AND 3)'),
+    ('storyline_days', 'shared_through', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -559,6 +564,8 @@ UPGRADE_READ = {0: {'read_pace': 1}}
 # Family shapes (v1.1.8): an easy life's new families are gentle, a dramatic one's have more drama.
 UPGRADE_FAMILY_SHAPES = {0: {'family_shapes': 1}, 3: {'family_shapes': 3}}
 STRINGS_READ = {1: {'read_pace': 1}}
+# Things that involve you (v1.5.0) the same way: a dramatic world gets them often; every other world true to life.
+UPGRADE_SHARED = {3: {'shared_storylines': 3}}
 
 
 def add_columns(connection):
@@ -571,7 +578,7 @@ def add_columns(connection):
     for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
                            ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE),
                            ('inner_voice', UPGRADE_DREAMS), ('their_look', UPGRADE_LOOK), ('read_pace', UPGRADE_READ),
-                           ('family_shapes', UPGRADE_FAMILY_SHAPES)):
+                           ('family_shapes', UPGRADE_FAMILY_SHAPES), ('shared_storylines', UPGRADE_SHARED)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
     if ('life_settings', 'inner_voice') in added:

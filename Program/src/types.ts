@@ -589,6 +589,8 @@ export interface LifeSettings {
   loss: number
   /** Local politics (companion/life/politics.py): 0 off, 1 quiet, 2 true to life, 3 lively. */
   politics_realism: number
+  /** Storylines you are part of (companion/life/shared_storylines.py): 0 off, 1 now and then, 2 true to life, 3 often. */
+  shared_storylines: number
   /** Trolls and snark on posts (companion/life/social.py): 0 off, 1 rivals only, 2 snarky, 3 trolls. */
   trolls_realism: number
 }
@@ -1652,6 +1654,8 @@ export interface Storyline {
   cast: { id: string; name: string; role: string }[]
   beats: StoryBeat[]
   unfolding: boolean
+  /** The user is part of it (companion/life/shared_storylines.py): its beats say "you". */
+  with_you: boolean
 }
 
 export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary' | 'death_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }

@@ -53,6 +53,7 @@ from companion.life import (
     said_events,
     scene_now,
     shared_people,
+    shared_storylines,
     simulation,
     social,
     steps,
@@ -927,7 +928,9 @@ CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.chang
            # How a business, a health turn or a parent's care is going (big_turns.py).
            'business:': lambda: big_turns.change_stage, 'health:': lambda: big_turns.change_stage,
            'caring:': lambda: big_turns.change_stage, 'kids:': lambda: kids.change,
-           'baby:': lambda: families.change_baby}
+           'baby:': lambda: families.change_baby,
+           # A turning in a storyline the user is part of (shared_storylines.py).
+           'shared:': lambda: shared_storylines.change}
 
 
 @router.post('/consequences/{consequence_id}/change')
