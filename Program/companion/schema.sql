@@ -1274,7 +1274,7 @@ CREATE INDEX IF NOT EXISTS companion_plans_message ON companion_plans(message_id
 
 -- Story mode (companion/story.py): the user's own free-form story with a narrator. One scene (where the user is)
 -- and its history. A companion who is in the scene speaks in their own lines (role 'companion', with `speaker` and
--- `name`, companion/story_cast.py); a 'cast' line says they came or went. Nothing else of a companion's reads them.
+-- `name`, companion/story_cast.py); a 'cast' line says they came or went. Time together there counts (story_visits, below).
 CREATE TABLE IF NOT EXISTS story_scene (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   city_id TEXT NOT NULL,

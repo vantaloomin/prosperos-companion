@@ -1,7 +1,8 @@
 """The Story: free-form roleplay with a narrator around the cities (docs/story.md).
 
 The story has its own scene (`story_scene`: the city and place the user is at) and its own history
-(`story_messages`). A companion's chat never reads either, and nothing said here is saved to their memories.
+(`story_messages`). Time spent with a companion here counts in their
+life together (companion/story_visits.py): their chat is told of it and it leaves a shared moment.
 
 The app decides the scene from the city data and the townsfolk rules: the place, the local time and
 weather, and who is there at that hour, the same people the companion's world has. The narrator model

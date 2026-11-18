@@ -13,7 +13,8 @@ in the middle of talking with stays a little longer than their day says (LINGER)
 Each reply in such a scene is the narrator's, then one ordinary model call for each companion there, the group chat
 way (companion/groups.py): the scene rules, the scene and the story since they came in, the same for every speaker,
 then that companion's own 1:1 sections with one `story` section (memory/context.py), then the turn. The narrator is
-told who speaks for themself and never writes their lines. Nothing here is saved to a companion's memories.
+told who speaks for themself and never writes their lines. What the time together
+leaves behind is companion/story_visits.py.
 """
 import re
 from datetime import datetime, timedelta
