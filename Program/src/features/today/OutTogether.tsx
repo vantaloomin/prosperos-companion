@@ -6,8 +6,10 @@ import { Notice } from '../../components/Feedback'
 import { WHERE_KEY } from '../conversation/whereText'
 import { firstName } from '../character/panelText'
 import { openWedding } from '../character/weddingText'
-import { OUTING_STATES, TOGETHER_KEY, bigDayLine, meetLine, onwardLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from './outingText'
+import { OUTING_STATES, TOGETHER_KEY, bigDayLine, meetLine, outingAnchor, onwardLine, outingNote, outingPlace, outingTitle, outingWhen, peopleLine, shown, tripDays, tripTitle, tripTravel, undoText, type Outing, type Trip } from './outingText'
 import { useTogether } from './useTogether'
+import { showOnToday } from './showOnToday'
+import { storylineAnchor } from './storyText'
 
 /** Plans with the user. The companion picked the places; the user can call them off (with Undo for the rest of the
  * day), send them somewhere else, or head home early (with Undo for a minute or two). */
@@ -45,7 +47,7 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
   )
   const note = outingNote(outing, name)
   return (
-    <li className="together-item">
+    <li className="together-item" id={outingAnchor(outing.id)}>
       <div className="together-head">
         <strong>{outingTitle(outing)}</strong>
         <span className="badge">{OUTING_STATES[outing.state]}</span>
@@ -54,6 +56,7 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       {peopleLine(outing.place, outing.state) && <p className="subtle">{peopleLine(outing.place, outing.state)}</p>}
       {bigDayLine(outing, firstName(name)) && <p className="subtle">{bigDayLine(outing, firstName(name))}</p>}
       {note && <p className="subtle">{note}</p>}
+      <StorylineLine outing={outing} />
       <MeetLine outing={outing} />
       <NextLine outing={outing} act={act} />
       <SitterLine outing={outing} />
@@ -61,6 +64,13 @@ function OutingItem({ outing, name, act }: { outing: Outing; name: string; act: 
       {outing.state === 'now' && <Now outing={outing} act={act} />}
     </li>
   )
+}
+
+/** A plan that came from a storyline the user is part of points back to it (Iris, 2026-11-18). */
+function StorylineLine({ outing }: { outing: Outing }) {
+  const id = outing.place.storyline
+  if (!id) return null
+  return <p className="subtle">Part of a storyline · <button type="button" className="text-button inline" onClick={() => showOnToday(storylineAnchor(id))}>See it</button></p>
 }
 
 /** How it plays out: no "Go there" step, they are simply there together when it starts, and the chat is the meeting. */

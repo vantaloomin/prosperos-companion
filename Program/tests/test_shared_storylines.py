@@ -721,3 +721,82 @@ def test_the_slider_is_a_life_setting(client):
     assert client.get('/api/life/settings').json()['shared_storylines'] == 2
     assert client.put('/api/life/settings', json={'shared_storylines': 4}).status_code == 422
     assert set_life(client, shared_storylines=1)['shared_storylines'] == 1
+
+
+# The screens: Today's "Things that involve you" and the scrapbook ------------------------------------------------
+
+def shown(client):
+    return client.get('/api/life/storylines').json()
+
+
+def test_today_says_the_users_part_in_each_beat(client, clock, only, monkeypatch):
+    plan_started(client, clock, only, monkeypatch)
+    # Before the text is out the user has no part; once it is, it says so until they answer or let it go by.
+    first, = shown(client)[0]['beats']
+    assert first['via'] == 'text' and 'you' not in first
+    text_out(client, clock)
+    assert shown(client)[0]['beats'][0]['you'] == {'did': 'texted'}
+    talk(client, clock, 'Ha, who is asking?')
+    assert shown(client)[0]['beats'][0]['you'] == {'did': 'answered'}
+    _trigger, outing = invited(client, clock)
+    assert shown(client)[0]['beats'][1]['you'] == {'did': 'set', 'on': outing['local_date'], 'at': outing['at_time']}
+    # The plan card on Today points back to the storyline.
+    listed = client.get('/api/life/outings').json()['outings']
+    assert next(item for item in listed if item['id'] == outing['id'])['place']['storyline'] == shown(client)[0]['id']
+    to_morning(clock, (date.fromisoformat(outing['local_date']) - clock.now().date()).days + 1)
+    advance(client, clock)
+    told = shown(client)[0]
+    assert told['beats'][1]['you'] == {'did': 'went'} and not told['unfolding']
+    assert told['beats'][2]['via'] == 'text' and 'you' not in told['beats'][2]  # Nothing follows it: no part.
+
+
+def test_a_plan_called_off_says_so_on_today(client, clock, only, monkeypatch):
+    plan_started(client, clock, only, monkeypatch)
+    _trigger, outing = invited(client, clock)
+    assert client.post(f"/api/life/outings/{outing['id']}/cancel").status_code == 200
+    assert shown(client)[0]['beats'][1]['you'] == {'did': 'called_off'}
+
+
+def test_it_stays_on_today_a_week_and_then_the_scrapbook_keeps_it(client, clock, only, monkeypatch):
+    row = plan_started(client, clock, only, monkeypatch)
+    _trigger, outing = invited(client, clock)
+    to_morning(clock, (date.fromisoformat(outing['local_date']) - clock.now().date()).days + 1)
+    advance(client, clock)
+    last = clock.now().date()
+
+    def page():
+        book = client.get('/api/life/year/so-far').json()
+        return next((item for item in book['pages'] if item['kind'] == 'with-you'), None)
+    clock.advance(timedelta(days=shared_storylines.STAYS))
+    assert len(shown(client)) == 1
+    clock.advance(timedelta(days=1))
+    assert not shown(client) and len(client.get('/api/life/storylines?include_ended=true').json()) == 1
+    found = page()
+    assert found['title'] == 'Things you were part of' and len(found['items']) == 1
+    entry = found['items'][0]
+    assert entry['date'] == row['started_on'] and entry['until'] == last.isoformat()
+    # Told beat by beat; a plan needs no line of its own, the beat after it says they came.
+    assert 'keeps asking who Mira Costa is always texting.' in entry['text']
+    assert 'who wants to meet you. You came along for drinks' in entry['text'] and 'You went.' not in entry['text']
+    assert '{' not in entry['text']
+    # One the user ended is not kept.
+    assert client.post(f"/api/life/storylines/{row['id']}/end").status_code == 200
+    assert page() is None
+
+
+def test_the_scrapbook_waits_until_it_is_over(client, clock, only, monkeypatch):
+    plan_started(client, clock, only, monkeypatch)
+    book = client.get('/api/life/year/so-far').json()
+    assert all(item['kind'] != 'with-you' for item in book['pages'])
+
+
+def test_the_scrapbook_says_the_users_part_where_a_text_turned_the_story():
+    story = shared_storylines.bank()['good_news_first']
+    assert shared_storylines.turned(story, {'beat': 'tells', 'response': 'answered'}) == 'You wrote back.'
+    assert shared_storylines.turned(story, {'beat': 'tells', 'response': 'passed'}) == ''  # Any other way: no line.
+    assert shared_storylines.turned(story, {'beat': 'celebrate', 'response': 'went'}) == ''
+    assert shared_storylines.turned(None, {'beat': 'tells', 'response': 'answered'}) == ''
+    for found, beat_id, beat in every_beat():
+        for response in beat.get('then') or {}:
+            if beat.get('via') != 'plan' and response != 'any':
+                assert shared_storylines.turned(found, {'beat': beat_id, 'response': response})
