@@ -56,6 +56,14 @@ export const DRAMA_LEVELS = [
   { value: 3, label: 'Soap opera', hint: 'Drunk kisses, separations, family secrets.' },
 ] as const
 
+/** The "Things that involve you" slider's steps (Settings > Realism, companion/life/shared_storylines.py). */
+export const SHARED_STORY_LEVELS = [
+  { label: 'Off', hint: 'Nothing they start draws you in. You still hear their news.' },
+  { label: 'Now and then', hint: 'Every few weeks something comes up that includes you: a friend who wants to meet you, a favor, a place to show you.' },
+  { label: 'True to life', hint: 'About once a week something comes up that includes you. Going, answering or letting it pass each lead somewhere different.' },
+  { label: 'Often', hint: 'Something that includes you is nearly always under way, one at a time.' },
+]
+
 /** 40th, 21st, 52nd. */
 export function ordinal(value: number): string {
   const tens = value % 100

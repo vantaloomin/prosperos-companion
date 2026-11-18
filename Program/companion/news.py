@@ -50,8 +50,9 @@ def found(connection, companion: dict, now) -> list[dict]:
     today = storylines.local_today(companion, now)
     since = (today - timedelta(days=RECENT_DAYS)).isoformat()
     result, seeds = [], None
+    # What happens between the companion and the user is not the town's news (shared_storylines.py).
     for item in storylines.visible(connection, companion, now):
-        if item['story'] in secrets.STORY_SECRETS:
+        if item['story'] in secrets.STORY_SECRETS or item.get('with_you'):
             continue
         for index, beat in enumerate(item['beats']):
             if beat['tone'] in TONES and since <= beat['on'] <= today.isoformat():
