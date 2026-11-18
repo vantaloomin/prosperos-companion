@@ -44,6 +44,27 @@ def test_questions_maybes_the_user_the_past_and_vague_days_are_not_plans():
         assert plans(text) == [], text
 
 
+def test_meetups_with_the_user_and_days_used_as_words_are_not_their_own_plans():
+    # A tester's feed got "I spent the afternoon coming to find the invisible house me, as planned." from a promise
+    # to come and find her: that is a visit with the user, which happens on its own.
+    for text in ("Tomorrow afternoon i'm coming to find the invisible house.", "I'm coming over Saturday.",
+                 "I'll be there tomorrow afternoon.", "I'll be here tomorrow with a laminated list.",
+                 "I'll come by Friday.", "I'm heading in soon for the sunday crowd.",
+                 "I'm defending it like it's friday property now."):
+        assert plans(text) == [], text
+    assert plans("I'll break the silence tonight like planned.") == [('2026-10-12', None, 'breaking the silence', 'doing')]
+    assert plans("I'm going to the market Sunday morning.") == [('2026-10-18', '10:00', 'going to the market', 'doing')]
+
+
+def test_the_post_is_the_plan_in_their_words():
+    block = {'key': 'evening', 'kind': 'leisure', 'start': '19:00', 'end': '22:00'}
+    plan = {'id': 'p', 'message_id': 'm', 'statement': '', 'at_time': None, 'activity': 'hosting a potluck at my place',
+            'form': 'doing'}
+    entry = own_plans.entry(plan, block, {'name': 'Mira'})
+    assert entry['post'] == 'Hosting a potluck at my place.'
+    assert entry['summary'] == 'Mira spent the evening hosting a potluck at home, as planned.'
+
+
 def test_holidays_come_from_the_city_calendar(client, mira):
     with client.app.state.database.connect() as connection:
         found = own_plans.holiday_dates(connection, {'home_city': 'Baltimore'}, TODAY)
