@@ -43,7 +43,10 @@ def test_a_plan_under_way_is_played_where_it_is_with_the_companion_who_came_too(
         ('scene', played['messages'][-2]['text']), ('cast', 'Mira is here with you, for dinner.')]
 
     script(provider, 'Candles on every table.', 'Mira pulls out a chair. "Finally."')
-    sent = say(client, 'I turn to Mira.', 'story-0001')
+    # Start the scene says nothing as the user: the models read a line said for them, the screen and the export do not.
+    sent = ok(client.post('/api/story/plan/begin', json={'client_id': 'story-0001'}))
+    assert sent['message']['hidden'] == 1 and sent['message']['text'] == 'I turn to Mira.'
+    assert 'I turn to Mira.' not in client.get('/api/export/story').text
     assert [row['role'] for row in sent['replies']] == ['narrator', 'companion']
     narrator, own = provider.requests[-2], provider.requests[-1]
     assert 'here with the user, for dinner: a plan the two of them made' in narrator['system']
@@ -87,7 +90,7 @@ def test_the_people_a_plan_is_with_are_in_the_scene_for_the_narrator_to_voice(cl
     played = ok(client.post('/api/story/plan', json={'outing_id': outing['id']}))
     assert played['scene']['plan']['people'] == [{'name': first, 'role': 'close friend'}]
     assert played['scene']['plan']['storyline'] is True and played['scene']['plan']['what'] == 'drinks with their friends'
-    assert played['scene']['around'][:2] == ['Mira', f"{first}, Mira's close friend"]
+    assert played['scene']['around'][:2] == ['Mira', f"their close friend {first}"]
     script(provider, 'The bar hums.', '"This is them," Mira says.')
     say(client, 'I say hello.', 'story-0001')
     narrator, own = provider.requests[-2], provider.requests[-1]

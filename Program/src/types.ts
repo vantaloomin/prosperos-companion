@@ -2026,6 +2026,8 @@ export interface StoryMessage {
   status: 'complete' | 'failed'; error: string | null; city_id: string; place_id: string; created_at: string
   client_id: string | null; speaker: string | null; name: string | null
   crisis_help?: boolean
+  /** A line the app said for the user to start a plan's scene: never shown. */
+  hidden?: number
 }
 /** A companion as the Story has them now: in the scene (`here`), somewhere the story can go (`place`), or neither. */
 export interface StoryCompanion {

@@ -470,6 +470,8 @@ ADDED_COLUMNS = (
     # A plan played in the Story (companion/story_plans.py): the outing a visit was part of. It leaves its own memory,
     # so the visit adds none.
     ('story_visits', 'outing_id', 'TEXT'),
+    # A line the app said for the user to start a plan's scene: the models read it, the screen and exports do not.
+    ('story_messages', 'hidden', 'INTEGER NOT NULL DEFAULT 0'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

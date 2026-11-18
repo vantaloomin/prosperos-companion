@@ -79,7 +79,7 @@ function PlayInStory({ outing }: { outing: Outing }) {
     void client.invalidateQueries({ queryKey: ['story'] })
     window.location.hash = '#story'
   }
-  return <button type="button" className="text-button inline" onClick={() => void play()}>play it in Story</button>
+  return <button type="button" className="text-button inline" onClick={() => void play()}>play it out in Story</button>
 }
 
 /** An evening out with a child of yours at home: who is watching them that night (words only). */

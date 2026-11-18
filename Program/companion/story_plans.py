@@ -31,6 +31,8 @@ SHOWN = {'wedding': 'your wedding', 'visit-work': 'a visit while they work', 'me
 TOLD = {'wedding': 'their wedding to the user', 'visit-work': 'a visit from the user during their shift',
         'meet-friends': 'drinks with their friends'}
 DOING = 'here with the user, for {what}: a plan the two of them made'
+# What the models read when the user starts the scene with the button: said for them, and never shown as theirs.
+BEGIN = 'I turn to {name}.'
 ARRIVED = '{name} is here with you, for {what}.'
 # The narrator's line under the scene while a plan is being played.
 PLAN = ('The plan: the user and {name} came here together for {what}, until about {until}. They planned it; they did '
@@ -123,8 +125,14 @@ def view(item: dict) -> dict:
             'people': [{'name': their_people.first(person['name']), 'role': person['role']} for person in people(plan)]}
 
 
+def seen(present: list[dict]) -> list[str]:
+    """The people the plans in the scene are with, as the screen lists them after the companion: "their mom Ana"."""
+    return [f"their {person['role']} {their_people.first(person['name'])}"
+            for item in present if item.get('plan') for person in people(item['plan'])]
+
+
 def around(present: list[dict]) -> list[str]:
-    """The people the plans in the scene are with, as the screen lists them: "Ana, Mira's mom"."""
+    """The people the plans in the scene are with, as a companion's scene lists them: "Ana, Mira's mom"."""
     return [f"{their_people.first(person['name'])}, {item['name']}'s {person['role']}"
             for item in present if item.get('plan') for person in people(item['plan'])]
 

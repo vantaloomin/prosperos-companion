@@ -131,7 +131,7 @@ def fresh_lines(connection, companion: dict, user: dict, now: datetime) -> list[
 
 def lines_of(connection, visit: dict) -> list[dict]:
     """What the two of them said during the visit: the user's lines and the companion's own, in order."""
-    return many(connection, "SELECT role, text FROM story_messages WHERE seq>=? AND seq<=? AND status='complete' AND "
+    return many(connection, "SELECT role, text FROM story_messages WHERE seq>=? AND seq<=? AND status='complete' AND hidden=0 AND "
                 "(role='user' OR (role=? AND speaker=?)) ORDER BY seq",
                 (visit['first_seq'], visit['last_seq'], story_cast.ROLE, visit['companion_id']))
 

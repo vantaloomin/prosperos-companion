@@ -93,10 +93,10 @@ export function openingPlace(story: { scene: { plan?: StoryPlan | null }; messag
 /** A story's first open, before anything is said: "Your own story in Baltimore, told by a narrator.", or with a
  * companion "Play out a scene with Mira, anywhere in Baltimore." When their day has them nowhere the story can go,
  * the line says so: "Play out a scene anywhere in Baltimore. Mira isn't out right now." With a plan under way
- * (companion/story_plans.py) it is the plan: "Here with Mira for dinner, until 9:00 PM." where the story is, else
- * "You and Mira are at Lupa now, for dinner." */
+ * (companion/story_plans.py) somewhere else it is the plan: "You and Mira are at Lupa now, for dinner." Where the
+ * plan is, the scene's own line already says it, so there is none. */
 export function openingText(scene: { city: { name: string }; plan?: StoryPlan | null }, companion?: StoryCompanion): string {
-  if (scene.plan) return planText(scene.plan)
+  if (scene.plan) return ''
   if (!companion) return `Your own story in ${scene.city.name}, told by a narrator.`
   if (companion.plan) return `You and ${companion.name} are at ${companion.plan.place} now, for ${companion.plan.what}.`
   if (companion.here || companion.place) return `Play out a scene with ${companion.name}, anywhere in ${scene.city.name}.`
@@ -104,20 +104,21 @@ export function openingText(scene: { city: { name: string }; plan?: StoryPlan | 
 }
 
 /** What the first-open button says and the first line it sends for the user: finding the companion when the story
- * can go to them, else looking around. A plan under way starts as a scene the two are already in. */
-export function openingAction(companion?: StoryCompanion, plan?: StoryPlan | null): { label: string; line: string; find: string | null } {
-  if (plan) return { label: 'Start the scene', line: `I turn to ${plan.name}.`, find: null }
-  if (companion?.plan) return { label: 'Go there', line: `I turn to ${companion.name}.`, find: companion.here ? null : companion.key }
+ * can go to them, else looking around. With a plan under way it says nothing for the user: "Go to Lupa" only goes
+ * there, and "Start the scene" (`begin`) has the narrator open the scene the two are already in. */
+export function openingAction(companion?: StoryCompanion, plan?: StoryPlan | null): { label: string; line: string; find: string | null; begin?: boolean } {
+  if (plan) return { label: 'Start the scene', line: '', find: null, begin: true }
+  if (companion?.plan) return { label: `Go to ${companion.plan.place}`, line: '', find: companion.key }
   if (!companion || !(companion.here || companion.place)) return { label: 'Look around', line: 'I look around.', find: null }
   return { label: `Find ${companion.name}`, line: `I look around for ${companion.name}.`, find: companion.here ? null : companion.key }
 }
 
 /** "Here with you", "Now at Club Charles" (with the city when it is another one), or "Not out right now"; with a
- * plan under way, "Here with you for dinner" or "At Lupa for your plan: dinner". */
+ * plan under way, "Here with you for dinner" or "At Lupa for dinner with you". */
 export function companionLine(companion: StoryCompanion, city: string): string {
   if (companion.here) return companion.plan ? `Here with you for ${companion.plan.what}` : 'Here with you'
   if (!companion.place) return 'Not out right now'
-  if (companion.plan) return `At ${companion.place.name} for your plan: ${companion.plan.what}`
+  if (companion.plan) return `At ${companion.place.name} for ${companion.plan.what} with you`
   return `Now at ${companion.place.name}${companion.city && companion.city !== city ? `, ${companion.city}` : ''}`
 }
 

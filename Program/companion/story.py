@@ -223,7 +223,7 @@ def scene_view(view: dict) -> dict:
         'places': [{'id': item['id'], 'name': item['name'], 'kind': item['kind'],
                     'neighborhood': townsfolk.neighborhood_name(data, item['neighborhood'])} for item in data['places']],
         # A companion is someone the user knows: by name, and first.
-        'around': [item['name'] for item in view['companions']] + story_plans.around(view['companions'])
+        'around': [item['name'] for item in view['companions']] + story_plans.seen(view['companions'])
         + [seen(person, view) for person in view['people']],
         'companions': [{'id': item['id'], 'name': item['name']} for item in view['companions']],
         # The plan being played here (companion/story_plans.py), or None.
@@ -249,16 +249,16 @@ def add(connection, now: str, role: str, text: str, where: dict, **extra) -> dic
     message_id = identifier()
     connection.execute(
         'INSERT INTO story_messages (id, seq, role, text, client_id, reply_to, status, error, city_id, place_id, '
-        'created_at, speaker, name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'created_at, speaker, name, hidden) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (message_id, next_seq(connection), role, text, extra.get('client_id'), extra.get('reply_to'),
          extra.get('status', 'complete'), extra.get('error'), where['city_id'], where['place_id'], now,
-         extra.get('speaker'), extra.get('name')))
+         extra.get('speaker'), extra.get('name'), int(bool(extra.get('hidden')))))
     return one(connection, 'SELECT * FROM story_messages WHERE id=?', (message_id,))
 
 
 def messages(connection, limit: int = HISTORY_LIMIT) -> list[dict]:
     rows = many(connection, 'SELECT id, seq, role, text, client_id, reply_to, status, error, city_id, place_id, '
-                'created_at, speaker, name FROM story_messages ORDER BY seq DESC LIMIT ?', (limit,))
+                'created_at, speaker, name, hidden FROM story_messages ORDER BY seq DESC LIMIT ?', (limit,))
     # The app's crisis note under a user's line that sounds like self-harm (companion/safety.py).
     return [{**row, 'crisis_help': row['role'] == 'user' and safety.crisis(row['text'])} for row in reversed(rows)]
 
@@ -512,15 +512,16 @@ async def answer(state, user: dict) -> list[dict]:
         return many(connection, 'SELECT * FROM story_messages WHERE reply_to=? ORDER BY seq', (user['id'],))
 
 
-def record(database, text: str, client_id: str) -> dict:
+def record(database, text: str, client_id: str, hidden: bool = False) -> dict:
     """The user's message, saved once whatever retries come. A companion who has come to where the story is, or
-    gone, since the last line does so first (companion/story_cast.py)."""
+    gone, since the last line does so first (companion/story_cast.py). A hidden one is the app's, to start a plan's
+    scene (`begin`): the models read it and the screen does not show it."""
     with database.connect(write=True) as connection:
         user = optional(connection, 'SELECT * FROM story_messages WHERE client_id=?', (client_id,))
         if user is None:
             where, view = scene_row(connection), scene(connection, database.clock.now())
             story_cast.sync(connection, add, view['companions'], database.now(), where)
-            user = add(connection, database.now(), 'user', text, where, client_id=client_id)
+            user = add(connection, database.now(), 'user', text, where, client_id=client_id, hidden=hidden)
             # Time with a companion counts (companion/story_visits.py): read before anyone answers the line.
             story_visits.said(connection, user, view, database.clock.now())
         return user
@@ -531,6 +532,19 @@ async def send(state, text: str, client_id: str) -> dict:
     user = record(state.database, text, client_id)
     found = await answer(state, user)
     return {'message': user, 'reply': found[0], 'replies': found}
+
+
+async def begin(state, client_id: str) -> dict:
+    """Start the scene of the plan being played here without a line from the user: the narrator opens it and the
+    companion speaks, as if the user had turned to them (companion/story_plans.py)."""
+    database = state.database
+    with database.connect() as connection:
+        found = scene(connection, database.clock.now())
+    item = next((item for item in found['companions'] if item.get('plan')), None)
+    require(item is not None, "There is no plan under way here.", 409)
+    user = record(database, story_plans.BEGIN.format(name=item['name']), client_id, hidden=True)
+    replies_ = await answer(state, user)
+    return {'message': user, 'reply': replies_[0], 'replies': replies_}
 
 
 async def retry(state) -> dict:

@@ -64,10 +64,13 @@ export function Story({ go }: { go: (view: View) => void }) {
   const send = (text: string) => { const clientId = newId(); return run({ text, clientId }, () => api('/story/messages', { text, client_id: clientId })) }
   const find = (key: string) => api<StoryData>('/story/find', { key }).then(update)
   const main = story.data.companions.find((companion) => companion.main)
-  /** The first-open button: go to the companion when they are somewhere else the story can go, then say the first line. */
+  /** The first-open button: go to the companion when they are somewhere else the story can go, then say the first line.
+   * A plan under way takes no line from the user: the button goes to it, or starts its scene. */
   const start = () => {
     const action = openingAction(main, story.data.scene.plan)
     const clientId = newId()
+    if (action.begin) return run({ text: '', clientId }, () => api('/story/plan/begin', { client_id: clientId }))
+    if (!action.line) return run(null, () => find(action.find ?? ''))
     return run({ text: action.line, clientId }, async () => {
       if (action.find) await find(action.find)
       await api('/story/messages', { text: action.line, client_id: clientId })
@@ -95,14 +98,15 @@ export function Story({ go }: { go: (view: View) => void }) {
 }
 
 /** A story with nothing in it yet: what it is in one line and one way in. The button says the first line for the
- * user; the box below takes any other. Without a model the notice above says what is needed instead. A plan under way
+ * user (none when a plan is under way); the box below takes any other. Without a model the notice above says what is needed instead. A plan under way
  * here (companion/story_plans.py) opens the same way under the lines that say who came, until something is said. */
 function Opening({ at, story, busy, onStart }: { at: 'top' | 'bottom'; story: StoryData; busy: boolean; onStart: () => void }) {
   if (busy || openingPlace(story) !== at) return null
   const companion = story.companions.find((item) => item.main)
+  const text = openingText(story.scene, companion)
   return (
     <div className="story-opening">
-      <p>{openingText(story.scene, companion)}</p>
+      {text && <p>{text}</p>}
       {story.ready && <button type="button" className="button primary" onClick={onStart}>{openingAction(companion, story.scene.plan).label}</button>}
     </div>
   )
@@ -116,7 +120,8 @@ function SceneBar({ scene, onMap, onMove }: { scene: StoryScene; onMap: () => vo
       <p className="subtle">{sceneTime(scene.local_time)}{scene.weather ? ` · ${scene.weather}` : ''}</p>
       {!!scene.place.spots?.length && <p className="subtle">{spotsText(scene.place.spots)}</p>}
       <p>{aroundText(scene.around)}</p>
-      {scene.plan && <p className="story-plan">{planText(scene.plan)}{scene.plan.storyline && ' Part of a storyline.'}</p>}
+      {scene.plan && <p className="story-plan">{planText(scene.plan)}</p>}
+      {scene.plan?.storyline && <p>Part of a storyline.</p>}
       {moving ? <GoElsewhere scene={scene} onDone={() => setMoving(false)} onMove={onMove} />
         : <div className="form-actions">
           <button type="button" className="button" onClick={() => setMoving(true)}>Go somewhere else…</button>
@@ -166,7 +171,7 @@ function StoryLog({ messages, pending, companions, lookFor, onScrolled, onRetry 
   return (
     <div className="story-log" aria-live="polite" onScroll={(event) => onScrolled(event.currentTarget.scrollTop)}>
       {messages.map((message) => <StoryLine key={message.id} message={message} look={message.speaker ? lookFor(message.speaker) : undefined} />)}
-      {pending && <>{!saved && <p className="story-user">{pending.text}</p>}<p className="subtle">{writingText(messages, pending.clientId, companions)}</p></>}
+      {pending && <>{!saved && pending.text && <p className="story-user">{pending.text}</p>}<p className="subtle">{writingText(messages, pending.clientId, companions)}</p></>}
       {last?.status === 'failed' && !pending && <button type="button" className="text-button" onClick={onRetry}><RotateCcw aria-hidden="true" />Try again</button>}
       <div ref={end} />
     </div>
@@ -175,6 +180,7 @@ function StoryLog({ messages, pending, companions, lookFor, onScrolled, onRetry 
 
 function StoryLine({ message, look }: { message: StoryMessage; look?: CSSProperties }) {
   if (message.role === 'scene' || message.role === 'cast') return <p className="story-move">{message.text}</p>
+  if (message.hidden) return null
   if (message.role === 'user') return <><p className="story-user">{message.text}</p>{message.crisis_help && <CrisisNote />}</>
   const parts = message.text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)
   if (message.role === 'companion') {

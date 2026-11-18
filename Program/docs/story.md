@@ -86,6 +86,7 @@ without it the narrator wrote the companion's words in 50 of 85 replies, with it
 | `POST /api/story/messages` `{text, client_id}` | Saves the user's line once per `client_id` and returns `{message, reply, replies}`: `reply` is the narrator's, `replies` all of them in order, a companion's own lines after it. A failed reply is saved with `status: failed` and its `error`. Sending the same `client_id` again returns the saved replies and writes only what is missing. 409 `no_connection` without a model; the line stays saved. |
 | `POST /api/story/find` `{key}` | Moves the story to where someone the user has met is now, or a companion (`companion:<id>`). 404 if not met, 409 if they are nowhere the story can go. |
 | `POST /api/story/plan` `{outing_id}` | Plays a plan under way as a scene: moves the story to where the plan is ([Playing a plan](#playing-a-plan)). 404 for an unknown outing, 409 when it is not under way or is somewhere the story cannot go. |
+| `POST /api/story/plan/begin` `{client_id}` | Starts the scene of the plan being played here with no line from the user: saves a hidden user line once per `client_id` and returns what `POST /api/story/messages` does. 409 with no plan under way here. |
 | `POST /api/story/retry` | Writes again what failed in the replies to the latest user line; with nothing failed, tells them all again. |
 | `DELETE /api/story` | Starts a new story: the history and the people met go, the scene stays. |
 
@@ -153,13 +154,15 @@ decide all of it and nothing new is stored.
 - **Where they are:** while a plan is under way the companion is where the plan is, not where the rest of their day
   would have them (the second place once they moved on, or where their chat took them). At their place, the
   user's, their family's or on the move, the story cannot go there and the plan stays in the chat.
-- **Getting there:** Today's "Out together" card says "Talk face to face or play it in Story" while the plan is
+- **Getting there:** Today's "Out together" card says "Talk face to face or play it out in Story" while the plan is
   under way somewhere the story can go (`story` on `GET /api/life/outings`). The Story's first open and its
   people list offer it too. The app never moves the story by itself, and the chat stays face to face as before.
 - **On screen:** the story's line reads "Mira is here with you, for dinner." The scene says "Here with Mira for
   dinner, until 9:00 PM." (and "Part of a storyline." when a storyline booked it). Until something is said, one
-  button starts the scene by saying "I turn to Mira." for the user.
-- **Who is there:** the people the plan is with are in the scene ("Ana, Mira's mom"), voiced by the narrator, who is
+  button, Start the scene, has the narrator open it and the companion speak. It adds no line of the user's: the models
+  read "I turn to Mira." said for them (`story_messages.hidden`), which the screen, exports and their chat never show.
+  From anywhere else the Story's first open says "Go to Lupa", which only goes there.
+- **Who is there:** the people the plan is with are in the scene ("Mira and their mom Ana are here."), voiced by the narrator, who is
   told who they are to the companion, whether they have met the user and how they are with them
   (`people_impressions`).
 - **What is told:** the narrator's scene says the two came together on a plan and did not meet by chance. The

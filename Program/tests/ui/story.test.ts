@@ -73,12 +73,12 @@ test('a plan under way opens as a scene the two are already in', () => {
   const scene = { city: { name: 'Baltimore' }, plan: null }
   // The story is somewhere else: the first open offers to go to the plan.
   assert.equal(openingText(scene, mira), 'You and Mira are at Lupa now, for dinner.')
-  assert.deepEqual(openingAction(mira), { label: 'Go there', line: 'I turn to Mira.', find: 'companion:1' })
-  assert.equal(companionLine(mira, 'Baltimore'), 'At Lupa for your plan: dinner')
+  assert.deepEqual(openingAction(mira), { label: 'Go to Lupa', line: '', find: 'companion:1' })
+  assert.equal(companionLine(mira, 'Baltimore'), 'At Lupa for dinner with you')
   // The story is where the plan is: it says so, and starts with the two of them there.
   assert.match(planText(plan), /^Here with Mira for dinner, until 9:00.PM\.$/)
-  assert.equal(openingText({ ...scene, plan }, { ...mira, here: true }), planText(plan))
-  assert.deepEqual(openingAction({ ...mira, here: true }, plan), { label: 'Start the scene', line: 'I turn to Mira.', find: null })
+  assert.equal(openingText({ ...scene, plan }, { ...mira, here: true }), '')
+  assert.deepEqual(openingAction({ ...mira, here: true }, plan), { label: 'Start the scene', line: '', find: null, begin: true })
   assert.equal(companionLine({ ...mira, here: true }, 'Baltimore'), 'Here with you for dinner')
   // The opening shows under the lines that say who came, until something is said; without a plan, above an empty story.
   const row = (role: 'user' | 'narrator' | 'scene' | 'cast') => ({ role })
