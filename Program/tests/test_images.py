@@ -1193,7 +1193,7 @@ def test_the_prompt_is_one_krea_style_paragraph_of_what_a_camera_can_see():
     assert 'in college' not in prompt and 'derby' not in prompt and 'looks like someone' not in prompt
     assert 'a faint pale mark on her chin' in prompt and 'Her smile is lopsided' in prompt
     assert 'She is wearing a grey hoodie.' in prompt and 'She studied at the library at Enoch Pratt Library.' in prompt
-    assert 'focused, concentrating expression' in prompt and 'late-afternoon light' in prompt and 'rainy' in prompt
+    assert 'focused, concentrating expression' in prompt and 'grey late-afternoon light' in prompt and 'It is raining' in prompt
     assert prompt.endswith('shallow depth of field.') and '..' not in prompt
     painted = prompts.compose('Kimberly Smith', appearance, [event], 'Watercolour sketch')
     assert 'phone camera' not in painted
