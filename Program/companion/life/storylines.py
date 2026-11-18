@@ -219,6 +219,20 @@ STORIES += tuple(Story(key, 0, 'family', (beat('{name} heard some family news fr
                  for key in ('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
 FAMILY = frozenset(('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
 OWN = frozenset(story.key for story in STORIES if story.own)
+# Storylines the user is part of (companion/life/shared_storylines.py, v1.5.0) are rows here too, with the story
+# `shared:<key>`. That module starts them, writes each beat out in full and decides what comes next from what the user
+# did; this one tells them like any other.
+SHARED = 'shared:'
+SHARED_STORY = Story('shared', 0, 'you', (), own=True)
+
+
+def shared(key: str) -> bool:
+    return key.startswith(SHARED)
+
+
+def own(key: str) -> bool:
+    """Started and run by its own module, never by the drama roll, and outside its caps."""
+    return key in OWN or shared(key)
 
 
 # What each beat (story, beat, the alternative it took) does to the people in it (companion/life/happenings.py), and
@@ -242,6 +256,8 @@ EFFECTS = {
 
 
 def find_story(key) -> Story:
+    if shared(key):
+        return SHARED_STORY
     return next(story for story in STORIES if story.key == key)
 
 
@@ -309,7 +325,7 @@ def start(connection, companion, people, day: date, level: int, lone: bool = Fal
     in their world gets a few more (companion/life/world_drama.py)."""
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     rng = random.Random(f'storyline:{timeline_id}:{day.isoformat()}')
-    drawn = [row for row in running(connection, timeline_id, day.isoformat()) if row['story'] not in OWN]
+    drawn = [row for row in running(connection, timeline_id, day.isoformat()) if not own(row['story'])]
     if rng.random() >= START[level] * (world_drama.ALONE if lone else 1) or len(drawn) >= RUNNING[level]:
         return None
     since = (day - REPEAT_AFTER).isoformat()
@@ -349,6 +365,8 @@ def settle(connection, companion, today: date, now) -> int:
     people in the storyline as things stand now, and written into the storyline. Returns how many."""
     timeline_id, settled = companion['active_timeline_id'], 0
     for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running'", (timeline_id,)):
+        if shared(row['story']):
+            continue  # What comes next follows what the user did (shared_storylines.follow).
         stages = decode(row['stages'])
         due = [index for index, stage in enumerate(stages) if stage.get('pending') and stage['on'] <= today.isoformat()]
         for index in due:
@@ -425,6 +443,9 @@ def fork_stages(connection, row, copy_id: str, timeline_id: str, cutoff: str) ->
     """A storyline's stages for a new timeline's copy: turnings decided by the fork keep their outcome (copied
     with it), later ones are left for the copy's own engine to decide."""
     from companion import consequences
+    if shared(row['story']):
+        from companion.life import shared_storylines
+        return shared_storylines.fork_stages(connection, row, copy_id, timeline_id, cutoff)
     story, stages = find_story(row['story']), decode(row['stages'])
     for index, stage in enumerate(stages):
         if stage.get('odds'):  # A baby's odds (families.keep_odds), on the news the fork already had.
@@ -511,7 +532,7 @@ def record_due(connection, companion, now) -> int:
     rows = [row for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running' AND "
                                 'started_on>=? ORDER BY started_on', (companion['active_timeline_id'], (local.date() - timedelta(
                                     days=SETTLED_DAYS * 3)).isoformat()))
-            if row['story'] not in OWN and (decode(row['stages'])[-1]['on'] >= since or decode(row['stages'])[-1].get('pending'))]
+            if not own(row['story']) and (decode(row['stages'])[-1]['on'] >= since or decode(row['stages'])[-1].get('pending'))]
     times, recorded = timing(connection, companion, rows), 0
     for row in rows:
         stages, cast = decode(row['stages']), decode(row['cast_ids'])
@@ -547,7 +568,7 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
     entry names the person, so their own day holds the same evening (companion/life/joint.py)."""
     result = {}
     for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running'", (timeline_id,)):
-        if row['story'] in OWN:
+        if own(row['story']):
             continue
         cast = decode(row['cast_ids'])
         for index, stage in enumerate(decode(row['stages'])):
@@ -662,15 +683,22 @@ PERIOD = {'spent the evening on the phone with': 'spent the evening sitting up w
           "found my half-sibling online. haven't messaged": "found out where my half-sibling lives. haven't written"}
 
 
+# The user in a storyline they are part of: "you" on the screens, "the user" when it is told to the companion.
+USER_SHOWN = {'user': 'you', 'User': 'You', 'user_s': 'your'}
+USER_TOLD = {'user': 'the user', 'User': 'The user', 'user_s': "the user's"}
+
+
 def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
     text = era_words(definition)(text)
     text = second_person(text) if you else text
     cast = decode(row['cast_ids'])
     people = [names.get(person_id, {'name': 'someone', 'role': 'friend'}) for person_id in cast]
-    values = {'name': definition['name'], 'a': '', 'b': '', 'a_rel': '', 'a_them': 'them'}
+    values = {'name': definition['name'], 'a': '', 'b': '', 'a_rel': '', 'a_them': 'them', 'a_their': 'their',
+              **(USER_TOLD if you else USER_SHOWN)}
     if people:
-        values |= {'a': people[0]['name'], 'a_rel': people[0]['role'],
-                   'a_them': pronouns.person(people[0].get('pronouns'))['them']}
+        theirs = pronouns.person(people[0].get('pronouns'))
+        values |= {'a': people[0]['name'], 'a_rel': people[0]['role'], 'a_them': theirs['them'],
+                   'a_their': theirs['their']}
     if len(people) > 1:
         values['b'] = people[1]['name']
     filled = pronouns.said(text.format(**values), THIRD_PERSON, definition)
@@ -776,13 +804,15 @@ def view(row: dict, names: dict, definition: dict, today: str, you=False, clock:
     return {'id': row['id'], 'story': row['story'], 'level': LEVELS[row['level']], 'started_on': row['started_on'],
             'status': row['status'], 'cast': [{'id': person_id, **names[person_id]} for person_id in
                                               decode(row['cast_ids']) if person_id in names],
-            'beats': beats, 'unfolding': row['status'] == 'running' and len(beats) < len(stages)}
+            'beats': beats, 'unfolding': row['status'] == 'running' and len(beats) < len(stages),
+            'with_you': shared(row['story'])}
 
 
-def visible(connection, companion, now, include_ended=False, you=False, shown=False) -> list[dict]:
+def visible(connection, companion, now, include_ended=False, you=False, shown=False, with_you=True) -> list[dict]:
     """Storylines with at least one beat that has happened, newest first; `you` tells them to the companion. Babies
     and children (companion/life/families.py) only reach a prompt while the adult side is off; `shown` is for the
-    screens, which always list them."""
+    screens, which always list them. `with_you` False leaves out the ones the user is part of
+    (companion/life/shared_storylines.py), for readers that pass a beat on in words written about other people."""
     from companion.life import families
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     local = now.astimezone(zone(companion['version']['timezone']))
@@ -793,6 +823,8 @@ def visible(connection, companion, now, include_ended=False, you=False, shown=Fa
                 'ORDER BY started_on DESC', (timeline_id, today))
     if not shown and families.withheld(connection):
         rows = [row for row in rows if row['story'] not in FAMILY]
+    if not with_you:
+        rows = [row for row in rows if not shared(row['story'])]
     times = timing(connection, companion, rows)
     found = (view(row, names, definition, today, you, clock, times) for row in rows)
     return [item for item in found if item['beats']]
@@ -828,7 +860,8 @@ def fresh_beats(connection, companion, now) -> list[tuple[str, dict]]:
     """Beats that happened today or yesterday, for a first message: (trigger key, beat)."""
     yesterday = (local_today(companion, now) - timedelta(days=1)).isoformat()
     result = []
-    for item in visible(connection, companion, now, you=True):
+    # One the user is part of sends its own texts and invitations (shared_storylines.beats_due).
+    for item in visible(connection, companion, now, you=True, with_you=False):
         for index, beat_ in enumerate(item['beats']):
             if beat_['on'] >= yesterday and not beat_.get('told'):  # Told by the companion already (said_events).
                 result.append((f"storyline:{item['id']}:{index}", beat_))
@@ -892,7 +925,7 @@ def upcoming_odds(connection, companion, now) -> list[dict]:
                     (companion['active_timeline_id'],)):
         story, names = find_story(row['story']), cast_names(connection, row, definition)
         for index, stage in enumerate(decode(row['stages'])):
-            if not stage.get('pending'):
+            if not stage.get('pending') or shared(row['story']):
                 continue
             options = consequences.odds(stage['pending'], facts(connection, companion, row, now), names)
             for item, beat in zip(options, story.stages[index], strict=True):

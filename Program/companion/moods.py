@@ -128,6 +128,8 @@ def day_moods(connection, companion: dict, now) -> list[dict]:
     key, today = f"companion:{companion['id']}", storylines.local_today(companion, now)
     found = []
     for item in storylines.visible(connection, companion, now):
+        if item.get('with_you'):
+            continue  # Told with "you" for the user (companion/life/shared_storylines.py); left out here.
         beat = next((beat for beat in reversed(item['beats']) if beat['on'] == today.isoformat()), None)
         if beat and beat['tone'] in ('good', 'bad') and item['story'] not in ('secret_couple', 'family_secret'):
             found.append((('sad', 2) if beat['tone'] == 'bad' else ('happy', 1), beat['text'].rstrip('.')))

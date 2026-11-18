@@ -90,6 +90,9 @@ def no_storylines(monkeypatch):
     """Storylines start on seeded days (companion/life/storylines.py) and would add context lines and first
     messages to unrelated tests; tests/test_storylines.py turns them back on."""
     monkeypatch.setattr('companion.life.storylines.START', (0, 0, 0, 0))
+    # Likewise the ones the user is part of (companion/life/shared_storylines.py), which a quiet-spell floor starts
+    # for sure; tests/test_shared_storylines.py turns them on.
+    monkeypatch.setattr('companion.life.shared_storylines.ACTIVE', False)
     # Likewise a birthday seeded by the companion's id (companion/life/occasions.py).
     monkeypatch.setattr('companion.life.occasions.SEEDED', False)
     # And replies held while the companion is busy (companion/life/pacing.py), on by default in the app.

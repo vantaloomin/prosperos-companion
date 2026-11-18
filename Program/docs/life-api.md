@@ -649,6 +649,32 @@ still bring the outcome back (embedded like memories when semantic recall is on)
 A beat from today or yesterday can open a conversation, using its `share` line when no model is
 connected. Days are decided as the agenda extends, up to 14 days back after time away.
 
+#### Storylines you are part of
+
+From v1.5.0 the world also starts things that involve the user (`companion/life/shared_storylines.py`, bank
+`world/data/shared_storylines.json`): a friend who wants to meet them, a favor, a place to show them. A shared
+storyline is a row in the same table with the story `shared:<key>` and `with_you: true` in its view, so Today
+lists it, the context tells it and the user can end it like any other. Its text says "you" for the user on the
+screens and "the user" when told to the companion.
+
+Each beat reaches the user through something that exists: a first text, or an invitation whose first text books an
+outing (Today's "Out together"; with someone from their circle it is a meet-up, and going makes that person someone
+who has met the user). No beat waits. When the next beat's day comes, the app reads what the user did about the
+last one, only what it can tell for sure: for a text `answered`, `said_yes`, `said_no`, `dropped_by` or, after 18
+hours, `passed`; for a plan `went`, `called_off` or `passed` (the invitation never went out). The bank's `then`
+names the beat that follows each; where it could go more than one way the consequence engine decides (choices
+`shared:*`, subject `shared:<storyline id>:<beat>`), and the user can make it go the other way while nothing has
+followed it. A plan still ahead holds the next beat until the day after it.
+
+One runs at a time, never two beats on one day, nothing above the world's drama level, and a story fits only where
+it can be true (the relationship, how long the two have talked, the city's era, a plan in person only in the same
+city, a cast who has or has not met the user). The Life setting `shared_storylines` (0 off, 1 now and then, 2 true
+to life, 3 often; default 2) sets the daily chance one starts (0, 10%, 35%, 60%), the rest after the last one (7, 2,
+1 days) and the quiet-spell floor: after 21, 6 or 3 days with none, one starts. Nothing starts before the two have
+talked for two days, while the user has not written for three, while one is under way, on a break, in a big rough
+patch of the user's making, in raw grief, or while the user only watches. The roll is made once a day and never
+for days the app was closed. The town's news, On their mind and the companion's mood leave these storylines out.
+
 #### The consequence engine
 
 Whether two feuding friends make up, whether the companion gets the promotion: a beat with more than

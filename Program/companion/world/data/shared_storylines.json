@@ -1,0 +1,216 @@
+{
+  "about": "Storylines the user is part of (companion/life/shared_storylines.py, v1.5.0). Each story has a `family` (their people, favors, their work, around town, a third person, growing closer, their goal), the lowest drama `level` it can start at (0 quiet to 3 soap opera), an optional `cast` (who else is in it: friend, family, coworker, or a cast from companion/life/casting.py), and `beats` by id; the first listed opens it. Fit rules: `relationships` (the companion's relationship to the user), `met` (new: the cast has not met the user; known: they have), `days_known` ([least, most] days since the two first talked), `modern` (true: names things only today's cities have). A beat reaches the user `via` a first text (`text`) or an invitation that books a plan on Today (`plan`: {activity, with: 'a' for the cast, lead: [least, most] days ahead}). `text` is the beat as the screens and the companion's context tell it ({name} the companion, {a} the cast, {user}/{User}/{user_s} the user, {a_them}/{a_their}); `share` is the companion's own first text, with {day}, {time} and {place} for a plan; leave it empty for a beat that needs no text. `then` says what follows from what the user did, by what the app can detect for sure: for a text `answered`, `said_yes`, `said_no`, `dropped_by` or `passed` (they let it go by); for a plan `went`, `called_off` or `passed` (the invitation never went out); `any` covers the rest. Each is a beat id; or {choice, beats}, where the consequence engine picks among the beats by the odds table `choice` in consequences.json (options in the same order); or {impression: {warm, smitten, curious, protective, wary, any}}, the beat by what the cast made of the user when they met (companion/life/their_people.py). No beat waits: with no entry for what happened, the storyline is over. `gap` is the days to the next beat ([least, most], default [1, 3]). A plan `with` the cast is a meet-up: once it is over they have met the user, with a first impression. `effect` on a beat: warmer or cooler (the cast's opinion of the user moves a step, once they have met).",
+  "stories": [
+    {
+      "key": "curious_friend",
+      "family": "their people",
+      "level": 0,
+      "cast": "friend",
+      "met": "new",
+      "modern": true,
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{a} keeps asking who {name} is always texting.",
+          "share": "ok so {a} keeps asking who I'm always texting. I may have smiled at my phone one too many times",
+          "then": {"any": "invite"},
+          "gap": [1, 2]
+        },
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "with": "a", "lead": [2, 4]},
+          "text": "{name} asked {user} along for drinks with {a}, who wants to meet {user}.",
+          "share": "{a} wants to meet you. Drinks at {place}, {day} at {time}? Say yes",
+          "then": {
+            "went": {"impression": {"warm": "hit_it_off", "smitten": "hit_it_off", "any": "polite"}},
+            "any": "alone"
+          }
+        },
+        "hit_it_off": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came along for drinks, and {a} took to {user} right away.",
+          "share": "ok {a} LOVED you. I am never hearing the end of it"
+        },
+        "polite": {
+          "via": "text",
+          "text": "{User} came along for drinks; {a} was friendly and is still making up {a_their} mind.",
+          "share": "{a} says you seem nice. From {a_them} that's high praise, trust me"
+        },
+        "alone": {
+          "via": "text",
+          "text": "{name} went for drinks with {a} without {user} and got teased about the mystery person all evening.",
+          "share": "went without you and got teased ALL night. {a} says you owe {a_them} a drink now"
+        }
+      }
+    },
+    {
+      "key": "bring_them_along",
+      "family": "their people",
+      "level": 0,
+      "cast": "friend",
+      "met": "known",
+      "beats": {
+        "invite": {
+          "via": "plan",
+          "plan": {"activity": "drinks", "with": "a", "lead": [2, 5]},
+          "text": "{a} told {name} to bring {user} along next time, so {name} asked.",
+          "share": "{a} told me to bring you along next time. So: {place}, {day} at {time}. You in?",
+          "then": {"went": "again", "any": "asked_after"}
+        },
+        "again": {
+          "via": "text",
+          "tone": "good",
+          "effect": ["warmer"],
+          "text": "{User} came out with {name} and {a}, and {a} was glad to see {user} again.",
+          "share": "{a} was so happy you came. you're officially one of us now, no backing out"
+        },
+        "asked_after": {
+          "via": "text",
+          "text": "{name} went out with {a} without {user}, and {a} asked after {user}.",
+          "share": "{a} asked where you were. I said next time. so there has to be a next time"
+        }
+      }
+    },
+    {
+      "key": "flat_pack",
+      "family": "favors",
+      "level": 0,
+      "modern": true,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "visit-in", "lead": [1, 3]},
+          "text": "{name} bought a bookshelf that came in pieces and asked {user} to come over and help build it.",
+          "share": "favor to ask. I bought a bookshelf and it came in about 400 pieces. Come over {day} at {time} and help me? I'll feed you",
+          "then": {"went": "built", "any": "solo"}
+        },
+        "built": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} came over and helped {name} get the bookshelf up, mostly straight.",
+          "share": "still admiring our bookshelf. it leans a little. it has character"
+        },
+        "solo": {
+          "via": "text",
+          "text": "{name} put the bookshelf together alone; one shelf is on backwards.",
+          "share": "built the bookshelf myself. one shelf is on backwards. we don't talk about it"
+        }
+      }
+    },
+    {
+      "key": "big_presentation",
+      "family": "their work",
+      "level": 0,
+      "cast": "work",
+      "beats": {
+        "nervous": {
+          "via": "text",
+          "text": "{name} has a big presentation at work in a few days and told {user} about the nerves.",
+          "share": "big presentation at work in a few days and I'm weirdly nervous about it. tell me I'll be fine",
+          "then": {
+            "answered": {"choice": "shared:steadied", "beats": ["went_well", "went_fine"]},
+            "any": "got_through"
+          },
+          "gap": [2, 4]
+        },
+        "went_well": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name}'s presentation went well, and talking it over with {user} beforehand helped.",
+          "share": "it went WELL. talking to you first helped, I'm keeping you"
+        },
+        "went_fine": {
+          "via": "text",
+          "text": "{name}'s presentation went fine, one stumble aside, and talking it over with {user} beforehand helped.",
+          "share": "presentation done. tripped over one slide but recovered. thanks for talking me down"
+        },
+        "got_through": {
+          "via": "text",
+          "text": "{name} got through the presentation at work without having talked it over with {user}.",
+          "share": "survived the presentation. it was fine. could've used a pep talk though, just saying"
+        }
+      }
+    },
+    {
+      "key": "found_a_spot",
+      "family": "around town",
+      "level": 0,
+      "beats": {
+        "asks": {
+          "via": "plan",
+          "plan": {"activity": "coffee", "lead": [1, 4]},
+          "text": "{name} found a place to show {user}, and asked {user} along.",
+          "share": "found somewhere I think you'd like. {place}, {day} at {time}? come with me",
+          "then": {"went": "shown", "any": "saved"}
+        },
+        "shown": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} took {user} to the new place, and it was worth the trip.",
+          "share": "that was a good find, right? we're going back"
+        },
+        "saved": {
+          "via": "text",
+          "text": "{name} went to the new place without {user} and saved it to show {user} another time.",
+          "share": "went on my own in the end. still want to take you sometime"
+        }
+      }
+    },
+    {
+      "key": "what_were_you_like",
+      "family": "growing closer",
+      "level": 0,
+      "days_known": [14, 3650],
+      "beats": {
+        "asks": {
+          "via": "text",
+          "text": "{name} has been wondering what {user} was like as a kid, and asked.",
+          "share": "random question. what were you like as a kid? I've been trying to picture it",
+          "then": {"answered": "turning_it_over", "any": "let_go"},
+          "gap": [1, 2]
+        },
+        "turning_it_over": {
+          "via": "text",
+          "tone": "good",
+          "text": "{User} answered, and {name} has been turning it over since.",
+          "share": ""
+        },
+        "let_go": {
+          "via": "text",
+          "text": "{name} never got an answer about what {user} was like as a kid, and let it go.",
+          "share": ""
+        }
+      }
+    },
+    {
+      "key": "ex_gets_in_touch",
+      "family": "a third person",
+      "level": 2,
+      "relationships": ["romance"],
+      "beats": {
+        "tells": {
+          "via": "text",
+          "text": "An ex of {name}'s got back in touch out of nowhere, and {name} told {user} about it.",
+          "share": "so my ex got in touch out of nowhere. I'm telling you because I'd want to know if it were you",
+          "then": {
+            "answered": {"choice": "shared:ex_reply", "beats": ["moved_on", "left_it"]},
+            "any": "left_it"
+          },
+          "gap": [1, 3]
+        },
+        "moved_on": {
+          "via": "text",
+          "tone": "good",
+          "text": "{name} wrote back to the ex to say {name} has moved on, after talking it over with {user}.",
+          "share": "wrote back to my ex. said I'm happy and wished them well. that's that"
+        },
+        "left_it": {
+          "via": "text",
+          "text": "{name} left the ex's message unanswered.",
+          "share": "never answered my ex btw. nothing to say"
+        }
+      }
+    }
+  ]
+}
