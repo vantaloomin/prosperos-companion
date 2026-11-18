@@ -3,8 +3,8 @@
 The **Story** tab is the user's own free-form story: they play themself in one of the cities, and a
 narrator describes the place and voices the people there. When the story is where a companion is at
 that hour, they are in the scene and speak for themselves ([Companions in the scene](#companions-in-the-scene)).
-The story has its own tables (`story_scene`, `story_messages`, `story_cast`). A companion's chat never
-reads them, and nothing said in the story is saved to their memories or changes their life.
+The story has its own tables (`story_scene`, `story_messages`, `story_cast`). Time spent with a companion
+there counts in their life together ([Scenes count](#scenes-count)).
 
 ## Part of every world
 
