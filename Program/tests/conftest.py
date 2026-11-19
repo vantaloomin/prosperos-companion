@@ -261,19 +261,23 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(config, items):
     """Marks the tests in tests/slow_tests.txt as slow. Then COMPANION_TEST_SHARD=2/3 runs the second third of the
-    tests, picked by test name, so a slow CI runner can spread one suite over several jobs
-    (.github/workflows/ci.yml)."""
+    tests, so CI can spread one suite over several jobs (.github/workflows/ci.yml). The slow tests are dealt out
+    one by one, so no part gets most of them; the rest are picked by test name."""
     slow = slow_tests()
+    heavy = []
     for item in items:
         if (Path(str(item.fspath)).name, item.originalname) in slow:
             item.add_marker(pytest.mark.slow)
+            heavy.append(item.nodeid)
     shard = os.environ.get('COMPANION_TEST_SHARD')
     if not shard:
         return
     index, count = (int(part) for part in shard.split('/'))
+    part = {nodeid: place % count for place, nodeid in enumerate(sorted(heavy))}
     kept, dropped = [], []
     for item in items:
-        (kept if zlib.crc32(item.nodeid.encode()) % count == index - 1 else dropped).append(item)
+        mine = part.get(item.nodeid, zlib.crc32(item.nodeid.encode()) % count) == index - 1
+        (kept if mine else dropped).append(item)
     config.hook.pytest_deselected(items=dropped)
     items[:] = kept
 
