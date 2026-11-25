@@ -168,6 +168,6 @@ def test_the_day_watching_tells(client, world, provider, clock):
     shown = ok(client.get('/api/observer/feed'))
     assert_kept(str(shown))
     database = client.app.state.database
-    with database.connect() as connection:
+    with database.connect(write=True) as connection:  # It catches up their thoughts as it reads them.
         due = narrator.due_entry(connection, database.clock.now())
     assert_kept(str(due))
