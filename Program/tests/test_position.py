@@ -194,10 +194,13 @@ def test_sett_runs_the_place_and_has_a_good_or_flat_year_and_is_never_laid_off(c
     assert not kinds & {'raise', 'promotion', 'freeze', 'laid-off', 'quit'}
     [year] = [event for event in view['events'] if event['kind'] in ('good-year', 'flat-year')]
     assert year['text'].startswith(('a good year at the place: business up about ', 'a flat year at the place: business held steady'))
-    # Not told in chat until its wording has been tried out.
+    # Chat is told where they stand, how long they have run it, and the year as takings (the A/B's arm B).
     with connect(client, write=False) as connection:
-        lines = work.context_lines(connection, require_current(connection), clock.now())
-    assert lines and not any('takings' in text for _key, text in lines)
+        lines = [text for _key, text in work.context_lines(connection, require_current(connection), clock.now())]
+    assert lines[0] == f"- {work.POSITION_LINES['owner']}"
+    assert any(text.startswith('- You have run it for ') for text in lines)
+    assert any('the place had a ' in text and 'takings' in text for text in lines)
+    assert not any('been at this job' in text or 'raise' in text for text in lines)
 
 
 def test_someone_who_works_for_someone_still_has_their_review(client, sett, clock):
@@ -211,6 +214,11 @@ def test_someone_who_works_for_someone_still_has_their_review(client, sett, cloc
     reconcile(client)
     kinds = {event['kind'] for event in client.get('/api/life/work').json()['work']['events']}
     assert kinds & {'raise', 'promotion', 'freeze'}
+    with connect(client, write=False) as connection:
+        lines = [text for _key, text in work.context_lines(connection, require_current(connection), clock.now())]
+    # Someone who works for someone is told nothing new: no position line, the tenure as before.
+    assert not any(line in text for text in lines for line in work.POSITION_LINES.values())
+    assert any(text.startswith('- You have been at this job for ') for text in lines)
 
 
 def test_a_running_layoff_story_ends_quietly_once_they_run_the_place(client, sett, clock):
@@ -262,13 +270,17 @@ def test_the_form_shows_what_the_app_reads_them_as(client):
     assert asked('Theo studies.', {'career': 'undergraduate'}) == ''
 
 
-def test_the_work_life_panel_says_who_runs_the_place(client, sett):
+def test_the_work_life_panel_says_who_runs_the_place(client, sett, clock):
     reconcile(client)
     view = client.get('/api/life/work').json()['work']
     assert view['position'] == 'owner' and view['state'][0] == 'Runs the place.'
     revise(client, lambda definition: {'money': {**definition['money'], 'position': 'lead'}})
     view = client.get('/api/life/work').json()['work']
     assert view['position'] == 'lead' and view['state'][0] == 'Manages people.'
+    with connect(client, write=False) as connection:
+        lines = [text for _key, text in work.context_lines(connection, require_current(connection), clock.now())]
+    assert lines[0] == f"- {work.POSITION_LINES['lead']}"
+    assert any(text.startswith('- You have been at this job for ') for text in lines)
     revise(client, lambda definition: {'money': {**definition['money'], 'position': 'staff'}})
     view = client.get('/api/life/work').json()['work']
     assert view['position'] == 'staff' and view['state'][0] not in ('Runs the place.', 'Manages people.')
