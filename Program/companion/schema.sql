@@ -930,11 +930,12 @@ CREATE TABLE IF NOT EXISTS openers (
 CREATE INDEX IF NOT EXISTS openers_message ON openers(message_id);
 
 -- What the companion said about themselves (companion/self_facts.py): fiction about the character,
--- tied to the message it came from, noted automatically and kept or removed by the user.
+-- tied to the message it came from, noted automatically and kept or removed by the user. One said in a Story scene
+-- has no message: `story_message_id` and `timeline_id` say where it was said instead (companion/story_said.py).
 CREATE TABLE IF NOT EXISTS self_facts (
   id TEXT PRIMARY KEY,
   companion_id TEXT NOT NULL REFERENCES companions(id),
-  message_id TEXT NOT NULL REFERENCES messages(id),
+  message_id TEXT REFERENCES messages(id),
   key TEXT NOT NULL,
   category TEXT NOT NULL,
   subject TEXT NOT NULL,

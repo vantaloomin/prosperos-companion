@@ -1552,7 +1552,10 @@ export interface Closeness {
 /** Something the companion said about themselves (companion/self_facts.py). */
 export interface SelfFact {
   id: string
-  message_id: string
+  /** Null for one said in a Story scene, which has no chat message. */
+  message_id: string | null
+  /** Said in a Story scene (companion/story_said.py). */
+  in_story?: boolean
   category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy' | 'team' | 'plays'
     | 'works_at' | 'detail' | 'said'
   label: string

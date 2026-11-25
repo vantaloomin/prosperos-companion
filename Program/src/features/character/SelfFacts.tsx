@@ -32,7 +32,7 @@ export function SelfFacts({ name }: { name: string }) {
   return (
     <section className="settings-section" aria-labelledby="self-facts-heading">
       <h2 id="self-facts-heading">What {firstName(name)} has said about themselves</h2>
-      <p className="subtle">Picked up from {name}'s own messages so later replies stay consistent. Keep the ones you like; remove any you don't want to hold.</p>
+      <p className="subtle">Picked up from what {name} says in chat and in Story so later replies stay consistent. Keep the ones you like; remove any you don't want to hold.</p>
       {error && <Notice tone="error">{error}</Notice>}
       {list.length === 0 ? <p className="subtle">Nothing yet. Things like "I hate cilantro" or "my brother Theo" show up here.</p> : (
         <ul className="plain-list">
@@ -41,7 +41,7 @@ export function SelfFacts({ name }: { name: string }) {
               <strong>{selfFactText(fact)}</strong>{fact.status === 'kept' && <span className="badge">kept</span>}
               {fact.status === 'conflict' && <span className="badge">{conflictText(fact)}</span>}
               {fact.pet_link === 'tracked' && <span className="badge">one of their pets</span>}
-              <br /><small className="subtle">"{fact.statement}"</small>
+              <br /><small className="subtle"><q>{fact.statement}</q>{fact.in_story && ' · In Story'}</small>
               <span className="form-actions">
                 {fact.status !== 'kept' && <button type="button" className="text-button" onClick={() => void decide(fact, true)}><Check aria-hidden="true" />{fact.status === 'conflict' ? 'Keep this one' : 'Keep'}</button>}
                 {fact.pet_link === 'untracked' && <button type="button" className="text-button" onClick={() => void adopt(fact)}><PawPrint aria-hidden="true" />Add as their pet</button>}

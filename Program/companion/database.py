@@ -470,6 +470,10 @@ ADDED_COLUMNS = (
     # A plan played in the Story (companion/story_plans.py): the outing a visit was part of. It leaves its own memory,
     # so the visit adds none.
     ('story_visits', 'outing_id', 'TEXT'),
+    # Said about themselves in a Story scene (companion/story_said.py): the scene line and the timeline, for a fact
+    # with no chat message.
+    ('self_facts', 'story_message_id', 'TEXT'),
+    ('self_facts', 'timeline_id', 'TEXT'),
     # A line the app said for the user to start a plan's scene: the models read it, the screen and exports do not.
     ('story_messages', 'hidden', 'INTEGER NOT NULL DEFAULT 0'),
     # Where a match was made: 'app' on the dating app, 'story' when someone said yes to the user in their own story
@@ -496,6 +500,8 @@ WIDENED_CHECKS = (
     ('trips', "'host', 'together')"),
     # Companions in the Story's scene, in their own lines (companion/story_cast.py).
     ('story_messages', "'scene', 'companion', 'cast')"),
+    # What a companion says about themselves in a Story scene has no chat message (companion/story_said.py).
+    ('self_facts', 'message_id TEXT REFERENCES messages(id)'),
 )
 
 
@@ -510,6 +516,8 @@ def initialize(connection, timestamp: str):
     add_columns(connection)
     widen_context_categories(connection)
     widen_checks(connection)
+    connection.execute('CREATE INDEX IF NOT EXISTS self_facts_message ON self_facts(message_id)')
+    connection.execute('CREATE UNIQUE INDEX IF NOT EXISTS self_facts_story ON self_facts(timeline_id, story_message_id, key)')
     connection.execute('CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date)')
     connection.execute('CREATE INDEX IF NOT EXISTS relationship_steps_pair ON relationship_steps(timeline_id, other, ladder)')
     connection.execute('CREATE INDEX IF NOT EXISTS circle_children_timeline ON circle_children(timeline_id, status, born_on)')
