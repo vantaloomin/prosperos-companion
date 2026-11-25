@@ -204,6 +204,8 @@ a.button { color: inherit; text-decoration: none; }
 .story-scene { display: flex; flex-direction: column; gap: 4px; }
 .story-scene svg { width: 16px; height: 16px; vertical-align: -3px; color: var(--accent); }
 .story-scene .button { align-self: flex-start; margin-top: 6px; }
+/* The plan being played here (companion/story_plans.py): what it is and until when. */
+.story-plan { font-weight: 600; }
 .story-go { flex-wrap: wrap; align-items: flex-end; margin-top: 6px; }
 .story-go label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8125rem; color: var(--muted); }
 .story-log { flex: 1; overflow-y: auto; max-width: 760px; width: 100%; margin: 0 auto; padding: 20px 32px; }
@@ -635,6 +637,11 @@ textarea.politics-long { resize: vertical; field-sizing: content; min-height: ca
 .deck-card { display: grid; gap: 6px; max-width: 32rem; margin: 6px 0; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 8px; }
 .event-list, .plain-list { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-direction: column; gap: 10px; }
 .plain-list li { line-height: 1.6; }
+/* Things that involve you: the user's part sits under its beat, and "See it" marks what it scrolled to for a moment. */
+.involves-you .your-part { margin: 0 0 4px; }
+.today-found { animation: today-found 2.4s ease-out; border-radius: 8px; }
+@keyframes today-found { 0%, 40% { background: var(--accent-tint); box-shadow: 0 0 0 8px var(--accent-tint); } 100% { background: transparent; box-shadow: 0 0 0 8px transparent; } }
+@media (prefers-reduced-motion: reduce) { .today-found { animation-duration: 0.01s; } }
 .event { padding: 14px 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
 .event-when { font-size: 0.75rem; color: var(--faint); }
 .event-summary { line-height: 1.6; }
@@ -2537,6 +2544,8 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .year-items li { display: grid; grid-template-columns: 64px 1fr; gap: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .year-items li:not(:has(time)) { grid-template-columns: 1fr; }
 .year-items time { color: var(--muted); font-size: 0.8125rem; padding-top: 2px; }
+/* A storyline you were part of ran over days: its dates sit above it, not in the narrow date column. */
+.year-page-with-you .year-items li { grid-template-columns: 1fr; gap: 2px; }
 .year-day-label { margin: 4px 0 0; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
 .year-day { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 1rem; line-height: 1.4; }
 .year-closing { margin: 0; font-size: 1.375rem; line-height: 1.45; }

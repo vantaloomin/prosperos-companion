@@ -1,7 +1,8 @@
 """The Story: free-form roleplay with a narrator around the cities (docs/story.md).
 
 The story has its own scene (`story_scene`: the city and place the user is at) and its own history
-(`story_messages`). A companion's chat never reads either, and nothing said here is saved to their memories.
+(`story_messages`). Time spent with a companion here counts in their
+life together (companion/story_visits.py): their chat is told of it and it leaves a shared moment.
 
 The app decides the scene from the city data and the townsfolk rules: the place, the local time and
 weather, and who is there at that hour, the same people the companion's world has. The narrator model
@@ -13,7 +14,17 @@ narrator's reply comes first, then each companion's own line, written by their o
 """
 from datetime import datetime
 
-from companion import authors_note, in_character, prompt_library, safety, story_cast, story_people, story_pursuit
+from companion import (
+    authors_note,
+    in_character,
+    prompt_library,
+    safety,
+    story_cast,
+    story_people,
+    story_plans,
+    story_pursuit,
+    story_visits,
+)
 from companion.characters import current
 from companion.clock import zone
 from companion.database import identifier, many, one, optional
@@ -158,7 +169,9 @@ def scene(connection, now: datetime) -> dict:
             'data': data, 'now': now,
             'known': story_people.known(connection),
             # Companions who are here at this hour, in their own right (companion/story_cast.py).
-            'companions': story_cast.here(connection, data, place['id'], now)}
+            'companions': (found := story_cast.here(connection, data, place['id'], now)),
+            # The people a plan under way here is with, for the narrator to voice (companion/story_plans.py).
+            'along': story_plans.narrator_people(connection, found)}
 
 
 def person_line(person: dict, place: dict, data: dict, known: dict | None = None) -> str:
@@ -197,11 +210,12 @@ def scene_text(view: dict) -> str:
     if view['weather']:
         lines.append(f"Weather: {view['weather']}")
     lines.append('Who is here (their names are for you; the user knows only the names of people they have met):')
-    lines += story_cast.narrator_lines(view['companions']) + \
+    lines += story_cast.narrator_lines(view['companions']) + view['along'] + \
         [person_line(person, {'id': place['id']}, data, view['known'].get(person['sheet']['key']))
          for person in view['people']] or ['- Nobody the story knows; only passers-by.']
     if view['companions']:
         lines.append(story_cast.beside(view['companions']))
+    lines += story_plans.narrator_plan(view['companions'])  # They came together, on purpose.
     return '## Scene\n' + '\n'.join(lines)
 
 
@@ -212,8 +226,11 @@ def scene_view(view: dict) -> dict:
         'places': [{'id': item['id'], 'name': item['name'], 'kind': item['kind'],
                     'neighborhood': townsfolk.neighborhood_name(data, item['neighborhood'])} for item in data['places']],
         # A companion is someone the user knows: by name, and first.
-        'around': [item['name'] for item in view['companions']] + [seen(person, view) for person in view['people']],
-        'companions': [{'id': item['id'], 'name': item['name']} for item in view['companions']]}
+        'around': [item['name'] for item in view['companions']] + story_plans.seen(view['companions'])
+        + [seen(person, view) for person in view['people']],
+        'companions': [{'id': item['id'], 'name': item['name']} for item in view['companions']],
+        # The plan being played here (companion/story_plans.py), or None.
+        'plan': next((story_plans.view(item) for item in view['companions'] if item.get('plan')), None)}
 
 
 def seen(person: dict, view: dict) -> str:
@@ -235,16 +252,16 @@ def add(connection, now: str, role: str, text: str, where: dict, **extra) -> dic
     message_id = identifier()
     connection.execute(
         'INSERT INTO story_messages (id, seq, role, text, client_id, reply_to, status, error, city_id, place_id, '
-        'created_at, speaker, name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'created_at, speaker, name, hidden) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (message_id, next_seq(connection), role, text, extra.get('client_id'), extra.get('reply_to'),
          extra.get('status', 'complete'), extra.get('error'), where['city_id'], where['place_id'], now,
-         extra.get('speaker'), extra.get('name')))
+         extra.get('speaker'), extra.get('name'), int(bool(extra.get('hidden')))))
     return one(connection, 'SELECT * FROM story_messages WHERE id=?', (message_id,))
 
 
 def messages(connection, limit: int = HISTORY_LIMIT) -> list[dict]:
     rows = many(connection, 'SELECT id, seq, role, text, client_id, reply_to, status, error, city_id, place_id, '
-                'created_at, speaker, name FROM story_messages ORDER BY seq DESC LIMIT ?', (limit,))
+                'created_at, speaker, name, hidden FROM story_messages ORDER BY seq DESC LIMIT ?', (limit,))
     # The app's crisis note under a user's line that sounds like self-harm (companion/safety.py).
     return [{**row, 'crisis_help': row['role'] == 'user' and safety.crisis(row['text'])} for row in reversed(rows)]
 
@@ -268,6 +285,8 @@ def companions(connection, view: dict) -> list[dict]:
     here = {item['id'] for item in view['companions']}
     return [{'key': f"companion:{item['id']}", 'id': item['id'], 'name': item['name'], 'main': item['main'],
              'here': item['id'] in here, 'doing': item['doing'], 'city': item['city'] and item['city']['name'],
+             # Their plan with the user under way, when the story can go to it (companion/story_plans.py).
+             'plan': story_plans.view(item) if item.get('plan') else None,
              'place': item['place'] and {'id': item['place']['id'], 'name': item['place']['name'],
                                          'city_id': item['city']['id']}}
             for item in story_cast.whereabouts(connection, data_for, view['now'])]
@@ -312,6 +331,20 @@ def find(database, key: str) -> dict:
     return move(database, place['city_id'], place['id'])
 
 
+def play(database, outing_id: str) -> dict:
+    """Play a plan under way as a scene: the story goes to where the plan is (companion/story_plans.py). The
+    companion and the people it is with are there because the plan is, not because the story came."""
+    with database.connect() as connection:
+        companion, plan = story_plans.find(connection, outing_id, database.clock.now())
+        try:
+            data = city_data(connection, newcomers.city_for(connection, companion['version']['definition'])['id'])
+        except DomainError:
+            data = None
+        place = story_plans.place_of(plan, data)
+    require(place is not None, "This plan isn't somewhere your story can go.", 409)
+    return move(database, data['id'], place['id'])
+
+
 def move(database, city_id: str, place_id: str | None) -> dict:
     """Go somewhere else: another place in this city, or another city (its opening place unless one is named)."""
     with database.connect(write=True) as connection:
@@ -331,6 +364,7 @@ def move(database, city_id: str, place_id: str | None) -> dict:
             hood = townsfolk.neighborhood_name(data, place['neighborhood'])
             add(connection, database.now(), 'scene', f"You arrive at {place['name']}, {hood}, {data['name']}.", where)
             # Whoever was with them stays behind; a companion who is at the new place is there when they walk in.
+            story_visits.close_all(connection, database.clock.now())  # Their time together ends here.
             story_cast.leave(connection)
             story_cast.sync(connection, add, scene(connection, database.clock.now())['companions'], database.now(), where)
     return story(database)
@@ -339,6 +373,8 @@ def move(database, city_id: str, place_id: str | None) -> dict:
 def clear(database) -> dict:
     """A new story: the history and the people met go, the scene stays where it is."""
     with database.connect(write=True) as connection:
+        # Time spent with a companion still happened (companion/story_visits.py): it is settled before the lines go.
+        story_visits.close_all(connection, database.clock.now())
         connection.execute('DELETE FROM story_messages')
         connection.execute('DELETE FROM story_people')
         story_pursuit.forget(connection)
@@ -465,8 +501,10 @@ async def speak(state, user: dict, item: dict) -> dict:
     status = 'complete' if text and not error else 'failed'
     error = None if status == 'complete' else error or f"The model returned nothing for {item['name']}."
     with database.connect(write=True) as connection:
-        return add(connection, database.now(), story_cast.ROLE, text, user, reply_to=user['id'], status=status,
+        line = add(connection, database.now(), story_cast.ROLE, text, user, reply_to=user['id'], status=status,
                    error=error, speaker=item['id'], name=item['name'])
+        story_visits.heard(connection, line, database.clock.now())
+        return line
 
 
 async def answer(state, user: dict) -> list[dict]:
@@ -487,15 +525,18 @@ async def answer(state, user: dict) -> list[dict]:
         return many(connection, 'SELECT * FROM story_messages WHERE reply_to=? ORDER BY seq', (user['id'],))
 
 
-def record(database, text: str, client_id: str) -> dict:
+def record(database, text: str, client_id: str, hidden: bool = False) -> dict:
     """The user's message, saved once whatever retries come. A companion who has come to where the story is, or
-    gone, since the last line does so first (companion/story_cast.py)."""
+    gone, since the last line does so first (companion/story_cast.py). A hidden one is the app's, to start a plan's
+    scene (`begin`): the models read it and the screen does not show it."""
     with database.connect(write=True) as connection:
         user = optional(connection, 'SELECT * FROM story_messages WHERE client_id=?', (client_id,))
         if user is None:
-            where = scene_row(connection)
-            story_cast.sync(connection, add, scene(connection, database.clock.now())['companions'], database.now(), where)
-            user = add(connection, database.now(), 'user', text, where, client_id=client_id)
+            where, view = scene_row(connection), scene(connection, database.clock.now())
+            story_cast.sync(connection, add, view['companions'], database.now(), where)
+            user = add(connection, database.now(), 'user', text, where, client_id=client_id, hidden=hidden)
+            # Time with a companion counts (companion/story_visits.py): read before anyone answers the line.
+            story_visits.said(connection, user, view, database.clock.now())
         return user
 
 
@@ -504,6 +545,19 @@ async def send(state, text: str, client_id: str) -> dict:
     user = record(state.database, text, client_id)
     found = await answer(state, user)
     return {'message': user, 'reply': found[0], 'replies': found}
+
+
+async def begin(state, client_id: str) -> dict:
+    """Start the scene of the plan being played here without a line from the user: the narrator opens it and the
+    companion speaks, as if the user had turned to them (companion/story_plans.py)."""
+    database = state.database
+    with database.connect() as connection:
+        found = scene(connection, database.clock.now())
+    item = next((item for item in found['companions'] if item.get('plan')), None)
+    require(item is not None, "There is no plan under way here.", 409)
+    user = record(database, story_plans.BEGIN.format(name=item['name']), client_id, hidden=True)
+    replies_ = await answer(state, user)
+    return {'message': user, 'reply': replies_[0], 'replies': replies_}
 
 
 async def retry(state) -> dict:

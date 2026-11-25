@@ -3,8 +3,8 @@
 The **Story** tab is the user's own free-form story: they play themself in one of the cities, and a
 narrator describes the place and voices the people there. When the story is where a companion is at
 that hour, they are in the scene and speak for themselves ([Companions in the scene](#companions-in-the-scene)).
-The story has its own tables (`story_scene`, `story_messages`, `story_cast`). A companion's chat never
-reads them, and nothing said in the story is saved to their memories or changes their life.
+The story has its own tables (`story_scene`, `story_messages`, `story_cast`). Time spent with a companion
+there counts in their life together ([Scenes count](#scenes-count)).
 
 ## Part of every world
 
@@ -77,16 +77,16 @@ where they are.
 The wording was chosen by A/B on ten models (`/mnt/project-files/companion-story-cast-ab/report.md`):
 without it the narrator wrote the companion's words in 50 of 85 replies, with it in 0 of 87.
 
-Nothing in a scene is saved for the companion yet: no memory, no closeness, no line in their chat.
-
 ## API
 
 | Request | Does |
 | --- | --- |
-| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
+| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
 | `PUT /api/story/scene` `{city_id, place_id?}` | Moves there; a city alone means its opening place. 404 for an unknown city or place. |
 | `POST /api/story/messages` `{text, client_id}` | Saves the user's line once per `client_id` and returns `{message, reply, replies}`: `reply` is the narrator's, `replies` all of them in order, a companion's own lines after it. A failed reply is saved with `status: failed` and its `error`. Sending the same `client_id` again returns the saved replies and writes only what is missing. 409 `no_connection` without a model; the line stays saved. |
 | `POST /api/story/find` `{key}` | Moves the story to where someone the user has met is now, or a companion (`companion:<id>`). 404 if not met, 409 if they are nowhere the story can go. |
+| `POST /api/story/plan` `{outing_id}` | Plays a plan under way as a scene: moves the story to where the plan is ([Playing a plan](#playing-a-plan)). 404 for an unknown outing, 409 when it is not under way or is somewhere the story cannot go. |
+| `POST /api/story/plan/begin` `{client_id}` | Starts the scene of the plan being played here with no line from the user: saves a hidden user line once per `client_id` and returns what `POST /api/story/messages` does. 409 with no plan under way here. |
 | `POST /api/story/retry` | Writes again what failed in the replies to the latest user line; with nothing failed, tells them all again. |
 | `DELETE /api/story` | Starts a new story: the history and the people met go, the scene stays. |
 
@@ -113,6 +113,68 @@ Other features that put the user with someone (a date, say) record the meeting w
 
 Starting a new story clears the people met too. Companions are not in this list's table: they are listed
 above it from their own days.
+
+## Scenes count
+
+Time the user spends with a companion in the Story is part of their life together (`companion/story_visits.py`,
+table `story_visits`). A visit is one stretch of the story with a companion in the scene. It opens with the
+user's first line while they are there. It ends when the user goes somewhere else or starts a new story, when the
+companion's day takes them away, or when nothing has been said for two hours. Everything here is rules, with no
+model call:
+
+- **Closeness:** a day the user talked with them in person counts as a day talked, the same as a day of texting
+  (`closeness.talk_days`). A day with both still counts once.
+- **A shared moment:** a visit with a real exchange (two of the user's lines to them and one of their own) leaves
+  one memory, "In person at Club Charles: Mira and you spent time together at Club Charles." There is at most one
+  a day for each companion, and one for each place: time at the same place again is the same moment. Its card on
+  Memories says "In Story" and the date (`in_story` on `GET /api/memories`). It also shows in the scrapbook and in
+  "Our history", and counts toward closeness as any shared moment does.
+- **Relationship steps:** what the user says to them is read by the step rules chat uses
+  (`steps.said_in_person`). The user can bring a step up ("I think we should be exclusive") or answer one the
+  companion brought up. The words in quotation marks are the speech. With no chat turn to go by, an answer counts
+  only when it names the step, or is a plain yes or no right after the companion's own line named it. The
+  companion's line in the scene is written knowing the answer. Starting a family and separating stay with chat.
+- **Their chat afterward:** for a day and a half, the 'where' section of their 1:1 chat says when and where they
+  were together, who came to whom, and the last six lines the two of them said (`story_visits.context_lines`).
+  After that it is the memory.
+
+A line to someone else in the scene, or one out of the story (OOC: or ((...))), counts for nothing. A new story
+clears the lines but not the time spent: visits are settled before the lines go.
+
+Settings > Realism > "Story scenes count" (`life_settings.story_counts`, on by default) turns all of it off. The
+story is then apart from the companion's life, as it was before 1.5.
+
+## Playing a plan
+
+A plan with a companion that is under way can be played in the Story, at its place, with the people it is with
+(`companion/story_plans.py`). A plan is an outing (`companion/life/outings.py`): a date or anything else the two
+settled in chat, drinks with their friends, a big day, or the plan a storyline the user is part of booked. Rules
+decide all of it and nothing new is stored.
+
+- **Where they are:** while a plan is under way the companion is where the plan is, not where the rest of their day
+  would have them (the second place once they moved on, or where their chat took them). At their place, the
+  user's, their family's or on the move, the story cannot go there and the plan stays in the chat.
+- **Getting there:** Today's "Out together" card says "Talk face to face or play it out in Story" while the plan is
+  under way somewhere the story can go (`story` on `GET /api/life/outings`). The Story's first open and its
+  people list offer it too. The app never moves the story by itself, and the chat stays face to face as before.
+- **On screen:** the story's line reads "Mira is here with you, for dinner." The scene says "Here with Mira for
+  dinner, until 9:00 PM." (and "Part of a storyline." when a storyline booked it). Until something is said, one
+  button, Start the scene, has the narrator open it and the companion speak. It adds no line of the user's: the models
+  read "I turn to Mira." said for them (`story_messages.hidden`), which the screen, exports and their chat never show.
+  From anywhere else the Story's first open says "Go to Lupa", which only goes there.
+- **Who is there:** the people the plan is with are in the scene ("Mira and their mom Ana are here."), voiced by the narrator, who is
+  told who they are to the companion, whether they have met the user and how they are with them
+  (`people_impressions`).
+- **What is told:** the narrator's scene says the two came together on a plan and did not meet by chance. The
+  companion's own notes say what the plan is, until when, that they came together, who else is there, what is on the
+  menu and how long they have been at it, in place of who came to whom.
+- **What it leaves:** the plan's own memory, bill and storyline beat, as when it is played in chat. The time counts
+  as a day talked, and their chat is told what was said (`story_visits.outing_id`), but the visit leaves no shared
+  moment of its own. While the plan is still going on their chat is not told they are apart.
+
+The wording was chosen by A/B on ten models (`/mnt/project-files/companion-story-plans/ab/report.md`): without it
+the companion acted as if they had not expected the user in 52 of 85 replies, with it in 4 of 88, and a friend
+along spoke in 1 of 28 of the narrator's replies against 24 of 29.
 
 ## Asking someone out
 

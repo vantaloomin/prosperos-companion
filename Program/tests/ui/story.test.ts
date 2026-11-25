@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aroundText, companionLine, openingAction, openingText, personLine, placeGroups, sceneTime, writingText } from '../../src/features/story/storyText.ts'
+import { aroundText, companionLine, openingAction, openingText, personLine, placeGroups, sceneTime, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
@@ -55,7 +55,7 @@ test('a companion in the scene is named first among who is around', () => {
 test('the first open names the companion and finds them when the story can go to them', () => {
   const scene = { city: { name: 'Baltimore' } }
   const mira = { key: 'companion:1', id: '1', name: 'Mira', main: true, here: false, doing: 'at work here', city: 'Baltimore',
-    place: { id: 'club-charles', name: 'Club Charles', city_id: 'baltimore' } }
+    place: { id: 'club-charles', name: 'Club Charles', city_id: 'baltimore' }, plan: null }
   assert.equal(openingText(scene), 'Your own story in Baltimore, told by a narrator.')
   assert.deepEqual(openingAction(), { label: 'Look around', line: 'I look around.', find: null })
   assert.equal(openingText(scene, mira), 'Play out a scene with Mira, anywhere in Baltimore.')
@@ -68,9 +68,31 @@ test('the first open names the companion and finds them when the story can go to
   assert.deepEqual(openingAction(home), { label: 'Look around', line: 'I look around.', find: null })
 })
 
+test('a plan under way opens as a scene the two are already in', () => {
+  const plan = { outing_id: 'o1', companion_id: '1', name: 'Mira', what: 'dinner', until: '21:00', place: 'Lupa', storyline: false, people: [] }
+  const mira = { key: 'companion:1', id: '1', name: 'Mira', main: true, here: false, doing: '', city: 'Baltimore',
+    place: { id: 'lupa', name: 'Lupa', city_id: 'baltimore' }, plan }
+  const scene = { city: { name: 'Baltimore' }, plan: null }
+  // The story is somewhere else: the first open offers to go to the plan.
+  assert.equal(openingText(scene, mira), 'You and Mira are at Lupa now, for dinner.')
+  assert.deepEqual(openingAction(mira), { label: 'Go to Lupa', line: '', find: 'companion:1' })
+  assert.equal(companionLine(mira, 'Baltimore'), 'At Lupa for dinner with you')
+  // The story is where the plan is: it says so, and starts with the two of them there.
+  assert.match(planText(plan), /^Here with Mira for dinner, until 9:00.PM\.$/)
+  assert.equal(openingText({ ...scene, plan }, { ...mira, here: true }), '')
+  assert.deepEqual(openingAction({ ...mira, here: true }, plan), { label: 'Start the scene', line: '', find: null, begin: true })
+  assert.equal(companionLine({ ...mira, here: true }, 'Baltimore'), 'Here with you for dinner')
+  // The opening shows under the lines that say who came, until something is said; without a plan, above an empty story.
+  const row = (role: 'user' | 'narrator' | 'scene' | 'cast') => ({ role })
+  assert.equal(openingPlace({ scene: { plan }, messages: [row('user'), row('narrator'), row('scene'), row('cast')] }), 'bottom')
+  assert.equal(openingPlace({ scene: { plan }, messages: [row('scene'), row('cast'), row('user')] }), null)
+  assert.equal(openingPlace({ scene: { plan: null }, messages: [row('scene')] }), 'top')
+  assert.equal(openingPlace({ scene: { plan: null }, messages: [row('scene'), row('user')] }), null)
+})
+
 test('a companion in the people list says where they are now', () => {
   const mira = { key: 'companion:1', id: '1', name: 'Mira', main: true, here: false, doing: '', city: 'Baltimore',
-    place: { id: 'club-charles', name: 'Club Charles', city_id: 'baltimore' } }
+    place: { id: 'club-charles', name: 'Club Charles', city_id: 'baltimore' }, plan: null }
   assert.equal(companionLine({ ...mira, here: true }, 'Baltimore'), 'Here with you')
   assert.equal(companionLine(mira, 'Baltimore'), 'Now at Club Charles')
   assert.equal(companionLine(mira, 'New York'), 'Now at Club Charles, Baltimore')

@@ -95,12 +95,14 @@ def options(connection, timeline_id) -> dict:
 
 
 def talk_days(connection, timeline_id, since, timezone) -> list[str]:
-    """Distinct local dates the user wrote on, in order. Deleted and inactive messages do not count, and
+    """Distinct local dates the user wrote on, or talked with them in person in the Story, in order. Deleted and inactive messages do not count, and
     neither does an old chat brought in (companion/imports/chats.py): history never jumps the stage."""
     rows = many(connection, "SELECT created_at FROM messages WHERE timeline_id=? AND role='user' AND active=1 "
                 "AND status='complete' AND redacted_at IS NULL AND import_id IS NULL AND created_at>=?",
                 (timeline_id, since or ''))
-    return sorted({local_day(row['created_at'], timezone) for row in rows})
+    from companion import story_visits  # A day together in the Story is a day talked (companion/story_visits.py).
+    return sorted({local_day(row['created_at'], timezone) for row in rows}
+                  | story_visits.talk_days(connection, timeline_id, since, timezone))
 
 
 def shared_moments(connection, companion, timeline_id, now, since) -> list[dict]:

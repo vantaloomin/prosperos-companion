@@ -435,6 +435,8 @@ export interface Memory {
   in_timeline?: boolean
   /** A value the user said was never true: replaced by nothing, and its old words are marked as wrong. */
   retracted?: boolean
+  /** A shared moment left by time together in the Story (companion/story_visits.py). */
+  in_story?: boolean
   /** Set on what you said about someone in your life; see Person. */
   person_id?: string | null
 }
@@ -574,6 +576,8 @@ export interface LifeSettings {
   friends_fall: boolean
   /** Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life. */
   breakups: boolean
+  /** Scenes count (companion/story_visits.py): time with a companion in the Story is part of their life together. */
+  story_counts: boolean
   /** Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on. */
   love_life: number
   /** Life's big turns (companion/life/big_turns.py): how often life chapters come, 0 off, 1 gentle (good turns only), 2 true to life, 3 eventful. */
@@ -1585,6 +1589,10 @@ export interface StoryBeat {
   on: string; text: string; share: string; tone: 'good' | 'bad' | 'mixed'
   /** The consequence engine's outcome this beat came from, when it could have gone more than one way. */
   consequence: string | null
+  /** In a storyline the user is part of: how the beat reached them, and their part in it (none for a beat nothing
+   * follows, or one that has not reached them yet). */
+  via?: 'text' | 'plan'
+  you?: YourPart
 }
 /** A lasting change to the companion's life (companion/life/chapters.py). */
 /** News travels (companion/news.py): the companion's recent news and who has heard it, in the order they did. */
@@ -1657,6 +1665,10 @@ export interface Storyline {
   /** The user is part of it (companion/life/shared_storylines.py): its beats say "you". */
   with_you: boolean
 }
+/** The user's part in a beat of a storyline they are part of, as far as the app can tell for sure: what they did
+ * about it, or where it stands ('texted': the text is out and still open; 'set': the plan is booked for `on` at
+ * `at`; 'now': the plan is under way). */
+export interface YourPart { did: 'texted' | 'answered' | 'said_yes' | 'said_no' | 'dropped_by' | 'passed' | 'set' | 'now' | 'went' | 'called_off'; on?: string; at?: string }
 
 export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary' | 'death_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }
 
@@ -1667,13 +1679,14 @@ export interface TraditionsView { traditions: Tradition[]; removed: Tradition[];
 /** Our year so far (companion/life/scrapbook.py): the stretches there are, and one stretch's pages. */
 export interface ScrapbookPeriod { key: string; title: string; start: string; end: string }
 export interface ScrapbookListing { periods: ScrapbookPeriod[]; featured: string | null; featured_days: number }
-export interface ScrapbookItem { date?: string; text: string }
+/** `until` on an entry that ran over several days (a storyline you were part of): its last day. */
+export interface ScrapbookItem { date?: string; until?: string; text: string }
 export type ScrapbookPage =
   | { kind: 'cover'; title: string; subtitle: string; stats: { value: string; label: string }[] }
   | { kind: 'first'; title: string; date: string; said: string; reply: string | null }
   | { kind: 'photos'; title: string; photos: { ref: string; summary: string; date: string | null }[] }
   | { kind: 'jokes'; title: string; items: ScrapbookItem[]; note: string | null }
-  | { kind: 'closer' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
+  | { kind: 'closer' | 'moments' | 'their-year' | 'with-you'; title: string; items: ScrapbookItem[] }
   | { kind: 'closing'; title: string; text: string }
   | { kind: 'wedding'; title: string; date: string; text: string; items: ScrapbookItem[]; guests: string[]; more?: number; photo: string | null; photo_alt: string }
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
@@ -2007,6 +2020,14 @@ export interface StoryScene {
   around: string[]
   /** Companions in the scene right now (companion/story_cast.py): each answers in their own lines. */
   companions: { id: string; name: string }[]
+  /** The plan being played here (companion/story_plans.py): the companion came with the user, on purpose. */
+  plan: StoryPlan | null
+}
+/** A plan with a companion under way somewhere the story can go: `what` reads after "for" ("dinner"), `until` is
+ * '21:00', `people` are who it is with besides the two of them, `storyline` marks one a storyline booked. */
+export interface StoryPlan {
+  outing_id: string; companion_id: string; name: string; what: string; until: string; place: string; storyline: boolean
+  people: { name: string; role: string }[]
 }
 export interface StoryMessage {
   /** 'companion' is a companion's own line in the scene (`speaker`, `name`); 'cast' says one came or went. */
@@ -2014,11 +2035,15 @@ export interface StoryMessage {
   status: 'complete' | 'failed'; error: string | null; city_id: string; place_id: string; created_at: string
   client_id: string | null; speaker: string | null; name: string | null
   crisis_help?: boolean
+  /** A line the app said for the user to start a plan's scene: never shown. */
+  hidden?: number
 }
 /** A companion as the Story has them now: in the scene (`here`), somewhere the story can go (`place`), or neither. */
 export interface StoryCompanion {
   key: string; id: string; name: string; main: boolean; here: boolean; doing: string; city: string | null
   place: { id: string; name: string; city_id: string } | null
+  /** Their plan with the user under way, at `place` (companion/story_plans.py). */
+  plan: StoryPlan | null
 }
 /** Someone the user has met in their story (companion/story_people.py), with where their rules put them now. */
 export interface StoryPerson {

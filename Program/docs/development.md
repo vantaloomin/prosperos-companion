@@ -133,7 +133,7 @@ Work is planned in releases, and each upcoming release has its own branch made a
 - **Every pull request targets the branch of the release it belongs to**, not `main`. CI runs on pull
   requests into any branch.
 - **A pull request into a release branch runs a lighter CI**, so it goes green sooner: the backend tests on
-  Linux only and without the tests listed in `tests/slow_tests.txt`, and no backend tests at all when it only
+  Linux only (as three jobs side by side) and without the tests listed in `tests/slow_tests.txt`, and no backend tests at all when it only
   touches the front end (`src/`, `tests/ui/`, `public/`) or the written docs. Windows, macOS and the slow tests
   run when it merges, on the push to the release branch, and on every pull request into `main`. Look at that
   run after merging: a failure there belongs to the pull request that was just merged. A pull request that

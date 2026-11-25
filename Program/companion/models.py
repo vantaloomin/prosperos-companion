@@ -584,6 +584,8 @@ class LifeSettingsUpdate(Input):
     # Next steps (companion/life/steps.py): 0 only when the user brings it up, 1 slow, 2 true to life, 3 fast.
     steps_pace: int | None = Field(default=None, ge=0, le=3)
     friends_fall: bool | None = None
+    # Scenes count (companion/story_visits.py): time with a companion in the Story is part of their life together.
+    story_counts: bool | None = None
     # Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on.
     love_life: int | None = Field(default=None, ge=0, le=3)
     # Life's big turns (companion/life/big_turns.py): 0 off, 1 gentle (good turns only), 2 true to life, 3 eventful.

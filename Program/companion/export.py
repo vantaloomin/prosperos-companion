@@ -149,7 +149,7 @@ def story(database) -> Transcript:
     from companion.world import changes, custom
     now = database.clock.now()
     with database.connect() as connection:
-        rows = many(connection, "SELECT * FROM story_messages WHERE status='complete' ORDER BY seq")
+        rows = many(connection, "SELECT * FROM story_messages WHERE status='complete' AND hidden=0 ORDER BY seq")
         cities = custom.all_cities(connection)
         places = []
         for city_id in dict.fromkeys(row['city_id'] for row in rows):

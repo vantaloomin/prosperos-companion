@@ -326,9 +326,11 @@ def listing(database, include_history=False) -> list[dict]:
         # Memories from another timeline stay listed so they can be corrected or deleted, marked as
         # not applying to the current one (C4, M6).
         followed = {row['supersedes_id'] for row in rows if row['supersedes_id']}
+        # Shared moments left by time together in the Story (companion/story_visits.py): the card says so.
+        story = {row['memory_id'] for row in many(connection, 'SELECT memory_id FROM story_visits WHERE memory_id IS NOT NULL')}
         # A superseded memory nothing replaced or absorbed was retracted: the user said it was wrong.
         return [{**with_sources(connection, row), 'current': current_at(row, now),
-                 'in_timeline': in_scope(row, timelines, share),
+                 'in_timeline': in_scope(row, timelines, share), 'in_story': row['id'] in story,
                  'retracted': row['status'] == 'superseded' and not row['merged_into_id'] and row['id'] not in followed}
                 for row in rows]
 
