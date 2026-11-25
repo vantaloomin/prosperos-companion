@@ -198,14 +198,16 @@ def met_text(found: dict) -> str:
 
 
 def relationship(found: dict) -> str:
-    """A match starts as a romance unless they matched for friendship; a townsperson met in town as a friend."""
-    return 'romance' if found['match'] and found['match']['details']['looking'] != 'friends' else 'friendship'
+    """A match starts as a romance unless they matched for friendship; a townsperson met in town as a friend.
+    Someone who said yes when the user asked them out in their story is a romance whatever they wanted on the app."""
+    match = found['match']
+    return 'romance' if match and (match.get('in_story') or match['details']['looking'] != 'friends') else 'friendship'
 
 
 def starting_closeness(found: dict) -> int:
     """A match is a stranger. A townsperson starts as close as the times they have crossed paths make them:
     with the companion around town, or with the user in their own story."""
-    if found['match']:
+    if found['match'] and not found['match'].get('in_story'):
         return 1
     met = len(found['meetings']) + (found['in_story']['meetings'] if found['in_story'] else 0)
     return next(stage for stage, least in ((3, 6), (2, 3), (1, 0)) if met >= least)
@@ -342,7 +344,8 @@ def switch(database, key: str, definition, ties=()) -> dict:
         town = found['match']['town'] if found['match'] else focus.get('town_seed') or ''
         connection.execute('INSERT INTO companions (id, slot, townsfolk_key, town_seed, created_at) '
                            'VALUES (?, NULL, ?, ?, ?)', (companion_id, key, town, timestamp))
-        note = 'Matched on the dating app.' if found['match'] else f"Met {focus['version']['name']} in town."
+        note = ('Said yes in your story.' if found['match'].get('in_story') else 'Matched on the dating app.') \
+            if found['match'] else f"Met {focus['version']['name']} in town."
         version_id = insert_version(connection, companion_id, 1, definition, note, timestamp)
         connection.execute("INSERT INTO timelines (id, companion_id, status, created_at) VALUES (?, ?, 'active', ?)",
                            (timeline_id, companion_id, timestamp))

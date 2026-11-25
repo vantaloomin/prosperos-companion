@@ -67,8 +67,12 @@ time and nothing is stored:
   from their sheet (`#match/<key>`). It starts as a romance, or a friendship if they matched for friends,
   and says they matched through the app. It works with no companion yet (they become the first) or with
   one (who steps back as in a cast switch). The new companion lives in the town they were found in.
+- Someone who said yes when the user asked them out in their own story ([story.md](story.md#asking-someone-out))
+  is a match too (`dating_swipes.source` 'story', `in_story` on the match): "Met in your story" under Your
+  matches. They do not count toward a dry spell, and their profile says they met in person.
 - A companion never sees the app, who the user swiped on or who they matched with.
-- **Delete your profile** removes the profile, likes and matches; companions made from matches stay.
+- **Delete your profile** removes the profile, likes and matches; companions made from matches stay, and so does
+  anyone who said yes in the story.
 
 ## Show photo
 
