@@ -95,6 +95,8 @@ class MoneySetup(Input):
     # Their hours (companion/life/shifts.py): empty follows their work (shifts that change each week for a bartender,
     # gigs for a freelancer), or the same days every week ('staff'), shifts ('rota') or gigs ('freelance').
     employment: Literal['', 'staff', 'rota', 'freelance'] = ''
+    # Where they stand at work (companion/life/position.py): empty is the app's pick from their career and words.
+    position: Literal['', 'owner', 'lead', 'staff'] = ''
     # What a student studies (companion/life/job_words.py); empty reads it from who they are.
     field: str = Field(default='', max_length=60)
     # Work of their own (career 'own', companion/life/money.py OWN): what it is, as the user wrote it.

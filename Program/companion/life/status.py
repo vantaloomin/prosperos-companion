@@ -35,7 +35,7 @@ from pathlib import Path
 
 from companion.clock import parse, stamp, zone
 from companion.database import many, optional
-from companion.life import chapters, money, pacing, storylines, trips
+from companion.life import chapters, money, pacing, position, storylines, trips
 from companion.world import catalog, decades, generators
 
 LIMIT = 120
@@ -190,7 +190,11 @@ def retro_away(definition: dict, kind: str) -> list[str]:
         return list(AWAY[kind])
     lines = retro_bank()['away'][kind]
     career = found and found.career
-    if kind != 'work' or not career:
+    if kind != 'work':
+        return lines
+    # Whoever runs the place has no boss to wave at (companion/life/position.py).
+    lines = position.lines_for(lines, position.of(definition, career or None))
+    if not career:
         return lines
     desk, shop = career['schedule'] == 'office', career['sector'] in SHOP_SECTORS
     return [line for line in lines if (desk or not DESK_LINES.search(line)) and (shop or not SHOP_LINES.search(line))]

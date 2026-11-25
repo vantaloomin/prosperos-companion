@@ -1,5 +1,5 @@
 {
-  "about": "Storylines the user is part of (companion/life/shared_storylines.py, v1.5.0). Each story has a `family` (their people, favors, their work, around town, a third person, growing closer, their goal), the lowest drama `level` it can start at (0 quiet to 3 soap opera), an optional `cast` (who else is in it: friend, family, work for a story about the companion's job with nobody named, or a cast from companion/life/casting.py such as parent, cousin, coworker or close friend), and `beats` by id; the first listed opens it. Fit rules: `relationships` (the companion's relationship to the user), `met` (new: the cast has not met the user; known: they have), `days_known` ([least, most] days since the two first talked), `modern` (true: names things only today's cities have), `apart` (true: only while the two do not live together: a visit, a favor at the companion's home). A beat reaches the user `via` a first text (`text`) or an invitation that books a plan on Today (`plan`: {activity, with: 'a' for the cast, lead: [least, most] days ahead}). `text` is the beat as the screens and the companion's context tell it ({name} the companion, {a} the cast, {user}/{User}/{user_s} the user, {a_them}/{a_their}); `share` is the companion's own first text, with {day}, {time} and {place} for a plan; leave it empty for a beat that needs no text. `then` says what follows from what the user did, by what the app can detect for sure: for a text `answered`, `said_yes`, `said_no`, `dropped_by` or `passed` (they let it go by); for a plan `went`, `called_off` or `passed` (the invitation never went out); `any` covers the rest. Each is a beat id; or {choice, beats}, where the consequence engine picks among the beats by the odds table `choice` in consequences.json (options in the same order); or {impression: {warm, smitten, curious, protective, wary, any}}, the beat by what the cast made of the user when they met (companion/life/their_people.py). No beat waits: with no entry for what happened, the storyline is over. `gap` is the days to the next beat ([least, most], default [1, 3]). A plan `with` the cast is a meet-up, always drinks with a friend and dinner at a relative's (whatever `activity` says), so the words must say so: once it is over they have met the user, with a first impression. `kept` on a beat that follows a plan the user did not come to (called off, or never asked): the companion kept the plan without them, and this line, in the past tense with {name} and {a} and never the user, is what their day says for that time (shared_storylines.as_plans); leave it out when they stayed in or dropped the plan. `effect` on a beat: warmer or cooler (the cast's opinion of the user moves a step, once they have met).",
+  "about": "Storylines the user is part of (companion/life/shared_storylines.py, v1.5.0). Each story has a `family` (their people, favors, their work, around town, a third person, growing closer, their goal), the lowest drama `level` it can start at (0 quiet to 3 soap opera), an optional `cast` (who else is in it: friend, family, work for a story about the companion's job with nobody named, or a cast from companion/life/casting.py such as parent, cousin, coworker or close friend), and `beats` by id; the first listed opens it. Fit rules: `relationships` (the companion's relationship to the user), `met` (new: the cast has not met the user; known: they have), `days_known` ([least, most] days since the two first talked), `modern` (true: names things only today's cities have), `apart` (true: only while the two do not live together: a visit, a favor at the companion's home), `positions` (for a work story: the companion's positions at work it is true for, from owner, lead and staff (companion/life/position.py); left out, any). A beat reaches the user `via` a first text (`text`) or an invitation that books a plan on Today (`plan`: {activity, with: 'a' for the cast, lead: [least, most] days ahead}). `text` is the beat as the screens and the companion's context tell it ({name} the companion, {a} the cast, {user}/{User}/{user_s} the user, {a_them}/{a_their}); `share` is the companion's own first text, with {day}, {time} and {place} for a plan; leave it empty for a beat that needs no text. `then` says what follows from what the user did, by what the app can detect for sure: for a text `answered`, `said_yes`, `said_no`, `dropped_by` or `passed` (they let it go by); for a plan `went`, `called_off` or `passed` (the invitation never went out); `any` covers the rest. Each is a beat id; or {choice, beats}, where the consequence engine picks among the beats by the odds table `choice` in consequences.json (options in the same order); or {impression: {warm, smitten, curious, protective, wary, any}}, the beat by what the cast made of the user when they met (companion/life/their_people.py). No beat waits: with no entry for what happened, the storyline is over. `gap` is the days to the next beat ([least, most], default [1, 3]). A plan `with` the cast is a meet-up, always drinks with a friend and dinner at a relative's (whatever `activity` says), so the words must say so: once it is over they have met the user, with a first impression. `kept` on a beat that follows a plan the user did not come to (called off, or never asked): the companion kept the plan without them, and this line, in the past tense with {name} and {a} and never the user, is what their day says for that time (shared_storylines.as_plans); leave it out when they stayed in or dropped the plan. `effect` on a beat: warmer or cooler (the cast's opinion of the user moves a step, once they have met).",
   "stories": [
     {
       "key": "curious_friend",
@@ -1265,6 +1265,7 @@
       "family": "their work",
       "level": 1,
       "cast": "work",
+      "positions": ["lead", "staff"],
       "beats": {
         "thinking": {
           "via": "text",
@@ -1397,6 +1398,7 @@
       "family": "their work",
       "level": 0,
       "cast": "work",
+      "positions": ["lead", "staff"],
       "beats": {
         "tells": {
           "via": "text",
@@ -1513,6 +1515,7 @@
       "family": "their work",
       "level": 1,
       "cast": "work",
+      "positions": ["lead", "staff"],
       "beats": {
         "torn": {
           "via": "text",
@@ -1571,6 +1574,7 @@
       "family": "their work",
       "level": 0,
       "cast": "work",
+      "positions": ["lead", "staff"],
       "beats": {
         "shows": {
           "via": "text",

@@ -42,6 +42,10 @@ city that keeps work by gender, townsfolk, circles and a companion's job changes
 (they/them people get any): `work_by_gender` turns it on or off, and left out the era decides (on for `victorian`,
 `medieval`, `steampunk`, `frontier` and `jazz-age`, off otherwise; Ellerbrück turns it on, Grandport and Oz leave it
 off). A career may also say the ages it is worked at (`ages`: `[18, 24]` for a squire; left out, any working age).
+A career may say where someone in it stands at work (`position`: `owner` for a shopkeeper or an innkeeper, `lead` for
+a head chef or a sergeant; left out, they work for someone unless their own words say otherwise,
+companion/life/position.py). An owner never sits a yearly review, is never laid off and never draws a story that needs
+a boss.
 Each city also names its `currency` and `rent_period` (`month` or `week`); rents and climate
 are optional, so a setting without money (Oz) or without weather data still works.
 

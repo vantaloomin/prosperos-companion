@@ -155,6 +155,7 @@
   {
    "id": "bridge-officer",
    "name": "Bridge officer",
+   "position": "lead",
    "sector": "aerospace",
    "schedule": "rotating",
    "employment": "rota",
@@ -569,6 +570,7 @@
   {
    "id": "quartermaster",
    "name": "Quartermaster",
+   "position": "lead",
    "sector": "logistics",
    "schedule": "office",
    "employment": "staff",
@@ -605,6 +607,7 @@
   {
    "id": "supply-chain-manager",
    "name": "Supply chain manager",
+   "position": "lead",
    "sector": "logistics",
    "schedule": "office",
    "employment": "staff",
@@ -1037,6 +1040,7 @@
   {
    "id": "head-chef",
    "name": "Head chef",
+   "position": "lead",
    "sector": "hospitality",
    "schedule": "evening",
    "employment": "rota",
@@ -1073,6 +1077,7 @@
   {
    "id": "noodle-bar-owner",
    "name": "Noodle bar owner",
+   "position": "owner",
    "sector": "food",
    "schedule": "evening",
    "employment": "staff",
@@ -1613,6 +1618,7 @@
   {
    "id": "district-administrator",
    "name": "District administrator",
+   "position": "lead",
    "sector": "government",
    "schedule": "office",
    "employment": "staff",
@@ -1739,6 +1745,7 @@
   {
    "id": "shopkeeper",
    "name": "Shopkeeper",
+   "position": "owner",
    "sector": "retail",
    "schedule": "shift-day",
    "employment": "rota",
@@ -2225,6 +2232,7 @@
   {
    "id": "guesthouse-manager",
    "name": "Guesthouse manager",
+   "position": "lead",
    "sector": "hospitality",
    "schedule": "office",
    "employment": "staff",

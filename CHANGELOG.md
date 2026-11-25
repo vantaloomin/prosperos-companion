@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Bosses are not laid off:** every companion with a job was treated as an employee, so someone who runs the fighting
+  pits could hear rumors of layoffs at their work. The app now works out where a companion stands at work from their
+  card and their career: runs the place, manages people, or works for someone. Whoever runs the place no longer gets
+  a yearly review, a promotion, layoffs, a new boss or a quarrel with one, and their away messages leave the boss out.
+  A story already under way that no longer fits ends quietly.
 - **Story is part of every world:** the Story tab used to be hidden behind a switch in Settings > Advanced. It is
   now always there, between Matchlight and Today, with no switch. A story you have not begun opens on one line and
   a Look around button. On the map, a place offers "Go there in your story" under "Suggest going together" and

@@ -2397,6 +2397,7 @@
   {
    "id": "palace-steward",
    "name": "Palace steward",
+   "position": "lead",
    "sector": "palace",
    "schedule": "rotating",
    "employment": "staff",
@@ -2465,6 +2466,7 @@
   {
    "id": "tavern-keeper",
    "name": "Tavern keeper",
+   "position": "owner",
    "sector": "food",
    "schedule": "evening",
    "employment": "staff",

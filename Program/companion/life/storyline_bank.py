@@ -14,34 +14,41 @@ How every line here is written, so it reads right everywhere it is told:
   unless it has an entry in MORE_EFFECTS, and nothing is about the companion's own love life.
 - No phones, no internet: the same words are told in a city of another era.
 - A beat that can go two ways has its odds in companion/world/data/consequences.json (`storyline:<key>:<beat>`).
+- A story about the companion's own work that needs someone above them (a review, a new boss, a raise to ask for) is
+  `positions=BOSSED`: the owner of the place never draws it (companion/life/position.py).
 """
+from companion.life.position import BOSSED
 from companion.life.story_parts import Spent, Story, beat, either
 
 WORK = (
     # Quiet: good days at work.
     Story('work_praise', 0, 'work', (
         beat('{name} got singled out for praise at work.',
-             "got praised in front of everyone at work today. I didn't know where to look", 'good'),)),
+             "got praised in front of everyone at work today. I didn't know where to look", 'good'),),
+        positions=BOSSED),
     Story('work_big_job', 0, 'work', (
         beat('{name} was handed a big job at work, the kind that gets noticed.',
              "they gave me the big job at work. the one everyone wanted. no pressure"),
         either(('The big job at work went well, and {name} got the credit for it.',
                 'the big job at work is DONE and it went well. I can sleep again', 'good'),
                ('The big job at work ran late, but {name} got it over the line.',
-                'finished the big job at work. late, but finished. never again (I say, every time)'))), (4, 10)),
+                'finished the big job at work. late, but finished. never again (I say, every time)'))), (4, 10),
+        positions=BOSSED),
     Story('work_raise', 0, 'work', (
         beat('{name} asked for a raise at work.', 'I did it. I asked for a raise. now I wait and feel sick'),
         either(('{name} got the raise.', 'I GOT THE RAISE. dinner is on me', 'good'),
                ('{name} was told to ask about the raise again in a few months.',
-                "no raise yet. 'ask again in a few months.' fine. I will"))), (3, 8)),
+                "no raise yet. 'ask again in a few months.' fine. I will"))), (3, 8), positions=BOSSED),
     Story('work_showing_ropes', 0, 'work', (
         beat('{name} was picked to show the new starters the ropes at work.',
-             "they picked me to train the new people at work. apparently I'm the responsible one now", 'good'),)),
+             "they picked me to train the new people at work. apparently I'm the responsible one now", 'good'),),
+        positions=BOSSED),
     Story('work_party', 0, 'work', (
         beat("{name}'s work is throwing a party for everyone, and {name} got roped into organizing it.",
              "somehow I'm organizing the work party. I did not volunteer. I was volunteered"),
         beat("The party at {name}'s work went well, and people keep thanking {name} for it.",
-             'the work party was a hit. people keep thanking me. I could get used to this', 'good')), (4, 10)),
+             'the work party was a hit. people keep thanking me. I could get used to this', 'good')), (4, 10),
+        positions=BOSSED),
     Story('work_thank_you', 0, 'work', (
         beat('Someone {name} helped at work came back just to say thank you.',
              'someone I helped at work came back today just to say thank you. made my whole week', 'good'),)),
@@ -52,14 +59,15 @@ WORK = (
         either(("{name}'s new boss turned out to be fair and easy to work for.",
                 'ok the new boss is actually great?? I was braced for the worst', 'good'),
                ("{name}'s new boss checks on everything twice, and it is wearing thin.",
-                'the new boss checks EVERYTHING twice. I am being so patient. so patient', 'bad'))), (4, 9)),
+                'the new boss checks EVERYTHING twice. I am being so patient. so patient', 'bad'))), (4, 9),
+        positions=BOSSED),
     Story('work_mistake', 1, 'work', (
         beat('{name} made a mistake at work that will take days to put right.',
              "I messed something up at work. badly. it's going to take days to fix", 'bad'),
         either(('{name} put the mistake at work right before it did any harm.',
                 'fixed my mess at work before it hurt anyone. I can breathe again', 'good'),
                ('{name} got a talking-to from the manager over the mistake at work.',
-                'got a talking-to about the mistake at work. deserved, but ow', 'bad'))), (2, 5)),
+                'got a talking-to about the mistake at work. deserved, but ow', 'bad'))), (2, 5), positions=BOSSED),
     Story('work_short_handed', 1, 'work', (
         beat("{name}'s work is short-handed, and {name} is doing the work of two people.",
              "we're short-handed at work so guess who's doing two jobs. it's me", 'bad'),
@@ -70,27 +78,29 @@ WORK = (
              "someone at work wants the same assignment I do. we're both being very polite about it"),
         either(('{name} got the assignment at work.', 'the assignment is MINE. politely. graciously. mine', 'good'),
                ("The assignment at {name}'s work went to the coworker.",
-                "they gave the assignment to the other person. I'm being a good sport. mostly", 'bad'))), (3, 7)),
+                "they gave the assignment to the other person. I'm being a good sport. mostly", 'bad'))), (3, 7),
+        positions=BOSSED),
     Story('work_review', 1, 'work', (
         beat('{name} has a review coming up at work, and it is weighing on {name}.',
              "I have my review at work coming up and I can't stop thinking about it"),
         either(("{name}'s review at work went well.", "review went well!! all that worrying for nothing", 'good'),
                ("{name}'s review at work was a mixed bag, with a list of things to work on.",
-                "review was... mixed. I have 'a list of things to work on.' great"))), (3, 7)),
+                "review was... mixed. I have 'a list of things to work on.' great"))), (3, 7), positions=BOSSED),
     Story('work_complaint', 1, 'work', (
         beat('Someone made a complaint about {name} at work.',
              "someone complained about me at work. I've been replaying it in my head all day", 'bad'),
         either(('The complaint about {name} at work was looked into and dropped.',
                 'the complaint got dropped. they looked into it and I did nothing wrong. told you', 'good'),
                ('{name} had to apologize over the complaint at work, fair or not.',
-                'had to apologize for the complaint thing. through my teeth. but I did it'))), (2, 6)),
+                'had to apologize for the complaint thing. through my teeth. but I did it'))), (2, 6),
+        positions=BOSSED),
     Story('work_new_hours', 1, 'work', (
         beat("{name}'s work wants to change everyone's hours, and nobody is happy about it.",
              "work wants to change everyone's hours. there is a LOT of grumbling. some of it mine", 'bad'),
         either(("{name}'s work dropped the plan to change everyone's hours.",
                 'they dropped the new hours plan at work. the grumbling worked!!', 'good'),
                ("The change of hours at {name}'s work was put off until next year.",
-                "the hours change at work got put off till next year. I'll take it"))), (4, 10)),
+                "the hours change at work got put off till next year. I'll take it"))), (4, 10), positions=BOSSED),
     Story('work_breakdown', 1, 'work', (
         beat("Something important broke down at {name}'s work, and it has been chaos since.",
              "something broke at work and it's been chaos all day. pure chaos", 'bad'),
@@ -120,7 +130,7 @@ WORK = (
                 'the truth came out at work. my name is clear. I got an apology and everything', 'good'),
                ('{name} took the blame at work in the end, and the anger has not gone.',
                 "I ended up taking the blame at work. easier than fighting it. still angry though", 'bad'))),
-          (2, 6)),
+          (2, 6), positions=BOSSED),
     Story('work_boss_clash', 2, 'work', (
         beat('{name} had a heated argument with the boss in front of everyone.',
              'I had a shouting match with my boss. in front of everyone. so that happened', 'bad'),
@@ -128,14 +138,15 @@ WORK = (
                 "talked it out with my boss. we're fine. better than before, even", 'good'),
                ('Things between {name} and the boss are still tense after the argument.',
                 'things with my boss are still icy after the argument. work is fun right now', 'bad'))),
-          (2, 6)),
+          (2, 6), positions=BOSSED),
     Story('work_changing_hands', 2, 'work', (
         beat("There is talk that {name}'s workplace is about to change hands.",
              'there are rumors work is being sold. nobody will tell us anything', 'bad'),
         either(("The sale of {name}'s workplace fell through; nothing is changing.",
                 'the sale at work fell through. everything stays the same. phew', 'good'),
                ("{name}'s workplace changed hands, and so far the days are the same as before.",
-                'so work got sold. and so far... nothing has changed? waiting for the catch'))), (5, 12)),
+                'so work got sold. and so far... nothing has changed? waiting for the catch'))), (5, 12),
+        positions=BOSSED),
     Story('work_missing_money', 2, 'work', (
         beat("Money went missing at {name}'s work, and everyone is under suspicion.",
              "money went missing at work and now everyone's looking at everyone. it's horrible", 'bad'),
@@ -151,7 +162,7 @@ WORK = (
                 "I turned the other job down. didn't tell anyone at work. it's our secret"),
                ('{name} used the rival offer to get better terms, and stayed put.',
                 "used the other offer to get a better deal where I am. I'm staying. and smug", 'good'))),
-          (3, 7)),
+          (3, 7), positions=BOSSED),
     # Soap opera: things seen and things found.
     Story('work_back_room', 3, 'work', (
         beat('{name} walked in on two coworkers kissing in the back room at work.',
@@ -166,7 +177,8 @@ WORK = (
         either(('{name} reported the boss over the books, and there is an inquiry now.',
                 "I reported the boss. there's an inquiry now. my hands are still shaking"),
                ('{name} decided to stay out of the trouble with the books, and it does not sit well.',
-                "I'm staying out of the thing with the books. I don't feel good about it", 'bad'))), (3, 8)),
+                "I'm staying out of the thing with the books. I don't feel good about it", 'bad'))), (3, 8),
+        positions=BOSSED),
 )
 
 COWORKERS = (

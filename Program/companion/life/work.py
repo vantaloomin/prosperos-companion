@@ -30,7 +30,7 @@ from pathlib import Path
 from companion.clock import stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
-from companion.life import admin, happenings, job_words, money, outings, routine, shifts
+from companion.life import admin, happenings, job_words, money, outings, position, routine, shifts
 from companion.world import catalog, decades, generators, wording
 
 DATA = Path(__file__).parents[1] / 'world' / 'data' / 'work_life.json'
@@ -775,17 +775,21 @@ def advance(connection, companion: dict, now: datetime) -> dict | None:
     rule = {**rules(city), 'paid': not city or city['currency']['code'] != 'none'}
     day = max(date.fromisoformat(found['checked_through']) + timedelta(days=1), today - timedelta(days=CATCH_UP_DAYS))
     changes: dict = {}
+    # Whoever runs the place has no review to sit and is never laid off from it, nor quits it (position.py).
+    bossed = position.companion_position(connection, companion) != 'owner'
     while chosen and day <= today:
         current = {**found, **changes}
         if current['status'] == 'hunting':
             if day.isoformat() >= current['hunt_until']:
                 changes.update(new_job(connection, companion, current, day, now))
         else:
-            if day.strftime('%m-%d') == current['review_on'] and (day - date.fromisoformat(current['started_on'])).days > 300:
+            if bossed and day.strftime('%m-%d') == current['review_on'] and \
+                    (day - date.fromisoformat(current['started_on'])).days > 300:
                 changes['pay'] = review(connection, companion, current, day, chosen, rule, now)
             if day.isoformat() > current['project']['due']:
                 changes.update(finish_project(connection, companion, current, day, chosen, now))
-            if chosen >= 3 and day.weekday() == 0 and current['kind'] != STUDY:  # A student isn't laid off.
+            # A student isn't laid off.
+            if bossed and chosen >= 3 and day.weekday() == 0 and current['kind'] != STUDY:
                 run = sum(workload(current, day - timedelta(weeks=back), chosen) == 'slammed' for back in (1, 2))
                 if lost := lose_job(connection, companion, current, day, run, now):
                     changes.update(lost)

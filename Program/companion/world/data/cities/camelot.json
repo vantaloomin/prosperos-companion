@@ -3014,6 +3014,7 @@
   {
    "id": "alewife",
    "name": "Alewife",
+   "position": "owner",
    "sector": "victualling",
    "schedule": "evening",
    "employment": "staff",
@@ -3180,6 +3181,7 @@
   {
    "id": "merchant",
    "name": "Merchant",
+   "position": "owner",
    "sector": "trade",
    "schedule": "flexible",
    "employment": "staff",
@@ -3218,6 +3220,7 @@
   {
    "id": "miller",
    "name": "Miller",
+   "position": "lead",
    "sector": "river",
    "schedule": "early",
    "employment": "staff",

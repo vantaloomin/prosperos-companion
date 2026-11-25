@@ -33,7 +33,7 @@ from companion import consequences
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
-from companion.life import casting, circle, outings, routine, steps, storylines, their_people
+from companion.life import casting, circle, outings, position, routine, steps, storylines, their_people
 from companion.world import catalog, perception
 
 ACTIVE = True  # Off in most tests (tests/conftest.py): a storyline would start in unrelated ones.
@@ -239,7 +239,8 @@ def casts(connection, companion: dict, story: dict, today: date) -> list[tuple]:
     people = circle.people(connection, timeline_id)
     known = casting.facts(connection, companion, people, today)
     if cast == 'work':
-        return [()] if circle.work_blocks(companion['version']['definition']) and known.companion_employed else []
+        return [()] if circle.work_blocks(companion['version']['definition']) and known.companion_employed and \
+            position.fits(story.get('positions'), known.position) else []
     busy = {person for row in storylines.running(connection, timeline_id, today.isoformat())
             for person in decode(row['cast_ids'])}
     met = {row['person_id'] for row in many(connection, 'SELECT person_id FROM people_impressions WHERE timeline_id=? '

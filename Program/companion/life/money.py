@@ -268,7 +268,8 @@ def own_career(job: str, city: dict, pay: float | None, like: dict | None = None
     like = like or {}
     name = job[:1].upper() + job[1:]
     return {'id': OWN, 'name': name, 'sector': like.get('sector', 'business'), 'schedule': like.get('schedule', 'office'),
-            'employment': like.get('employment'), 'pay': '$' * (tier + 1), 'summary': f'{name}.'[:400],
+            'employment': like.get('employment'), 'position': like.get('position'), 'pay': '$' * (tier + 1),
+            'summary': f'{name}.'[:400],
             'themes': like.get('themes') or ['work'], 'eras': [city['era']], 'needs': [], 'adult': False,
             'worked_by': None, 'ages': None, 'years': None, 'own': True}
 
