@@ -25,11 +25,14 @@ def place(id, name, kind, hood, summary, tags, setting, good_for, day_parts, sea
 
 # How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
 EMPLOYMENT = {'baker': 'rota', 'gate-warden': 'rota', 'musician': 'freelance', 'healer': 'rota'}
+# Where a career stands at work (companion/life/position.py); unlisted careers are read from the card.
+POSITION = {'palace-steward': 'lead', 'tavern-keeper': 'owner'}
 
 
 def career(id, name, sector, schedule, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': '$$', 'summary': summary,
-            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')}
+            'themes': themes, 'eras': [ERA], 'employment': EMPLOYMENT.get(id, 'staff')} | (
+        {'position': POSITION[id]} if id in POSITION else {})
 
 
 def employer(id, name, sector, hood, size, summary, careers):
