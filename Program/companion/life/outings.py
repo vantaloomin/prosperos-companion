@@ -221,12 +221,17 @@ def asking_clause(sentence: str) -> str | None:
 
 
 def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
-    """The day the ask names. A holiday named only outside the clause that asks ("a walk Sunday also my sister
-    texted a seating chart for thanksgiving") sets the day only when nothing else does."""
+    """The day the ask names. A day named only outside the clause that asks sets it only when the clause names none:
+    "tuesday's a mess, let's walk friday" is Friday (a tester's plan landed on the Tuesday a week on, 1.5 proof run),
+    and a holiday in "a walk Sunday also my sister texted a seating chart for thanksgiving" is not the day."""
     clause = asking_clause(sentence)
     if clause:
         near = {name: day for name, day in holidays.items()
                 if re.search(rf"\b{re.escape(name)}\b", clause.replace("'", ''), re.IGNORECASE)}
+        whole, lower = own_plans.when(sentence, today, near), sentence.lower()
+        if whole and lower.find(whole[1].lower()) < lower.find(clause.strip().lower()) and \
+                (own := day_in(clause, today, near)):
+            return own  # The day named before the ask ("tuesday's a mess, ...") is not the one asked for.
         if found := day_in(sentence, today, near):
             return found
     return day_in(sentence, today, holidays)

@@ -41,6 +41,14 @@ def test_asking_out_is_read_from_the_message():
     assert asked('Drinks Friday at 9pm at the Owl Bar?') == ('drinks', '2026-10-09', '21:00', 'named-owl-bar')
 
 
+def test_the_day_in_the_clause_that_asks_wins_over_one_named_before_it():
+    # 1.5 proof run on a tester's world: "Tuesday's a mess" booked the walk for Tuesday a week on, not Friday.
+    assert asked("tuesday's a mess, let's walk friday instead")[:2] == ('walk', '2026-10-09')
+    assert asked('Tuesday is a mess, want to go for a walk Friday at 4?')[:3] == ('walk', '2026-10-09', '16:00')
+    # With no day in the clause that asks, a day elsewhere in the sentence still counts.
+    assert asked('On Saturday, want to get coffee?')[:2] == ('coffee', '2026-10-10')
+
+
 def test_questions_about_their_plans_the_past_and_refusals_are_not_asking():
     for text in ('Are you going to dinner with Dana Friday?', 'Did you have dinner Friday?',
                  "I don't want to get dinner Friday.", 'Dinner was great.', 'What did you do this weekend?'):

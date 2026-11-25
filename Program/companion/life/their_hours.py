@@ -181,11 +181,17 @@ def settled(previous: dict, definition: dict, mine: str, now: datetime) -> dict:
     return {**definition, 'schedule': shifted(schedule, target - current), 'their_hours': hours}
 
 
-def why_text(definition: dict, city: str) -> str:
-    """The line their chat context gets about keeping hours that don't match their city's, '' with none."""
+def why_text(definition: dict, city: str, mine: str | None = None, now: datetime | None = None) -> str:
+    """The line their chat context gets about keeping hours that don't match their city's, '' with none. Fitted hours
+    explain nothing once the companion's own clock is the user's (`mine`, at `now`): a tester moved Sett, fitted from
+    Tokyo time, onto her Paris time, and the boss of the pits went on being told he worked remotely for a team in
+    another time zone (1.5 proof run)."""
     hours = definition.get('their_hours') or {}
     line = WHY.get(hours.get('why') or '')
     if not line or hours.get('mode') == 'city':
+        return ''
+    if hours.get('mode') == 'fit' and mine and now and definition.get('timezone') and \
+            offset(definition['timezone'], now) == offset(mine, now):
         return ''
     return line.format(city=city or 'where you live', zone=hours.get('zone') or 'their time zone')
 
