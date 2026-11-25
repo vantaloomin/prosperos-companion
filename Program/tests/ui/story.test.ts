@@ -38,6 +38,8 @@ test('a person met says how often and where they are now', () => {
     doing: 'working as the barista', place: { id: 'p', name: 'The Daily Grind', city_id: 'baltimore' } }
   assert.equal(personLine(person), 'Met 3 times · now working as the barista at The Daily Grind')
   assert.equal(personLine({ ...person, meetings: 1, doing: 'at home', place: null }), 'Met once · now at home')
+  // Someone who said yes when the user asked them out.
+  assert.equal(personLine({ ...person, meetings: 1, matched: true, doing: 'at home', place: null }), 'Met once · said yes · now at home')
   assert.equal(personLine({ ...person, doing: 'at their usual spot at The Daily Grind' }), 'Met 3 times · now at their usual spot at The Daily Grind')
 })
 

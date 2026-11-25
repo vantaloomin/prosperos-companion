@@ -81,7 +81,7 @@ without it the narrator wrote the companion's words in 50 of 85 replies, with it
 
 | Request | Does |
 | --- | --- |
-| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. `ready` is false without a model. |
+| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
 | `PUT /api/story/scene` `{city_id, place_id?}` | Moves there; a city alone means its opening place. 404 for an unknown city or place. |
 | `POST /api/story/messages` `{text, client_id}` | Saves the user's line once per `client_id` and returns `{message, reply, replies}`: `reply` is the narrator's, `replies` all of them in order, a companion's own lines after it. A failed reply is saved with `status: failed` and its `error`. Sending the same `client_id` again returns the saved replies and writes only what is missing. 409 `no_connection` without a model; the line stays saved. |
 | `POST /api/story/find` `{key}` | Moves the story to where someone the user has met is now, or a companion (`companion:<id>`). 404 if not met, 409 if they are nowhere the story can go. |
@@ -176,7 +176,35 @@ The wording was chosen by A/B on ten models (`/mnt/project-files/companion-story
 the companion acted as if they had not expected the user in 52 of 85 replies, with it in 4 of 88, and a friend
 along spoke in 1 of 28 of the narrator's replies against 24 of 29.
 
-## Planned
+## Asking someone out
 
-- Narrator-played dates with a dating-app match. The dating app itself is a
-  standalone feature for finding new companions.
+Someone in the scene can be pursued (`companion/story_pursuit.py`). When the user's line asks them out, their own
+rules answer, the same ones the dating app reads (`companion/world/dating.py`). No model decides it.
+
+- **What counts as asking:** a plain phrase in the user's line ("I ask Dana out", "would you go out with me",
+  "can I have your number", "may I call on you"), aimed at the person it names, or at the only person there. A
+  message out of the story (OOC) asks nobody. While someone the user has met is in the scene, their card in the
+  people list has **Ask Dana out** ("Ask to call on Dana" in older eras), which says the line for the user.
+- **How they answer:** never anyone under 18 on either side, and never a pack's character marked as having no
+  love life. Someone seeing someone or married says so. Someone not drawn to the user's gender, or for whom the
+  age gap is too wide, turns it down. Anyone else says yes by the dating app's chance (`dating.likes`: pickier
+  people less often), plus `WARMTH` (0.2) for every day the user has met them after the first. So a stranger
+  asked cold says yes about as often as a like on the app is returned, and someone the user keeps coming back to
+  comes round within a few visits. The roll is fixed per person, so asking twice on one day changes nothing.
+  The user is read from their dating profile when they have one, else from who they are in this world (the
+  Persona page); what is not known is not held against them, and no profile has to be filled in first.
+  Settings > Data > 100% Matchlight matches makes everyone who could say yes do so.
+- **The narrator** is told the answer in one bracketed line after the user's line and plays it out (`NOTES`). It
+  was tested on ten models (`/mnt/project-files/companion-story-pursuit/ab/report.md`): told nothing, the
+  narrator's answer matched the person's rules in 24 of 85 replies; with the line, in 85 of 89, and it never went
+  the other way.
+- **In the story:** once the narrator has told it, a line says how it went ("Dana said yes.", "Dana didn't say yes
+  this time.", "Dana said no."). From then on the narrator knows who has said yes.
+- **A yes is a match**, kept where the dating app keeps its own (`dating_swipes` with `source` 'story'), so it
+  uses the same path: the people list shows "said yes" with **Start talking to Dana** and "Read their profile
+  first" (`#match/<key>`), and Matchlight lists them under Your matches as "Met in your story", with Meet in your
+  story and Unmatch. They become a companion as a match does (`companion/cast.py`): a romance, in the town they
+  were met in, starting as close as the times the user has met them, with a profile that says they met in person.
+  The companion already there steps back and stays in the same world.
+- Starting a new story lets go of whoever said yes in it, unless they became a companion. Deleting the dating
+  profile keeps them: they were never the app's.
