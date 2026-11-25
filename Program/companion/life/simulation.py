@@ -1071,7 +1071,9 @@ class LifeEngine:
             LOG.exception("A watched day's entry could not be written.")
 
     def due_entry(self):
-        with self.database.connect() as connection:
+        # A write connection: the day's lines catch up their thoughts and deck as they are read, and a write in a read
+        # transaction fails at once when another write lands first (sqlite "database is locked").
+        with self.database.connect(write=True) as connection:
             config, life = config_for(connection, 'life'), life_settings(connection)
             if config is None or not life['phrase_with_model'] or settings(connection)['paused_at'] is not None:
                 return None

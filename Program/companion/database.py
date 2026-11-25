@@ -502,6 +502,8 @@ WIDENED_CHECKS = (
     ('story_messages', "'scene', 'companion', 'cast')"),
     # What a companion says about themselves in a Story scene has no chat message (companion/story_said.py).
     ('self_facts', 'message_id TEXT REFERENCES messages(id)'),
+    # An owner's good and flat years in place of a review (companion/life/work.py `owners_year`).
+    ('work_events', "'new-job', 'good-year', 'flat-year')"),
 )
 
 
@@ -519,6 +521,7 @@ def initialize(connection, timestamp: str):
     connection.execute('CREATE INDEX IF NOT EXISTS self_facts_message ON self_facts(message_id)')
     connection.execute('CREATE UNIQUE INDEX IF NOT EXISTS self_facts_story ON self_facts(timeline_id, story_message_id, key)')
     connection.execute('CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date)')
+    connection.execute('CREATE INDEX IF NOT EXISTS work_events_day ON work_events(timeline_id, local_date)')
     connection.execute('CREATE INDEX IF NOT EXISTS relationship_steps_pair ON relationship_steps(timeline_id, other, ladder)')
     connection.execute('CREATE INDEX IF NOT EXISTS circle_children_timeline ON circle_children(timeline_id, status, born_on)')
     connection.execute('CREATE INDEX IF NOT EXISTS circle_children_parent ON circle_children(parent_id)')

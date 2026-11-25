@@ -2013,7 +2013,7 @@ CREATE TABLE IF NOT EXISTS work_events (
   id TEXT PRIMARY KEY,
   timeline_id TEXT NOT NULL REFERENCES timelines(id),
   key TEXT NOT NULL,
-  kind TEXT NOT NULL CHECK (kind IN ('raise', 'freeze', 'promotion', 'project', 'laid-off', 'quit', 'new-job')),
+  kind TEXT NOT NULL CHECK (kind IN ('raise', 'freeze', 'promotion', 'project', 'laid-off', 'quit', 'new-job', 'good-year', 'flat-year')),
   local_date TEXT NOT NULL,
   text TEXT NOT NULL,
   pay REAL NOT NULL DEFAULT 1,

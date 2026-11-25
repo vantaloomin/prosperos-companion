@@ -520,9 +520,9 @@ def test_a_plan_called_off_that_they_keep_is_in_their_day(client, clock, only, m
     assert plan['at_time'] == outing['at_time'] and plan['kept']['with']['id'] == friend['id']
     reconcile(client)
     held = slot_at(client, outing['local_date'], outing['at_time'])
-    first = friend['name'].split()[0]
     # A spot inside the place may follow (agenda.with_spot), as for any evening out.
-    assert held['entry']['summary'].startswith(f'Mira Costa went for drinks with {first}.')
+    # Named as the rest of their day names their circle: in full, so a friend with a family name keeps it.
+    assert held['entry']['summary'].startswith(f"Mira Costa went for drinks with {friend['name']}.")
     assert held['entry']['storyline'] == {'id': row['id'], 'beat': 1} and held['entry']['with']['id'] == friend['id']
     assert held['entry']['activity'] == 'drinks' and held['entry']['place']['name'] == outing['place']['name']
     assert held['entry']['post'] is None and 'you' not in held['entry']['summary'].lower().split()
@@ -535,7 +535,7 @@ def test_a_plan_called_off_that_they_keep_is_in_their_day(client, clock, only, m
     assert after['id'] == held['id'] and after['entry']['summary'] == held['entry']['summary']
     with client.app.state.database.connect() as connection:
         [(_id, line)] = shared_storylines.context_lines(connection, current(connection), clock.now())
-    assert f"on {outings.day_text(outing['local_date'])}: You went for drinks with {first} without the user" in line
+    assert f"on {outings.day_text(outing['local_date'])}: You went for drinks with {friend['name']} without the user" in line
 
 
 def test_a_plan_the_user_came_to_is_not_kept_alone(client, clock, only, monkeypatch):

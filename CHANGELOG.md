@@ -7,6 +7,12 @@
   card and their career: runs the place, manages people, or works for someone. Whoever runs the place no longer gets
   a yearly review, a promotion, layoffs, a new boss or a quarrel with one, and their away messages leave the boss out.
   A story already under way that no longer fits ends quietly.
+- **Stories for whoever is in charge:** a companion who runs the place now has stories of their own: slow stretches
+  and maybe letting someone go, a supplier putting prices up, a rival opening nearby, the landlord, a record week,
+  someone on the staff skimming, an offer to buy the place, and more. Once a year their place has a good year or a
+  flat one instead of a review. A companion who manages people gets stories from the middle: told to cut the team,
+  caught between the team and the bosses, a hard review to give, a target hit. A business your companion opened in
+  one of Life's big turns gets these stories too.
 - **Ask someone out in your story:** charming someone in a scene used to lead nowhere. Now you can ask them out,
   in your own words or with "Ask Dana out" on their card under People you've met. Their own life answers: someone
   seeing someone says so, someone not drawn to you turns you down, and anyone else is likelier to say yes the more

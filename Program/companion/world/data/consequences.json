@@ -7608,6 +7608,789 @@
           ]
         }
       ]
+    },
+    "storyline:owner_big_order:1": {
+      "label": "How the big order at their place goes",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.5,
+              "why": "{name} lets things slide"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_new_hire:1": {
+      "label": "How the new hire turns out",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_thin_takings:1": {
+      "label": "Whether a slow stretch costs someone their job",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level means somebody gets hurt"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is already tight"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "amount": -1,
+              "note": "{name} is sore about letting someone go"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_mistake:1": {
+      "label": "How the mistake at their place ends",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.5,
+              "why": "{name} lets things slide"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 30,
+              "amount": -1,
+              "note": "{name} lost a good customer over a mistake"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_complaint:1": {
+      "label": "How the complaint about their place ends",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_best_worker_leaving:1": {
+      "label": "Who fills the shifts after the best worker leaves",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "amount": -1,
+              "note": "{name} is worn out covering shifts"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_supplier_prices:1": {
+      "label": "How they deal with the supplier putting prices up",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is already tight"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_rival_opens:1": {
+      "label": "How much trade the rival takes",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 30,
+              "amount": -1,
+              "note": "{name} is watching the till since the rival opened"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_landlord:1": {
+      "label": "How the rent talk with the landlord goes",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is already tight"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 30,
+              "amount": -1,
+              "note": "{name} is paying more rent for the place"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_unpaid_tab:1": {
+      "label": "Whether the regular pays the tab",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_raise_asked:1": {
+      "label": "Whether they can give the raise",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "money is good just now"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is already tight"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_right_hand:1": {
+      "label": "How things stand with their right hand",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            },
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} is stubborn about it"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "amount": -1,
+              "note": "{name} is still tense with the right hand at the place"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_offer_to_buy:1": {
+      "label": "How they turn the offer down",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name} likes the place the way it is"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name} wants more"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.2,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_poached_worker:1": {
+      "label": "Whether the best worker stays",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "amount": -1,
+              "note": "{name} lost the best worker at the place to a rival"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_expand:1": {
+      "label": "What they decide about growing",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name} likes the place the way it is"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name} wants more"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_skimming:1": {
+      "label": "Whether they catch who was skimming",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "amount": -1,
+              "note": "{name} no longer trusts the staff as before"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_cut_team:1": {
+      "label": "Whether they keep the whole team",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level means somebody gets hurt"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "amount": -1,
+              "note": "{name} is sore about letting one of the team go"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_caught_between:1": {
+      "label": "How the change nobody wants ends",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_hard_review:1": {
+      "label": "How the hard review goes",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            },
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_creep:1": {
+      "label": "How they deal with the new guy",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_not_speaking:1": {
+      "label": "Whether the two on the team make peace",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} is stubborn about it"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:staff_slacking:1": {
+      "label": "Whether the talk with the slacker works",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
     }
   }
 }
