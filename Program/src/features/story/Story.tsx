@@ -82,7 +82,7 @@ export function Story({ go }: { go: (view: View) => void }) {
         <h1 id="story-heading">Story</h1>
         <SceneBar scene={story.data.scene} onMap={() => go(`map/${encodeURIComponent(story.data.scene.place.id)}`)} onMove={(body) => run(null, () => api<StoryData>('/story/scene', body, 'PUT').then(update))} />
         <StoryPeople people={story.data.people} companions={story.data.companions} city={story.data.scene.city.name} canSwitch={story.data.can_switch} go={go}
-          onFind={(key) => void run(null, () => find(key))} />
+          onFind={(key) => void run(null, () => find(key))} onSay={(line) => void send(line)} busy={busy} />
       </header>
       {!story.data.ready && <div className="story-notice"><Notice action={<button type="button" className="text-button" onClick={() => go('settings/models')}>Open Models</button>}>
         Add a text model in Settings &gt; Models to tell the story.</Notice></div>}

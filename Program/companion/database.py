@@ -472,6 +472,9 @@ ADDED_COLUMNS = (
     ('story_visits', 'outing_id', 'TEXT'),
     # A line the app said for the user to start a plan's scene: the models read it, the screen and exports do not.
     ('story_messages', 'hidden', 'INTEGER NOT NULL DEFAULT 0'),
+    # Where a match was made: 'app' on the dating app, 'story' when someone said yes to the user in their own story
+    # (companion/story_pursuit.py).
+    ('dating_swipes', 'source', "TEXT NOT NULL DEFAULT 'app' CHECK (source IN ('app', 'story'))"),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

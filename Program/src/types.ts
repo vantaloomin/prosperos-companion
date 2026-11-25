@@ -2051,6 +2051,12 @@ export interface StoryCompanion {
 export interface StoryPerson {
   key: string; name: string; role: string; city: string; meetings: number; last_met_at: string; notes: string[]
   doing: string; place: { id: string; name: string; city_id: string } | null
+  /** They said yes when the user asked them out in the story (companion/story_pursuit.py). */
+  matched?: boolean
+  /** Set once they became a companion. */
+  companion_id?: string | null
+  /** While they are in the scene and have not said yes: the button that asks for the user, and the line it says. */
+  ask?: { label: string; line: string } | null
 }
 export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; companions: StoryCompanion[]; ready: boolean; can_switch: boolean }
 
@@ -2074,6 +2080,8 @@ export interface DatingMatch extends DatingCard {
   city: { id: string; name: string }
   /** Set once the match became a companion. */
   companion_id: string | null
+  /** They said yes in the user's own story, not on the app (companion/story_pursuit.py). */
+  in_story?: boolean
   places: DatingPlace[]
   /** They have since moved away or passed away (companion/world/turnover.py). */
   left?: TownLeft | null

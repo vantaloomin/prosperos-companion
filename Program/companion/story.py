@@ -22,6 +22,7 @@ from companion import (
     story_cast,
     story_people,
     story_plans,
+    story_pursuit,
     story_visits,
 )
 from companion.characters import current
@@ -163,7 +164,9 @@ def scene(connection, now: datetime) -> dict:
             'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'summary': place.get('summary', ''),
                       'neighborhood': hood, 'spots': inside.names(inside.for_place(place, data.get('era')))},
             'local_time': moment.isoformat(timespec='minutes'), 'weather': agenda.weather_text(weather, temperature.chosen(connection)) if weather else '',
-            'people': present(connection, data, place['id'], moment), 'data': data, 'now': now,
+            # Anyone who has said yes to the user is glad to see them (companion/story_pursuit.py).
+            'people': story_pursuit.noted(connection, present(connection, data, place['id'], moment)),
+            'data': data, 'now': now,
             'known': story_people.known(connection),
             # Companions who are here at this hour, in their own right (companion/story_cast.py).
             'companions': (found := story_cast.here(connection, data, place['id'], now)),
@@ -303,7 +306,10 @@ def people(connection, view: dict) -> list[dict]:
         if sheet is None:
             continue  # Their city is gone, or its townsfolk were seeded anew.
         now = townsfolk.whereabouts(sheet, data, local_moment(data, view['now']))
+        here = any(person['sheet']['key'] == row['key'] for person in view['people'])
         result.append({'key': row['key'], 'name': row['name'], 'role': sheet.get('occupation') or sheet['role'],
+                       # Whether they said yes to the user, and the ask while they are here (story_pursuit.py).
+                       **story_pursuit.for_person(connection, data, sheet, here),
                        'city': data['name'], 'meetings': row['meetings'], 'last_met_at': row['last_met_at'],
                        'notes': row['notes'], 'doing': now['doing'],
                        'place': now['place'] and {'id': now['place']['id'], 'name': now['place']['name'],
@@ -371,6 +377,7 @@ def clear(database) -> dict:
         story_visits.close_all(connection, database.clock.now())
         connection.execute('DELETE FROM story_messages')
         connection.execute('DELETE FROM story_people')
+        story_pursuit.forget(connection)
         story_cast.leave(connection)
     return story(database)
 
@@ -412,10 +419,14 @@ def prompt(connection, now: datetime, config: dict, latest: dict) -> dict:
     budget = (config['context_tokens'] - config['max_output_tokens']) * CHARS_PER_TOKEN - len(system)
     rows = [row for row in messages(connection) if row['seq'] <= latest['seq']]
     chat = model_messages(rows, max(budget, 2000), {item['id']: item['pronouns'] for item in view['companions']})
+    ask = None
     if not in_character.out_of_character(latest['text']):
         chat = steered(chat, authors_note.prompt_text(connection, 'story'))
         chat = story_cast.after(chat, view['companions'])  # A companion there answers for themself.
-    return {'system': system, 'messages': chat, 'people': view['people'], 'view': view,
+        # Someone the user asks out answers by their own rules; the narrator plays it out (story_pursuit.py).
+        ask = story_pursuit.ask(connection, view, latest['text'])
+        chat = story_pursuit.after(chat, ask)
+    return {'system': system, 'messages': chat, 'people': view['people'], 'view': view, 'ask': ask,
             'city_id': view['city']['id'], 'day': datetime.fromisoformat(view['local_time']).date()}
 
 
@@ -466,8 +477,10 @@ async def narrate(state, user: dict) -> tuple[dict, dict]:
         if status == 'complete' and not in_character.out_of_character(user['text']):
             story_people.note_exchange(connection, packet['people'], packet['city_id'], user['text'], text,
                                        database.now(), packet['day'])
-        return add(connection, database.now(), 'narrator', text, user, reply_to=user['id'], status=status,
-                   error=error), packet['view']
+        told = add(connection, database.now(), 'narrator', text, user, reply_to=user['id'], status=status, error=error)
+        if status == 'complete':
+            story_pursuit.settle(connection, add, packet['ask'], user, packet['city_id'], database.now(), packet['day'])
+        return told, packet['view']
 
 
 async def speak(state, user: dict, item: dict) -> dict:
