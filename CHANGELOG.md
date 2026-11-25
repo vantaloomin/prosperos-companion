@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **The day you ask for:** "Tuesday's a mess, want to walk Friday at 4?" booked the walk for Tuesday a week on. The
+  day in the part of the message that asks now wins.
+- **Story keeps your companion's clock:** a companion set to a time zone other than their city's (your own, say) had
+  the Story in their city running on the city's clock, so a scene could be at midnight while their day had them out,
+  or in the evening while they slept. In their city the Story now runs on their clock.
+- **No made-up remote job:** a companion whose hours had been fitted to yours, and whose time zone was later set to
+  yours, was still told they work remotely for a team in another time zone. That line now goes once your clocks match.
+
 - **Bosses are not laid off:** every companion with a job was treated as an employee, so someone who runs the fighting
   pits could hear rumors of layoffs at their work. The app now works out where a companion stands at work from their
   card and their career: runs the place, manages people, or works for someone. Whoever runs the place no longer gets
