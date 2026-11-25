@@ -7,6 +7,7 @@
   card and their career: runs the place, manages people, or works for someone. Whoever runs the place no longer gets
   a yearly review, a promotion, layoffs, a new boss or a quarrel with one, and their away messages leave the boss out.
   A story already under way that no longer fits ends quietly.
+- **Chat knows who runs the place:** a companion who runs the place, or manages people, is told so in chat, with "You have run it for" in place of "You have been at this job for" and the year told as business up or flat. In a 10-model test, an owner asked who they answer to made up a boss 8 times in 30 before and once after.
 - **Position on the character form:** Work and money has a Position picker beside Hours: Runs the place, Manages people or Works for someone. Left as "Picked for them", it shows what the app read from their work and card. The Work life panel says "Runs the place." or "Manages people." first, and an owner's intro talks about good and flat years in place of a raise.
 - **Stories for whoever is in charge:** a companion who runs the place now has stories of their own: slow stretches
   and maybe letting someone go, a supplier putting prices up, a rival opening nearby, the landlord, a record week,

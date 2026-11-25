@@ -1098,7 +1098,14 @@ EVENT_LINES = {
     'laid-off': 'On {day} you were laid off.',
     'quit': 'On {day} you quit your job.',
     'new-job': 'On {day} you {text}.',
+    # Whoever runs the place has no raise: the place has a good or a flat year (`owners_year`).
+    'good-year': 'On {day} the place had a good year: your takings are up about {change:g}%.',
+    'flat-year': 'On {day} the place had a flat year: your takings stayed as they were.',
 }
+# Where they stand, first in the Work section for someone in charge; tried out in an A/B on 10 models
+# (2026-11-25): an owner invented a boss above them 8 times in 30 without it and once with it.
+POSITION_LINES = {'owner': 'You run the place: the people there work for you, and nobody is above you.',
+                  'lead': 'You are in charge of people there and answer to someone above you.'}
 
 
 def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str, str]]:
@@ -1117,20 +1124,21 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         week, project = workload(found, monday_of(today), chosen), found['project']
         due = date.fromisoformat(project['due'])
         due_text = f" It is due {day_text(project['due'])}." if 0 <= (due - today).days <= 21 else ''
-        studying = found['kind'] == STUDY
+        studying, held = found['kind'] == STUDY, position.companion_position(connection, companion)
+        if held in POSITION_LINES:
+            lines.append(('position', POSITION_LINES[held]))
         lines.append(('week', (STUDY_WEEK_LINES if studying else WEEK_LINES)[week]))
         lines.append(('project', f"{'For your classes' if studying else 'At work'} you are in the middle of "
                                  f"{phrased(project)}.{due_text}"))
         lines.append(('tenure', study_year(found, today, project.get('field', '')) if studying else
-                      f"You have been at this job for {tenure(found['started_on'], today)}."))
+                      f"{'You have run it' if held == 'owner' else 'You have been at this job'} for "
+                      f"{tenure(found['started_on'], today)}."))
         if shifts.ACTIVE and (line := shifts.context_line(connection, companion, today)):
             lines.append(('shifts', line[2:]))
         if line := vacation_line(vacation_days(connection, companion, today.year, found)
                                  + vacation_days(connection, companion, today.year + 1, found), today, studying):
             lines.append(('vacation', line))
     for event in recent_events(connection, timeline_id, (today - timedelta(days=RECENT_DAYS)).isoformat())[-3:]:
-        if event['kind'] not in EVENT_LINES:
-            continue  # An owner's good or flat year: told in chat once its wording is settled.
         line = EVENT_LINES[event['kind']].format(day=short_day(event['local_date']), text=event['text'],
                                                  change=round(event['change'], 1))
         # "a new job at Coutts and Co." already ends the sentence.
