@@ -638,7 +638,7 @@ def offer_hours(packet, connection, companion, now: datetime, group):
     to bring up the morning after (companion/life/waking.py)."""
     definition = companion['version']['definition']
     city = outings.city_data(connection, definition)
-    if hours := their_hours.why_text(definition, city['name'] if city else ''):
+    if hours := their_hours.why_text(definition, city['name'] if city else '', their_hours.user_zone(connection), now):
         packet.offer('time', 'hours', hours)
     if group is None:
         for key, text in waking.lines(connection, companion, now):

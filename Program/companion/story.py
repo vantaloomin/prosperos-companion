@@ -90,11 +90,13 @@ def no_model() -> DomainError:
 # The scene ----------------------------------------------------------------------------------------
 
 def city_data(connection, city_id: str) -> dict:
-    """The city as the companion's world has it: with the companion's own town and family names when the
-    companion lives there, so the story meets the same people the companion does."""
+    """The city as the companion's world has it: with the companion's own town, family names and clock when the
+    companion lives there, so the story meets the same people the companion does, at the same hour."""
     companion = current(connection)
     if companion and newcomers.city_for(connection, companion['version']['definition'])['id'] == city_id:
-        return network.city(connection, companion)
+        # On the companion's own clock, as their day is, even where it is not the city's: a tester set Sett, in
+        # Ionia (Tokyo time), to her own Paris time, and the story was in the evening while he slept (1.5 proof run).
+        return network.city(connection, companion) | {'timezone': companion['version']['timezone']}
     data = added_places.merge(connection, changes.resolve(city_id, custom.all_cities(connection)))
     if data is None:
         raise DomainError(f'No world data for city {city_id!r}.', 404, 'unknown_city')

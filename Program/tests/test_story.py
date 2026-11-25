@@ -1,5 +1,6 @@
 """Story mode: a narrator for the user's own story around the cities, apart from the companion (companion/story.py)."""
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 
 from conftest import Chunk, send
 from test_drafting import connect
@@ -191,3 +192,16 @@ def test_a_person_line_does_not_say_their_job_twice():
     line = story.person_line({'sheet': sheet, 'doing': f"working as the {sheet['role']}", 'mood': 'fine'},
                              {'id': place['id']}, data)
     assert f"working as the {sheet['role']}. " in line and f", {sheet['role']}." not in line
+
+
+def test_the_story_in_the_companions_city_keeps_the_companions_clock(client, clock):
+    # 1.5 proof run: a tester set her companion in a Tokyo-time city to her own Paris time; the story ran on the
+    # city's clock, so it was evening in the scene while he slept, and he was never in it at the hour she played.
+    make(client, 'Warm and curious.', timezone='Europe/Paris')
+    scene = ok(client.get('/api/story'))['scene']
+    assert scene['city']['name'] == 'Baltimore'
+    paris = clock.now().astimezone(ZoneInfo('Europe/Paris')).isoformat(timespec='minutes')[:16]
+    assert scene['local_time'] == paris
+    # Another city keeps its own clock.
+    moved = ok(client.put('/api/story/scene', json={'city_id': 'chicago'}))['scene']
+    assert moved['local_time'] == clock.now().astimezone(ZoneInfo('America/Chicago')).isoformat()[:16]

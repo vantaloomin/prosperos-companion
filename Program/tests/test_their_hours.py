@@ -132,6 +132,17 @@ def test_their_chat_knows_why_their_hours_are_odd(client, provider):
     assert their_hours.WHY[hours['why']].format(city='Osaka')[:30] in notes(provider)
 
 
+def test_fitted_hours_say_nothing_once_their_clock_is_yours():
+    # 1.5 proof run: Sett was fitted from Tokyo time ("remote"), then his time zone was set to the tester's own.
+    hours = {'mode': 'fit', 'shift': -420, 'why': 'remote', 'zone': '', 'fit': -420}
+    now = datetime(2026, 11, 25, 20, tzinfo=UTC)
+    assert their_hours.why_text({'timezone': 'Asia/Tokyo', 'their_hours': hours}, 'Ionia', 'Europe/Paris', now)
+    assert their_hours.why_text({'timezone': 'Europe/Paris', 'their_hours': hours}, 'Ionia', 'Europe/Paris', now) == ''
+    # Living on the user's clock still says so.
+    mine = {'mode': 'mine', 'shift': -480, 'why': 'mine', 'zone': 'Europe/Paris', 'fit': 0}
+    assert their_hours.why_text({'timezone': 'Asia/Tokyo', 'their_hours': mine}, 'Ionia', 'Europe/Paris', now)
+
+
 def test_somewhere_new_leans_toward_cities_near_your_clock(client, monkeypatch):
     my_zone(client)
     rolls = {'osaka': 0.8, 'long-meridian': 0.5, 'grandport': 0.4}
