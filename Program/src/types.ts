@@ -437,6 +437,8 @@ export interface Memory {
   retracted?: boolean
   /** A shared moment left by time together in the Story (companion/story_visits.py). */
   in_story?: boolean
+  /** A fact you told them face to face in the Story: the line it came from (companion/story_said.py). */
+  story_line?: string | null
   /** Set on what you said about someone in your life; see Person. */
   person_id?: string | null
 }

@@ -287,10 +287,12 @@ def shared_part(connection, view: dict, item: dict, rows: list[dict], budget: in
 def story_lines(connection, view: dict, item: dict, rows: list[dict], now: datetime) -> list[tuple[str, str]]:
     """Their own view of the scene, private to them: where they are and why, who came to whom, and how they stand
     with any other companion there (as in a group chat, companion/groups.py)."""
-    from companion import groups
+    from companion import groups, story_said, story_visits
     lines = story_plans.own_lines(connection, item, view['place'], now) if item.get('plan') else \
         chance_lines(connection, view, item)
     lines.append(('story:sealed', 'What happens here is in person. You have seen only what the lines above show.'))
+    if story_visits.counts(connection):  # How they feel right now, as their chat is told (companion/story_said.py).
+        lines += story_said.feeling_lines(connection, item['companion'], now)
     for other in view['companions']:
         if other['id'] != item['id']:
             lines += groups.member_lines(connection, groups.member_key(item['id']),
