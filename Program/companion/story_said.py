@@ -9,7 +9,8 @@
   (companion/life/rough_patches.py `note`: words that sting, an apology, a gesture, accepting their apology) as a
   text does, for the one companion the line is meant for. A promise ("I'll call you tonight") stays with chat.
 - Their own line in the scene can make up (moods `from_reply`), and is written knowing how they feel
-  (`feeling_lines`), as their chat reply is.
+  (`feeling_lines`), as their chat reply is. What they say about themselves in it is noted as from a chat reply
+  (companion/self_facts.py, `noted`), held on their timeline rather than a message.
 
 All of it goes with "Story scenes count" (companion/story_visits.py `counts`), and memories with automatic memory.
 """
@@ -103,9 +104,27 @@ def feel(connection, companion: dict, user: dict, now: datetime) -> None:
 # Their own line -----------------------------------------------------------------------------------------------
 
 def their_line(connection, companion: dict, line: dict, now: datetime) -> None:
-    """Their own line in the scene, once written: saying it's alright now clears being upset with the user."""
+    """Their own line in the scene, once written: saying it's alright now clears being upset with the user, and
+    what they say about themselves is noted as it is from a chat reply (companion/self_facts.py)."""
     if ACTIVE and line['status'] == 'complete':
         moods.from_reply(connection, key(companion), out_loud(line['text']), now)
+        noted(connection, companion, line)
+
+
+def noted(connection, companion: dict, line: dict) -> list[dict]:
+    """What they said about themselves out loud ("My brother Theo would love this"), by the chat's rules, held on
+    their timeline and listed in Character Studio. The narration around it is not theirs to have said."""
+    from companion import self_facts
+    said = [first or second for first, second in SPOKEN.findall(line['text'])]
+    if not said or not companion.get('active_timeline_id'):
+        return []
+    facts = self_facts.extract(' '.join(said))
+    if not facts:
+        return []
+    added = self_facts.record(connection, companion, {'story': True, 'id': line['id'],
+                                                      'timeline_id': companion['active_timeline_id']},
+                              facts, line['created_at'])
+    return added
 
 
 def feeling_lines(connection, companion: dict, now: datetime) -> list[tuple[str, str]]:
