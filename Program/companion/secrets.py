@@ -79,10 +79,11 @@ too under until upon very was were what when where which while who whom whose wh
 your yours yourself told tell tells telling everybody anybody secret secretly secrets'''.split())
 
 # The same, when they remember who told them (`told_by`).
-TOLD_TEXT = {'origin': 'from the start', 'witness': 'heard it from {teller} in a group',
-             'slip': '{teller} let it slip in a group', 'history': 'read what {teller} said in a group',
-             'reveal': '{teller} told them in a group'}
-VIA_TEXT = {'origin': 'from the start', 'witness': 'heard it in a group', 'slip': 'it slipped out in a group',
+# `where` is "in a group", or "in Story" for a line said in a Story scene (companion/story_secrets.py).
+TOLD_TEXT = {'origin': 'from the start', 'witness': 'heard it from {teller} {where}',
+             'slip': '{teller} let it slip {where}', 'history': 'read what {teller} said in a group',
+             'reveal': '{teller} told them {where}'}
+VIA_TEXT = {'origin': 'from the start', 'witness': 'heard it {where}', 'slip': 'it slipped out {where}',
             'history': 'read it in a group', 'reveal': 'you let them find out'}
 
 
@@ -441,9 +442,9 @@ def label(connection, key: str, labels: dict[str, str]) -> str:
 
 
 def group_lines(connection, speaker: str, present: list[str], labels: dict[str, str],
-                now=None) -> list[tuple[str, str]]:
+                now=None, where: str = 'in this group') -> list[tuple[str, str]]:
     """The speaker's private lines about secrets in this group: only those they know, with who here must not
-    find out. `labels` names members as the chat does."""
+    find out. `labels` names members as the chat does; `where` is "here" in a Story scene."""
     lines = []
     for secret in active(connection):
         if speaker not in secret['knowers']:
@@ -455,7 +456,7 @@ def group_lines(connection, speaker: str, present: list[str], labels: dict[str, 
         text = f"- You know: {secret['statement'].rstrip('.')}."
         if guarded:
             text += (f" {names_text(guarded)} {'does' if len(guarded) == 1 else 'do'}n't know and must not find "
-                     'out: never say it or hint at it in this group.')
+                     f'out: never say it or hint at it {where}.')
         elif unaware:
             text += f" {names_text(unaware)} {'does' if len(unaware) == 1 else 'do'}n't know it."
             told = [label(connection, member, labels) for member in others
@@ -468,13 +469,15 @@ def group_lines(connection, speaker: str, present: list[str], labels: dict[str, 
     return lines
 
 
-def reminder(secrets: list[dict], name: str, present: list[str], connection, labels: dict[str, str]) -> str:
-    """Private to the speaker: their draft gave a secret away, so it is written again."""
+def reminder(secrets: list[dict], name: str, present: list[str], connection, labels: dict[str, str],
+             what: str = 'message') -> str:
+    """Private to the speaker: their draft gave a secret away, so it is written again. `what` is "turn" in a
+    Story scene."""
     guarded = sorted({label(connection, member, labels) for secret in secrets for member in present
                       if kept_from(secret, member)})
-    what = '; '.join(secret['statement'] for secret in secrets)
-    return (f"{name}'s draft gave away something {name} keeps secret ({what}) while {names_text(guarded)} "
-            f"{'is' if len(guarded) == 1 else 'are'} here. Write {name}'s message again so it neither says it "
+    statements = '; '.join(secret['statement'] for secret in secrets)
+    return (f"{name}'s draft gave away something {name} keeps secret ({statements}) while {names_text(guarded)} "
+            f"{'is' if len(guarded) == 1 else 'are'} here. Write {name}'s {what} again so it neither says it "
             'nor hints at it.')
 
 
@@ -520,6 +523,11 @@ def found_about(connection, holder: str, about: str) -> int:
     return found
 
 
+def in_story(connection, message_id: str | None) -> bool:
+    """Whether a holder learned it from a line said in a Story scene (companion/story_secrets.py), not a group."""
+    return bool(message_id) and optional(connection, 'SELECT 1 FROM story_messages WHERE id=?', (message_id,)) is not None
+
+
 def slips_allowed(connection) -> bool:
     return storylines.drama(connection) >= SLIP_LEVEL
 
@@ -540,8 +548,9 @@ def holder_view(connection, holder: dict) -> dict:
                        'WHERE m.id=?', (holder['message_id'],))
         group = row and {'id': row['id'], 'name': row['name']}
     teller = told(connection, holder)
-    how = VIA_TEXT[holder['via']] if teller is None else TOLD_TEXT[holder['via']].format(
-        teller='you' if teller == 'the user' else teller)
+    where = 'in Story' if in_story(connection, holder['message_id']) else 'in a group'
+    how = VIA_TEXT[holder['via']].format(where=where) if teller is None else TOLD_TEXT[holder['via']].format(
+        teller='you' if teller == 'the user' else teller, where=where)
     return {'key': holder['holder'], 'companion_id': companion_id,
             'name': person_name(connection, holder['holder']) or 'Someone no longer here', 'via': holder['via'],
             'how': how, 'told_by': teller, 'learned_at': holder['learned_at'], 'group': group}

@@ -146,3 +146,37 @@ def test_a_rough_patch_opens_and_mends_in_person(client, barkeep, provider, monk
     tell(client, provider, '"I\'ll call you tonight, Mira."', 4)
     with client.app.state.database.connect() as connection:
         assert connection.execute('SELECT COUNT(*) FROM rough_patch_promises').fetchone()[0] == 0
+
+
+def self_facts(client):
+    return ok(client.get('/api/self-facts'))['facts']
+
+
+def test_what_they_say_about_themselves_in_a_scene_stays_with_them(client, barkeep, provider):
+    at_work(client)
+    tell(client, provider, '"How was your weekend?"', 1,
+         reply='Mira wipes the bar. "Quiet. My cousin Theo came by, and I hate cilantro, so I cooked." She grins.')
+    found = {(fact['subject'], fact['value']): fact for fact in self_facts(client)}
+    assert ('cousin', 'Theo') in found and found[('cilantro', 'cilantro')]['category'] == 'dislikes'
+    theo = found[('cousin', 'Theo')]
+    assert theo['in_story'] is True and theo['message_id'] is None and theo['status'] == 'noted'
+    # The narration is not something she said: "She grins" is no fact.
+    assert all('grin' not in fact['statement'].lower() for fact in self_facts(client))
+    # Long after the scene, her chat still knows it.
+    leave(client)
+    database = client.app.state.database
+    with database.connect() as connection:
+        from companion import self_facts as facts
+        lines = [text for _identity, text in facts.context_lines(connection, current(connection)['active_timeline_id'])]
+    assert '- Your cousin is named Theo.' in lines
+    # Removed in Character Studio, it is gone.
+    ok(client.post(f"/api/self-facts/{theo['id']}/remove", json={}))
+    assert ('cousin', 'Theo') not in {(fact['subject'], fact['value']) for fact in self_facts(client)}
+
+
+def test_a_scene_fact_that_contradicts_one_on_record_waits_as_a_conflict(client, barkeep, provider):
+    at_work(client)
+    tell(client, provider, '"Where are you from?"', 1, reply='Mira shrugs. "I grew up in Duluth."')
+    tell(client, provider, '"Really?"', 2, reply='"I grew up in Tucson, actually."')
+    statuses = {fact['value']: fact['status'] for fact in self_facts(client) if fact['category'] == 'grew_up'}
+    assert statuses == {'Duluth': 'noted', 'Tucson': 'conflict'}

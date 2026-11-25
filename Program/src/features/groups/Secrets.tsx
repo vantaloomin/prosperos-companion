@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { TextArea, TextInput } from '../../components/Fields'
 import { InfoTip } from '../../components/InfoTip'
 import { SECRETS_KEY } from './groupState'
-import { canForget, formFrom, formBody, howText, keptLine, slipText, type SecretForm as Form } from './secretText'
+import { canForget, formFrom, formBody, holderName, howText, keptLine, slipText, type SecretForm as Form } from './secretText'
 
 type Companion = SecretsData['companions'][number]
 type Change = (request: () => Promise<unknown>) => Promise<void>
@@ -67,7 +67,7 @@ function SecretRow({ secret, companions, onChange }: { secret: Secret; companion
       <ul className="secret-knowers" aria-label="Who knows it">
         {secret.knows.map((holder) => (
           <li key={holder.key}>
-            <span>{holder.name} <span className="subtle">({howText(holder)})</span></span>
+            <span>{holderName(holder)} <span className="subtle">({howText(holder)})</span></span>
             {canForget(secret, holder) && <button type="button" className="text-button" onClick={() => void onChange(() => api(`/secrets/${secret.id}/forget`, { companion_id: holder.companion_id }))}>Make them forget</button>}
           </li>
         ))}

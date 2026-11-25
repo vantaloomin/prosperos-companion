@@ -184,7 +184,10 @@ writing someone else's line is cut there (`groups.tidy`).
 A secret is something only some of them know: "Billy and Katie have been secretly seeing each other", kept from
 Sally. Sally's prompt never holds it, so no model has to keep it (`companion/secrets.py`, tables `knowledge` and
 `knowledge_holders`). It rides only in a knower's private part, below the shared transcript, so the shared prefix
-and its cache stay the same for every speaker.
+and its cache stay the same for every speaker. A Story scene runs the same rules for everyone in it (docs/story.md,
+"Secrets and news in a scene"). `tests/test_who_may_know.py` checks that a secret and a piece of news reach no prompt
+of anyone who doesn't hold them, through every builder: chat, a call, a first text and a voice note, a feed answer,
+a group, a Story scene and the Watching page.
 
 ### Where secrets come from
 

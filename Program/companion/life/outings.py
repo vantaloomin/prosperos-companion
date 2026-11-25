@@ -26,6 +26,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import composer, money, onward, own_plans, routine
+from companion.memory.dates import WEEKDAYS
 from companion.memory.extraction import SENTENCE
 from companion.world import added_places, catalog, custom, generators, inside, skies, temperature
 
@@ -338,6 +339,22 @@ def first_day(local_now: datetime, at: str) -> date:
         local_now.date() + timedelta(days=1)
 
 
+LATER_WEEK = re.compile(r'\b(?:week|next|following|after)\b', re.IGNORECASE)
+
+
+def named_today(wanted: dict, local_now: datetime) -> dict:
+    """ "Friday" or "this Friday" said on the Friday itself is today while its time is still ahead, not a week on."""
+    today = local_now.date()
+    if wanted['day'] != today + timedelta(days=7) or LATER_WEEK.search(wanted['sentence']):
+        return wanted
+    found = own_plans.when(wanted['sentence'], today, {})
+    name = WEEKDAYS[today.weekday()]
+    if not found or found[0] != wanted['day'] or not re.fullmatch(rf'(?:(?:on|this|for) )*{name}', found[1].lower()):
+        return wanted
+    at = wanted['at'] or ACTIVITIES[wanted['activity']][2]
+    return {**wanted, 'day': today} if first_day(local_now, at) == today else wanted
+
+
 def when_free(connection, companion: dict, wanted: dict, local_now: datetime) -> tuple[date, str] | None:
     """The asked day and time when the companion is free then, else the nearest free day within a week, trying the
     asked time first and then the usual time for the outing."""
@@ -456,6 +473,7 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
         return None  # Things are tense: they would rather not, for now (the reply says so).
     if wanted['activity'] == 'hobby' and not wanted['at']:
         wanted = {**wanted, 'at': hobbies.usual_at(connection, wanted['hobby'], wanted['day'] or local_now.date())}
+    wanted = named_today(wanted, local_now)
     found = when_free(connection, companion, {**wanted, 'firm': firm}, local_now)
     if not found:
         return None
