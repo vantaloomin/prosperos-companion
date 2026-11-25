@@ -469,11 +469,14 @@ career_hubs = [
 # How each job's hours work (companion/life/shifts.py): shifts that change weekly, freelance gigs; the rest staff.
 EMPLOYMENT = {'merchant-factor': 'freelance', 'fire-watcher': 'rota', 'house-guard': 'rota', 'tavern-server': 'rota',
               'musician': 'freelance', 'dancer': 'rota', 'baker': 'rota'}
+# Where a career stands at work (companion/life/position.py); unlisted careers are read from the card.
+POSITION = {'naval-officer': 'lead', 'tavern-keeper': 'owner'}
 
 
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
-            'themes': themes, 'eras': ['fantasy'], 'employment': EMPLOYMENT.get(id, 'staff')}
+            'themes': themes, 'eras': ['fantasy'], 'employment': EMPLOYMENT.get(id, 'staff')} | (
+        {'position': POSITION[id]} if id in POSITION else {})
 
 
 careers = [

@@ -104,7 +104,11 @@ def hold(connection, companion, now, seed: str, text: str = '') -> dict:
         return {**NOT_HELD, 'instruction': QUICK.format(label=block['label'].lower() or kind)}
     until = stamp(min(parse(ends_at), now + timedelta(minutes=rng.randint(*DELAYS[kind]))))
     if way == 'line':
-        line = rng.choice(LINES[kind])
+        lines = LINES[kind]
+        if kind == 'work':
+            from companion.life import position
+            lines = position.lines_for(lines, position.companion_position(connection, companion))
+        line = rng.choice(lines)
         return {'held_until': until, 'held_line': line, 'instruction': FOLLOW_UP.format(line=line)}
     return {**NOT_HELD, 'held_until': until}
 

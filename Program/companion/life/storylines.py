@@ -27,7 +27,8 @@ from datetime import date, time, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import casting, circle, happenings, pronouns, routine, world_drama
+from companion.life import casting, circle, happenings, position, pronouns, routine, world_drama
+from companion.life.position import BOSSED
 from companion.life.story_parts import Beat, Spent, Story, beat, either
 from companion.life.storyline_bank import MORE, MORE_EFFECTS
 from companion.world import lifespans, perception
@@ -76,7 +77,7 @@ STORIES = (
              "ok don't jinx it but I might be up for a promotion??"),
         either(('{name} got the promotion.', 'I GOT IT. the promotion. I got it!!', 'good'),
                ('{name} did not get the promotion; it went to someone else.',
-                "didn't get the promotion. it's fine. (it's not fine)", 'bad'))), (4, 10)),
+                "didn't get the promotion. it's fine. (it's not fine)", 'bad'))), (4, 10), positions=BOSSED),
     # Realistic: everyday trouble.
     Story('credit_taker', 1, 'work', (
         beat("A new coworker keeps taking credit for {name}'s work in meetings.",
@@ -84,7 +85,8 @@ STORIES = (
         either(('{name} spoke up in a meeting and made it clear whose work it was.',
                 'spoke up in the meeting today. everyone knows whose work it was now', 'good'),
                ('{name} took the credit problem to their manager, who is keeping an eye on it.',
-                "talked to my manager about the credit thing. they're keeping an eye on it"))), (2, 5)),
+                "talked to my manager about the credit thing. they're keeping an eye on it"))), (2, 5),
+        positions=BOSSED),
     Story('friend_breakup', 1, 'friend seeing someone', (
         beat('{a} went through a breakup, and {name} spent the evening on the phone with them.',
              'rough night. {a} got dumped and I was on the phone with them for hours', 'bad', Spent(
@@ -109,7 +111,7 @@ STORIES = (
         either(("The layoffs hit another team; {name}'s job is safe.", "my job's safe. the layoffs hit another team. "
                                                                          'feel awful for them though'),
                ('The layoffs at work were called off.', 'false alarm, the layoffs got called off!', 'good'))),
-          (3, 8)),
+          (3, 8), positions=BOSSED),
     # Dramatic: health scares, feuds, secret romances.
     Story('parent_health', 2, 'parent', (
         beat("{name}'s {a_rel} {a} had a health scare and is waiting on test results.",
@@ -143,7 +145,7 @@ STORIES = (
         either(('{name} told the new guy to knock it off, and he finally backed off.',
                 'update on the new guy: I told him to knock it off and he actually did', 'good'),
                ('{name} reported the new guy to their manager after he kept at it.',
-                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5)),
+                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5), positions=BOSSED),
     Story('drunk_kiss', 3, 'best friend, single', (
         beat('{name} got drunk and kissed {a}, their best friend.', 'I got drunk and kissed my best friend. what do I do'),
         beat('{name} and {a} are being weird around each other.', "{a} and I are being so weird around each other. help"),
@@ -255,7 +257,8 @@ def casts(story: Story, people: list[dict], definition: dict, known: casting.Fac
     for (companion/life/casting.py). `known` is what the rules know of the world (casting.facts)."""
     known = known or casting.Facts(people=people)
     if story.cast == 'work':
-        return [()] if circle.work_blocks(definition) and known.companion_employed else []
+        return [()] if circle.work_blocks(definition) and known.companion_employed and \
+            position.fits(story.positions, known.position) else []
     if story.cast == 'self':  # The companion's own days outside work: true for anyone.
         return [()]
     if story.cast == 'best friend, single' and (definition.get('relationship') == 'romance' or
@@ -445,6 +448,7 @@ def start_due(connection, companion, now) -> int:
     ahead (companion/life/agenda.py extend), so an evening a storyline takes is in the days it fills in."""
     timeline_id, today = companion['active_timeline_id'], local_today(companion, now)
     end_removed(connection, timeline_id, today, now)
+    end_unfitting(connection, companion, today, now)
     level, lone = drama(connection), world_drama.alone(connection)
     cursor = optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (timeline_id,))
     first = today - timedelta(days=CATCH_UP_DAYS)
@@ -508,8 +512,8 @@ def record_due(connection, companion, now) -> int:
             if not found or not happened(stage, at, today, clock):
                 continue
             kind, who = found
-            for position, subject in enumerate(cast[:len(who)]):
-                other = cast[1 - position] if len(cast) > 1 else None
+            for place, subject in enumerate(cast[:len(who)]):
+                other = cast[1 - place] if len(cast) > 1 else None
                 when = lead_in(connection, subject, stage['on'], at) if spent_of(row, index, stage) else at
                 recorded += happenings.record(connection, companion, subject=subject, source=f"storyline:{row['id']}:{index}",
                                               kind=kind, day=stage['on'], at=when, other=other if who == 'ab' else None,
@@ -620,6 +624,25 @@ def end_removed(connection, timeline_id, today: date, now):
         if set(decode(row['cast_ids'])) & removed and not settled:
             connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (row['id'],))
             happenings.take_back(connection, timeline_id, f"storyline:{row['id']}:", now)
+
+
+def end_unfitting(connection, companion, today: date, now):
+    """A story about their own work that no longer fits where they stand at work (companion/life/position.py: the user
+    says they run the place, or their card now reads that way) ends quietly before its next beat, the way one about
+    someone removed does: an owner is not left waiting to hear whether the layoffs reach them."""
+    held = position.companion_position(connection, companion)
+    if not held:
+        return
+    stories = {story.key: story for story in STORIES}
+    for row in many(connection, "SELECT id, story, stages FROM storylines WHERE timeline_id=? AND status='running'",
+                    (companion['active_timeline_id'],)):
+        story = stories.get(row['story'])
+        if not story or story.cast != 'work' or position.fits(story.positions, held):
+            continue
+        last = decode(row['stages'])[-1]
+        if not (last['on'] <= today.isoformat() and not last.get('pending')):
+            connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (row['id'],))
+            happenings.take_back(connection, companion['active_timeline_id'], f"storyline:{row['id']}:", now)
 
 
 # The chat context speaks to the companion: a template's third person becomes "you" before it is filled.

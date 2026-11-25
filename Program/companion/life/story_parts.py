@@ -32,6 +32,9 @@ class Story:
     stages: tuple[tuple[Beat, ...], ...]
     gap: tuple[int, int] = (2, 6)
     own: bool = False  # Started by its own module, never by the drama roll, and outside its caps.
+    # For a story about the companion's own work: the positions it is true for (companion/life/position.py), empty
+    # for anyone. A promotion needs a boss above them; the owner of the place gets none.
+    positions: tuple[str, ...] = ()
 
 
 def beat(text, share, tone='mixed', spent=None):

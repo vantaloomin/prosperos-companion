@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Bosses are not laid off:** every companion with a job was treated as an employee, so someone who runs the fighting
+  pits could hear rumors of layoffs at their work. The app now works out where a companion stands at work from their
+  card and their career: runs the place, manages people, or works for someone. Whoever runs the place no longer gets
+  a yearly review, a promotion, layoffs, a new boss or a quarrel with one, and their away messages leave the boss out.
+  A story already under way that no longer fits ends quietly.
 - **Ask someone out in your story:** charming someone in a scene used to lead nowhere. Now you can ask them out,
   in your own words or with "Ask Dana out" on their card under People you've met. Their own life answers: someone
   seeing someone says so, someone not drawn to you turns you down, and anyone else is likelier to say yes the more

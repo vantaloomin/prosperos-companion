@@ -42,6 +42,7 @@ class Facts:
     people: list[dict] = field(default_factory=list)
     close: object = None            # (row) -> closeness stage 1 to 5, or None when unknown
     companion_employed: bool = True
+    position: str = 'staff'         # where the companion stands at work (companion/life/position.py)
     love_level: int = 2             # Their love life slider (love_life.level)
     weddings: frozenset = frozenset()  # circle ids with a wedding of their own planned (big_days)
     modern: bool = True             # the companion's city is of today's era (phones)
@@ -257,14 +258,17 @@ def facts(connection, companion: dict, people: list[dict], day: date) -> Facts:
         "SELECT person_id FROM big_days WHERE timeline_id=? AND kind='wedding' AND person_id IS NOT NULL "
         "AND status IN ('planned', 'invited', 'declined')", (companion['active_timeline_id'],)))
     definition = companion['version']['definition']
+    from companion.life import position
     return Facts(people=people, close=close, companion_employed=companion_employed(connection, companion),
+                 position=position.companion_position(connection, companion) or 'staff',
                  love_level=love_life.level(connection), weddings=weddings,
                  modern=perception.era_modern(definition), today=day,
                  states={row['id']: circle_love.state(connection, row, people) for row in people})
 
 
 def companion_employed(connection, companion: dict) -> bool:
-    """The companion works for someone else and is not between jobs: a manager, a promotion and layoffs are real."""
+    """The companion has a job at a place and is not between jobs: not freelance, not studying for their keep. Who is
+    above them, if anyone, is their position (companion/life/position.py, `Facts.position`)."""
     from companion.life import outings, work
     definition = companion['version']['definition']
     if not work.works(definition):

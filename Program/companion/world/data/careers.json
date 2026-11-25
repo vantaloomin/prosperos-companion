@@ -1026,6 +1026,7 @@
   {
    "id": "grocer",
    "name": "Grocer",
+   "position": "owner",
    "sector": "retail",
    "schedule": "early",
    "employment": "staff",
@@ -1429,6 +1430,7 @@
   {
    "id": "antiquarian-bookseller",
    "name": "Antiquarian bookseller",
+   "position": "owner",
    "sector": "retail",
    "schedule": "office",
    "employment": "staff",
@@ -1465,6 +1467,7 @@
   {
    "id": "undertaker",
    "name": "Undertaker",
+   "position": "owner",
    "sector": "trades",
    "schedule": "flexible",
    "employment": "staff",
