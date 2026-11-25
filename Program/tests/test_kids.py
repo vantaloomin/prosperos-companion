@@ -172,7 +172,7 @@ def test_the_ex_the_description_names_is_the_other_parent(client, clock):
     assert view['detail'] == "with Dana, every other weekend at Mark's"
     assert [item['label'] for item in view['patterns']] == ['Mostly with Dana', 'Half and half', 'Mostly with Mark']
     # Someone they share kids with starts where any co-parent does, not as an ex they barely know.
-    mark = next(person for person in circle(client) if person['name'].startswith('Mark'))
+    mark = next(person for person in circle(client) if person['role'] == 'ex-husband')  # Not a seeded relative who is a Mark too.
     with client.app.state.database.connect() as connection:
         companion = current(connection)
         seed = connection.execute('SELECT seed FROM circle_people WHERE id=?', (mark['id'],)).fetchone()[0]

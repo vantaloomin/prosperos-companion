@@ -170,6 +170,21 @@ def test_a_busy_day_moves_to_the_nearest_free_one(client, mira, provider):
     assert [item['local_date'] for item in listing(client)['outings']] == ['2026-10-10', '2026-10-11']
 
 
+def test_the_weekday_it_is_today_means_today_not_a_week_on(client, mira, provider, clock):
+    # The world is at Monday noon. "Monday" and "this Monday" are tonight; a week on has to be said.
+    send(client, 'Want to get dinner this Monday?', 'client-day-01')
+    [outing] = listing(client)['outings']
+    assert (outing['asked_date'], outing['local_date'], outing['at_time']) == ('2026-10-05', '2026-10-05', '19:00')
+    assert 'They asked for' not in provider.requests[-1]['prompt']
+    local = clock.now().replace(hour=12, minute=0)
+    for text, at, day in (('Drinks Monday?', None, TODAY), ('Coffee on Monday?', None, TODAY + timedelta(days=7)),
+                          ('Dinner next Monday?', None, TODAY + timedelta(days=7)),
+                          ('Dinner a week from Monday?', None, TODAY + timedelta(days=7)),
+                          ('Want to get dinner Friday?', None, TODAY + timedelta(days=4))):
+        wanted = outings.proposal(text, TODAY, {}, catalog.city('baltimore'))
+        assert outings.named_today(wanted, local)['day'] == day, text  # Coffee is at 10:30, already past at noon.
+
+
 def test_a_named_place_is_kept_and_the_bill_comes_out_of_their_budget(client, mira, provider, clock):
     send(client, 'Want to go to Ouzo Bay Wednesday?', 'client-out-06')
     [outing] = listing(client)['outings']

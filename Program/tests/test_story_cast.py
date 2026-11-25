@@ -90,19 +90,19 @@ def test_finding_a_companion_goes_to_where_their_day_has_them(client, barkeep):
 
 def test_they_read_the_story_only_from_when_they_were_in_it_and_so_does_their_chat(client, barkeep, provider):
     script(provider, 'The cafe is quiet.')
-    say(client, 'I tell the barista the secret password is plum.', 'story-0001')
+    say(client, 'I tell the barista the secret password is wuzzle.', 'story-0001')
     at_work(client)
     script(provider, 'The bar is dim.', '"Hey, you."')
     say(client, 'I sit at the bar.', 'story-0002')
     own = provider.requests[-1]
-    assert 'plum' not in own['system'] and 'plum' not in own['messages'][-1]['content']
+    assert 'wuzzle' not in own['system'] and 'wuzzle' not in own['messages'][-1]['content']
     assert 'User: I sit at the bar.' in own['system']
     # Their chat knows the time they spent together (companion/story_visits.py), never what was said before they came.
     script(provider, 'hi!')
     send(client, 'Hi Mira!', 'client-0001')
     chat = provider.requests[-1]
     told = chat['system'] + ''.join(item['content'] for item in chat['messages'])
-    assert 'The user: I sit at the bar.' in told and 'plum' not in told
+    assert 'The user: I sit at the bar.' in told and 'wuzzle' not in told
 
 
 def test_a_line_for_someone_else_or_out_of_the_story_is_not_theirs_to_answer(client, barkeep, provider):
