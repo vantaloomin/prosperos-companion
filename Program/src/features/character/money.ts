@@ -1,5 +1,5 @@
 import { appDate } from '../../appTime.ts'
-import type { CareerSummary } from '../../types'
+import type { CareerSummary, Position } from '../../types'
 
 /** The careers of their era; adult work only while the adult side of life is on. Their current one always stays. */
 export function careersFor(careers: CareerSummary[], era: string | undefined, current: string, adult = false): CareerSummary[] {
@@ -20,6 +20,20 @@ export function workChoices(offered: CareerSummary[] | undefined, shared: Career
 export function guessLabel(guess: CareerSummary | null | undefined): string {
   if (guess === undefined) return 'Guess from who they are'
   return guess ? `Guess from who they are: ${guess.name} (${guess.pay})` : 'Guess from who they are: no job named'
+}
+
+/** The Position picker's choices (companion/life/position.py LABELS). */
+export const POSITIONS: { value: Position; label: string }[] = [
+  { value: 'owner', label: 'Runs the place' },
+  { value: 'lead', label: 'Manages people' },
+  { value: 'staff', label: 'Works for someone' },
+]
+
+/** "Picked for them: runs the place", as Home reads; just "Picked for them" before it has read them, or for a
+ * student or a freelancer, who have none (Iris). */
+export function positionGuessLabel(guess: Position | '' | undefined): string {
+  const found = POSITIONS.find((choice) => choice.value === guess)
+  return found ? `Picked for them: ${found.label.charAt(0).toLowerCase()}${found.label.slice(1)}` : 'Picked for them'
 }
 
 /** The Work picker's "Something else": work the user writes in (companion/life/money.py OWN). */

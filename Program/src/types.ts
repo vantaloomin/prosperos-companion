@@ -252,7 +252,12 @@ export interface MoneySetup {
   pay?: number | null
   /** How they hold their home (companion/life/owning.py); empty is the app's pick. */
   home?: HomeTenure
+  /** Where they stand at work (companion/life/position.py); empty is the app's pick. */
+  position?: Position | ''
 }
+
+/** Runs the place, manages people, or works for someone (companion/life/position.py). */
+export type Position = 'owner' | 'lead' | 'staff'
 
 /** Renting, paying off a mortgage, or owned outright; '' leaves it to the app. */
 export type HomeTenure = '' | 'rent' | 'mortgage' | 'owned'
@@ -2521,6 +2526,8 @@ export interface WorkLifeView {
   meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
   /** Same days every week, shifts that change weekly, or freelance gigs (companion/life/shifts.py). */
   hours: 'staff' | 'rota' | 'freelance'
+  /** Where they stand at work, null for a student, a freelancer or between jobs (companion/life/position.py). */
+  position?: Position | null
   /** A student (companion/life/work.py STUDY), and what they study. */
   studying?: boolean
   field?: string

@@ -140,18 +140,27 @@ def of(definition: dict, career: dict | None) -> str:
     return chosen(definition) or guess(definition, career)
 
 
-def companion_position(connection, companion: dict) -> str:
-    """The companion's position as things stand, '' when it does not apply: no job, a student, or freelance (gigs
-    have no boss and no staff to speak of)."""
-    from companion.life import outings, shifts, work
-    definition = companion['version']['definition']
+def standing(definition: dict, career: dict | None) -> bool:
+    """Whether a position applies to their work: not a student, and not freelance (gigs have no boss and no staff
+    to speak of)."""
+    from companion.life import shifts, work
+    return work.kind_of(career) != work.STUDY and shifts.employment(definition, career) != 'freelance'
+
+
+def held(definition: dict, city: dict | None) -> str:
+    """Their position in this city, '' when it does not apply: no job in their week, a student, or freelance."""
+    from companion.life import work
     if not definition.get('business') and not work.works(definition):
         return ''
-    city = outings.city_data(connection, definition) if connection else None
     career = work.career_of(definition, city)
-    if work.kind_of(career) == work.STUDY or shifts.employment(definition, career) == 'freelance':
-        return ''
-    return of(definition, career)
+    return of(definition, career) if standing(definition, career) else ''
+
+
+def companion_position(connection, companion: dict) -> str:
+    """The companion's position as things stand ('' when it does not apply, see `held`)."""
+    from companion.life import outings
+    definition = companion['version']['definition']
+    return held(definition, outings.city_data(connection, definition) if connection else None)
 
 
 # A line about their boss ("brb, boss is here"), which nobody who runs the place says.
