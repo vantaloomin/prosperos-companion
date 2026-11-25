@@ -295,7 +295,9 @@ def story_lines(connection, view: dict, item: dict, rows: list[dict], now: datet
         if other['id'] != item['id']:
             lines += groups.member_lines(connection, groups.member_key(item['id']),
                                          {'member': groups.member_key(other['id']), 'name': other['name']}, now)
-    return lines
+    # What they know that someone here must not find out, and news someone here hasn't heard (story_secrets.py).
+    from companion import story_secrets
+    return lines + story_secrets.lines(connection, view, item, now)
 
 
 def chance_lines(connection, view: dict, item: dict) -> list[tuple[str, str]]:
