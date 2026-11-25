@@ -45,8 +45,12 @@ NOT_DOING = {'thinking', 'hoping', 'trying', 'wondering', 'considering', 'feelin
              'busy', 'around', 'done', 'sure', 'so', 'just', 'really', 'still', 'also', 'not', 'gonna', 'going'}
 NOT_PLANS = re.compile(r'\b(?:work|shift|shifts|overtime|on call|nothing|sleep|asleep|class|classes|it|that|this)$',
                        re.IGNORECASE)
+# "I'll be there", "I'm coming over": a meetup with the user (companion/life/together.py), not a plan of their own.
+WITH_USER = re.compile(r"^(?:com(?:e|es|ing)|here|there|back|over|around|ready|up|out)\b", re.IGNORECASE)
+# "the sunday crowd", "it's friday property": the day describes a thing rather than dates a plan.
+DAY_AS_WORD = r"(?:\b(?:the|a|an|my|it's|its|that)|'s)\s+{}\s+(?!(?:at|in|on|for|with|to|morning|afternoon|evening|night)\b)\w"
 TRAILING = re.compile(r"[\s!.,]+$|\s+(?:on|at|for|this|next|over|the|from|around|by|with|too|lol|haha|again|"
-                      r"first whistle|starts?|it's|is)$", re.IGNORECASE)
+                      r"first whistle|starts?|it's|is|(?:like|as) (?:planned|promised|i said))$", re.IGNORECASE)
 FORMS = (
     ('doing', re.compile(rf"{LEAD}(?:i'm|i am|im)\s+(?:going to|gonna)\s+(?!be\b)(\w+)(.*)$", re.IGNORECASE)),
     ('doing', re.compile(rf"{LEAD}(?:i'll be|i will be|i'm gonna be|i'm going to be|i'm|i am|im)\s+(\w+ing)\b(.*)$",
@@ -183,7 +187,7 @@ def activity(rest: str) -> tuple[str, str] | None:
             text = TRAILING.sub('', text)
         if form == 'scene' and not re.search(r'\b(?:me|my|i|myself)\b', text, re.IGNORECASE):
             continue  # "Saturday is going to be crazy" is not a plan.
-        if 3 <= len(text) <= 80 and not NOT_PLANS.search(text):
+        if 3 <= len(text) <= 80 and not NOT_PLANS.search(text) and not WITH_USER.match(text):
             return form, text
     return None
 
@@ -202,7 +206,8 @@ def extract(text: str, today: date, holidays: dict[str, date] | None = None) -> 
             day = when(clause, today, holidays)
             if not day or day[0] < today or day[0] > today + timedelta(days=366):
                 continue
-            if NOT_MINE.search(clause) or PAST.search(clause) or NEGATED.search(clause) or HEDGED.search(clause):
+            if NOT_MINE.search(clause) or PAST.search(clause) or NEGATED.search(clause) or HEDGED.search(clause) \
+                    or re.search(DAY_AS_WORD.format(re.escape(day[1].strip())), clause, re.IGNORECASE):
                 break
             rest = clause.replace(day[1], ' ')
             rest = rest.replace(said, ' ') if said else rest
@@ -244,7 +249,8 @@ def in_force(connection, timeline_id, since: str = '') -> list[dict]:
                 'messages.origin_id=companion_plans.message_id) WHERE messages.timeline_id=? AND messages.active=1 '
                 "AND messages.status='complete' AND messages.redacted_at IS NULL AND companion_plans.local_date>=? "
                 'ORDER BY companion_plans.local_date, companion_plans.created_at', (timeline_id, since))
-    return shown(connection, timeline_id, rows)
+    # Rows caught before a meetup with the user was told apart ("I'm coming over") stay out of their own life.
+    return [row for row in shown(connection, timeline_id, rows) if not WITH_USER.match(row['activity'])]
 
 
 def by_date(plans: list[dict]) -> dict[str, list[dict]]:
@@ -303,7 +309,10 @@ def entry(plan: dict, block: dict, definition: dict) -> dict:
         summary = f'The {part} went to {doing}, as planned.'
     else:
         summary = f'As planned: {doing}.'
-    return {'summary': summary[0].upper() + summary[1:], 'post': 'As planned.', 'mood': 'content',
+    # The post is the plan in their own words ("Hosting a potluck at my place."), never a bare "As planned.", which
+    # read as a fragment for a title and left the model nothing to phrase from.
+    post = plan['activity'].strip(' .')
+    return {'summary': summary[0].upper() + summary[1:], 'post': post[0].upper() + post[1:] + '.', 'mood': 'content',
             'activity': 'own-plan', 'place': None, 'with': None,
             'own_plan': {'id': plan['id'], 'message_id': plan['message_id'], 'statement': plan['statement'],
                          'at': plan['at_time']}, 'composer_version': 'own-plan-1'}

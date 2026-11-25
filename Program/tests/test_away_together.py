@@ -105,10 +105,13 @@ def test_their_own_idea_comes_as_news_and_runs_like_a_visit(client, couple, prov
     monkeypatch.setattr(away_together.together, 'close', lambda *_args: True)
     monkeypatch.setattr(long_distance, 'FIRST_TEXTS', True)
     reconcile(client)
+    assert not together_trips(client)  # Not a plan between them until they have told the user.
+    with client.app.state.database.connect(write=True) as connection:
+        companion = current(connection)
+        [trigger] = long_distance.news_due(connection, companion, clock.now())
+        tell(connection, companion, trigger, clock.now())
     [trip] = together_trips(client)
     assert trip['company']['name'] == 'you'
-    with client.app.state.database.connect() as connection:
-        [trigger] = long_distance.news_due(connection, current(connection), clock.now())
     assert trigger.kind == 'visit_news' and 'You just booked a trip away for the two of you' in trigger.reason
     assert trigger.template[0].isupper() and trip['city_name'] in trigger.template
     start = date.fromisoformat(trip['start_date'])
@@ -132,6 +135,70 @@ def test_their_own_idea_comes_as_news_and_runs_like_a_visit(client, couple, prov
     found = [memory for memory in (memories if isinstance(memories, list) else memories.get('memories', []))
              if memory['subject'].startswith('Away together')]
     assert found and 'went away together' in found[0]['value']
+
+
+def tell(connection, companion, trigger, now):
+    """The first text with the news goes out."""
+    message_id = f'news-{trigger.key}'
+    connection.execute("INSERT INTO messages (id, timeline_id, seq, role, text, status, active, character_version_id, "
+                       "memory_revision, created_at, completed_at) VALUES (?, ?, 999, 'companion', ?, 'complete', 1, ?, "
+                       "0, ?, ?)", (message_id, companion['active_timeline_id'], trigger.template,
+                                    companion['active_version_id'], now.isoformat(), now.isoformat()))
+    connection.execute("INSERT INTO openers (id, timeline_id, trigger_key, kind, facts, message_id, wording, created_at) "
+                       "VALUES (?, ?, ?, ?, '[]', ?, 'template', ?)", (message_id, companion['active_timeline_id'],
+                                                                      trigger.key, trigger.kind, message_id,
+                                                                      now.isoformat()))
+
+
+def test_their_own_idea_never_told_quietly_lapses(client, couple, provider, clock, monkeypatch):
+    """Tester 2026-11-18: a trip turned up on Today that nobody had said a word about, and the companion covered for
+    it ("booked it a while back"). Untold, it stays out of the chat and Today, and lapses with nothing called off."""
+    monkeypatch.setattr(away_together, 'CHANCE', {1: 1.0, 2: 1.0, 3: 1.0})
+    monkeypatch.setattr(away_together.together, 'close', lambda *_args: True)
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        [row] = connection.execute("SELECT * FROM trips WHERE visit='together'").fetchall()
+        assert long_distance.untold(connection, dict(row))
+    says(provider)
+    send(client, 'how was your day?', 'client-away-untold')
+    assert 'It is booked' not in notes(provider) and row['city_name'] not in notes(provider)
+    clock.advance(long_distance.NEWS_WITHIN + timedelta(hours=1))
+    reconcile(client)
+    with client.app.state.database.connect() as connection:
+        found = dict(connection.execute('SELECT * FROM trips WHERE id=?', (row['id'],)).fetchone())
+    assert found['status'] == 'cancelled' and found['removed_at'] and not found['cancelled_at']
+    assert not together_trips(client)
+    says(provider)
+    send(client, 'and today?', 'client-away-untold-2')
+    assert 'called off' not in notes(provider)
+
+
+def test_a_trip_the_app_got_wrong_is_removed_quietly(client, couple, provider):
+    says(provider)
+    send(client, 'weekend away in Milwaukee?', 'client-away-remove')
+    [trip] = together_trips(client)
+    removed = act(client, trip['id'], 'remove')
+    assert removed.status_code == 200, removed.text
+    [found] = together_trips(client)
+    assert found['state'] == 'cancelled' and found['removed'] and found['undo']
+    says(provider)
+    send(client, 'hey you', 'client-away-remove-2')
+    assert 'called off' not in notes(provider) and 'Milwaukee' not in notes(provider)
+    assert act(client, trip['id'], 'undo').status_code == 200
+    [back] = together_trips(client)
+    assert back['state'] == 'planned' and not back['removed']
+
+
+def test_a_trip_asked_for_a_day_that_does_not_work_is_not_moved_to_another_weekend(client, monkeypatch, provider):
+    """Tester 2026-11-18: a trip asked for Monday, which they work, came out as the weekend after at a place the app
+    picked. The day said or nothing."""
+    mira(client, monkeypatch, home_city='camelot')
+    monkeypatch.setattr(away_together, 'SOON', 0)
+    monkeypatch.setattr(away_together, 'on_day', lambda *_args: None)
+    says(provider)
+    send(client, 'what about a little trip by the river on monday?', 'client-away-day')
+    assert not together_trips(client)
+    assert "the day they named doesn't work for you for a trip away" in notes(provider)
 
 
 def act(client, trip_id, action):

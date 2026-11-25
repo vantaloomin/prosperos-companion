@@ -270,6 +270,7 @@ def plan_ahead(connection, companion: dict, world, now: datetime) -> int:
     from companion.life import away_together, long_distance
     far = long_distance.settle_moves(connection, companion, today)
     away_together.settle_planned(connection, companion, today)
+    long_distance.lapse_untold(connection, companion, now)
     rows = many(connection, "SELECT start_date FROM trips WHERE timeline_id=? AND status='planned'", (timeline_id,))
     written = 0
     for saturday in saturdays(today):
@@ -639,6 +640,9 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     result = []
     under_way = long_distance.visiting(connection, companion, now)
     for row in map(view, rows):
+        if row['visit'] and (long_distance.untold(connection, row) or (
+                row.get('removed_at') and not long_distance.undoable(row, today, now))):
+            continue  # Their own idea not told yet, or a plan the user removed (`long_distance.remove`).
         found = 'cancelled' if row['status'] == 'cancelled' else 'done' if row['end_date'] < today.isoformat() else \
             'now' if row['start_date'] <= today.isoformat() else 'planned'
         if row['visit'] and found == 'now' and not (under_way and under_way['id'] == row['id']):
@@ -650,5 +654,6 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
         cost_text = money.amount(row['cost'], found_cost.city['currency']) if found_cost and row['cost'] else ''
         result.append({**row, 'state': found, 'postcard_message_id': card['message_id'] if card else None,
                        'cost_text': cost_text, 'undo': long_distance.undoable(row, today, now),
+                       'removed': bool(row.get('removed_at')),
                        'home_undo': row['visit'] == 'together' and away_together.home_undoable(row, now)})
     return result

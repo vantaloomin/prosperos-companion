@@ -970,6 +970,8 @@ export interface CircleLove {
   people: { id: string; name: string; stands: string | null }[]
 }
 
+export interface KnowsYou { how: '' | 'knows you' | 'knows of you'; why: string; set: boolean; key: string }
+
 export interface CirclePerson {
   kind?: KindShown
   own_kind?: string
@@ -1010,6 +1012,9 @@ export interface CirclePerson {
    * `knowing`): 'they' know the companion, or the 'companion' knows of them. `knowing_set` when the user said so. */
   knowing?: Knowing
   knowing_set?: boolean
+  /** Whether they know the user (companion/life/knows_you.py): `how` '' when not, `why` the app's reason, `set` when
+   * the user said so. */
+  knows_you?: KnowsYou | null
   /** What they think of you, once they have met you (companion/life/their_people.py). */
   met?: CircleMet | null
   /** Where they are now; `stay` while a hospital stay or a sick spell has them (companion/life/health_stays.py). */

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { api } from '../../api'
-import type { CirclePerson } from '../../types'
+import type { CirclePerson, KnowsYou } from '../../types'
 import { Notice } from '../../components/Feedback'
 import { tieChoices } from './circleText'
 import type { Act } from './PersonForm'
@@ -28,7 +28,10 @@ export function CircleTies({ person, act }: { person: CirclePerson; act: Act }) 
       <h4 id={headingId}>Who {person.name} knows here</h4>
       <p className="subtle">Changes here save on their own and show on both cards.</p>
       <div aria-live="polite">{feedback && <Notice tone={feedback.tone}>{feedback.text}</Notice>}</div>
-      {knows.length === 0 && <p className="subtle">{person.name} doesn't know anyone here yet.</p>}
+      {person.knows_you && <KnowsYouRow id={headingId} name={person.name} found={person.knows_you}
+        onSave={(how) => act(() => api(`/life/circle/${person.id}/knows-you`, { how }, 'PUT'), savedKnowsYou(person.name, how),
+          (found) => { if (found.tone === 'error') setFeedback(found) })} />}
+      {knows.length === 0 && <p className="subtle">{person.name} doesn't know anyone else here yet.</p>}
       {knows.length > 0 && <ul className="circle-tie-list">{knows.map((item) => (
         <li key={item.id} className="circle-tie">
           <label htmlFor={`${headingId}-${item.id}`}>{item.name}</label>
@@ -40,6 +43,35 @@ export function CircleTies({ person, act }: { person: CirclePerson; act: Act }) 
       {others.length > 0 && <AddTie id={headingId} name={person.name} others={others} onAdd={save} />}
     </section>
   )
+}
+
+const APP_PICK = 'app'
+
+/** Whether they know the user, first in the list: the app's reason under it until the user says otherwise. */
+function KnowsYouRow({ id, name, found, onSave }: { id: string; name: string; found: KnowsYou; onSave: (how: string | null) => Promise<boolean> }) {
+  return (
+    <ul className="circle-tie-list">
+      <li className="circle-tie">
+        <div className="circle-tie-who">
+          <label htmlFor={`${id}-you`}>You</label>
+          {(found.set || found.why) && <p className="subtle">{found.set ? 'Set by you' : `${found.why[0].toUpperCase()}${found.why.slice(1)}.`}</p>}
+        </div>
+        <select id={`${id}-you`} aria-label={`Whether ${name} knows you`} value={found.how}
+          onChange={(event) => void onSave(event.target.value === APP_PICK ? null : event.target.value)}>
+          <option value="knows you">Knows you</option>
+          <option value="knows of you">Knows of you</option>
+          <option value={NOT_AT_ALL}>Doesn't know you</option>
+          {found.set && <option value={APP_PICK}>Let the app decide</option>}
+        </select>
+      </li>
+    </ul>
+  )
+}
+
+function savedKnowsYou(name: string, how: string | null) {
+  if (how === null) return `The app decides whether ${name} knows you again.`
+  if (how === NOT_AT_ALL) return `Saved: ${name} doesn't know you.`
+  return `Saved: ${name} ${how}.`
 }
 
 /** "Saved: Kaito and Nari, friends.", or who knows of whom for a one-sided tie. */

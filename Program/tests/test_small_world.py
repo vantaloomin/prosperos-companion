@@ -22,6 +22,9 @@ def fellows(monkeypatch):
     """Townsfolk meetings on, strangers off, and another companion there is always talked to."""
     monkeypatch.setattr(encounters, 'ACTIVE', True)
     monkeypatch.setattr(encounters, 'CHANCE', 0)
+    # No quiet stretch ends with a stranger either: one met that day would keep a companion's meeting out of this
+    # diary (one meeting a day), leaving it in the other's alone.
+    monkeypatch.setattr(encounters, 'QUIET_DAYS', 10 ** 6)
     monkeypatch.setattr(encounters, 'FELLOW_CHANCE', 1)
 
 

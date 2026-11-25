@@ -678,7 +678,8 @@ def image_hint(connection, timeline_id: str, event: dict, at_home: bool | None =
     there = not event.get('place') if at_home is None else at_home
     if home and there:
         features = home.get('features') or []
-        parts.append(f"At home: {home['description']}" + (f", with {' and '.join(features)}" if features else '') + '.')
+        described = home['description'].strip().rstrip('.!? ')  # "...away from the crowds." said "crowds.."
+        parts.append(f"At home: {described}" + (f", with {' and '.join(features)}" if features else '') + '.')
     named_items = mentioned(items, event.get('summary', ''))
     parts += [f"{item['name'][:1].upper()}{item['name'][1:]} is {item['description']}." for item in named_items
               if item['description'] != item['name'] and item['kind'] != 'pet']
