@@ -19,10 +19,12 @@ from companion import (
     in_character,
     prompt_library,
     safety,
+    secrets,
     story_cast,
     story_people,
     story_plans,
     story_pursuit,
+    story_secrets,
     story_visits,
 )
 from companion.characters import current
@@ -492,19 +494,46 @@ async def speak(state, user: dict, item: dict) -> dict:
         view = scene(connection, database.clock.now())
         packet = story_cast.prompt(connection, view, item, config, user, seen)
         steer = authors_note.prompt_text(connection, 'story')
+        # Secrets they know that someone here must not find out: their line is checked (companion/story_secrets.py).
+        watch = story_secrets.watched(connection, view, item)
     if steer:  # The story's author's note, last of the notes, right before the turn.
-        notes = packet['messages'][-1]['content'].removesuffix(packet['turn'])
-        packet = {**packet, 'messages': [{'role': 'user', 'content': f"{notes}{steer}\n\n{packet['turn']}"}]}
+        packet = story_secrets.noted(packet, steer)
     active = in_character.applies(user['text'], item['companion']['version']['definition'])
-    text, error = await attempt(state, packet, config, active)
-    text = story_cast.tidy(text, item, view)
+    text, error, guard = await kept(state, packet, config, active, item, view, watch, user['id'])
     status = 'complete' if text and not error else 'failed'
     error = None if status == 'complete' else error or f"The model returned nothing for {item['name']}."
     with database.connect(write=True) as connection:
         line = add(connection, database.now(), story_cast.ROLE, text, user, reply_to=user['id'], status=status,
                    error=error, speaker=item['id'], name=item['name'])
         story_visits.heard(connection, line, database.clock.now())
+        # Everyone here hears it; a slip that stays says so.
+        if story_secrets.heard(connection, line, view) and guard == 'revealed':
+            add(connection, database.now(), story_cast.NOTE, story_secrets.SLIPPED.format(name=item['name']), user,
+                reply_to=user['id'], speaker=item['id'], name=item['name'])
         return line
+
+
+async def kept(state, packet: dict, config: dict, active: bool, item: dict, view: dict, watch: list[dict],
+               seed: str) -> tuple[str, str | None, str | None]:
+    """A companion's line, checked when someone here must not find out what they know (companion/story_secrets.py):
+    a line that gives it away is written once more with a reminder; if it still does, it stays only at the soap opera
+    drama setting ('revealed'), and otherwise they think better of it ('held'). Returns the text, error and what
+    the check did."""
+    text, error = await attempt(state, packet, config, active)
+    text = story_cast.tidy(text, item, view)
+    found = story_secrets.given(watch, text, item) if text and not error else []
+    if not found:
+        return text, error, None
+    with state.database.connect() as connection:
+        note = story_secrets.reminder(connection, view, item, found)
+        allowed = secrets.slips_allowed(connection)
+    text, error = await attempt(state, story_secrets.noted(packet, note), config, active)
+    text = story_cast.tidy(text, item, view)
+    if error or not text or not story_secrets.given(watch, text, item):
+        return text, error, 'redrafted'
+    if allowed:
+        return text, None, 'revealed'
+    return story_secrets.held(item, seed), None, 'held'
 
 
 async def answer(state, user: dict) -> list[dict]:
@@ -537,6 +566,9 @@ def record(database, text: str, client_id: str, hidden: bool = False) -> dict:
             user = add(connection, database.now(), 'user', text, where, client_id=client_id, hidden=hidden)
             # Time with a companion counts (companion/story_visits.py): read before anyone answers the line.
             story_visits.said(connection, user, view, database.clock.now())
+            # Everyone in the scene hears it (companion/story_secrets.py).
+            story_secrets.sync(connection, view, database.clock.now())
+            story_secrets.heard(connection, user, view)
         return user
 
 
@@ -569,6 +601,8 @@ async def retry(state) -> dict:
         failed = connection.execute("DELETE FROM story_messages WHERE reply_to=? AND status='failed'",
                                     (user['id'],)).rowcount
         if not failed:
+            # Told anew, so what its lines let people learn is taken back (companion/story_secrets.py).
+            story_secrets.unsay(connection, [row['id'] for row in replies(connection, user)], state.database.now())
             connection.execute('DELETE FROM story_messages WHERE reply_to=?', (user['id'],))
     found = await answer(state, user)
     return {'message': user, 'reply': found[0], 'replies': found}

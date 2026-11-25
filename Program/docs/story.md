@@ -218,3 +218,27 @@ rules answer, the same ones the dating app reads (`companion/world/dating.py`). 
   The companion already there steps back and stays in the same world.
 - Starting a new story lets go of whoever said yes in it, unless they became a companion. Deleting the dating
   profile keeps them: they were never the app's.
+
+## Secrets and news in a scene
+
+Everyone in the scene hears what is said there, by the group chat's rules (`companion/story_secrets.py`, with
+`companion/secrets.py` and `companion/news.py`; see docs/group-chat.md, "Secrets"). Rules only. "Everyone in the
+scene" is the companions there and the people a plan under way is with; townsfolk the narrator voices are in neither
+ledger.
+
+- **What they are told:** with someone else there, a companion's own notes say each secret they know, who there
+  must not find out ("never say it or hint at it here"), and news they heard that someone there hasn't.
+- **Their line is checked:** a line that gives away a secret someone there must not find out is written once more
+  with a private reminder ("Write Mira's turn again so it neither says it nor hints at it."). If that still gives it
+  away, it stays as a slip only at the soap opera drama setting, with the note "Mira let a secret slip. Everyone
+  here knows it now."; below that, they think better of it, and their line says only that (one of three wordings,
+  `HELD`). Iris approved both (project files companion-design/v150-story-secrets-review.md).
+- **Who heard:** a finished line, the user's or a companion's, is witnessed as a group message is: everyone there
+  learns a secret it gives away (via witness, slip or reveal) and hears news it tells (via `group`), from whoever
+  said it. The holder row points at the story line, so the Secrets page says "in Story" and their chat says "told
+  you in person". Only while Story scenes count; the check above runs either way. Out of character and the app's
+  hidden line are not said in the scene; the narrator holds no secrets, so its lines are not read. Telling a reply
+  again takes back what its lines let people learn.
+- **A/B** (project files companion-story-secrets/ab, ten models): with no scene line, a sheet secret was told in
+  front of the person it is kept from in 3 of 29 replies, 0 of 28 with it. The redraft worded "turn" gave nothing
+  away in 56 replies; worded "message" (the group chat's), 1 away and 5 muddled.

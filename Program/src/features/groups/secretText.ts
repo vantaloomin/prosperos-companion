@@ -9,6 +9,13 @@ export function knowsLine(secret: Pick<Secret, 'knows'>): string {
   return `Known to you${people.length ? ` and ${namesText(people)}` : ''}`
 }
 
+const GONE = 'Someone no longer here'
+
+/** A holder's row on the Secrets page goes by first name, as the chats and the Story do (Iris, 1.5). */
+export function holderName(holder: Pick<SecretHolder, 'name'>): string {
+  return holder.name === GONE ? holder.name : firstName(holder.name)
+}
+
 /** "heard it in Friday crew", or the plain words when it wasn't in a named group. */
 export function howText(holder: Pick<SecretHolder, 'via' | 'how' | 'group'>): string {
   const where = holder.group?.name

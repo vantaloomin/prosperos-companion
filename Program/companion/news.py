@@ -14,7 +14,8 @@ News that happens to someone in the circle (Kaito's breakup, Lestara's promotion
 they know it from the start (hop 0), pass it on as their own news, and never "hear" it from someone else.
 
 Everyone remembers who told them (`news_holders.told_by`). Saying it in a group counts too: everyone there hears
-it (via `group`), from whoever said it. Openers (life/openers.py) and group replies (groups.py) pick from what each
+it (via `group`), from whoever said it. So does saying it in a Story scene (companion/story_secrets.py), also via
+`group`, with `message_id` the scene's line. Openers (life/openers.py) and group replies (groups.py) pick from what each
 person has heard. Secrets keep their own rules (companion/secrets.py) and never travel this way.
 
 Only life events travel, never anything from the user's chats, so no companion can seem to have read the user's
@@ -235,8 +236,8 @@ def heard(connection, holder: str, since: str, limit: int = CONTEXT_LIMIT) -> li
     on its companion's active timeline: a forked or abandoned timeline's news stays where it was. With the adult side
     of life on, none about a child on the way or come home (companion/life/expecting.py)."""
     kept = " AND n.source NOT LIKE 'journey:%'" if families.withheld(connection) else ''
-    return many(connection, 'SELECT n.*, h.told_by, h.heard_on, h.hop, h.via FROM news n JOIN news_holders h '
-                f'ON h.news_id=n.id AND h.holder=? {ACTIVE} AND n.about!=? AND h.heard_on>=?{kept} '
+    return many(connection, 'SELECT n.*, h.told_by, h.heard_on, h.hop, h.via, h.message_id FROM news n '
+                f'JOIN news_holders h ON h.news_id=n.id AND h.holder=? {ACTIVE} AND n.about!=? AND h.heard_on>=?{kept} '
                 'AND NOT EXISTS (SELECT 1 FROM json_each(n.subjects) s WHERE s.value=?) '
                 'ORDER BY h.heard_on DESC, n.id LIMIT ?', (holder, holder, since, holder, limit))
 
@@ -268,7 +269,8 @@ def context_lines(connection, companion: dict, now) -> list[tuple[str, str]]:
     lines = []
     for item in heard(connection, key, since):
         teller = who(connection, item['told_by'], key)
-        source = f'{teller} told you' if item['via'] == 'word' else f'{teller} said it in a group you are in'
+        source = f'{teller} told you' if item['via'] == 'word' else f'{teller} told you in person' if \
+            secrets.in_story(connection, item['message_id']) else f'{teller} said it in a group you are in'
         lines.append((f"news:{item['id']}", f"- Heard on {item['heard_on']} ({source}): {item['text']}."))
     return lines
 
