@@ -56,11 +56,12 @@ def test_a_fact_said_to_them_in_a_scene_is_a_memory_with_the_line_it_came_from(c
     assert ('Sister', 'Ashley') in found
     memory = found[('Sister', 'Ashley')]
     assert memory['origin'] == 'automatic' and memory['source_message_ids'] == []
-    assert memory['story_line'] == line and memory['in_story'] is False
+    # The card quotes the words said, not the narration (Iris).
+    assert memory['story_line'] == 'My sister Ashley just moved to Denver,' and memory['in_story'] is False
     # Correcting it keeps where it came from; deleting it takes the link with it.
     corrected = ok(client.post(f"/api/memories/{memory['id']}/correct",
                                json={'value': 'Ash', 'expected_revision': memory['revision']}))
-    assert next(item for item in facts(client) if item['id'] == corrected['id'])['story_line'] == line
+    assert next(item for item in facts(client) if item['id'] == corrected['id'])['story_line'] == memory['story_line']
     ok(client.post(f"/api/memories/{corrected['id']}/delete", json={'delete_sources': False}))
     with client.app.state.database.connect() as connection:
         assert connection.execute('SELECT COUNT(*) FROM story_memories WHERE memory_id=?',
@@ -69,6 +70,12 @@ def test_a_fact_said_to_them_in_a_scene_is_a_memory_with_the_line_it_came_from(c
 
 def test_only_the_words_said_count_and_not_what_the_user_does(client, barkeep, provider):
     at_work(client)
+    tell(client, provider, 'I hand Mira the menu. "I hate cilantro." I grin. "And olives."', 0)
+    assert [memory['story_line'] for memory in facts(client)] == ['I hate cilantro. … And olives.']
+    tell(client, provider, 'I tell Mira that I hate olives.', 9)
+    assert 'I tell Mira that I hate olives.' in [memory['story_line'] for memory in facts(client)]
+    for memory in facts(client):
+        ok(client.post(f"/api/memories/{memory['id']}/delete", json={'delete_sources': False}))
     tell(client, provider, "I'm wearing my blue jacket, so I take it off and hang it up. \"Busy night?\"", 1)
     tell(client, provider, 'I grab a stool and smile at Mira.', 2)
     assert facts(client) == []

@@ -138,7 +138,7 @@ model call:
   message goes through (`companion/story_said.py`), read from the words said out loud (in quotation marks when the
   line has any, so "I take off my jacket" is not a fact). Every companion the line is said to hears it. This follows
   automatic memory; a sensitive fact is kept only while sensitive memory is on. The card on Memories says "Said in
-  Story:" with the line (`story_line` on `GET /api/memories`, table `story_memories`).
+  Story:" with the words said, or the whole line when nothing is quoted (`story_line` on `GET /api/memories`, table `story_memories`).
 - **How they feel:** the user's words move the mood and rough patches of the companion the line is meant for, as a
   text does: words that sting, an apology, kindness, a gesture (read from the whole line, "I hand Mira the
   flowers"), with a grin or a nudge making it teasing. A promise said in person stays with chat. Their own line can

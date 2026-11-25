@@ -78,7 +78,10 @@ def declined(connection, companion: dict, mark: str) -> bool:
 
 
 def link(connection, memory: dict, companion: dict, user: dict) -> None:
-    text = ' '.join(user['text'].split())
+    """Kept with the words said, as the card quotes them (Iris): the quoted parts joined by " … ", or the whole line
+    when it has none."""
+    said = [first or second for first, second in SPOKEN.findall(user['text'])]
+    text = ' '.join((' … '.join(said) if said else user['text']).split())
     text = text if len(text) <= LINE_CHARS else text[:LINE_CHARS - 1].rstrip() + '…'
     connection.execute('INSERT OR IGNORE INTO story_memories (memory_id, companion_id, timeline_id, story_message_id, '
                        'said, created_at) VALUES (?, ?, ?, ?, ?, ?)',
