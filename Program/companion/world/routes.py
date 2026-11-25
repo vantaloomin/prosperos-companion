@@ -8,7 +8,7 @@ from pydantic import Field
 from companion.characters import current
 from companion.clock import zone
 from companion.errors import require
-from companion.life import money, network
+from companion.life import money, network, position, work
 from companion.models import Input, MoneySetup, WorldMapImport
 from companion.world import catalog, changes, check, custom, draft, era_words, generators, marinara, skies, townsfolk
 from companion.world.draft import fill, polish
@@ -248,6 +248,15 @@ def worked_out_pay(request: Request, city_id: str, body: PayAsk):
     """What their work and this city pay a month, for the Pay field's placeholder (None where there is no money)."""
     city(request, city_id)  # A 404 for a city that does not exist.
     return money.worked_out_pay({**body.model_dump(), 'home_city': city_id})
+
+
+@router.post('/cities/{city_id}/position')
+def worked_out_position(request: Request, city_id: str, body: PayAsk):
+    """Where the app reads them as standing at work in this city, for the Position picker's "Picked for them":
+    owner, lead or staff, or '' when it does not apply (a student, freelance)."""
+    definition = {**body.model_dump(), 'home_city': city_id}
+    career = work.career_of(definition, city(request, city_id))
+    return {'position': position.guess(definition, career) if position.standing(definition, career) else ''}
 
 
 @router.get('/cities/{city_id}/sources')

@@ -1138,6 +1138,10 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
     return [(f'work:{today.isoformat()}:{key}', f'- {line}') for key, line in lines]
 
 
+# The Work life panel's first line for someone in charge (position.LABELS); someone who works for someone gets none.
+IN_CHARGE_LINES = {'owner': 'Runs the place.', 'lead': 'Manages people.'}
+
+
 def overview(connection, companion: dict, now: datetime, show_meter: bool = False) -> dict | None:
     """The Character page's Work life panel: plain words, the project, time off and what changed. Vacation counts and
     pay as a number only with Hidden values on. None without a job in their week."""
@@ -1175,6 +1179,9 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
                                  found['kind'] == STUDY):
             state_lines.append(line.replace('You are', 'They are').replace('You have', 'They have')
                                .replace('your', 'their'))
+    held = position.companion_position(connection, companion) if found['status'] == 'working' else ''
+    if chosen and held in IN_CHARGE_LINES:
+        state_lines.insert(0, IN_CHARGE_LINES[held])
     events = recent_events(connection, timeline_id, (today - timedelta(days=365)).isoformat())
     meter = None
     if show_meter and chosen:
@@ -1188,6 +1195,6 @@ def overview(connection, companion: dict, now: datetime, show_meter: bool = Fals
             'late_nights': late, 'vacation': [day for day in days if day >= today.isoformat()][:10],
             'events': [{'id': event['id'], 'kind': event['kind'], 'local_date': event['local_date'],
                         'text': event['text']} for event in reversed(events)][:8],
-            'level': chosen, 'meter': meter, 'hours': hours, 'studying': found['kind'] == STUDY,
+            'level': chosen, 'meter': meter, 'hours': hours, 'position': held or None, 'studying': found['kind'] == STUDY,
             'field': found['project'].get('field', ''), 'own_project': bool(found['project'].get('own')),
             'own_due': bool(found['project'].get('own_due')), 'today': today.isoformat()}

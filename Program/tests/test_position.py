@@ -247,3 +247,28 @@ def test_a_year_of_storylines_for_an_owner_has_no_boss_in_it(client, sett, monke
     assert drawn & work_keys
     assert not drawn & {story.key for story in storylines.STORIES if not position.fits(story.positions, 'owner')}
     assert any(key.startswith('owner_') for key in drawn)
+
+
+def test_the_form_shows_what_the_app_reads_them_as(client):
+    # The Position picker's "Let the app decide: Runs the place" (PR 4): the app's read, whatever the user picked.
+    def asked(identity, money=None):
+        body = {'name': 'Sett', 'identity': identity, 'money': money or {}}
+        return client.post('/api/world/cities/baltimore/position', json=body).json()['position']
+    assert asked('Sett is the Boss: the man who runs the underground fighting pits.') == 'owner'
+    assert asked('Sett is the Boss: the man who runs the pits.', {'position': 'staff'}) == 'owner'
+    assert asked('Mara is the head chef at a bistro.') == 'lead'
+    assert asked('Theo tends bar downtown.') == 'staff'
+    assert asked('Theo is a freelance photographer.', {'employment': 'freelance'}) == ''
+    assert asked('Theo studies.', {'career': 'undergraduate'}) == ''
+
+
+def test_the_work_life_panel_says_who_runs_the_place(client, sett):
+    reconcile(client)
+    view = client.get('/api/life/work').json()['work']
+    assert view['position'] == 'owner' and view['state'][0] == 'Runs the place.'
+    revise(client, lambda definition: {'money': {**definition['money'], 'position': 'lead'}})
+    view = client.get('/api/life/work').json()['work']
+    assert view['position'] == 'lead' and view['state'][0] == 'Manages people.'
+    revise(client, lambda definition: {'money': {**definition['money'], 'position': 'staff'}})
+    view = client.get('/api/life/work').json()['work']
+    assert view['position'] == 'staff' and view['state'][0] not in ('Runs the place.', 'Manages people.')

@@ -7,6 +7,7 @@
   card and their career: runs the place, manages people, or works for someone. Whoever runs the place no longer gets
   a yearly review, a promotion, layoffs, a new boss or a quarrel with one, and their away messages leave the boss out.
   A story already under way that no longer fits ends quietly.
+- **Position on the character form:** Work and money has a Position picker beside Hours: Runs the place, Manages people or Works for someone. Left as "Picked for them", it shows what the app read from their work and card. The Work life panel says "Runs the place." or "Manages people." first, and an owner's intro talks about good and flat years in place of a raise.
 - **Stories for whoever is in charge:** a companion who runs the place now has stories of their own: slow stretches
   and maybe letting someone go, a supplier putting prices up, a rival opening nearby, the landlord, a record week,
   someone on the staff skimming, an offer to buy the place, and more. Once a year their place has a good year or a
