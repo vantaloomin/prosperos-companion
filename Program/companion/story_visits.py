@@ -10,6 +10,7 @@ away, or nothing has been said for a while. Rules only, no model:
   companion and one for each place. It shows on Memories, in the scrapbook and in "Our history".
 - What the user says to them is read by the relationship step rules chat uses (companion/life/steps.py): the user
   can bring a step up or answer one face to face, and the companion's own line answers it.
+- What the user tells them there is remembered, and moves how they feel, as a text would (companion/story_said.py).
 - Afterward their chat knows it happened: a line in the 'where' section says when and where, and how it ended in
   the words that were said, for a day or so (memory/context.py).
 
@@ -18,7 +19,7 @@ from the companion's life again, as it was before 1.5.
 """
 from datetime import datetime, timedelta
 
-from companion import in_character, story_cast
+from companion import in_character, story_cast, story_said
 from companion.characters import by_id
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
@@ -91,9 +92,12 @@ def said(connection, user: dict, view: dict, now: datetime) -> None:
         visit = visit or start(connection, item, user, view, now)
         connection.execute('UPDATE story_visits SET last_seq=?, last_at=?, said=said+? WHERE id=?',
                            (user['seq'], stamp(now), int(item['id'] in spoken_to), visit['id']))
-    if target := meant_for(view['companions'], spoken_to, user['text']):
+    target = meant_for(view['companions'], spoken_to, user['text'])
+    if target:
         from companion.life import steps
         steps.said_in_person(connection, target['companion'], user, last_line(connection, target['id'], user['seq']))
+    # What it tells them is remembered, and the one it is meant for feels it (companion/story_said.py).
+    story_said.user_line(connection, user, [item for item in view['companions'] if item['id'] in spoken_to], target, now)
 
 
 def meant_for(present: list[dict], spoken_to: set[str], text: str) -> dict | None:
@@ -112,10 +116,12 @@ def last_line(connection, companion_id: str, before_seq: int) -> str:
 
 
 def heard(connection, line: dict, now: datetime) -> None:
-    """A companion's own line was just saved: their visit runs up to it."""
+    """A companion's own line was just saved: their visit runs up to it, and what they said can make up."""
     if line['status'] == 'complete':
         connection.execute('UPDATE story_visits SET last_seq=MAX(last_seq, ?), last_at=? WHERE companion_id=? AND '
                            'ended_at IS NULL', (line['seq'], stamp(now), line['speaker']))
+        if counts(connection) and (companion := by_id(connection, line['speaker'])):
+            story_said.their_line(connection, companion, line, now)
 
 
 def fresh_lines(connection, companion: dict, user: dict, now: datetime) -> list[tuple[str, str]]:

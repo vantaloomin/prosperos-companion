@@ -134,6 +134,16 @@ model call:
   companion brought up. The words in quotation marks are the speech. With no chat turn to go by, an answer counts
   only when it names the step, or is a plain yes or no right after the companion's own line named it. The
   companion's line in the scene is written knowing the answer. Starting a family and separating stay with chat.
+- **What the user tells them:** facts said to a companion face to face become their memories, by the rules a chat
+  message goes through (`companion/story_said.py`), read from the words said out loud (in quotation marks when the
+  line has any, so "I take off my jacket" is not a fact). Every companion the line is said to hears it. This follows
+  automatic memory; a sensitive fact is kept only while sensitive memory is on. The card on Memories says "Said in
+  Story:" with the words said, or the whole line when nothing is quoted (`story_line` on `GET /api/memories`, table `story_memories`).
+- **How they feel:** the user's words move the mood and rough patches of the companion the line is meant for, as a
+  text does: words that sting, an apology, kindness, a gesture (read from the whole line, "I hand Mira the
+  flowers"), with a grin or a nudge making it teasing. A promise said in person stays with chat. Their own line can
+  make up ("We're good"). Their line in the scene is written knowing their mood and any rough patch with the user
+  (`story_said.feeling_lines`; A/B in project files companion-story-stick/ab: shown 20/117 before, 97/117 after).
 - **Their chat afterward:** for a day and a half, the 'where' section of their 1:1 chat says when and where they
   were together, who came to whom, and the last six lines the two of them said (`story_visits.context_lines`).
   After that it is the memory.

@@ -3096,3 +3096,14 @@ CREATE TABLE IF NOT EXISTS story_visits (
   memory_id TEXT
 );
 CREATE INDEX IF NOT EXISTS story_visits_timeline ON story_visits(timeline_id, last_at);
+
+-- Facts the user told a companion face to face in the Story (companion/story_said.py): the memory and the line it
+-- came from, kept here because a new story clears the lines. A corrected memory's new version is linked too.
+CREATE TABLE IF NOT EXISTS story_memories (
+  memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
+  companion_id TEXT NOT NULL,
+  timeline_id TEXT NOT NULL,
+  story_message_id TEXT NOT NULL,
+  said TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);

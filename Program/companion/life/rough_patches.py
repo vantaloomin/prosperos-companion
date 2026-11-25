@@ -361,9 +361,11 @@ def plan_name(outing: dict) -> str:
 
 # Reading the user's messages -----------------------------------------------------------------------------------
 
-def note(connection, message: dict, companion: dict, now: datetime):
+def note(connection, message: dict, companion: dict, now: datetime, gesture_text: str | None = None):
     """A message from the user, before the reply is written: words that sting, a promise to keep, an apology, a
-    gesture or accepting their apology, and a promise that lapsed before this message came."""
+    gesture or accepting their apology, and a promise that lapsed before this message came. A line said in the Story
+    (companion/story_said.py) comes as the words said, with the whole line as `gesture_text` (a gesture is something
+    done); a promise made there stays with chat, which is where keeping it is checked."""
     if not ACTIVE or companion is None:
         return
     text = message['text'] or ''
@@ -372,23 +374,24 @@ def note(connection, message: dict, companion: dict, now: datetime):
         sentence = sentence.rstrip('.')  # Quoted mid-sentence: 'over what you said: "go away".'
         consider(connection, companion, 'words', f"words:{message['id']}", f'the user said to you: "{sentence}"',
                  now, shown=f'over what you said: "{quoted(sentence)}"')
-    promised(connection, companion, message, now)
+    if gesture_text is None:
+        promised(connection, companion, message, now)
     lvl = level(connection)
     for row in open_rows(connection, companion, lvl, now):
         if row['subject'] == f"words:{message['id']}":
             continue  # The message that started it doesn't also mend it.
         if row['fault'] == 'user':
-            making_up(connection, companion, row, message, now)
-        elif apologised(connection, row) and (says('accepting', text) or says('gestures', text)):
+            making_up(connection, companion, row, message, now, gesture_text)
+        elif apologised(connection, row) and (says('accepting', text) or says('gestures', gesture_text or text)):
             mend(connection, row, 'accepted', now)
 
 
-def making_up(connection, companion: dict, row: dict, message: dict, now: datetime):
+def making_up(connection, companion: dict, row: dict, message: dict, now: datetime, gesture_text: str | None = None):
     """The user's message on a rough patch of their making: an apology counts; a gesture counts when it wins them over."""
     text = message['text'] or ''
     if says('apologies', text) and not row['apologised_at']:
         progress(connection, row, 'apologised_at', 'apology', now)
-    elif not row['gesture_at'] and (found := gesture_found(text)):
+    elif not row['gesture_at'] and (found := gesture_found(gesture_text or text)):
         gesture(connection, companion, row, found[0], message, now, gesture_act(found[1]))
 
 
