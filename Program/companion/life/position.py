@@ -22,6 +22,9 @@ POSITIONS = ('owner', 'lead', 'staff')
 LABELS = {'owner': 'Runs the place', 'lead': 'Manages people', 'staff': 'Works for someone'}
 # What the stories and events that need a boss above them are open to.
 BOSSED = ('lead', 'staff')
+# What only someone with nobody under them meets: layoff rumors, the new guy reported to a manager (a manager has
+# their own versions, companion/life/storyline_charge.py).
+STAFF = ('staff',)
 
 # Places a person can own or run, so "runs a bakery" reads as work and "runs a marathon" does not ("a studio
 # apartment" and "a gym membership" are not places of work either).

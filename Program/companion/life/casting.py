@@ -271,6 +271,8 @@ def companion_employed(connection, companion: dict) -> bool:
     above them, if anyone, is their position (companion/life/position.py, `Facts.position`)."""
     from companion.life import outings, work
     definition = companion['version']['definition']
+    if definition.get('business'):
+        return True  # A business of their own (companion/life/business.py): the stories of whoever runs a place.
     if not work.works(definition):
         return False
     career = work.career_of(definition, outings.city_data(connection, definition)) if connection else None

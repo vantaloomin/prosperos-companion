@@ -496,6 +496,8 @@ WIDENED_CHECKS = (
     ('trips', "'host', 'together')"),
     # Companions in the Story's scene, in their own lines (companion/story_cast.py).
     ('story_messages', "'scene', 'companion', 'cast')"),
+    # An owner's good and flat years in place of a review (companion/life/work.py `owners_year`).
+    ('work_events', "'new-job', 'good-year', 'flat-year')"),
 )
 
 
@@ -511,6 +513,7 @@ def initialize(connection, timestamp: str):
     widen_context_categories(connection)
     widen_checks(connection)
     connection.execute('CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date)')
+    connection.execute('CREATE INDEX IF NOT EXISTS work_events_day ON work_events(timeline_id, local_date)')
     connection.execute('CREATE INDEX IF NOT EXISTS relationship_steps_pair ON relationship_steps(timeline_id, other, ladder)')
     connection.execute('CREATE INDEX IF NOT EXISTS circle_children_timeline ON circle_children(timeline_id, status, born_on)')
     connection.execute('CREATE INDEX IF NOT EXISTS circle_children_parent ON circle_children(parent_id)')

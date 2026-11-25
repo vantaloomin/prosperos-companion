@@ -17,7 +17,7 @@ How every line here is written, so it reads right everywhere it is told:
 - A story about the companion's own work that needs someone above them (a review, a new boss, a raise to ask for) is
   `positions=BOSSED`: the owner of the place never draws it (companion/life/position.py).
 """
-from companion.life.position import BOSSED
+from companion.life.position import BOSSED, STAFF
 from companion.life.story_parts import Spent, Story, beat, either
 
 WORK = (
@@ -48,7 +48,7 @@ WORK = (
              "somehow I'm organizing the work party. I did not volunteer. I was volunteered"),
         beat("The party at {name}'s work went well, and people keep thanking {name} for it.",
              'the work party was a hit. people keep thanking me. I could get used to this', 'good')), (4, 10),
-        positions=BOSSED),
+        positions=STAFF),
     Story('work_thank_you', 0, 'work', (
         beat('Someone {name} helped at work came back just to say thank you.',
              'someone I helped at work came back today just to say thank you. made my whole week', 'good'),)),
@@ -197,7 +197,8 @@ COWORKERS = (
         either(('{name} had a word with {a}, who is pulling their weight at work now.',
                 'had a word with {a}. they took it well!! and they are actually doing their share now', 'good'),
                ("{name} is still picking up {a}'s slack at work.",
-                "still doing half of {a}'s job on top of mine. I need to say something", 'bad'))), (3, 8)),
+                "still doing half of {a}'s job on top of mine. I need to say something", 'bad'))), (3, 8),
+        positions=BOSSED),
     Story('coworker_rotten_day', 1, 'coworker', (
         beat('{a} had a rotten day at work, and {name} took {a_them} out for a drink afterwards.',
              '{a} had the worst day at work so I took them for a drink after. they needed it', spent=Spent(

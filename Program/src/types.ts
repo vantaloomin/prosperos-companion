@@ -2494,7 +2494,7 @@ export interface AdminView {
 /** Something that changed at work (companion/life/work.py): a raise, a promotion, a project wrapped up, a new job. */
 export interface WorkEvent {
   id: string
-  kind: 'raise' | 'freeze' | 'promotion' | 'project' | 'laid-off' | 'quit' | 'new-job'
+  kind: 'raise' | 'freeze' | 'promotion' | 'project' | 'laid-off' | 'quit' | 'new-job' | 'good-year' | 'flat-year'
   local_date: string
   /** "the yearly raise, about 3.2%", "wrapped up the spring menu change; it went well". */
   text: string

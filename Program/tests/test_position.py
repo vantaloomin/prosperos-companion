@@ -96,16 +96,49 @@ def work_stories(held: str) -> set[str]:
 
 
 def test_an_owner_never_draws_the_stories_that_need_a_boss():
-    staff, lead, owner = work_stories('staff'), work_stories('lead'), work_stories('owner')
-    assert len(staff) == 27 and lead == staff
+    staff, owner = work_stories('staff'), work_stories('owner')
+    assert len(staff) == 27
     assert {'layoff_rumors', 'promotion_chance', 'work_review', 'work_new_boss', 'work_raise', 'work_boss_clash',
-            'work_poached', 'work_changing_hands', 'work_the_books'}.isdisjoint(owner)
-    assert owner == {'work_thank_you', 'work_short_handed', 'work_breakdown', 'work_inspection', 'work_gossip',
-                     'work_missing_money', 'work_back_room'}
+            'work_poached', 'work_changing_hands', 'work_the_books', 'work_party'}.isdisjoint(owner)
+    assert {'work_thank_you', 'work_short_handed', 'work_breakdown', 'work_inspection', 'work_gossip',
+            'work_missing_money', 'work_back_room'} <= owner
     # Stories the user is part of follow the same rule.
     bossed = {key for key, story in shared_storylines.bank().items() if story.get('positions')}
     assert bossed == {'ask_for_more', 'new_at_work', 'what_would_you_do', 'proud_of_this'}
     assert all(set(shared_storylines.bank()[key]['positions']) == set(position.BOSSED) for key in bossed)
+
+
+def test_nobody_in_charge_has_a_thinner_bank_than_staff():
+    staff, lead, owner = work_stories('staff'), work_stories('lead'), work_stories('owner')
+    assert len(owner) >= len(staff) and len(lead) >= len(staff)
+    # Their own versions: thin takings for an owner and a cut to the team for a manager, never layoff rumors.
+    assert 'owner_thin_takings' in owner and 'lead_cut_team' in lead and 'layoff_rumors' in staff
+    assert 'layoff_rumors' not in lead and 'lead_cut_team' not in staff and not owner & lead - staff
+    assert all(key.startswith('owner_') for key in owner - staff)
+    assert all(key.startswith('lead_') for key in lead - staff)
+    # Each level of drama has something for someone in charge.
+    levels = {story.key: story.level for story in storylines.STORIES}
+    assert {levels[key] for key in owner} == {0, 1, 2, 3} and {levels[key] for key in lead} == {0, 1, 2, 3}
+
+
+def test_their_own_staff_have_an_owners_stories():
+    staff_member = {'id': 'kai', 'seed': 'circle:t:kai', 'name': 'Kai', 'role': 'coworker', 'career': '',
+                    'status': 'active', 'details': '{"works_with_companion": true}'}
+
+    def drawn(held):
+        known = casting.Facts(people=[staff_member], position=held)
+        return {story.key for story in storylines.STORIES if story.cast == 'coworker'
+                and storylines.casts(story, [staff_member], {'schedule': WORKDAY}, known)}
+    assert 'coworker_leaving' in drawn('staff') and 'staff_leaving' not in drawn('staff')
+    assert 'staff_leaving' in drawn('owner') and 'coworker_leaving' not in drawn('owner')
+    assert 'coworker_lunches' in drawn('owner')
+
+
+def test_a_business_the_app_started_gets_the_stories_of_whoever_runs_a_place():
+    companion = {'active_timeline_id': 't', 'version': {'definition': {
+        'schedule': WORKDAY, 'business': {'business': 'a small bakery', 'label': 'At the bakery'}}}}
+    assert casting.companion_employed(None, companion)
+    assert position.companion_position(None, companion) == 'owner'
 
 
 def test_boss_lines_are_left_out_for_whoever_runs_the_place():
@@ -144,7 +177,7 @@ def connect(client, write=True):
     return client.app.state.database.connect(write=write)
 
 
-def test_sett_runs_the_place_and_sits_no_review_and_is_never_laid_off(client, sett, clock, monkeypatch):
+def test_sett_runs_the_place_and_has_a_good_or_flat_year_and_is_never_laid_off(client, sett, clock, monkeypatch):
     reconcile(client)
     with connect(client, write=False) as connection:
         assert position.companion_position(connection, require_current(connection)) == 'owner'
@@ -157,7 +190,14 @@ def test_sett_runs_the_place_and_sits_no_review_and_is_never_laid_off(client, se
     reconcile(client)
     view = client.get('/api/life/work').json()['work']
     assert view['status'] == 'working'
-    assert not {event['kind'] for event in view['events']} & {'raise', 'promotion', 'freeze', 'laid-off', 'quit'}
+    kinds = {event['kind'] for event in view['events']}
+    assert not kinds & {'raise', 'promotion', 'freeze', 'laid-off', 'quit'}
+    [year] = [event for event in view['events'] if event['kind'] in ('good-year', 'flat-year')]
+    assert year['text'].startswith(('a good year at the place: business up about ', 'a flat year at the place: business held steady'))
+    # Not told in chat until its wording has been tried out.
+    with connect(client, write=False) as connection:
+        lines = work.context_lines(connection, require_current(connection), clock.now())
+    assert lines and not any('takings' in text for _key, text in lines)
 
 
 def test_someone_who_works_for_someone_still_has_their_review(client, sett, clock):
@@ -205,4 +245,5 @@ def test_a_year_of_storylines_for_an_owner_has_no_boss_in_it(client, sett, monke
                 drawn.add(found['story'])
     work_keys = {story.key for story in storylines.STORIES if story.cast == 'work'}
     assert drawn & work_keys
-    assert not drawn & {story.key for story in storylines.STORIES if story.positions}
+    assert not drawn & {story.key for story in storylines.STORIES if not position.fits(story.positions, 'owner')}
+    assert any(key.startswith('owner_') for key in drawn)

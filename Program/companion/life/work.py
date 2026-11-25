@@ -657,6 +657,27 @@ def review(connection, companion: dict, found: dict, day: date, chosen: int, rul
     return pay * (1 + change / 100)
 
 
+def owners_year(connection, companion: dict, found: dict, day: date, chosen: int, rule: dict, now) -> float:
+    """Whoever runs the place has no review: once a year, on the same day, the place has a good year (business up by
+    what a raise would be where they live) or, on True to life and up as often as a pay freeze, a flat one. Never a
+    promotion. Where there is no money (Oz) nothing changes. Returns the new pay."""
+    seed, timeline_id = f"work:{companion['active_timeline_id']}:{day.year}", companion['active_timeline_id']
+    pay = found['pay']
+    if not rule.get('paid', True):
+        return pay
+    low, high = rule.get('raise') or (2.0, 4.0)
+    change = low + generators.unit(seed, 'raise') * (high - low)
+    flat = generators.unit(seed, 'review') < FREEZE[chosen] or \
+        generators.unit(seed, 'given') >= rule.get('raise_chance', 1.0)
+    if flat or change < 0.5:
+        record(connection, timeline_id, f'review:{day.year}', 'flat-year', day,
+               'a flat year at the place: business held steady', pay, 0, now)
+        return pay
+    record(connection, timeline_id, f'review:{day.year}', 'good-year', day,
+           f'a good year at the place: business up about {round(change, 1):g}%', pay * (1 + change / 100), change, now)
+    return pay * (1 + change / 100)
+
+
 def finish_project(connection, companion: dict, found: dict, day: date, chosen: int, now) -> dict:
     """The project that was due is done, with how it went; the next one starts."""
     timeline_id, project = companion['active_timeline_id'], found['project']
@@ -775,7 +796,8 @@ def advance(connection, companion: dict, now: datetime) -> dict | None:
     rule = {**rules(city), 'paid': not city or city['currency']['code'] != 'none'}
     day = max(date.fromisoformat(found['checked_through']) + timedelta(days=1), today - timedelta(days=CATCH_UP_DAYS))
     changes: dict = {}
-    # Whoever runs the place has no review to sit and is never laid off from it, nor quits it (position.py).
+    # Whoever runs the place has no review to sit, only a good or a flat year, and is never laid off from it, nor
+    # quits it (position.py).
     bossed = position.companion_position(connection, companion) != 'owner'
     while chosen and day <= today:
         current = {**found, **changes}
@@ -783,9 +805,10 @@ def advance(connection, companion: dict, now: datetime) -> dict | None:
             if day.isoformat() >= current['hunt_until']:
                 changes.update(new_job(connection, companion, current, day, now))
         else:
-            if bossed and day.strftime('%m-%d') == current['review_on'] and \
+            if day.strftime('%m-%d') == current['review_on'] and \
                     (day - date.fromisoformat(current['started_on'])).days > 300:
-                changes['pay'] = review(connection, companion, current, day, chosen, rule, now)
+                changes['pay'] = (review if bossed else owners_year)(connection, companion, current, day, chosen,
+                                                                     rule, now)
             if day.isoformat() > current['project']['due']:
                 changes.update(finish_project(connection, companion, current, day, chosen, now))
             # A student isn't laid off.
@@ -1106,6 +1129,8 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
                                  + vacation_days(connection, companion, today.year + 1, found), today, studying):
             lines.append(('vacation', line))
     for event in recent_events(connection, timeline_id, (today - timedelta(days=RECENT_DAYS)).isoformat())[-3:]:
+        if event['kind'] not in EVENT_LINES:
+            continue  # An owner's good or flat year: told in chat once its wording is settled.
         line = EVENT_LINES[event['kind']].format(day=short_day(event['local_date']), text=event['text'],
                                                  change=round(event['change'], 1))
         # "a new job at Coutts and Co." already ends the sentence.
