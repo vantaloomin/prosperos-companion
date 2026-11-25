@@ -41,7 +41,7 @@ export function SelfFacts({ name }: { name: string }) {
               <strong>{selfFactText(fact)}</strong>{fact.status === 'kept' && <span className="badge">kept</span>}
               {fact.status === 'conflict' && <span className="badge">{conflictText(fact)}</span>}
               {fact.pet_link === 'tracked' && <span className="badge">one of their pets</span>}
-              <br /><small className="subtle">"{fact.statement}"{fact.in_story && ' · In Story'}</small>
+              <br /><small className="subtle"><q>{fact.statement}</q>{fact.in_story && ' · In Story'}</small>
               <span className="form-actions">
                 {fact.status !== 'kept' && <button type="button" className="text-button" onClick={() => void decide(fact, true)}><Check aria-hidden="true" />{fact.status === 'conflict' ? 'Keep this one' : 'Keep'}</button>}
                 {fact.pet_link === 'untracked' && <button type="button" className="text-button" onClick={() => void adopt(fact)}><PawPrint aria-hidden="true" />Add as their pet</button>}
