@@ -324,13 +324,15 @@ def note(connection, message: dict, timestamp: str) -> list[dict]:
     # A companion out of focus may text first too (companion/life/openers.py); the message says whose it is.
     companion = for_timeline(connection, message['timeline_id']) or require_current(connection)
     from companion.clock import parse
-    from companion.life import said_events
+    from companion.life import said_events, work_said
     from companion.memory import self_suggest
     self_suggest.queue(connection, message, timestamp)
     lowercase = texting.style(companion['version']['definition'])['lowercase']
     added = record(connection, companion, message, extract(message['text'], lowercase), timestamp)
     # News about their people sticks to their record (Hit List #103).
     said_events.notice(connection, companion, message, lowercase, parse(timestamp))
+    # Their work project said to be done is done (companion/life/work_said.py).
+    work_said.notice(connection, companion, message, parse(timestamp))
     return added
 
 

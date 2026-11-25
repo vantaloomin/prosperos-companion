@@ -32,12 +32,12 @@ export interface Outing {
 }
 export interface OutingScene { back: boolean; to: string; kind: string }
 export interface OutingNext { place: OutingPlace; activity: string; at: string; asked: boolean }
-/** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; 'together' for a trip away together (companion/life/away_together.py); '' for a trip of their own. `undo` is true for a visit called off a little while ago, `home_undo` for a trip together just cut short. `away` says how a trip together travels ('plane', 'steamship', 'tram') and its preposition ('in Lisbon', 'on the garden deck'). */
+/** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; 'together' for a trip away together (companion/life/away_together.py); '' for a trip of their own. `undo` is true for a visit called off (or `removed`, taken off as never planned) a little while ago, `home_undo` for a trip together just cut short. `away` says how a trip together travels ('plane', 'steamship', 'tram') and its preposition ('in Lisbon', 'on the garden deck'). */
 export interface Trip {
   id: string; start_date: string; end_date: string; city_id: string; city_name: string; kind: 'getaway' | 'family'
   company: { id: string; name: string; role: string } | null; landmark: { name: string; summary: string } | null
   sunny: boolean; cost_text: string; state: OutingState; postcard_message_id: string | null
-  visit: '' | 'to-you' | 'host' | 'together'; undo: boolean; home_undo?: boolean
+  visit: '' | 'to-you' | 'host' | 'together'; undo: boolean; home_undo?: boolean; removed?: boolean
   away?: { prep: string; by: string; hours: number } | null
 }
 export interface Together { outings: Outing[]; trips: Trip[] }

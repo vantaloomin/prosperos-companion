@@ -30,7 +30,7 @@ from companion.life.clothing import GARMENTS
 from companion.lora.appearance import current_for_images
 from companion.world import decades, looks, newcomers, ships
 
-PROMPT_VERSION = 10
+PROMPT_VERSION = 11
 DEFAULT_STYLE = 'Candid, natural-light photograph'
 NEGATIVE = 'text, watermark, logo, blurry, distorted hands, extra limbs, duplicate person'
 
@@ -119,6 +119,10 @@ ADVERBS = ('always', 'usually', 'often', 'never', 'mostly', 'still', 'also', 'so
            'normally')
 THEY_VERB = re.compile(rf"\b(They|they) ((?:{'|'.join(ADVERBS)}) )?([a-z]+s)\b")
 PRONOUNS = {'she': ('She', 'her'), 'he': ('He', 'his'), 'they': ('They', 'their')}
+OBJECT = {'she': 'her', 'he': 'him', 'they': 'them'}
+# Words after which a name is the object: "close enough for Sett to keep an eye" is "for him", not "for he".
+OBJECT_AFTER = 'for|to|with|of|at|by|from|near|behind|beside|around|than|about|like|without'
+
 EXPRESSIONS = {
     'focused': 'a focused, concentrating expression', 'steady': 'a calm, steady expression',
     'tired': 'tired eyes and a weary half-smile', 'busy': 'a brisk, slightly harried look',
@@ -149,6 +153,7 @@ def unnamed(text: str, name: str, who: str) -> str:
         text = re.sub(rf"(^|[.!?]\s+){pattern}'s\b", lambda m: m.group(1) + possessive.capitalize(), text)
         text = re.sub(rf"\b{pattern}'s\b", possessive, text)
         text = re.sub(rf"(^|[.!?]\s+){pattern}\b", lambda m: m.group(1) + subject, text)
+        text = re.sub(rf"\b({OBJECT_AFTER}) {pattern}\b", lambda m: f'{m.group(1)} {OBJECT[who]}', text)
         text = re.sub(rf"\b{pattern}\b", subject.lower(), text)
     if who == 'they':
         text = THEY_VERB.sub(lambda m: f"{m.group(1)} {m.group(2) or ''}{plural_verb(m.group(3))}", text)
@@ -200,26 +205,59 @@ SKY_LIGHT = {'snow': ('a snowy day, falling snow and white rooftops', 'snow fall
              'rain': ('a grey, rainy day with wet surfaces', 'rain-wet streets')}
 
 
+# The light of each part of the day, plain and under a grey sky (rain, storms, fog, snow): "bright morning daylight"
+# beside "a grey, rainy day" told the image model two skies, and it drew the bright one.
+DAYLIGHT = ((5, 'soft early-morning light', 'dim, grey early-morning light'),
+            (8, 'bright morning daylight', 'soft, grey morning light'),
+            (11, 'even midday daylight', 'flat, grey midday light'),
+            (15, 'warm late-afternoon light', 'dull, grey late-afternoon light'),
+            (18, 'low golden evening light', 'fading grey evening light'))
+GREY_SKIES = {'rain', 'storm', 'fog', 'snow'}
+
+
 def light(hour, weather, indoor=None) -> str:
     """The light of the moment's hour and weather, or '' when neither is known. Indoors (`indoor`, from the place's
-    city entry, companion/images/places.py) a night is lamplight with no streetlights, and the weather stays outside."""
-    weather = {} if indoor else weather or {}
+    city entry, companion/images/places.py) a night is lamplight with no streetlights, and the weather is what the
+    windows show. Under a grey sky the daylight is grey too."""
+    weather = weather or {}
+    grey = weather.get('sky') in GREY_SKIES or bool(weather.get('rain'))
     if hour is None:
         parts = []
-    elif 5 <= hour < 8:
-        parts = ['soft early-morning light']
-    elif 8 <= hour < 11:
-        parts = ['bright morning daylight']
-    elif 11 <= hour < 15:
-        parts = ['even midday daylight']
-    elif 15 <= hour < 18:
-        parts = ['warm late-afternoon light']
-    elif 18 <= hour < 20:
-        parts = ['low golden evening light']
+    elif 5 <= hour < 20:
+        found = next(row for row in reversed(DAYLIGHT) if hour >= row[0])
+        parts = [found[2] if grey else found[1]]
     else:
         parts = ['night, lit by warm lamps' if indoor else 'night, lit by warm lamps and streetlights']
-    parts += weather_light(hour, weather)
     return f"{', '.join(parts)[:1].upper()}{', '.join(parts)[1:]}." if parts else ''
+
+
+# The weather as a sentence of its own, said early: at the end of a long prompt, after the light, "a grey, rainy day
+# with wet surfaces" drew no rain at all. Indoors it is what the windows show.
+SKY_SCENE = {'rain': ('It is raining: rain falling, wet ground and puddles, a heavy grey sky.',
+                      'Rain streaks the windows, a heavy grey sky outside.'),
+             'storm': ('A storm is raging: driving rain, wet ground, a dark, heavy sky.',
+                       'Rain lashes the windows, a dark, stormy sky outside.'),
+             'fog': ('Thick fog hangs in the air, everything beyond a few steps fading into grey.',
+                     'Thick fog presses grey against the windows.'),
+             'snow': ('It is snowing: snow falling, white rooftops and snow underfoot.',
+                      'Snow is falling past the windows, white rooftops outside.')}
+
+
+def weather_scene(hour, weather, indoor=None, windows=False) -> str:
+    """The day's weather as something the picture shows, or '' on a plain day. At night the outdoor sky is
+    said as `weather_light` says it; a hard cold or heat is a day outdoors. Indoors it shows only through their own
+    home's `windows`: a sand ring in the tunnels has none."""
+    weather = weather or {}
+    if indoor and not windows:
+        return ''
+    sky = weather.get('sky') if weather.get('sky') in SKY_SCENE else 'rain' if weather.get('rain') else None
+    daytime = hour is None or 6 <= hour < 20
+    if sky and not indoor and not daytime:
+        return f'{SKY_LIGHT[sky][1][:1].upper()}{SKY_LIGHT[sky][1][1:]}.'
+    if sky:
+        return SKY_SCENE[sky][1 if indoor else 0]
+    found = [] if indoor else weather_light(hour, weather)
+    return f'{found[0][:1].upper()}{found[0][1:]}.' if found else ''
 
 
 def weather_light(hour, weather: dict) -> list[str]:
@@ -342,6 +380,7 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
         look = visible(without_clothes(appearance) if dressed else appearance, name, who)
     sheet = one_age(sheet, look)
     style = (style or DEFAULT_STYLE).strip().rstrip('.')
+    setting = unnamed(setting, name, who)
     setting = re.sub(r'(^|\.\s+)Wearing\b', lambda m: f"{m.group(1)}{subject} {'are' if who == 'they' else 'is'} wearing",
                      setting)
     action = doing(event, subject, possessive, who) or unnamed(f"{told(event['summary'], who).strip().rstrip('.')}{where}.",
@@ -358,6 +397,8 @@ def compose(name, appearance, events, style, setting='', dressed=False, framing=
     parts = [f'{style}, {opening}.' if opening else f"{style} of a fictional everyday moment{', ' + plain if plain else ''}.",
              *((f'{look}.', sheet) if look and HAS.match(sheet) else (sheet, f'{look}.' if look else '')), setting,
              WITH_YOU.sub('', action) if event.get('user') else action,
+             '' if aboard else weather_scene(event.get('hour'), event.get('weather'), event.get('indoor'),
+                                             event.get('home')),
              alone(event, action, subject, who, framing),
              beside(event, subject, who), event.get('place_look') or '',
              f'{possessive.capitalize()} face shows {expression}.' if expression and framing != 'view' else '',
@@ -403,9 +444,9 @@ WITH_YOU = re.compile(r',? with you\b', re.IGNORECASE)
 # like in a picture, in the present tense, with {possessive} for her/his/their. The place, when the
 # event has one, follows as " at <place>"; company as ", with a friend".
 PICTURES = {
-    'steady-shift': 'at work, absorbed in the task in front of {possessive}',
+    'steady-shift': 'at work, absorbed in the task in front of {object}',
     'busy-shift': 'at work in the middle of a rush, moving quickly',
-    'lunch-out': 'on a lunch break, sitting at a small table with a plate of food',
+    'lunch-out': 'eating lunch at a small table, a full plate of food and a drink in front of {object}',
     'library': 'studying at a library table, notes and an open laptop spread out',
     'study-cafe': 'studying at a café table with flashcards, a laptop and one cup of coffee',
     'groceries': 'pushing a shopping cart down a grocery aisle, picking out food',
@@ -432,7 +473,7 @@ PICTURES = {
     'sick-day': 'on the sofa at home with a cold, wrapped in a blanket, tea and tissues nearby',
     'festival': 'outdoors in a festival crowd, stalls and banners around',
     'birthday': 'at a table celebrating a birthday, a cake with candles in front of them',
-    'own-birthday': 'celebrating {possessive} own birthday at a table, a cake with candles in front of {possessive}',
+    'own-birthday': 'celebrating {possessive} own birthday at a table, a cake with candles in front of {object}',
     'gathering': 'gathered around a table with family and friends',
     'tradition': 'at a holiday table with family, the dishes passed around',
     # A visit for their looks (companion/life/grooming.py): the new look is in the sheet that opens the picture.
@@ -478,7 +519,7 @@ def doing(event, subject, possessive, who) -> str:
         place = f" at {event['place']}" if event.get('place') and ' at home' not in line else ''
     company = ', with a friend' if event.get('with') and event['activity'] not in ('birthday', 'gathering', 'tradition') else ''
     verb = 'are' if who == 'they' else 'is'
-    return f"{subject} {verb} {line.format(possessive=possessive)}{place}{company}."
+    return f"{subject} {verb} {line.format(possessive=possessive, object=OBJECT[who])}{place}{company}."
 
 
 def drawn_as(definition) -> str:
@@ -559,6 +600,19 @@ def own_outfit(definition) -> bool:
     return any(clothing(clause) for clause in CLAUSE.split(own) if clause.strip())
 
 
+def moment_hour(event, timezone) -> int | None:
+    """The local hour the picture shows: the middle of the moment, not its start ("spent the morning brawling", from
+    8 to 1, is mid-morning light), and a lunch break at lunchtime when the shift runs over noon. The start alone drew
+    a 9:30 to 1:30 shift's lunch in "bright morning daylight"."""
+    start = local_hour(event.get('starts_at'), timezone)
+    end = local_hour(event.get('ends_at'), timezone)
+    if start is None or end is None or end <= start:
+        return start
+    if (event.get('moment') or {}).get('activity') == 'lunch-out' and start <= 12 < end:
+        return 12
+    return (start + end) // 2
+
+
 def local_hour(stamp_text, timezone) -> int | None:
     if not stamp_text:
         return None
@@ -578,10 +632,12 @@ def build(connection, post_id, image_settings, marked_nsfw=False, seed=None) -> 
     events = scene(connection, post_id)
     require(events, 'This post has no committed event to illustrate yet.', 409)
     definition = companion['version']['definition']
-    first = {**events[0], 'hour': local_hour(events[0]['starts_at'], companion['version']['timezone']),
+    first = {**events[0], 'hour': moment_hour(events[0], companion['version']['timezone']),
              'weather': events[0]['moment'].get('weather'), 'activity': events[0]['moment'].get('activity'),
              'with': events[0]['moment'].get('with'), 'hobby': events[0]['moment'].get('hobby')}
     first.update(places.scene(connection, companion, first))
+    if first.get('indoor') is None and at_home(events[0]):
+        first.update(indoor=True, home=True)  # rain at home is on the windows
     sheet, who = sheet_for(companion, definition, connection, (events[0].get('moment') or {}).get('local_date'))
     likeness = current_for_images(connection)
     prompt, period = pet_prompt(connection, post['timeline_id'], events, image_settings), period_of(connection, definition)
@@ -675,11 +731,24 @@ def period_of(connection, definition) -> dict | None:
     return decades.picture(newcomers.city_for(connection, definition))
 
 
+# Moments in their own words (a named free block, companion/life/composer.own_block; a plan of their own,
+# companion/life/own_plans.py): no place on the map, and somewhere only their words say. Home only when they say so.
+OWN_WORDS = {'own-block', 'own-plan'}
+HOME_WORDS = re.compile(r'\b(?:at home|home|flat|apartment|bedroom|kitchen|sofa|couch|in bed)\b', re.IGNORECASE)
+
+
 def at_home(event) -> bool:
     """Whether the moment happens at their home: no place of its own, and an activity that is done at home (its picture
-    line says so) or none at all. Combat training before a show has no place but is not at home."""
-    line = picture_of(event)
-    return not event.get('place') and (line is None or 'at home' in line or 'home' in (event.get('activity') or ''))
+    line says so) or none at all. Combat training before a show has no place but is not at home, and neither is a
+    morning "brawling in the Training yard" (a named block) unless its own words say home."""
+    if event.get('place'):
+        return False
+    activity = (event.get('moment') or {}).get('activity') or event.get('activity') or ''
+    if activity in OWN_WORDS:
+        words = ' '.join(str(event.get(key) or '') for key in ('summary', 'label'))
+        return bool(HOME_WORDS.search(words))
+    line = picture_of({**event, 'activity': activity})
+    return line is None or 'at home' in line or 'home' in activity
 
 
 def setting(connection, timeline_id, event, outfit=True) -> tuple[str, bool]:
@@ -721,7 +790,6 @@ FRAMINGS = {
     'photo': 'a fictional snapshot {subject} just took, seen through {possessive} own eyes, showing exactly what '
              '{subject} described, with no phone or screen in the picture',
 }
-OBJECT = {'she': 'her', 'he': 'him', 'they': 'them'}
 # The openings as Settings > Advanced > Prompts lists them: a plain moment's own words in place of its empty framing.
 OPENINGS = {'moment': MOMENT, **{key: value for key, value in FRAMINGS.items() if key != 'moment'}}
 

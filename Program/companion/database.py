@@ -479,6 +479,9 @@ ADDED_COLUMNS = (
     # Where a match was made: 'app' on the dating app, 'story' when someone said yes to the user in their own story
     # (companion/story_pursuit.py).
     ('dating_swipes', 'source', "TEXT NOT NULL DEFAULT 'app' CHECK (source IN ('app', 'story'))"),
+    # A trip or visit the user took off Today as never planned (companion/life/long_distance.py `remove`): status
+    # 'cancelled' with no cancelled_at, so nobody in the story calls it off; this says when, for Undo.
+    ('trips', 'removed_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
