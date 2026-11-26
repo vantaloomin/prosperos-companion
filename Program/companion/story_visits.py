@@ -1,7 +1,7 @@
 """Scenes count (1.5, docs/story.md): time the user spends with a companion in the Story is part of their life together.
 
 A visit is one stretch of the story with a companion in the scene (`story_visits`): it opens with the user's first
-line while they are there and ends when the user moves on, starts a new story, the companion's day takes them
+line while they are there and ends when the user moves on, clears the pages, the companion's day takes them
 away, or nothing has been said for a while. Rules only, no model:
 
 - A day the user talked with them in person counts as a day talked, as a day of texting does
@@ -37,6 +37,10 @@ LINE_CHARS = 220
 CAME = {'user': 'the user came by {place} while you were {doing}',
         'them': 'you came by {place} and found the user there'}
 DOING = {story_cast.AT_WORK: 'at work there'}
+# The user's own home (companion/story.py HOME) as a visit keeps it: the user reads "your place" on Memories, and the
+# companion is told "the user's place" (memory/records.py as_told).
+AT_YOURS = 'your place'
+CAME_HOME = "you were at the user's place with them"
 TOLD = ('- {when}, {came}, and the two of you spent time together in person. It really happened, and you remember '
         'it. You are apart again now, texting.')
 # A plan played in the Story (companion/story_plans.py): the 'together' section already says what and where, and
@@ -68,7 +72,8 @@ def start(connection, item: dict, user: dict, view: dict, now: datetime) -> dict
         'INSERT INTO story_visits (id, companion_id, timeline_id, city_id, place_id, place_name, doing, came, '
         'local_date, first_seq, last_seq, started_at, last_at, outing_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (visit_id, item['id'], companion['active_timeline_id'], view['city']['id'], view['place']['id'],
-         view['place']['name'], item['doing'], came, day, user['seq'], user['seq'], stamp(now), stamp(now),
+         AT_YOURS if view['place'].get('home') else view['place']['name'], item['doing'], came, day, user['seq'],
+         user['seq'], stamp(now), stamp(now),
          item['plan']['id'] if item.get('plan') else None))
     return optional(connection, 'SELECT * FROM story_visits WHERE id=?', (visit_id,))
 
@@ -197,6 +202,9 @@ def memory_text(visit: dict, name: str) -> dict:
     goes by their first name; the companion reads it the other way round (memory/records.py as_told). Plain, with
     no date (Iris: the card's own line says "In Story" and when), so time at the same place again is the same
     moment (records.find_duplicate): one for each place they have been together."""
+    if visit['place_name'] == AT_YOURS:  # Named in the subject too, so it turns round whole for the companion.
+        return {'subject': f'In person with {name} at {AT_YOURS}',
+                'value': f'{name} and you spent time together at {AT_YOURS}.'}
     return {'subject': f"In person at {visit['place_name']}",
             'value': f"{name} and you spent time together at {visit['place_name']}."}
 
@@ -214,7 +222,7 @@ def settle(connection, now: datetime, keep: set[str] | None = None) -> int:
 
 
 def close_all(connection, now: datetime) -> None:
-    """The user went somewhere else or began a new story: every visit ends here, before the lines can go."""
+    """The user went somewhere else or cleared the pages: every visit ends here, before the lines can go."""
     for visit in open_visits(connection):
         close(connection, visit, now)
 
@@ -244,8 +252,8 @@ def told_text(visit: dict, lines: list[dict], now: datetime, timezone) -> str:
     if visit['outing_id']:
         text = TOLD_PLAN.format(when=when, place=visit['place_name'])
     else:
-        came = CAME[visit['came']].format(place=visit['place_name'],
-                                          doing=DOING.get(visit['doing'], 'there on your own time'))
+        came = CAME_HOME if visit['place_name'] == AT_YOURS else CAME[visit['came']].format(
+            place=visit['place_name'], doing=DOING.get(visit['doing'], 'there on your own time'))
         text = TOLD.format(when=when, came=came)
     if not lines:
         return text
@@ -268,3 +276,36 @@ def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str,
         return []
     timezone = zone(companion['version']['timezone'])
     return [(f"story-visit:{visit['id']}:{len(lines)}", told_text(visit, lines, now, timezone))]
+
+
+# In their chat ---------------------------------------------------------------------------------------
+
+CHAT_LINES = 60
+SAME_LINE = timedelta(minutes=1)
+
+
+def chat_lines(connection, companion: dict) -> list[dict]:
+    """The visits that are over, for one line each in their 1:1 chat at the point it happened: "In Story at Club
+    Charles · 2:06 to 2:31 PM · Read it" (docs/story.md, "Scenes count"). Only a visit with something said to them, and
+    only while scenes count. `from` and `until` are the moments it began and the last thing was said: the chat shows
+    them on the clock its own stamps are on (Iris). `at` is the same last moment, for placing it. `chapter` is the Story chapter it can be read in
+    (companion/story_chapters.py), or None once its lines are cleared or further back than the Story shows."""
+    if not counts(connection):
+        return []
+    from companion import story, story_chapters
+    rows = many(connection, 'SELECT * FROM story_visits WHERE companion_id=? AND timeline_id=? AND said>0 AND '
+                'ended_at IS NOT NULL ORDER BY last_at DESC LIMIT ?', (companion['id'], companion['active_timeline_id'], CHAT_LINES))
+    if not rows:
+        return []
+    starts = story_chapters.marks(connection, parse(rows[0]['last_at']))[0]
+    shown = many(connection, 'SELECT seq, created_at FROM story_messages ORDER BY seq DESC LIMIT ?', (story.HISTORY_LIMIT,))
+    written = {row['seq']: parse(row['created_at']) for row in shown}
+
+    def chapter(visit: dict) -> int | None:
+        # The same line, not one that took its number after the pages were cleared.
+        line = written.get(visit['first_seq'])
+        same = line is not None and abs(line - parse(visit['started_at'])) <= SAME_LINE
+        return story_chapters.number(starts, visit['first_seq']) if same else None
+
+    return [{'id': visit['id'], 'at': visit['last_at'], 'place': visit['place_name'], 'from': visit['started_at'],
+             'until': visit['last_at'], 'chapter': chapter(visit)} for visit in reversed(rows)]

@@ -48,7 +48,7 @@ def lines(*texts, role='user'):
 
 def test_the_phrase_bank_holds_a_hundred_of_each_kind():
     found = json.loads((catalog.DATA / 'scene_moves.json').read_text(encoding='utf-8'))
-    for kind in ('moves', 'arrivals', 'put_on', 'take_off'):
+    for kind in ('moves', 'arrivals', 'put_on', 'take_off', 'home'):
         assert len(found[kind]) >= 100 and len(set(found[kind])) == len(found[kind])
         assert all(text == text.lower().strip() for text in found[kind])
 
@@ -116,6 +116,54 @@ def test_story_mode_follows_its_own_lines_since_the_last_place_picked():
             {'id': 's3', 'role': 'narrator', 'text': 'You walk along the water.', 'created_at': '3'}]
     assert scene_now.story_place(data, place, rows)['name'] == 'Chicago Riverwalk'
     assert scene_now.story_place(data, place, [*rows, {'id': 's4', 'role': 'scene', 'text': 'You arrive.', 'created_at': '4'}]) is place
+
+
+HOME = {'id': '~you', 'name': 'Your home', 'neighborhood': 'the-loop', 'home': True}
+GOES_HOME = {
+    'user': ('*She simply walks home, as fast as possible*', 'I go home.', 'I head back to my place.',
+             '*goes back to her apartment*', 'I get home and kick off my shoes.', 'I walk home with her.',
+             'I pay the bill and walk home.', 'I wave to Dana and head home.', "I'm home.", 'We go back to our place.',
+             'Tired, she finally heads for home.', '*trudges back home through the rain*', 'Dana walks me home.'),
+    'narrator': ('By the time you reach your own door, the pouch is still warm.', 'You walk home through the mist.',
+                 'You pull your coat tighter and set off for home.', 'Dana walks you home.',
+                 'You head back to your apartment.'),
+}
+STAYS_OUT = {
+    'user': ('I walk Dana home.', 'I think about going home.', '"I should go home," I say.', 'I go to your place.',
+             'I walk her back to her apartment.', 'Dana waves and heads home.', 'I watch Dana walk home.',
+             'I tell her to go home.', 'I knock. Nobody is home.', 'I could go home.', "I don't go home.",
+             'You go home.', 'I follow Dana home.', 'I ask Dana if she wants to come home with me.',
+             'I went home yesterday.'),
+    'narrator': ('The walk home is uneventful.', 'Inside, the familiar dark of your rooms waits.',
+                 'Dana finishes her tea and heads home.', 'You nod as the barista heads home.',
+                 'She smiles and walks home.', 'You watch her walk home.', 'Dana walks back to her apartment.',
+                 '"Go home," she says.', 'You could go home, or stay.', 'The barista says, "I walk home every night."'),
+}
+
+
+def test_story_mode_follows_the_user_home_and_nobody_else():
+    data, start = chicago()
+    place = next(item for item in data['places'] if item['id'] == start['id'])
+    told = lambda role, text: scene_now.story_place(  # noqa: E731
+        data, place, [{'id': 's1', 'role': role, 'text': text, 'created_at': '1'}], HOME, ('Dana',))
+    for role, texts in GOES_HOME.items():
+        for text in texts:
+            assert told(role, text) is HOME, text
+    for role, texts in STAYS_OUT.items():
+        for text in texts:
+            assert told(role, text) is place, text
+    # With no home in this city, the same lines leave the story where it is.
+    assert scene_now.story_place(data, place, [{'id': 's1', 'role': 'user', 'text': 'I go home.', 'created_at': '1'}]) is place
+
+
+def test_story_mode_walks_on_from_where_the_last_move_ended():
+    data, start = chicago()
+    place = next(item for item in data['places'] if item['id'] == start['id'])
+    rows = [{'id': 's1', 'role': 'user', 'text': 'I head down to the riverwalk.', 'created_at': '1'},
+            {'id': 's2', 'role': 'user', 'text': 'I walk home.', 'created_at': '2'}]
+    assert scene_now.story_place(data, place, rows, HOME) is HOME
+    rows.append({'id': 's3', 'role': 'user', 'text': 'I walk back to The Berghoff.', 'created_at': '3'})
+    assert scene_now.story_place(data, place, rows, HOME) is place
 
 
 # --- In the app ----------------------------------------------------------------------------------------------------

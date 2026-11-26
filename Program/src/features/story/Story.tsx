@@ -1,19 +1,20 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
+import { Fragment, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Map as MapIcon, MapPin, Pencil, RotateCcw, Send, Undo2 } from 'lucide-react'
+import { Home, Map as MapIcon, MapPin, Pencil, RotateCcw, Send, Undo2 } from 'lucide-react'
 import { api, newId } from '../../api'
 import type { View } from '../../companion'
-import type { CitySummary, Story as StoryData, StoryMessage, StoryScene } from '../../types'
+import type { CitySummary, Story as StoryData, StoryChapter, StoryMessage, StoryScene } from '../../types'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { InfoTip } from '../../components/InfoTip'
 import { TextArea } from '../../components/Fields'
 import { AiFooter, CrisisNote } from '../../components/Safety'
-import { againLabel, aroundText, latestLine, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, toldAgain, whereText, writingText } from './storyText'
+import { againLabel, aroundText, chapterWhen, goHome, homeChoice, latestLine, numbered, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, toldAgain, whereText, writingText } from './storyText'
 import { StoryPeople } from './StoryPeople'
+import { ChapterHeading, LineTime, StoryFooter } from './StoryChapters'
+import { useStoryScroll } from './useStoryScroll'
 import { CityOptions } from '../world/CityOptions'
-import { ExportLinks } from '../chats/ExportLinks'
 import { AuthorsNote } from '../conversation/AuthorsNote'
 import { fitAfterSend, setFolded, useMessageBox } from '../conversation/messageBox'
 import { MessageBox } from '../conversation/MessageBoxControls'
@@ -28,6 +29,10 @@ interface Pending { text: string; clientId: string }
 /** How far down the story is read before the phone's header folds to the place and the people count. */
 const FOLD_AFTER = 8
 const OUT_OF_STORY = 'To step out of the story, start a message with OOC: or wrap it in ((double parentheses)).'
+
+function failed(failure: unknown): string {
+  return failure instanceof Error ? failure.message : 'That did not work. Try again.'
+}
 
 /** Whether the header is folded: once the story is scrolled down, until it is back at the top (the phone's styles
  * alone act on it). Folding hands the header's room to the story, so it waits until there is more than that left
@@ -66,7 +71,7 @@ export function Story({ go }: { go: (view: View) => void }) {
     setPending(sent)
     setBusy(true)
     setError('')
-    try { await request() } catch (failure) { setError(failure instanceof Error ? failure.message : 'That did not work. Try again.') }
+    try { await request() } catch (failure) { setError(failed(failure)) }
     finally { await client.invalidateQueries({ queryKey: STORY_KEY }); setPending(null); setBusy(false) }
   }
   const send = (text: string) => { const clientId = newId(); return run({ text, clientId }, () => api('/story/messages', { text, client_id: clientId })) }
@@ -79,11 +84,16 @@ export function Story({ go }: { go: (view: View) => void }) {
   }
   /** Undo on Another reply: the reply that was there before is back, with what it had done. Nothing is written. */
   const undo = () => run(null, () => api('/story/retry/undo', {}))
-  /** The narrator's reply or a companion's line in the user's wording, in place: nothing is written again. */
-  const reword = (line: StoryMessage, text: string) => {
+  /** The narrator's reply or a companion's line in the user's wording, in place: nothing is written again, and the
+   * page stays where it is, since the line may be far up the story. */
+  const reword = async (line: StoryMessage, text: string) => {
     update({ ...story.data, messages: story.data.messages.map((message) => (message.id === line.id ? { ...message, text } : message)) })
-    return run(null, () => api(`/story/messages/${line.id}`, { text }, 'PUT'))
+    setError('')
+    try { await api(`/story/messages/${line.id}`, { text }, 'PUT') } catch (failure) { setError(failed(failure)) }
+    finally { await client.invalidateQueries({ queryKey: STORY_KEY }) }
   }
+  /** Start a new chapter of the same story, or take that back: nothing is cleared (companion/story_chapters.py). */
+  const chapter = (method: 'POST' | 'DELETE') => run(null, () => api<StoryData>('/story/chapter', undefined, method).then(update))
   const main = story.data.companions.find((companion) => companion.main)
   /** The first-open button: go to the companion when they are somewhere else the story can go, then say the first line.
    * A plan under way takes no line from the user: the button goes to it, or starts its scene. */
@@ -109,12 +119,14 @@ export function Story({ go }: { go: (view: View) => void }) {
         Add a text model in Settings &gt; Models to tell the story.</Notice></div>}
       <Opening at="top" story={story.data} busy={busy} onStart={() => void start()} />
       <StoryLog messages={story.data.messages} pending={pending} companions={story.data.scene.companions} lookFor={lookFor}
-        onScrolled={onScrolled} busy={busy} onAgain={(line) => void again(line)} onUndo={() => void undo()} onEdit={(line) => { if (!busy) setEditing(line) }} />
+        chapters={story.data.chapters} next={pending ? null : story.data.next_chapter} onUndo={() => void chapter('DELETE')}
+        onScrolled={onScrolled} busy={busy} onAgain={(line) => void again(line)} onUndoReply={() => void undo()} onEdit={(line) => { if (!busy) setEditing(line) }} />
       <Opening at="bottom" story={story.data} busy={busy} onStart={() => void start()} />
       {error && <div className="story-notice"><Notice tone="error">{error}</Notice></div>}
       <StoryComposer busy={busy} onSend={(text) => void send(text)} />
       {editing && <EditLine line={editing} onClose={() => setEditing(null)} onSave={(text) => { setEditing(null); void (editing.role === 'user' ? again(editing, text) : reword(editing, text)) }} />}
-      <NewStory empty={!story.data.messages.length} onClear={() => run(null, () => api<StoryData>('/story', undefined, 'DELETE').then(update))} />
+      <StoryFooter empty={!story.data.messages.length} waiting={!!story.data.next_chapter} busy={busy} onChapter={() => void chapter('POST')}
+        onClear={() => run(null, () => api<StoryData>('/story', undefined, 'DELETE').then(update))} />
     </section>
   )
 }
@@ -141,7 +153,7 @@ function SceneBar({ scene, onMap, onMove }: { scene: StoryScene; onMap: () => vo
       <p><MapPin aria-hidden="true" /> <strong>{whereText(scene)}</strong></p>
       <p className="subtle">{sceneTime(scene.local_time)}{scene.weather ? ` · ${scene.weather}` : ''}</p>
       {!!scene.place.spots?.length && <p className="subtle">{spotsText(scene.place.spots)}</p>}
-      <p>{aroundText(scene.around)}</p>
+      <p>{aroundText(scene.around, scene.place.home)}</p>
       {scene.plan && <p className="story-plan">{planText(scene.plan)}</p>}
       {scene.plan?.storyline && <p>Part of a storyline.</p>}
       {moving ? <GoElsewhere scene={scene} onDone={() => setMoving(false)} onMove={onMove} />
@@ -155,11 +167,16 @@ function SceneBar({ scene, onMap, onMove }: { scene: StoryScene; onMap: () => vo
 
 interface GoProps { scene: StoryScene; onDone: () => void; onMove: (body: { city_id: string; place_id?: string }) => Promise<void> }
 
+/** Going somewhere else: home in one press, first and apart (Iris, 2026-11-26), then a city and a place in it. The
+ * story also follows what the user writes (companion/life/scene_now.py). */
 function GoElsewhere({ scene, onDone, onMove }: GoProps) {
   const cities = useQuery({ queryKey: ['world-cities'], queryFn: () => api<CitySummary[]>('/world/cities') })
   const [place, setPlace] = useState(scene.place.id)
+  const home = goHome(scene)
+  const here = homeChoice(scene)
   return (
     <div className="story-go form-actions">
+      {home && <div className="story-go-home"><button type="button" className="button" onClick={() => void onMove(home).then(onDone)}><Home aria-hidden="true" />Go home</button></div>}
       <label>City
         <select value={scene.city.id} onChange={(event) => void onMove({ city_id: event.target.value })}>
           <CityOptions cities={cities.data ?? [scene.city]} />
@@ -167,6 +184,7 @@ function GoElsewhere({ scene, onDone, onMove }: GoProps) {
       </label>
       <label>Place
         <select value={place} onChange={(event) => setPlace(event.target.value)}>
+          {here && <option value={here.id}>{here.name}</option>}
           {placeGroups(scene.places).map(([hood, places]) => (
             <optgroup key={hood} label={hood}>
               {places.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.kind})</option>)}
@@ -182,38 +200,47 @@ function GoElsewhere({ scene, onDone, onMove }: GoProps) {
 interface LogProps {
   messages: StoryMessage[]; pending: Pending | null; companions: { id: string; name: string }[]
   lookFor: (companionId: string | null) => CSSProperties | undefined; onScrolled: (top: number, room: number) => void
-  busy: boolean; onAgain: (line: StoryMessage) => void; onUndo: () => void; onEdit: (line: StoryMessage) => void
+  /** The chapters the lines are in, and the one waiting for its first line (companion/story_chapters.py). */
+  chapters: StoryChapter[]; next: StoryChapter | null; onUndo: () => void  // `next` is null while a line is being answered.
+  /** Under the newest reply (companion/story_again.py): told again, the one before brought back, a line edited. */
+  busy: boolean; onAgain: (line: StoryMessage) => void; onUndoReply: () => void; onEdit: (line: StoryMessage) => void
 }
 
-function StoryLog({ messages, pending, companions, lookFor, onScrolled, busy, onAgain, onUndo, onEdit }: LogProps) {
+function StoryLog({ messages, pending, companions, lookFor, chapters, next, onUndo, onScrolled, busy, onAgain, onUndoReply, onEdit }: LogProps) {
   const end = useRef<HTMLDivElement>(null)
-  // Again once the replies are all in: Another reply and Edit your line show under them then.
-  useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [messages.length, pending, busy])
   const line = busy ? null : latestLine(messages)
-  // The sent line shows from here until the story read again has it; its replies then arrive one speaker at a time.
-  const saved = pending !== null && messages.some((message) => message.client_id === pending.clientId)
+  // Again once the replies are all in: Another reply and Edit your line show under them then.
+  useStoryScroll(end, messages.length, pending ?? `${next?.number ?? ''}:${line ? 'answered' : ''}`)
   return (
     <div className="story-log" aria-live="polite" onScroll={(event) => onScrolled(event.currentTarget.scrollTop, event.currentTarget.scrollHeight - event.currentTarget.clientHeight)}>
-      {messages.map((message) => <StoryLine key={message.id} message={message} look={message.speaker ? lookFor(message.speaker) : undefined} onEdit={onEdit} />)}
-      {pending && <>{!saved && pending.text && <p className="story-user">{pending.text}</p>}<p className="subtle">{writingText(messages, pending.clientId, companions)}</p></>}
-      {line && <LatestActions label={againLabel(messages, line)} onAgain={() => onAgain(line)} onUndo={line.undo ? onUndo : undefined} onEdit={line.hidden ? undefined : () => onEdit(line)} />}
+      <StoryLines messages={messages} chapters={chapters} headed={numbered(chapters, next)} lookFor={lookFor} onEdit={onEdit} />
+      {line && <LatestActions messages={messages} line={line} onAgain={onAgain} onUndo={onUndoReply} onEdit={onEdit} />}
+      {next && <ChapterHeading chapter={next} onUndo={onUndo} />}
+      {pending && <Writing messages={messages} pending={pending} companions={companions} />}
       <div ref={end} />
     </div>
   )
+}
+
+/** While a line is answered. The sent line shows from here until the story read again has it; its replies then
+ * arrive one speaker at a time. */
+function Writing({ messages, pending, companions }: { messages: StoryMessage[]; pending: Pending; companions: { id: string; name: string }[] }) {
+  const saved = messages.some((message) => message.client_id === pending.clientId)
+  return <>{!saved && pending.text && <p className="story-user">{pending.text}</p>}<p className="subtle">{writingText(messages, pending.clientId, companions)}</p></>
 }
 
 /** Under the story's newest reply, as under a chat's: the reply told again in its place (Try again when one failed or
  * never came), and the line it answers said differently. A story has one course, so only the latest line has them,
  * and only until the story goes on. A line the app said to start a plan's scene is not the user's to change. After
  * Another reply, Undo brings back the reply that was there, until the next line is sent. */
-function LatestActions({ label, onAgain, onUndo, onEdit }: { label: string; onAgain: () => void; onUndo?: () => void; onEdit?: () => void }) {
+function LatestActions({ messages, line, onAgain, onUndo, onEdit }: Pick<LogProps, 'messages' | 'onAgain' | 'onEdit'> & { line: StoryMessage; onUndo: () => void }) {
   // Pressing one must not take the cursor out of the message box: on a phone the tab bar comes back when it does,
   // everything moves up under the finger, and the tap lands on nothing.
   return (
     <div className="turn-actions story-actions" onMouseDown={(event) => event.preventDefault()}>
-      <button type="button" className="text-button" onClick={onAgain}><RotateCcw aria-hidden="true" />{label}</button>
-      {onUndo && <button type="button" className="text-button" onClick={onUndo}><Undo2 aria-hidden="true" />Undo<span className="visually-hidden">: bring back the reply before</span></button>}
-      {onEdit && <button type="button" className="text-button" onClick={onEdit}><Pencil aria-hidden="true" />Edit your line</button>}
+      <button type="button" className="text-button" onClick={() => onAgain(line)}><RotateCcw aria-hidden="true" />{againLabel(messages, line)}</button>
+      {line.undo && <button type="button" className="text-button" onClick={onUndo}><Undo2 aria-hidden="true" />Undo<span className="visually-hidden">: bring back the reply before</span></button>}
+      {!line.hidden && <button type="button" className="text-button" onClick={() => onEdit(line)}><Pencil aria-hidden="true" />Edit your line</button>}
     </div>
   )
 }
@@ -241,10 +268,23 @@ function EditLine({ line, onClose, onSave }: { line: StoryMessage; onClose: () =
   )
 }
 
-function StoryLine({ message, look, onEdit }: { message: StoryMessage; look?: CSSProperties; onEdit: (line: StoryMessage) => void }) {
-  if (message.role === 'scene' || message.role === 'cast') return <p className="story-move">{message.text}</p>
+/** The lines in their chapters: a chapter's heading stands above its first line (companion/story_chapters.py),
+ * once the story has more than one (`headed`). */
+function StoryLines({ messages, chapters, headed, lookFor, onEdit }: Pick<LogProps, 'messages' | 'chapters' | 'lookFor' | 'onEdit'> & { headed: boolean }) {
+  return <>{messages.map((message, index) => {
+    const chapter = chapters.find((item) => item.number === message.chapter)
+    return <Fragment key={message.id}>
+      {headed && chapter && messages[index - 1]?.chapter !== message.chapter && <ChapterHeading chapter={chapter} />}
+      <StoryLine message={message} began={chapter?.local_time} look={message.speaker ? lookFor(message.speaker) : undefined} onEdit={onEdit} />
+    </Fragment>
+  })}</>
+}
+
+function StoryLine({ message, began, look, onEdit }: { message: StoryMessage; began?: string; look?: CSSProperties; onEdit: (line: StoryMessage) => void }) {
+  const time = <LineTime at={message.local_time} began={began} />
+  if (message.role === 'scene' || message.role === 'cast') return <p className="story-move">{message.text} {time}</p>
   if (message.hidden) return null
-  if (message.role === 'user') return <><p className="story-user">{message.text}</p>{message.crisis_help && <CrisisNote />}</>
+  if (message.role === 'user') return <><div className="story-mine"><p className="story-user">{message.text}</p>{time}</div>{message.crisis_help && <CrisisNote />}</>
   if (message.status === 'failed') return <Notice tone="error">{message.role === 'companion' ? `${message.name} could not answer` : 'The narrator could not go on'}: {message.error}</Notice>
   return <StoryReply message={message} look={look} onEdit={onEdit} />
 }
@@ -253,12 +293,14 @@ function StoryLine({ message, look, onEdit }: { message: StoryMessage; look?: CS
  * Either can be reworded: Edit shows on it with a mouse or the keyboard, and on a touch screen it is pressed and
  * held for its sheet, as a chat's messages are (useMessageSheet.tsx). */
 function StoryReply({ message, look, onEdit }: { message: StoryMessage; look?: CSSProperties; onEdit: (line: StoryMessage) => void }) {
+  // A reply shows no time of its own: it comes moments after the line above it. Pointing at it says when.
+  const when = chapterWhen(message.local_time)
   const actions: Action<StoryMessage>[] = [['Edit', <Pencil key="icon" aria-hidden="true" />, onEdit]]
   const sheet = useMessageSheet(message, actions)
   const said = message.role === 'companion'
   const parts = message.text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)
   return (
-    <div className={`story-reply ${said ? `story-said${look ? ' their-name' : ''}` : 'story-narration'}${sheet.pressing ? ' pressing' : ''}`} style={look} {...sheet.press}>
+    <div className={`story-reply ${said ? `story-said${look ? ' their-name' : ''}` : 'story-narration'}${sheet.pressing ? ' pressing' : ''}`} style={look} title={when} {...sheet.press}>
       {said && <p className="story-speaker">{message.name}</p>}
       {parts}
       <span className="story-tools"><button type="button" className="text-button" onClick={() => onEdit(message)}><Pencil aria-hidden="true" />Edit<span className="visually-hidden"> {said ? `${message.name}'s line` : "the narrator's reply"}</span></button></span>
@@ -287,23 +329,4 @@ function StoryComposer({ busy, onSend }: { busy: boolean; onSend: (text: string)
     </form>
     <AiFooter />
   </>)
-}
-
-function NewStory({ empty, onClear }: { empty: boolean; onClear: () => Promise<void> }) {
-  const [asking, setAsking] = useState(false)
-  if (empty) return null
-  return (
-    <div className="story-footer">
-      <ExportLinks target={{ kind: 'story' }} />
-      <button type="button" className="text-button" onClick={() => setAsking(true)}>Start a new story…</button>
-      {asking && <ConfirmDialog title="Start a new story?" onClose={() => setAsking(false)} actions={<>
-        <button type="button" className="button" onClick={() => setAsking(false)}>Cancel</button>
-        <button type="button" className="button primary" onClick={() => void onClear().then(() => setAsking(false))}>Start a new story</button>
-      </>}>
-        <p>The story so far and the people you&apos;ve met in it are cleared for good. You stay where you are.</p>
-        <p className="subtle">To keep a copy, export it first:</p>
-        <p className="form-actions"><ExportLinks target={{ kind: 'story' }} /></p>
-      </ConfirmDialog>}
-    </div>
-  )
 }

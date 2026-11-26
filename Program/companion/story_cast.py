@@ -183,7 +183,7 @@ def sync(connection, add, present: list[dict], now: str, where: dict) -> None:
 
 
 def leave(connection) -> None:
-    """The user went somewhere else, or began a new story: nobody is with them any more."""
+    """The user went somewhere else, or cleared the pages: nobody is with them any more."""
     connection.execute('DELETE FROM story_cast')
 
 
@@ -268,7 +268,9 @@ def scene_part(view: dict, item: dict, seen) -> str:
     part = townsfolk.part_of_day(moment.hour * 60 + moment.minute)
     around = story_plans.around(view['companions']) + [seen(person, view) for person in view['people']] + \
         [other['name'] for other in view['companions'] if other['id'] != item['id']]
-    lines = [f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {view['city']['name']}. "
+    from companion import story  # Imported here: it reads this module.
+    lines = [story.home_line(place, view['city']['name']) if place.get('home') else
+             f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {view['city']['name']}. "
              f"{place['summary']}".rstrip(),
              f"Local time: {moment:%A} {moment.day} {moment:%B}, {moment:%H:%M} ({part})."]
     if view['weather']:
@@ -304,9 +306,11 @@ def story_lines(connection, view: dict, item: dict, rows: list[dict], now: datet
 
 def chance_lines(connection, view: dict, item: dict) -> list[tuple[str, str]]:
     """With no plan between them: where they are and why, and who came to whom."""
+    from companion import story  # Imported here: it reads this module.
     place = view['place']
     doing = 'at work here' if item['doing'] == AT_WORK else 'here on your own time'
-    lines = [(f"story:{place['id']}", f"You are {item['name']}, in person with the user at {place['name']}. "
+    at = story.HOME_TOLD if place.get('home') else place['name']  # Their own home is not "Your home" to a companion.
+    lines = [(f"story:{place['id']}", f"You are {item['name']}, in person with the user at {at}. "
               f"You are {doing}.")]
     stay = optional(connection, 'SELECT since_seq FROM story_cast WHERE companion_id=?', (item['id'],))
     if here_first(connection, stay['since_seq'] if stay else 0):

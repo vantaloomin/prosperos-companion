@@ -308,3 +308,21 @@ def test_undo_brings_back_what_a_companion_said_about_themselves(client, barkeep
     back = ok(undo(client))
     assert [row['id'] for row in back['replies']] == [row['id'] for row in sent['replies']]
     assert ('cousin', 'Theo') in self_facts(client) and ('brother', 'Sol') not in self_facts(client)
+
+
+def test_a_chapter_started_before_a_retelling_still_begins_with_the_next_line(client, clock, provider):
+    connect(client)
+    provider.replies = [[Chunk('A man waves you over.'), Chunk('', 'stop')]]
+    say(client, 'Mh.. good evening...', 'story-0001')
+    ok(client.post('/api/story/chapter'))
+    # Told again, and the new reply never comes: the story is shorter than when the chapter was started.
+    provider.replies = [[Chunk('', 'stop')]]
+    assert ok(client.post('/api/story/retry'))['reply']['status'] == 'failed'
+    assert ok(client.get('/api/story'))['next_chapter']['by'] == 'asked'
+    ok(undo(client))
+    provider.replies = [[Chunk('The kettle sings.'), Chunk('', 'stop')]]
+    ok(client.post('/api/story/retry'))
+    provider.replies = [[Chunk('He pours.'), Chunk('', 'stop')]]
+    say(client, 'I sit down.', 'story-0002')
+    opened = ok(client.get('/api/story'))
+    assert [line['chapter'] for line in opened['messages']] == [1, 1, 2, 2] and opened['next_chapter'] is None

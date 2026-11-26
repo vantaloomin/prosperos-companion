@@ -24,6 +24,16 @@ def read(request: Request):
     return story.story(request.app.state.database)
 
 
+@router.get('/visits')
+def visits(request: Request):
+    """The main companion's finished visits, for a line each in their 1:1 chat (companion/story_visits.py)."""
+    from companion import story_visits
+    from companion.characters import current
+    with request.app.state.database.connect() as connection:
+        companion = current(connection)
+        return {'visits': story_visits.chat_lines(connection, companion) if companion else []}
+
+
 @router.put('/scene')
 def move(request: Request, body: StoryScene):
     return story.move(request.app.state.database, body.city_id, body.place_id)
@@ -78,6 +88,16 @@ async def retry(request: Request):
 @router.post('/retry/undo')
 def undo(request: Request):
     return story.undo(request.app.state.database)
+
+
+@router.post('/chapter')
+def new_chapter(request: Request):
+    return story.chapter(request.app.state.database, True)
+
+
+@router.delete('/chapter')
+def undo_chapter(request: Request):
+    return story.chapter(request.app.state.database, False)
 
 
 @router.delete('')

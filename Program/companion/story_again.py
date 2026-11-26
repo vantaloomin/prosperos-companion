@@ -22,7 +22,7 @@ point of the story: the story goes on from the new words, as every later reply r
 left behind follows it: the sentences kept about the people met, what a companion said about themselves and, for a
 line of the latest exchange, what it let the others in the scene learn.
 """
-from companion import story_cast, story_people, story_said, story_secrets, story_visits
+from companion import story_cast, story_chapters, story_people, story_said, story_secrets, story_visits
 from companion.database import decode, encode, many, optional
 
 PEOPLE = ('city_id', 'name', 'first_met_at', 'last_met_at', 'last_day', 'meetings', 'notes')
@@ -98,6 +98,7 @@ def take_back(connection, user: dict, timestamp: str) -> dict | None:
             connection.execute(f'DELETE FROM dating_swipes WHERE {said_yes}', (row['created_at'],))
     connection.execute(f'DELETE FROM self_facts WHERE story_message_id IN ({marks})', ids)
     connection.execute('DELETE FROM story_messages WHERE reply_to=?', (user['id'],))
+    story_chapters.keep_waiting(connection)
     return taken
 
 

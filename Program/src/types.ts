@@ -2023,10 +2023,15 @@ export interface StoryPlace {
   id: string; name: string; kind: string; neighborhood: string; summary?: string
   /** Named spots inside, for detail (companion/world/inside.py): "the back patio". */
   spots?: string[]
+  /** The user's own home (companion/story.py HOME), with no neighbourhood in a city that has none. */
+  home?: boolean
 }
+/** Where the user lives, for "Go home": the city and the place id the story takes for it; `here` once it is there. */
+export interface StoryHome { city_id: string; place_id: string; name: string; here: boolean }
 export interface StoryScene {
   city: { id: string; name: string; era: string }
   place: StoryPlace
+  home: StoryHome | null
   local_time: string
   weather: string
   places: StoryPlace[]
@@ -2054,7 +2059,13 @@ export interface StoryMessage {
   hidden?: number
   /** On the user's line: Another reply on it can be undone (companion/story_again.py). */
   undo?: boolean
+  /** Which chapter the line is in, from 1, and when it was written on its city's clock, with no offset
+   * (companion/story_chapters.py). */
+  chapter: number; local_time: string
 }
+/** A chapter of the Story with the time of its first line. `by` is set on one still waiting for its first line:
+ * 'asked' when the user started it, 'time' when the story was picked up again after a while. */
+export interface StoryChapter { number: number; local_time: string; by?: 'asked' | 'time' | null }
 /** A companion as the Story has them now: in the scene (`here`), somewhere the story can go (`place`), or neither. */
 export interface StoryCompanion {
   key: string; id: string; name: string; main: boolean; here: boolean; doing: string; city: string | null
@@ -2073,7 +2084,15 @@ export interface StoryPerson {
   /** While they are in the scene and have not said yes: the button that asks for the user, and the line it says. */
   ask?: { label: string; line: string } | null
 }
-export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; companions: StoryCompanion[]; ready: boolean; can_switch: boolean }
+/** A finished visit with a companion in the Story, for a line in their 1:1 chat (companion/story_visits.py): `at`
+ * places it in the history, `from` and `until` are when it began and when the last thing was said, and `chapter` is the Story chapter
+ * it can still be read in, or null. */
+export interface StoryVisit { id: string; at: string; place: string; from: string; until: string; chapter: number | null }
+export interface Story {
+  scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; companions: StoryCompanion[]; ready: boolean; can_switch: boolean
+  /** The chapters the lines shown are in, and the one waiting for its first line, if any. */
+  chapters: StoryChapter[]; next_chapter: StoryChapter | null
+}
 
 /** The dating app (companion/dating.py): the user's profile, the deck, matches and any Story mode date. */
 export type DatingGender = 'woman' | 'man' | 'nonbinary'

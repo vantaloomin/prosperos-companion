@@ -3,7 +3,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown } from 'lucide-react'
 import { api, ApiError } from '../../api'
-import type { Companion, DeclineResult, History, Message, RememberResult, SearchResult, SendResult } from '../../types'
+import type { Companion, DeclineResult, History, Message, RememberResult, SearchResult, SendResult, StoryVisit } from '../../types'
 import { HISTORY_KEY, MEMORIES_KEY, type View } from '../../companion'
 import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
@@ -45,6 +45,9 @@ import { takeArrival } from '../worlds/arrival'
 import { pinnedIn, useSetVoicePin, useVoicePins, VoiceActions } from './voicePins'
 import { useChatLook } from './useTheirLook'
 import { notesBefore, notesAfter } from './lookNotes'
+import { visitText } from './storyVisits'
+import { useStoryVisits } from './useStoryVisits'
+import { openStoryAt } from '../story/storyTarget'
 import { THEIR_LOOK_KEY } from './theirLook'
 import { AiNoticeLine } from '../../components/Safety'
 
@@ -59,6 +62,16 @@ const JUMP_PAGE = 500
 /** "Dana changed their colors.": a muted line where the app changed their look, never a message. */
 function LookNotes({ notes }: { notes: { text: string; at: string }[] }) {
   return <>{notes.map((note) => <p key={note.at} className="group-note look-note" role="note">{note.text}</p>)}</>
+}
+
+/** Time spent together in the Story, at the point in the chat it happened (companion/story_visits.py): the scene is
+ * part of the same life, so the chat says it was there. "Read it" opens the Story at that chapter. */
+function StoryVisitNotes({ visits, go }: { visits: StoryVisit[]; go: (view: View) => void }) {
+  const now = appNow()
+  return <>{visits.map((visit) => (
+    <p key={visit.id} className="group-note look-note" role="note">{visitText(visit, now)}
+      {visit.chapter !== null && <> · <button type="button" className="text-button inline" onClick={() => { openStoryAt(visit.chapter ?? 1); go('story') }}>Read it</button></>}
+    </p>))}</>
 }
 
 function ReplyFollower({ id, onText, onPhase, onDone, onLost }: { id: string; onText: (id: string, text: string) => void; onPhase: (id: string, phase: Phase) => void; onDone: (reply: Message) => void; onLost: (id: string) => void }) {
@@ -259,6 +272,8 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   // Their own colour and name font (companion/their_look.py), and the lines where the app changed them.
   const section = useRef<HTMLElement>(null)
   const look = useChatLook(section)
+  // Finished visits in the Story, each a line where it happened (companion/story_visits.py).
+  const visits = useStoryVisits()
 
   return (
     <div className={`chat-shell shell-${chat.style}`}>
@@ -278,11 +293,13 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
             {turns.map((turn, index) => (
               <Fragment key={turnKey(turn)}>
                 <LookNotes notes={notesBefore(look.changes, turns, index)} />
+                <StoryVisitNotes visits={notesBefore(visits, turns, index)} go={go} />
                 <TurnView turn={turn} name={name} live={liveFor(turn, live)} isLatest={turnKey(turn) === latestUserId} busy={turnKey(turn) === latestUserId && streaming} onRetry={turnActions.retry} onChoose={turnActions.choose} onStop={turnActions.stop} onRemember={turnActions.remember} onDecline={turnActions.decline} onEdit={turnActions.edit} onBranch={turnActions.branch} onMoment={turnActions.moment} bursts={!!companion.version.definition.texting?.bursts && !together} highlight={found?.id} newest={!turn.user && turn === turns.at(-1)} followUp={turnKey(turn) === latestUserId ? followUp : undefined} />
                 {endsOlderHistory(turns, index) && <p className="history-end subtle">Older history from an old chat ends here</p>}
               </Fragment>
             ))}
             <LookNotes notes={notesAfter(look.changes, turns)} />
+            <StoryVisitNotes visits={notesAfter(visits, turns)} go={go} />
             </VoiceActions.Provider>
           </div>
           {scroll.away && <div className="jump-latest"><button type="button" className="icon-button" aria-label="Jump to the newest messages" onClick={scroll.toLatest}><ArrowDown aria-hidden="true" /></button></div>}

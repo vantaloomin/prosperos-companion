@@ -100,7 +100,7 @@ A match can be met in the story: the user picks a place in their city (their usu
 first), the story moves there and the narrator is told the date is there, what they look like and what they
 are looking for. Story mode's only hook is `dating.with_date`, which `story.present` calls to add the date
 to whoever the townsfolk rules put there; the date's line in the scene comes from its `note`, and the screen
-shows them as "your date, Maya". Going somewhere else, starting a new story or **End the date** ends it. A date also adds them to the user's people-met list (`story_people.meet`).
+shows them as "your date, Maya". Going somewhere else, clearing the story's pages or **End the date** ends it. A date also adds them to the user's people-met list (`story_people.meet`).
 
 ## API
 
