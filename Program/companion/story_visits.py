@@ -100,6 +100,18 @@ def said(connection, user: dict, view: dict, now: datetime) -> None:
     story_said.user_line(connection, user, [item for item in view['companions'] if item['id'] in spoken_to], target, now)
 
 
+def said_again(connection, user: dict, old_text: str, view: dict, now: datetime) -> None:
+    """The user's latest line was changed (companion/story_again.py): whoever the old words were said to no longer
+    counts them, and the new words are read as a new line is. A relationship step the old words settled stays
+    settled (steps.said_in_person reads a line once), and what they told a companion stays remembered until the new
+    words correct it."""
+    if counts(connection) and not in_character.out_of_character(old_text):
+        for item in story_cast.speakers(view['companions'], view['people'], old_text):
+            connection.execute('UPDATE story_visits SET said=MAX(said - 1, 0) WHERE companion_id=? AND ended_at IS NULL '
+                               'AND last_seq>=?', (item['id'], user['seq']))
+    said(connection, user, view, now)
+
+
 def meant_for(present: list[dict], spoken_to: set[str], text: str) -> dict | None:
     """The one companion a line is said to: the only one there, or the only one it names."""
     found = [item for item in present if item['id'] in spoken_to]

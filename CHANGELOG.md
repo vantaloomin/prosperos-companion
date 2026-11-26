@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Story: another reply, and editing:** the Story had no way to get a different reply or to change anything once
+  it was said. Under the newest reply there is now Another reply, which tells it again, and Edit your line, which
+  changes what you last said and has it answered anew. The narrator's reply and a companion's line can be edited
+  too, anywhere in the story, to cut or change something: hover over one and choose Edit, or press and hold it on a
+  phone. A story has one course, so the reply told before is replaced, and what it had made people know or remember
+  is taken back with it. On a phone, a short story can now always be scrolled to its newest lines.
 - **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat
   message. Posts now have a Comment button: your comment goes under the post, and whoever posted answers you there,
   your companion on their own posts and a friend on theirs, once they would have seen it (sooner or later by

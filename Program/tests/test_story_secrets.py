@@ -189,3 +189,21 @@ def test_news_said_there_is_heard_by_everyone_there(client, scene, provider, mon
     with database.connect() as connection:
         lines = news.context_lines(connection, by_id(connection, scene['Sam']), database.clock.now())
     assert len(lines) == 1 and '(Mira told you in person): Mira took up pottery for real.' in lines[0][1]
+
+
+def test_a_slip_cut_from_their_line_was_never_made(client, scene, provider):
+    secret = declare(client, scene)
+    set_life(client, drama=3)
+    provider.respond = lines_say(Mira=[SLIP, SLIP])
+    sent = say(client, 'I sit at the bar. "Mira, any news?"', 'story-0001')
+    assert knows(client, secret['id']) == {'Mira': 'origin', 'Sam': 'slip'}
+    line = next(row for row in sent['replies'] if row['text'] == SLIP)
+    # Reworded and still giving it away, it is still a slip.
+    ok(client.put(f"/api/story/messages/{line['id']}", json={'text': SLIP + ' She shrugs.'}))
+    assert knows(client, secret['id']) == {'Mira': 'origin', 'Sam': 'slip'}
+    assert any('slip' in text for role, _name, text in story_lines(client) if role == 'cast')
+    # Cut from the line (Edit, companion/story_again.py), nobody learned it and the story does not say they did.
+    ok(client.put(f"/api/story/messages/{line['id']}", json={'text': '"Same old," Mira says.'}))
+    assert knows(client, secret['id']) == {'Mira': 'origin'}
+    assert ('companion', 'Mira', '"Same old," Mira says.') in story_lines(client)
+    assert all('slip' not in text for role, _name, text in story_lines(client) if role == 'cast')

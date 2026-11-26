@@ -20,6 +20,7 @@ from companion import (
     prompt_library,
     safety,
     secrets,
+    story_again,
     story_cast,
     story_people,
     story_plans,
@@ -296,9 +297,10 @@ def companions(connection, view: dict) -> list[dict]:
             for item in story_cast.whereabouts(connection, data_for, view['now'])]
 
 
-def people(connection, view: dict) -> list[dict]:
-    """Everyone the user has met in the story, most recent first, with where their rules put them now."""
-    result, cities = [], {}
+def met(connection, view: dict) -> list[tuple[dict, dict, dict]]:
+    """(their `known` row, their sheet, their city) for everyone the user has met in the story, most recent first.
+    Someone whose city is gone, or whose townsfolk were seeded anew, is left out."""
+    found, cities = [], {}
     for row in view['known'].values():
         if row['city_id'] not in cities:
             try:
@@ -307,8 +309,15 @@ def people(connection, view: dict) -> list[dict]:
                 cities[row['city_id']] = None
         data = cities[row['city_id']]
         sheet = townsfolk.find(data, row['key']) if data else None
-        if sheet is None:
-            continue  # Their city is gone, or its townsfolk were seeded anew.
+        if sheet is not None:
+            found.append((row, sheet, data))
+    return found
+
+
+def people(connection, view: dict) -> list[dict]:
+    """Everyone the user has met in the story, most recent first, with where their rules put them now."""
+    result = []
+    for row, sheet, data in met(connection, view):
         now = townsfolk.whereabouts(sheet, data, local_moment(data, view['now']))
         here = any(person['sheet']['key'] == row['key'] for person in view['people'])
         result.append({'key': row['key'], 'name': row['name'], 'role': sheet.get('occupation') or sheet['role'],
@@ -478,12 +487,15 @@ async def narrate(state, user: dict) -> tuple[dict, dict]:
     error = None if status == 'complete' else error or 'The model returned no story text.'
     with database.connect(write=True) as connection:
         connection.execute("DELETE FROM story_messages WHERE reply_to=? AND status='failed'", (user['id'],))
+        # How the people here were before this reply, so that telling it again starts from there (story_again.py).
+        before = story_again.met(connection, [person['sheet']['key'] for person in packet['people']])
         if status == 'complete' and not in_character.out_of_character(user['text']):
             story_people.note_exchange(connection, packet['people'], packet['city_id'], user['text'], text,
                                        database.now(), packet['day'])
         told = add(connection, database.now(), 'narrator', text, user, reply_to=user['id'], status=status, error=error)
         if status == 'complete':
             story_pursuit.settle(connection, add, packet['ask'], user, packet['city_id'], database.now(), packet['day'])
+            story_again.keep(connection, told, before)
         return told, packet['view']
 
 
@@ -574,11 +586,16 @@ def record(database, text: str, client_id: str, hidden: bool = False) -> dict:
         return user
 
 
+def exchange(user: dict, found: list[dict]) -> dict:
+    """What sending, telling again and editing answer with: `reply` is the narrator's; `replies` are all of them in
+    order, a companion's own lines after it."""
+    found = [story_again.shown(row) for row in found]
+    return {'message': story_again.shown(user), 'reply': found[0], 'replies': found}
+
+
 async def send(state, text: str, client_id: str) -> dict:
-    """`reply` is the narrator's; `replies` are all of them in order, a companion's own lines after it."""
     user = record(state.database, text, client_id)
-    found = await answer(state, user)
-    return {'message': user, 'reply': found[0], 'replies': found}
+    return exchange(user, await answer(state, user))
 
 
 async def begin(state, client_id: str) -> dict:
@@ -590,21 +607,57 @@ async def begin(state, client_id: str) -> dict:
     item = next((item for item in found['companions'] if item.get('plan')), None)
     require(item is not None, "There is no plan under way here.", 409)
     user = record(database, story_plans.BEGIN.format(name=item['name']), client_id, hidden=True)
-    replies_ = await answer(state, user)
-    return {'message': user, 'reply': replies_[0], 'replies': replies_}
+    return exchange(user, await answer(state, user))
 
 
 async def retry(state) -> dict:
     """Try again what failed in the replies to the user's latest message, keeping what was written; with nothing
-    failed, tell the whole reply again."""
+    failed, tell the whole reply again (Another reply): the one told before goes, and what it had done is taken
+    back (companion/story_again.py). Not once the story has gone on, somewhere else say."""
     with state.database.connect(write=True) as connection:
-        user = optional(connection, "SELECT * FROM story_messages WHERE role='user' ORDER BY seq DESC LIMIT 1")
+        user = story_again.latest(connection)
         require(user is not None, 'There is nothing to retell yet.', 409)
         failed = connection.execute("DELETE FROM story_messages WHERE reply_to=? AND status='failed'",
                                     (user['id'],)).rowcount
         if not failed:
-            # Told anew, so what its lines let people learn is taken back (companion/story_secrets.py).
-            story_secrets.unsay(connection, [row['id'] for row in replies(connection, user)], state.database.now())
-            connection.execute('DELETE FROM story_messages WHERE reply_to=?', (user['id'],))
-    found = await answer(state, user)
-    return {'message': user, 'reply': found[0], 'replies': found}
+            require(story_again.at_the_end(connection, user), story_again.MOVED_ON, 409)
+            story_again.take_back(connection, user, state.database.now())
+    return exchange(user, await answer(state, user))
+
+
+async def edit(state, message_id: str, text: str) -> dict:
+    """Edit on a line of the story (companion/story_again.py). The user's own latest line is said differently and
+    answered anew; the narrator's reply or a companion's line takes the new wording in place."""
+    with state.database.connect() as connection:
+        row = optional(connection, 'SELECT * FROM story_messages WHERE id=?', (message_id,))
+    require(row is not None, 'That line is no longer in the story.', 404)
+    if row['role'] == 'user':
+        return await edit_line(state, message_id, text)
+    return edit_reply(state.database, message_id, text)
+
+
+async def edit_line(state, message_id: str, text: str) -> dict:
+    """The user's latest line said differently: its replies go as on a retelling, the new words are read as a new
+    line is, and it is answered anew. Only the latest line, and only until the story goes on: a story has one
+    course, where a chat's edit starts a new timeline."""
+    database = state.database
+    with database.connect(write=True) as connection:
+        user = story_again.latest(connection)
+        require(user is not None and user['id'] == message_id and not user['hidden'] and
+                story_again.at_the_end(connection, user), story_again.LATEST_ONLY, 409)
+        view = scene(connection, database.clock.now())
+        story_again.take_back(connection, user, database.now())
+        user = story_again.reword(connection, user, text, view, database.clock.now(), database.now())
+    return exchange(user, await answer(state, user))
+
+
+def edit_reply(database, message_id: str, text: str) -> dict:
+    """The narrator's reply or a companion's line in the user's wording, wherever it is in the story: every later
+    reply reads the new words. Nothing is written again."""
+    with database.connect(write=True) as connection:
+        row = optional(connection, 'SELECT * FROM story_messages WHERE id=?', (message_id,))
+        require(row is not None and story_again.editable(row), "That line can't be changed.", 409)
+        view = scene(connection, database.clock.now())
+        known = [(person, sheet) for person, sheet, _data in met(connection, view)]
+        changed = story_again.reword_reply(connection, row, text.strip(), view, known, database.now())
+    return {'message': story_again.shown(changed)}
