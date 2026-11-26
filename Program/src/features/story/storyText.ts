@@ -66,9 +66,10 @@ export function grouped(around: string[]): string[] {
   })
 }
 
-/** "Nobody you would notice is here.", "The barista is here.", "A regular and two neighbors are here." */
-export function aroundText(around: string[]): string {
-  if (!around.length) return 'Nobody you would notice is here.'
+/** "Nobody you would notice is here.", "The barista is here.", "A regular and two neighbors are here."; at the
+ * user's own home, where there are no passers-by, "It's just you." */
+export function aroundText(around: string[], home = false): string {
+  if (!around.length) return home ? "It's just you." : 'Nobody you would notice is here.'
   const names = grouped(around).map((who, index) => index ? who : who[0].toUpperCase() + who.slice(1))
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   return `${list} ${around.length === 1 ? 'is' : 'are'} here.`

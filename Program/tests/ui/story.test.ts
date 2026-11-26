@@ -25,6 +25,8 @@ test('chapters are numbered only once there is a second one, written or waiting'
 
 test('who is around reads as a sentence', () => {
   assert.equal(aroundText([]), 'Nobody you would notice is here.')
+  assert.equal(aroundText([], true), "It's just you.")
+  assert.equal(aroundText(['Mira'], true), 'Mira is here.')
   assert.equal(aroundText(['the barista']), 'The barista is here.')
   assert.equal(aroundText(['the barista', 'a regular', 'a neighbor']), 'The barista, a regular and a neighbor are here.')
 })

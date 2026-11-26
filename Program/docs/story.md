@@ -44,7 +44,8 @@ The app decides the scene, the same way the life sim decides the companion's day
   "Your home" only while the story is there. At home the narrator is told "Place: The user's own
   home, in Remington, Baltimore. They live here." and "Nobody else is here." instead of passers-by
   (A/B on seven models, `/mnt/project-files/companion-story-home/ab/report.md`). No townsfolk are
-  placed there, and the rooms are only ones the user has named.
+  placed there, and the rooms are only ones the user has named. With nobody there the screen says
+  "It's just you." where a public place says "Nobody you would notice is here."
 - **When:** the app clock (debug time included) in the city's own timezone.
 - **Weather:** the city's typical weather for the date (`generators.conditions`).
 - **Who is there:** the townsfolk rules at that moment (`encounters.present`): people seeded at the

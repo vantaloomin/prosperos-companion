@@ -122,7 +122,7 @@ function SceneBar({ scene, onMap, onMove }: { scene: StoryScene; onMap: () => vo
       <p><MapPin aria-hidden="true" /> <strong>{whereText(scene)}</strong></p>
       <p className="subtle">{sceneTime(scene.local_time)}{scene.weather ? ` · ${scene.weather}` : ''}</p>
       {!!scene.place.spots?.length && <p className="subtle">{spotsText(scene.place.spots)}</p>}
-      <p>{aroundText(scene.around)}</p>
+      <p>{aroundText(scene.around, scene.place.home)}</p>
       {scene.plan && <p className="story-plan">{planText(scene.plan)}</p>}
       {scene.plan?.storyline && <p>Part of a storyline.</p>}
       {moving ? <GoElsewhere scene={scene} onDone={() => setMoving(false)} onMove={onMove} />
