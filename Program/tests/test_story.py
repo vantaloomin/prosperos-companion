@@ -110,7 +110,7 @@ def test_the_narrator_stays_in_the_story_unless_the_user_steps_out(client, clock
     assert 'out of character' in provider.requests[-1]['system']
 
 
-def test_a_failed_reply_can_be_told_again_and_a_new_story_started(client, clock, provider):
+def test_a_failed_reply_can_be_told_again_and_the_pages_cleared(client, clock, provider):
     connect(client)
     provider.replies = [[Chunk('', 'stop')]]
     failed = say(client, 'I wave at the barista.', 'story-0001')
@@ -157,8 +157,9 @@ def test_people_named_in_the_story_are_met_and_remembered(client, clock, provide
                                                                   'definition': drafted['definition']}))
     assert switched['version']['name'] == them['full']
 
+    # Clearing the pages never clears who the user has met: they are the world's (tests/test_story_chapters.py).
     cleared = ok(client.delete('/api/story'))
-    assert cleared['people'] == []
+    assert cleared['messages'] == [] and [person['key'] for person in cleared['people']] == [them['key']]
 
 
 def test_finding_someone_goes_to_where_they_are(client, clock, provider):

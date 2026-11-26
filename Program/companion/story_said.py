@@ -4,7 +4,7 @@
   through (companion/memory/formation.py, memory/extraction.py), read from the words said out loud (in quotation
   marks when the line has any). Every companion the line is said to hears it. A sensitive fact is kept only while
   sensitive memory is on: a scene has no message to offer it from as a suggestion. The memory remembers the line it
-  came from (`story_memories`), so its card can say so; a new story clears the lines, not the memories.
+  came from (`story_memories`), so its card can say so; clearing the pages clears the lines, not the memories.
 - The user's words move the companion's mood (companion/moods.py `from_user`) and rough patches
   (companion/life/rough_patches.py `note`: words that sting, an apology, a gesture, accepting their apology) as a
   text does, for the one companion the line is meant for. A promise ("I'll call you tonight") stays with chat.

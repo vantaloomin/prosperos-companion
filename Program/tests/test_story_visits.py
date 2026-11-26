@@ -83,7 +83,7 @@ def test_one_line_is_not_a_moment_and_a_day_leaves_one(client, barkeep, provider
     leave(client)
     at_work(client)
     talk(client, provider, lines=2, start=4)
-    # A new story clears the lines, never the time they spent.
+    # Clearing the pages clears the lines, never the time they spent.
     ok(client.delete('/api/story'))
     assert len(moments(client)) == 1
     with client.app.state.database.connect() as connection:

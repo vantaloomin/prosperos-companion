@@ -66,6 +66,16 @@ async def retry(request: Request):
     return await story.retry(request.app.state)
 
 
+@router.post('/chapter')
+def new_chapter(request: Request):
+    return story.chapter(request.app.state.database, True)
+
+
+@router.delete('/chapter')
+def undo_chapter(request: Request):
+    return story.chapter(request.app.state.database, False)
+
+
 @router.delete('')
 def clear(request: Request):
     return story.clear(request.app.state.database)
