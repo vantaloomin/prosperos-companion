@@ -23,6 +23,7 @@ from companion import (
     story_cast,
     story_people,
     story_plans,
+    story_private,
     story_pursuit,
     story_secrets,
     story_visits,
@@ -73,6 +74,9 @@ listing says so.
 - Everyone has a life of their own. People can be friendly, shy, busy or uninterested, and they answer the user \
 as they would a stranger until they know them. Romance happens only if the user pursues it and the other \
 person would plausibly welcome it.
+- People know only what they could see or hear from where they are. What the user whispers, shows or hands to \
+one person is for that person alone: nobody else in the scene reads it, repeats it, answers it or hints at it, \
+now or later. At most they notice that something passed.
 - Keep to the place's era and the city's character; people talk as people there and then would.
 - Never encourage, praise or help with self-harm or suicide, and never describe ways to do it. If the user says \
 they want to hurt themselves, take it seriously: let the people in the scene answer with real care.
@@ -388,15 +392,18 @@ def clear(database) -> dict:
 
 # The narrator -------------------------------------------------------------------------------------
 
-def model_messages(rows: list[dict], budget_chars: int, pronouns: dict | None = None) -> list[dict]:
+def model_messages(rows: list[dict], budget_chars: int, pronouns: dict | None = None,
+                   tags: dict | None = None) -> list[dict]:
     """The story so far as chat turns, newest kept when it does not all fit. A move is a note on the user's side,
-    and so is a companion coming or going; a companion's own line is on the user's side too, under their name."""
+    and so is a companion coming or going; a companion's own line is on the user's side too, under their name.
+    `tags` marks the lines that were for one person alone (companion/story_private.py)."""
     chat, used = [], 0
     for row in reversed(rows):
         if row['role'] != 'user' and row['status'] != 'complete':
             continue
         text = f"[{row['text']}]" if row['role'] in ('scene', story_cast.NOTE) else \
             story_cast.own_line(row, (pronouns or {}).get(row['speaker'])) if row['role'] == story_cast.ROLE else row['text']
+        text = story_private.tagged(text, row, tags)
         used += len(text)
         if used > budget_chars and chat:
             break
@@ -422,10 +429,14 @@ def prompt(connection, now: datetime, config: dict, latest: dict) -> dict:
         system += '\n\n' + in_character.OUT_OF_CHARACTER_NOTE.format(name='the narrator', model=default_name(config))
     budget = (config['context_tokens'] - config['max_output_tokens']) * CHARS_PER_TOKEN - len(system)
     rows = [row for row in messages(connection) if row['seq'] <= latest['seq']]
-    chat = model_messages(rows, max(budget, 2000), {item['id']: item['pronouns'] for item in view['companions']})
+    chat = model_messages(rows, max(budget, 2000), {item['id']: item['pronouns'] for item in view['companions']},
+                          story_private.tags(rows, view, skip=latest['id']))
     ask = None
     if not in_character.out_of_character(latest['text']):
         chat = steered(chat, authors_note.prompt_text(connection, 'story'))
+        # What the line whispers or shows to one person is for them alone (companion/story_private.py).
+        chat = story_private.after(chat, None if latest.get('hidden') else story_private.read(
+            latest['text'], view['companions'], view['people']))
         chat = story_cast.after(chat, view['companions'])  # A companion there answers for themself.
         # Someone the user asks out answers by their own rules; the narrator plays it out (story_pursuit.py).
         ask = story_pursuit.ask(connection, view, latest['text'])
