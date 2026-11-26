@@ -101,16 +101,18 @@ The Story is one story that goes on as long as the world does. Nothing has to be
 it, and the page says so in two ways (`companion/story_chapters.py`). Both are for the page and the export only: no
 model reads a chapter or a line's time, and the narrator reads the story across chapters as before.
 
-- **The time on each line:** every line shows the hour it was written, on its city's own clock, the same clock the
-  scene's time is on ("8:06 PM"; the companion's own clock in their city). It is read from the line's `created_at`,
-  so nothing new is stored. A line written on a later day than its chapter began (played past midnight) says the
-  day too ("Fri 12:10 AM").
+- **The time on a line:** the user's own lines and the app's lines ("Mira is here. · 8:06 PM") show the hour they
+  were written, on the city's own clock, the same clock the scene's time is on (the companion's own clock in their
+  city). It is read from the line's `created_at`, so nothing new is stored. A line written on a later day than its
+  chapter began (played past midnight) says the day too ("Fri 12:10 AM"). A reply comes moments after its line, so
+  it shows no time of its own on the reading page; pointing at it says when (Iris).
 - **Chapters:** rules decide them from the lines' own times. A line that comes two hours or more after the one before
   it starts a new chapter (`GAP`, the stretch a visit with a companion ends at). A reply never starts one, so a reply
   told again the next day stays with its line. Each chapter has a heading above its first line: "Chapter 2" and
-  "Tuesday, October 6 · 7:50 AM". A story written before chapters existed is read the same way, so it has them too.
+  "Tuesday, October 6 · 7:50 AM". A story with one chapter shows no heading: "Chapter 1" appears once there is a
+  second, written or waiting. A story written before chapters existed is read the same way, so it has them too.
 - **Coming back:** when the story is opened two hours or more after its last line, the next chapter's heading is
-  already at the end, with "A new chapter of the same story. Everything before it still happened." The next line
+  already at the end, with "The same story goes on. Everything before it still happened." The next line
   begins it.
 - **Start a new chapter:** the link under the box starts one now (`story_chapters`: the next line after `after_seq`
   begins it). Nothing is cleared. Until something is said in it, Undo takes it back. Asked for and then left a

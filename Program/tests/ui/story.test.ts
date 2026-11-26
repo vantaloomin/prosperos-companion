@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aroundText, chapterWhen, companionLine, lineTime, openingAction, openingText, personLine, placeGroups, sceneTime, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
+import { aroundText, chapterWhen, companionLine, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
@@ -14,6 +14,13 @@ test('a chapter says the day and hour it began, and a line the hour it was writt
   assert.equal(lineTime('2026-11-26T23:58', '2026-11-26T20:06'), '11:58 PM')
   // Played past midnight, a line says which day it is by then.
   assert.equal(lineTime('2026-11-27T00:10', '2026-11-26T20:06'), 'Fri 12:10 AM')
+})
+
+test('chapters are numbered only once there is a second one, written or waiting', () => {
+  assert.equal(numbered([{ number: 1 }], null), false)
+  assert.equal(numbered([{ number: 1 }], { number: 2 }), true)
+  assert.equal(numbered([{ number: 1 }, { number: 2 }], null), true)
+  assert.equal(numbered([{ number: 7 }], null), true)  // Earlier chapters are further back than the page shows.
 })
 
 test('who is around reads as a sentence', () => {

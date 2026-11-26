@@ -29,6 +29,12 @@ export function lineTime(localTime: string, began?: string): string {
   return began && began.slice(0, 10) !== localTime.slice(0, 10) ? `${dayText(day, { weekday: 'short' })} ${clock}` : clock
 }
 
+/** Whether chapters have headings yet: once the story has a second chapter, written or waiting. A book with one
+ * chapter needs no number (Iris). */
+export function numbered(chapters: { number: number }[], next: unknown): boolean {
+  return !!next || chapters.some((chapter) => chapter.number > 1)
+}
+
 const COUNTS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
 
 const IRREGULAR: Record<string, string> = { man: 'men', woman: 'women', person: 'people', child: 'children' }

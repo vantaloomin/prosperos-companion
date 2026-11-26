@@ -6,7 +6,7 @@
   new story" sounded like the way to carry on while it really wiped the page and the people you had met. The Story
   is now told in chapters: when you come back to it after a couple of hours a new chapter starts by itself, with its
   number, day and time above it, and "Start a new chapter" under the box starts one whenever you like. Nothing is
-  cleared either way. Every line shows the time it was written, on the city's own clock like the time at the top.
+  cleared either way. Your own lines show the time they were written, on the city's own clock like the time at the top.
   "Start a new story" is now "Clear the pages…", and it only removes the writing: the people you've met still know
   you, anyone who said yes is still a match, and time with companions still counts. Exports are in chapters too.
 - **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat

@@ -5,20 +5,22 @@ import { ExportLinks } from '../chats/ExportLinks'
 import { chapterWhen, lineTime } from './storyText'
 
 /** The Story is one ongoing story, in chapters (companion/story_chapters.py). A chapter's number and when it began
- * stand above its first line. One waiting for its first line stands at the end and says nothing was lost; the
- * user's own can be taken back until something is said in it. */
+ * stand above its first line, once there is more than one chapter: a book with one chapter needs no number (Iris).
+ * One waiting for its first line stands at the end and says nothing was lost; the user's own can be taken back
+ * until something is said in it. */
 export function ChapterHeading({ chapter, onUndo }: { chapter: StoryChapter; onUndo?: () => void }) {
   return (
     <div className="story-chapter">
       <h2>Chapter {chapter.number}</h2>
       <p>{chapterWhen(chapter.local_time)}</p>
-      {chapter.by && <p>A new chapter of the same story. Everything before it still happened.
+      {chapter.by && <p>The same story goes on. Everything before it still happened.
         {chapter.by === 'asked' && onUndo && <> <button type="button" className="text-button" onClick={onUndo}>Undo</button></>}</p>}
     </div>
   )
 }
 
-/** "8:06 PM" on a line: the hour it was there, on the city's clock as the scene's own time is. */
+/** "8:06 PM" under the user's line and after the app's lines: the hour it was there, on the city's clock as the
+ * scene's own time is. A reply comes moments after its line, so it shows none (Iris): pointing at it says when. */
 export function LineTime({ at, began }: { at: string; began?: string }) {
   return <time className="story-time" dateTime={at}>{lineTime(at, began)}</time>
 }

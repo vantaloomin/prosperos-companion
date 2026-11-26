@@ -8,7 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { InfoTip } from '../../components/InfoTip'
 import { AiFooter, CrisisNote } from '../../components/Safety'
-import { aroundText, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, whereText, writingText } from './storyText'
+import { aroundText, chapterWhen, numbered, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, whereText, writingText } from './storyText'
 import { StoryPeople } from './StoryPeople'
 import { ChapterHeading, LineTime, StoryFooter } from './StoryChapters'
 import { CityOptions } from '../world/CityOptions'
@@ -175,7 +175,7 @@ function StoryLog({ messages, pending, companions, lookFor, chapters, next, onUn
   const saved = pending !== null && messages.some((message) => message.client_id === pending.clientId)
   return (
     <div className="story-log" aria-live="polite" onScroll={(event) => onScrolled(event.currentTarget.scrollTop)}>
-      <StoryLines messages={messages} chapters={chapters} lookFor={lookFor} />
+      <StoryLines messages={messages} chapters={chapters} headed={numbered(chapters, next)} lookFor={lookFor} />
       {next && <ChapterHeading chapter={next} onUndo={onUndo} />}
       {pending && <>{!saved && pending.text && <p className="story-user">{pending.text}</p>}<p className="subtle">{writingText(messages, pending.clientId, companions)}</p></>}
       {last?.status === 'failed' && !pending && <button type="button" className="text-button" onClick={onRetry}><RotateCcw aria-hidden="true" />Try again</button>}
@@ -184,12 +184,13 @@ function StoryLog({ messages, pending, companions, lookFor, chapters, next, onUn
   )
 }
 
-/** The lines in their chapters: a chapter's heading stands above its first line (companion/story_chapters.py). */
-function StoryLines({ messages, chapters, lookFor }: Pick<LogProps, 'messages' | 'chapters' | 'lookFor'>) {
+/** The lines in their chapters: a chapter's heading stands above its first line (companion/story_chapters.py),
+ * once the story has more than one (`headed`). */
+function StoryLines({ messages, chapters, headed, lookFor }: Pick<LogProps, 'messages' | 'chapters' | 'lookFor'> & { headed: boolean }) {
   return <>{messages.map((message, index) => {
     const chapter = chapters.find((item) => item.number === message.chapter)
     return <Fragment key={message.id}>
-      {chapter && messages[index - 1]?.chapter !== message.chapter && <ChapterHeading chapter={chapter} />}
+      {headed && chapter && messages[index - 1]?.chapter !== message.chapter && <ChapterHeading chapter={chapter} />}
       <StoryLine message={message} began={chapter?.local_time} look={message.speaker ? lookFor(message.speaker) : undefined} />
     </Fragment>
   })}</>
@@ -201,13 +202,15 @@ function StoryLine({ message, began, look }: { message: StoryMessage; began?: st
   if (message.hidden) return null
   if (message.role === 'user') return <><div className="story-mine"><p className="story-user">{message.text}</p>{time}</div>{message.crisis_help && <CrisisNote />}</>
   const parts = message.text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)
+  // A reply shows no time of its own: it comes moments after the line above it. Pointing at it says when.
+  const when = chapterWhen(message.local_time)
   if (message.role === 'companion') {
     // A companion's own line, under their name: their character wrote it, not the narrator.
     if (message.status === 'failed') return <Notice tone="error">{message.name} could not answer: {message.error}</Notice>
-    return <div className={`story-said${look ? ' their-name' : ''}`} style={look}><p className="story-speaker">{message.name}</p>{parts}{time}</div>
+    return <div className={`story-said${look ? ' their-name' : ''}`} style={look} title={when}><p className="story-speaker">{message.name}</p>{parts}</div>
   }
   if (message.status === 'failed') return <Notice tone="error">The narrator could not go on: {message.error}</Notice>
-  return <div className="story-narration">{parts}{time}</div>
+  return <div className="story-narration" title={when}>{parts}</div>
 }
 
 function StoryComposer({ busy, onSend }: { busy: boolean; onSend: (text: string) => void }) {
