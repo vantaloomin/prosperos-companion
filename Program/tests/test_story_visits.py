@@ -9,6 +9,7 @@ from test_story_cast import at_work, script
 from test_together import mira
 
 from companion import story_visits
+from companion.clock import parse
 from companion.life import steps
 from companion.memory import records
 
@@ -150,3 +151,31 @@ def test_time_together_at_the_users_own_home_reads_right_to_both_of_them():
     assert told['value'] == "You and the user spent time together at the user's place."
     text = story_visits.told_text(visit, [], datetime(2026, 11, 26, 22, tzinfo=UTC), UTC)
     assert "you were at the user's place with them, and the two of you spent time together in person" in text
+
+
+def test_a_finished_visit_is_a_line_in_their_chat_that_opens_its_chapter(client, barkeep, provider, clock):
+    at_work(client)
+    assert ok(client.get('/api/story/visits'))['visits'] == []
+    talk(client, provider, lines=1)
+    clock.instant = clock.now() + timedelta(minutes=25)
+    talk(client, provider, lines=1, start=2)
+    assert ok(client.get('/api/story/visits'))['visits'] == []  # Still going on.
+    leave(client)
+    [visit] = ok(client.get('/api/story/visits'))['visits']
+    began = clock.now() - timedelta(minutes=25)
+    # The moments themselves: their chat shows them on the clock its own stamps are on.
+    assert (visit['place'], visit['chapter'], visit['until']) == ('Club Charles', 1, visit['at'])
+    minute = timedelta(minutes=1)
+    assert abs(parse(visit['from']) - began) < minute and abs(parse(visit['until']) - clock.now()) < minute
+
+    # A later visit is in a later chapter; once the pages are cleared the line stays and "Read it" goes.
+    clock.instant = clock.now() + timedelta(hours=2, minutes=30)
+    at_work(client)
+    talk(client, provider, lines=1, start=3)
+    leave(client)
+    assert [item['chapter'] for item in ok(client.get('/api/story/visits'))['visits']] == [1, 2]
+    ok(client.delete('/api/story'))
+    assert [item['chapter'] for item in ok(client.get('/api/story/visits'))['visits']] == [None, None]
+    # With "Story scenes count" off the story stays apart from their chat.
+    set_life(client, story_counts=False)
+    assert ok(client.get('/api/story/visits'))['visits'] == []

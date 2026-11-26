@@ -102,6 +102,7 @@ without it the narrator wrote the companion's words in 50 of 85 replies, with it
 | Request | Does |
 | --- | --- |
 | `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `messages` each carry `chapter` (from 1) and `local_time` (when the line was written, on its city's clock, no offset); `chapters` are the chapters those lines are in with the `local_time` of each one's first line, and `next_chapter` is the one waiting for its first line (`{number, by, local_time}`, `by` 'asked' or 'time'), else null ([Chapters and times](#chapters-and-times)). `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene.home` is the user's own home as somewhere to go (`{city_id, place_id, name, here}`, null when they have none) and `scene.place.home` is true while the story is there. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
+| `GET /api/story/visits` | `{visits}`: the main companion's finished visits with something said to them, oldest first (the latest 60), each `{id, at, place, from, until, chapter}` for a line in their chat. `at` places it in the history, `from` and `until` are when it began and when the last thing was said, `chapter` is the chapter it can be read in or null. Empty while Story scenes count is off. |
 | `PUT /api/story/scene` `{city_id, place_id?}` | Moves there; a city alone means its opening place. `place_id` `~you` is the user's own home, in the city they live in. 404 for an unknown city or place. |
 | `POST /api/story/messages` `{text, client_id}` | Saves the user's line once per `client_id` and returns `{message, reply, replies}`: `reply` is the narrator's, `replies` all of them in order, a companion's own lines after it. A failed reply is saved with `status: failed` and its `error`. Sending the same `client_id` again returns the saved replies and writes only what is missing. 409 `no_connection` without a model; the line stays saved. |
 | `POST /api/story/find` `{key}` | Moves the story to where someone the user has met is now, or a companion (`companion:<id>`). 404 if not met, 409 if they are nowhere the story can go. |
@@ -198,6 +199,15 @@ model call:
 - **Their chat afterward:** for a day and a half, the 'where' section of their 1:1 chat says when and where they
   were together, who came to whom, and the last six lines the two of them said (`story_visits.context_lines`).
   After that it is the memory.
+- **A line in their chat:** a finished visit with something said to them shows as one of the app's own lines in
+  their 1:1 chat, at the point it happened: "In Story at Club Charles · 2:06 to 2:31 PM · Read it"
+  (`story_visits.chat_lines`, `GET /api/story/visits`). The times are on the clock the chat's own stamps are on
+  (the PC's, `clockRange` in `src/when.ts`), with the date first once it is not today ("Nov 16, 2:06 to 2:31 PM"):
+  the line sits between those stamps, so it reads on their clock, while "their time" stays in the header and the
+  city's clock in the Story. So the chat shows what their next text may refer to. "Read it" opens the Story at the chapter
+  the visit is in ([Chapters and times](#chapters-and-times)); it is left out once those pages are cleared or are
+  further back than the Story shows. The line is in every chat style, as the look-change lines are. It is shown, not
+  stored: no model reads it, and it is in no export.
 
 A line to someone else in the scene, or one out of the story (OOC: or ((...))), counts for nothing. Clearing the
 pages clears the lines but not the time spent: visits are settled before the lines go.

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
+import { Fragment, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Home, Map as MapIcon, MapPin, RotateCcw, Send } from 'lucide-react'
 import { api, newId } from '../../api'
@@ -11,6 +11,7 @@ import { AiFooter, CrisisNote } from '../../components/Safety'
 import { aroundText, chapterWhen, goHome, homeChoice, numbered, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, whereText, writingText } from './storyText'
 import { StoryPeople } from './StoryPeople'
 import { ChapterHeading, LineTime, StoryFooter } from './StoryChapters'
+import { useStoryScroll } from './useStoryScroll'
 import { CityOptions } from '../world/CityOptions'
 import { AuthorsNote } from '../conversation/AuthorsNote'
 import { fitAfterSend, setFolded, useMessageBox } from '../conversation/messageBox'
@@ -175,7 +176,7 @@ interface LogProps {
 
 function StoryLog({ messages, pending, companions, lookFor, chapters, next, onUndo, onScrolled, onRetry }: LogProps) {
   const end = useRef<HTMLDivElement>(null)
-  useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [messages.length, pending, next])
+  useStoryScroll(end, messages.length, pending ?? next)
   const last = messages[messages.length - 1]
   // The sent line shows from here until the story read again has it; its replies then arrive one speaker at a time.
   const saved = pending !== null && messages.some((message) => message.client_id === pending.clientId)
