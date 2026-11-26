@@ -274,3 +274,8 @@ regular across the room could answer a name the user had written down and shown 
   above is code and works either way.
 - Not done: nobody overhears a whisper at any drama setting, and the private words are still in what a companion's
   model reads (marked, not cut).
+- **A/B (2026-11-26, ten models, two runs each, a blind judge):** over four private scenes (the notepad, a whisper,
+  a slipped note, a question asked later) someone it was not for showed they knew it in 15 of 79 replies before
+  and 0 of 80 with the note, the tag and the standing line; the standing line alone gave 1 of 80. The one it was
+  for answered in 59 of 60, and a line said out loud was still reacted to by the room (17 of 18 against 18 of 20).
+  A tighter note ("... quietly, without saying it out loud") was no better and was dropped.
