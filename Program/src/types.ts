@@ -2052,6 +2052,8 @@ export interface StoryMessage {
   crisis_help?: boolean
   /** A line the app said for the user to start a plan's scene: never shown. */
   hidden?: number
+  /** On the user's line: Another reply on it can be undone (companion/story_again.py). */
+  undo?: boolean
 }
 /** A companion as the Story has them now: in the scene (`here`), somewhere the story can go (`place`), or neither. */
 export interface StoryCompanion {

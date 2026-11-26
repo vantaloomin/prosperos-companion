@@ -83,8 +83,10 @@ Under the story's newest reply, as under a chat's (`companion/story_again.py`, `
 - **Edit your line** changes the user's latest line; the replies are then written again from the new words.
 
 A story has one course: it has no timelines and no earlier versions to page back to, as a chat has. So the replies
-told before are gone, and both are offered only on the latest line, until the story goes on (going somewhere else
-puts the story past it). What the old replies had done is taken back where rules did it: nobody in the scene learned
+told before are replaced, and both are offered only on the latest line, until the story goes on (going somewhere
+else puts the story past it). After Another reply, **Undo** in the same row brings back the replies that were there
+before, with what they had done, in place of the ones told since. It is one step back, and it goes once the next
+line is sent or the line is edited (`story_messages.told_before` on the user's line holds them; `put_back`). What the old replies had done is taken back where rules did it: nobody in the scene learned
 anything from them, someone first named in them is a stranger again and the sentences kept about anyone go
 (`story_messages.met_before` on the narrator's reply holds how those people were before it), a yes to being asked
 out is unsaid and their rules answer again, and what a companion said about themselves in them is off the record.
@@ -114,6 +116,7 @@ without it the narrator wrote the companion's words in 50 of 85 replies, with it
 | `POST /api/story/plan` `{outing_id}` | Plays a plan under way as a scene: moves the story to where the plan is ([Playing a plan](#playing-a-plan)). 404 for an unknown outing, 409 when it is not under way or is somewhere the story cannot go. |
 | `POST /api/story/plan/begin` `{client_id}` | Starts the scene of the plan being played here with no line from the user: saves a hidden user line once per `client_id` and returns what `POST /api/story/messages` does. 409 with no plan under way here. |
 | `POST /api/story/retry` | Writes again what failed in the replies to the latest user line; with nothing failed, tells them all again in their place ([Another reply and Edit](#another-reply-and-edit)). 409 once the story has gone on. |
+| `POST /api/story/retry/undo` | Undo on Another reply: the replies told before are back in place of the ones told since, returning what `POST /api/story/messages` does. Nothing is written. 409 with nothing to bring back, or once the story has gone on. A user's line carries `undo: true` while it can be. |
 | `PUT /api/story/messages/{id}` `{text}` | Edit. On the user's latest line: says it differently and answers it anew, returning what `POST /api/story/messages` does; 409 for an earlier line, or once the story has gone on. On the narrator's reply or a companion's line, anywhere in the story: the new wording in place, returning `{message}`. 409 for any other line, 404 for one that is gone. |
 | `DELETE /api/story` | Starts a new story: the history and the people met go, the scene stays. |
 

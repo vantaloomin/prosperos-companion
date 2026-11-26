@@ -266,9 +266,11 @@ def add(connection, now: str, role: str, text: str, where: dict, **extra) -> dic
 
 def messages(connection, limit: int = HISTORY_LIMIT) -> list[dict]:
     rows = many(connection, 'SELECT id, seq, role, text, client_id, reply_to, status, error, city_id, place_id, '
-                'created_at, speaker, name, hidden FROM story_messages ORDER BY seq DESC LIMIT ?', (limit,))
+                'created_at, speaker, name, hidden, told_before IS NOT NULL AS undo FROM story_messages ORDER BY seq DESC '
+                'LIMIT ?', (limit,))
     # The app's crisis note under a user's line that sounds like self-harm (companion/safety.py).
-    return [{**row, 'crisis_help': row['role'] == 'user' and safety.crisis(row['text'])} for row in reversed(rows)]
+    return [{**row, 'undo': bool(row['undo']), 'crisis_help': row['role'] == 'user' and safety.crisis(row['text'])}
+            for row in reversed(rows)]
 
 
 def story(database) -> dict:
@@ -577,6 +579,7 @@ def record(database, text: str, client_id: str, hidden: bool = False) -> dict:
         if user is None:
             where, view = scene_row(connection), scene(connection, database.clock.now())
             story_cast.sync(connection, add, view['companions'], database.now(), where)
+            story_again.let_go(connection)  # The story goes on: Another reply can no longer be undone.
             user = add(connection, database.now(), 'user', text, where, client_id=client_id, hidden=hidden)
             # Time with a companion counts (companion/story_visits.py): read before anyone answers the line.
             story_visits.said(connection, user, view, database.clock.now())
@@ -621,8 +624,21 @@ async def retry(state) -> dict:
                                     (user['id'],)).rowcount
         if not failed:
             require(story_again.at_the_end(connection, user), story_again.MOVED_ON, 409)
-            story_again.take_back(connection, user, state.database.now())
+            story_again.hold(connection, user, story_again.take_back(connection, user, state.database.now()))
+            user = story_again.latest(connection)
     return exchange(user, await answer(state, user))
+
+
+def undo(database) -> dict:
+    """Undo on Another reply: the reply that was there before is back in place of the one told since, with what it
+    had done (companion/story_again.py `put_back`). One step back, and only until the next line is sent."""
+    with database.connect(write=True) as connection:
+        user = story_again.latest(connection)
+        require(user is not None and user['told_before'] is not None, story_again.NO_UNDO, 409)
+        require(story_again.at_the_end(connection, user), story_again.MOVED_ON, 409)
+        story_again.put_back(connection, user, database.now())
+        found = many(connection, 'SELECT * FROM story_messages WHERE reply_to=? ORDER BY seq', (user['id'],))
+        return exchange(story_again.latest(connection), found)
 
 
 async def edit(state, message_id: str, text: str) -> dict:

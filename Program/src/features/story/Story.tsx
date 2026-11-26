@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Map as MapIcon, MapPin, Pencil, RotateCcw, Send } from 'lucide-react'
+import { Map as MapIcon, MapPin, Pencil, RotateCcw, Send, Undo2 } from 'lucide-react'
 import { api, newId } from '../../api'
 import type { View } from '../../companion'
 import type { CitySummary, Story as StoryData, StoryMessage, StoryScene } from '../../types'
@@ -77,6 +77,8 @@ export function Story({ go }: { go: (view: View) => void }) {
     update({ ...story.data, messages: toldAgain(story.data.messages, line, text) })
     return run({ text: '', clientId: line.client_id ?? '' }, () => text ? api(`/story/messages/${line.id}`, { text }, 'PUT') : api('/story/retry', {}))
   }
+  /** Undo on Another reply: the reply that was there before is back, with what it had done. Nothing is written. */
+  const undo = () => run(null, () => api('/story/retry/undo', {}))
   /** The narrator's reply or a companion's line in the user's wording, in place: nothing is written again. */
   const reword = (line: StoryMessage, text: string) => {
     update({ ...story.data, messages: story.data.messages.map((message) => (message.id === line.id ? { ...message, text } : message)) })
@@ -107,7 +109,7 @@ export function Story({ go }: { go: (view: View) => void }) {
         Add a text model in Settings &gt; Models to tell the story.</Notice></div>}
       <Opening at="top" story={story.data} busy={busy} onStart={() => void start()} />
       <StoryLog messages={story.data.messages} pending={pending} companions={story.data.scene.companions} lookFor={lookFor}
-        onScrolled={onScrolled} busy={busy} onAgain={(line) => void again(line)} onEdit={(line) => { if (!busy) setEditing(line) }} />
+        onScrolled={onScrolled} busy={busy} onAgain={(line) => void again(line)} onUndo={() => void undo()} onEdit={(line) => { if (!busy) setEditing(line) }} />
       <Opening at="bottom" story={story.data} busy={busy} onStart={() => void start()} />
       {error && <div className="story-notice"><Notice tone="error">{error}</Notice></div>}
       <StoryComposer busy={busy} onSend={(text) => void send(text)} />
@@ -180,10 +182,10 @@ function GoElsewhere({ scene, onDone, onMove }: GoProps) {
 interface LogProps {
   messages: StoryMessage[]; pending: Pending | null; companions: { id: string; name: string }[]
   lookFor: (companionId: string | null) => CSSProperties | undefined; onScrolled: (top: number, room: number) => void
-  busy: boolean; onAgain: (line: StoryMessage) => void; onEdit: (line: StoryMessage) => void
+  busy: boolean; onAgain: (line: StoryMessage) => void; onUndo: () => void; onEdit: (line: StoryMessage) => void
 }
 
-function StoryLog({ messages, pending, companions, lookFor, onScrolled, busy, onAgain, onEdit }: LogProps) {
+function StoryLog({ messages, pending, companions, lookFor, onScrolled, busy, onAgain, onUndo, onEdit }: LogProps) {
   const end = useRef<HTMLDivElement>(null)
   // Again once the replies are all in: Another reply and Edit your line show under them then.
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [messages.length, pending, busy])
@@ -194,7 +196,7 @@ function StoryLog({ messages, pending, companions, lookFor, onScrolled, busy, on
     <div className="story-log" aria-live="polite" onScroll={(event) => onScrolled(event.currentTarget.scrollTop, event.currentTarget.scrollHeight - event.currentTarget.clientHeight)}>
       {messages.map((message) => <StoryLine key={message.id} message={message} look={message.speaker ? lookFor(message.speaker) : undefined} onEdit={onEdit} />)}
       {pending && <>{!saved && pending.text && <p className="story-user">{pending.text}</p>}<p className="subtle">{writingText(messages, pending.clientId, companions)}</p></>}
-      {line && <LatestActions label={againLabel(messages, line)} onAgain={() => onAgain(line)} onEdit={line.hidden ? undefined : () => onEdit(line)} />}
+      {line && <LatestActions label={againLabel(messages, line)} onAgain={() => onAgain(line)} onUndo={line.undo ? onUndo : undefined} onEdit={line.hidden ? undefined : () => onEdit(line)} />}
       <div ref={end} />
     </div>
   )
@@ -202,13 +204,15 @@ function StoryLog({ messages, pending, companions, lookFor, onScrolled, busy, on
 
 /** Under the story's newest reply, as under a chat's: the reply told again in its place (Try again when one failed or
  * never came), and the line it answers said differently. A story has one course, so only the latest line has them,
- * and only until the story goes on. A line the app said to start a plan's scene is not the user's to change. */
-function LatestActions({ label, onAgain, onEdit }: { label: string; onAgain: () => void; onEdit?: () => void }) {
+ * and only until the story goes on. A line the app said to start a plan's scene is not the user's to change. After
+ * Another reply, Undo brings back the reply that was there, until the next line is sent. */
+function LatestActions({ label, onAgain, onUndo, onEdit }: { label: string; onAgain: () => void; onUndo?: () => void; onEdit?: () => void }) {
   // Pressing one must not take the cursor out of the message box: on a phone the tab bar comes back when it does,
   // everything moves up under the finger, and the tap lands on nothing.
   return (
     <div className="turn-actions story-actions" onMouseDown={(event) => event.preventDefault()}>
       <button type="button" className="text-button" onClick={onAgain}><RotateCcw aria-hidden="true" />{label}</button>
+      {onUndo && <button type="button" className="text-button" onClick={onUndo}><Undo2 aria-hidden="true" />Undo<span className="visually-hidden">: bring back the reply before</span></button>}
       {onEdit && <button type="button" className="text-button" onClick={onEdit}><Pencil aria-hidden="true" />Edit your line</button>}
     </div>
   )
@@ -232,7 +236,7 @@ function EditLine({ line, onClose, onSave }: { line: StoryMessage; onClose: () =
       <button type="button" className="button" onClick={onClose}>Cancel</button>
       <button type="button" className="button primary" disabled={!changed} onClick={() => onSave(text.trim())}>Save</button>
     </>}>
-      <TextArea label={words.label} value={text} onChange={setText} rows={line.role === 'user' ? 4 : 10} maxLength={40000} hint={words.hint} />
+      <TextArea label={words.label} labelHidden value={text} onChange={setText} rows={line.role === 'user' ? 4 : 10} maxLength={40000} hint={words.hint} />
     </ConfirmDialog>
   )
 }

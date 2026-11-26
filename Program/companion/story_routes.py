@@ -75,6 +75,11 @@ async def retry(request: Request):
     return await story.retry(request.app.state)
 
 
+@router.post('/retry/undo')
+def undo(request: Request):
+    return story.undo(request.app.state.database)
+
+
 @router.delete('')
 def clear(request: Request):
     return story.clear(request.app.state.database)

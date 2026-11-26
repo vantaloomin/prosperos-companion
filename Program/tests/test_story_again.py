@@ -210,3 +210,101 @@ def test_a_companions_line_reworded_is_what_they_said(client, barkeep, provider)
     # Nothing was written again: the narrator's reply and her line are the ones there were.
     assert [row['id'] for row in ok(client.get('/api/story'))['messages'] if row['reply_to']] == \
         [row['id'] for row in sent['replies']]
+
+
+# Undo on Another reply ------------------------------------------------------------------------------------
+
+def undo(client):
+    return client.post('/api/story/retry/undo')
+
+
+def test_another_reply_can_be_undone_once_until_the_next_line(client, clock, provider):
+    connect(client)
+    provider.replies = [[Chunk('A man waves you over.'), Chunk('', 'stop')]]
+    sent = say(client, 'Mh.. good evening...', 'story-0001')
+    assert sent['message']['undo'] is False and undo(client).status_code == 409
+    provider.replies = [[Chunk('The server nods toward the garden.'), Chunk('', 'stop')]]
+    retold = ok(client.post('/api/story/retry'))
+    assert retold['message']['undo'] is True and 'told_before' not in retold['message']
+    assert ok(client.get('/api/story'))['messages'][0]['undo'] is True
+    # The reply told before is back as it was, in place of the one told since, and nothing is written.
+    asked = len(provider.requests)
+    back = ok(undo(client))
+    assert back['reply']['id'] == sent['reply']['id'] and back['message']['undo'] is False
+    assert lines(client) == [('user', 'Mh.. good evening...'), ('narrator', 'A man waves you over.')]
+    assert len(provider.requests) == asked and undo(client).status_code == 409
+    # One step back: of two retellings, Undo brings back the one before the last.
+    for text in ('The kettle sings.', 'Rain starts.'):
+        provider.replies = [[Chunk(text), Chunk('', 'stop')]]
+        ok(client.post('/api/story/retry'))
+    assert ok(undo(client))['reply']['text'] == 'The kettle sings.'
+    # Once the next line is sent there is nothing to undo; nor after the line is said differently.
+    provider.replies = [[Chunk('Rain starts.'), Chunk('', 'stop')]]
+    ok(client.post('/api/story/retry'))
+    provider.replies = [[Chunk('He nods.'), Chunk('', 'stop')]]
+    edited = ok(edit(client, sent['message']['id'], 'Good evening.'))
+    assert edited['message']['undo'] is False and undo(client).status_code == 409
+    ok(client.post('/api/story/retry'))
+    say(client, 'I sit down.', 'story-0002')
+    assert undo(client).status_code == 409
+    assert all(row['undo'] is False for row in ok(client.get('/api/story'))['messages'])
+
+
+def test_a_retelling_that_failed_can_be_undone(client, clock, provider):
+    connect(client)
+    provider.replies = [[Chunk('A man waves you over.'), Chunk('', 'stop')]]
+    say(client, 'Mh.. good evening...', 'story-0001')
+    provider.replies = [[Chunk('', 'stop')]]
+    assert ok(client.post('/api/story/retry'))['reply']['status'] == 'failed'
+    assert ok(undo(client))['reply']['text'] == 'A man waves you over.'
+    assert lines(client) == [('user', 'Mh.. good evening...'), ('narrator', 'A man waves you over.')]
+
+
+def test_undo_brings_back_who_the_old_reply_introduced(client, clock, provider):
+    make(client, 'Warm and curious.')
+    connect(client)
+    place, people = busy_place(client, clock)
+    ok(client.put('/api/story/scene', json={'city_id': 'baltimore', 'place_id': place['id']}))
+    them = people[0]['sheet']
+    provider.replies = [[Chunk(f'"I\'m {them["name"]}," they say, wiping the counter.'), Chunk('', 'stop')]]
+    say(client, 'I say hello.', 'story-0001')
+    [met] = ok(client.get('/api/story'))['people']
+    provider.replies = [[Chunk('Nobody looks up.'), Chunk('', 'stop')]]
+    ok(client.post('/api/story/retry'))
+    assert ok(client.get('/api/story'))['people'] == []
+    ok(undo(client))
+    assert ok(client.get('/api/story'))['people'] == [met]
+    # And it can be told again from there, as before.
+    provider.replies = [[Chunk('Nobody looks up.'), Chunk('', 'stop')]]
+    ok(client.post('/api/story/retry'))
+    assert ok(client.get('/api/story'))['people'] == []
+
+
+def test_undo_brings_back_a_yes(client, clock, provider):
+    make(client, 'Warm and curious.')
+    connect(client)
+    ok(client.put('/api/dating/profile', json=PROFILE))
+    sheet = someone(client, clock, 'yes')
+    name = sheet['name']
+    provider.replies = [[Chunk(f'{name} grins. "I would like that."'), Chunk('', 'stop')]]
+    asked = say(client, f'{name}, would you go out with me?', 'story-0001')
+    provider.replies = [[Chunk('', 'stop')]]
+    assert ok(client.post('/api/story/retry'))['reply']['status'] == 'failed'
+    with client.app.state.database.connect() as connection:
+        assert not story_pursuit.matched(connection, sheet['key'])
+    back = ok(undo(client))
+    assert [row['text'] for row in back['replies']] == [row['text'] for row in asked['replies']]
+    with client.app.state.database.connect() as connection:
+        assert story_pursuit.matched(connection, sheet['key'])
+
+
+def test_undo_brings_back_what_a_companion_said_about_themselves(client, barkeep, provider):
+    at_work(client)
+    script(provider, 'The bar hums quietly.', 'Mira wipes the bar. "My cousin Theo came by."')
+    sent = say(client, '"How was your weekend, Mira?"', 'again-0001')
+    script(provider, 'The jukebox clicks over.', 'Mira shrugs. "My brother Sol called."')
+    ok(client.post('/api/story/retry'))
+    assert ('cousin', 'Theo') not in self_facts(client) and ('brother', 'Sol') in self_facts(client)
+    back = ok(undo(client))
+    assert [row['id'] for row in back['replies']] == [row['id'] for row in sent['replies']]
+    assert ('cousin', 'Theo') in self_facts(client) and ('brother', 'Sol') not in self_facts(client)

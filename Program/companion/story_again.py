@@ -14,6 +14,9 @@ back where rules did it:
 How a companion felt about the old words stays felt, and so does a relationship step they settled: those were
 theirs, not the telling's.
 
+Another reply can be undone once (Undo, `put_back`), until the next line is sent: the replies told before are kept
+on the user's line with what they had done (`told_before`), and come back in place of the ones told since.
+
 A reply's own wording can also be changed in place (Edit on the narrator's reply or a companion's line), at any
 point of the story: the story goes on from the new words, as every later reply reads them. What the old wording
 left behind follows it: the sentences kept about the people met, what a companion said about themselves and, for a
@@ -23,7 +26,9 @@ from companion import story_cast, story_people, story_said, story_secrets, story
 from companion.database import decode, encode, many, optional
 
 PEOPLE = ('city_id', 'name', 'first_met_at', 'last_met_at', 'last_day', 'meetings', 'notes')
+HELD = ('self_facts', 'news_holders', 'dating_swipes')  # Rows the replies left, kept whole for Undo.
 MOVED_ON = 'The story has gone on since then.'
+NO_UNDO = 'There is no earlier reply to bring back.'
 LATEST_ONLY = 'Only your latest line can be changed, and only until the story goes on.'
 
 
@@ -69,33 +74,87 @@ def restore(connection, before: dict[str, dict | None]) -> None:
 
 # Taking the replies back ----------------------------------------------------------------------------------
 
-def take_back(connection, user: dict, timestamp: str) -> None:
-    """The replies to the line go, and with them what they had done (the module's own notes say what)."""
+def take_back(connection, user: dict, timestamp: str) -> dict | None:
+    """The replies to the line go, and with them what they had done (the module's own notes say what). Returns
+    what was taken, as `put_back` reads it, or None when there were no replies."""
     rows = many(connection, 'SELECT * FROM story_messages WHERE reply_to=? ORDER BY seq', (user['id'],))
     if not rows:
-        return
+        return None
     ids = [row['id'] for row in rows]
     marks = ', '.join('?' for _ in ids)
+    taken = {'at': timestamp, 'rows': rows, 'people': met(connection, touched(rows)),
+             'self_facts': many(connection, f'SELECT * FROM self_facts WHERE story_message_id IN ({marks})', ids),
+             'news_holders': many(connection, f'SELECT * FROM news_holders WHERE message_id IN ({marks})', ids),
+             'dating_swipes': []}
     story_secrets.unsay(connection, ids, timestamp)
     for row in rows:
         if row['met_before']:
             restore(connection, decode(row['met_before']))
         if row['role'] == 'cast' and row['speaker'] is None:
             # How asking someone out went (companion/story_pursuit.py `settle`): a yes was saved at the same moment.
-            connection.execute("DELETE FROM dating_swipes WHERE source='story' AND matched=1 AND created_at=?",
-                               (row['created_at'],))
+            said_yes = "source='story' AND matched=1 AND created_at=?"
+            taken['dating_swipes'] += many(connection, f'SELECT * FROM dating_swipes WHERE {said_yes}',
+                                           (row['created_at'],))
+            connection.execute(f'DELETE FROM dating_swipes WHERE {said_yes}', (row['created_at'],))
     connection.execute(f'DELETE FROM self_facts WHERE story_message_id IN ({marks})', ids)
     connection.execute('DELETE FROM story_messages WHERE reply_to=?', (user['id'],))
+    return taken
+
+
+def touched(rows: list[dict]) -> list[str]:
+    """The people the replies changed: the ones whose earlier selves they hold."""
+    return sorted({key for row in rows if row['met_before'] for key in decode(row['met_before'])})
+
+
+# Undo on Another reply ------------------------------------------------------------------------------------
+
+def hold(connection, user: dict, taken: dict | None) -> None:
+    """The replies just taken back are kept on the user's line, so that Another reply can be undone. One step back:
+    what was kept before goes."""
+    connection.execute('UPDATE story_messages SET told_before=? WHERE id=?', (taken and encode(taken), user['id']))
+
+
+def let_go(connection) -> None:
+    """The story goes on (a new line, or the latest one said differently): nothing is kept to undo."""
+    connection.execute('UPDATE story_messages SET told_before=NULL WHERE told_before IS NOT NULL')
+
+
+def put_back(connection, user: dict, timestamp: str) -> None:
+    """Undo: the replies told since go as on a retelling, and the ones kept on the line are back as they were, with
+    what they had done: the people met in them, a yes, what a companion said about themselves, and what they let
+    the others in the scene learn."""
+    held = decode(user['told_before'])
+    take_back(connection, user, timestamp)
+    seq = optional(connection, 'SELECT COALESCE(MAX(seq), 0) AS seq FROM story_messages')['seq']
+    for place, row in enumerate(held['rows'], start=1):
+        insert(connection, 'story_messages', {**row, 'seq': seq + place})
+    restore(connection, held['people'])
+    for table in HELD:
+        for row in held[table]:
+            insert(connection, table, row)
+    ids = [row['id'] for row in held['rows']]
+    marks = ', '.join('?' for _ in ids)
+    connection.execute(f'UPDATE knowledge_holders SET ended_at=NULL WHERE ended_at=? AND message_id IN ({marks})',
+                       (held['at'], *ids))
+    hold(connection, user, None)
+
+
+def insert(connection, table: str, row: dict) -> None:
+    fields = list(row)
+    connection.execute(f"INSERT OR REPLACE INTO {table} ({', '.join(fields)}) VALUES ({', '.join('?' for _ in fields)})",
+                       [row[field] for field in fields])
 
 
 # Saying the line differently ------------------------------------------------------------------------------
 
 def reword(connection, user: dict, text: str, view: dict, now, timestamp: str) -> dict:
     """The user's line with new words, read as a new line is: what the old words gave away is taken back, and the
-    companions in the scene hear the new ones (companion/story_visits.py `said_again`)."""
+    companions in the scene hear the new ones (companion/story_visits.py `said_again`). An earlier reply kept for Undo
+    answered the old words, and goes."""
     story_secrets.unsay(connection, [user['id']], timestamp)
+    let_go(connection)
     connection.execute('UPDATE story_messages SET text=? WHERE id=?', (text, user['id']))
-    said = {**user, 'text': text}
+    said = {**user, 'text': text, 'told_before': None}
     story_visits.said_again(connection, said, user['text'], view, now)
     story_secrets.sync(connection, view, now)
     story_secrets.heard(connection, said, view)
@@ -138,5 +197,7 @@ def respoken(connection, line: dict, view: dict, timestamp: str) -> None:
 
 
 def shown(row: dict) -> dict:
-    """A story line as the API gives it: without what is kept for a retelling."""
-    return {key: value for key, value in row.items() if key != 'met_before'}
+    """A story line as the API gives it: without what is kept for a retelling, and with whether Another reply on it
+    can be undone (`undo`)."""
+    return {**{key: value for key, value in row.items() if key not in ('met_before', 'told_before')},
+            'undo': bool(row.get('told_before'))}

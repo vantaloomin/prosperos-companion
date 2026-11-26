@@ -3237,6 +3237,7 @@ p.breakup-line { align-items: center; }
 }
 /* Step 4b: Character fields are a label and the field; the pen that helps write one sits at the end of its label line. */
 .field > .label-row { display: flex; width: 100%; }
+.field > .label-row.visually-hidden { width: 1px; }
 .label-row > .field-help { margin: 0 0 0 auto; gap: 4px 8px; }
 .label-row > .field-help.open { flex-basis: 100%; margin: 4px 0 0; }
 .field-pen { width: 32px; height: 32px; min-height: 0; color: var(--muted); }

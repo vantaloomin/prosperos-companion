@@ -485,6 +485,8 @@ ADDED_COLUMNS = (
     # Telling the Story's latest reply again (companion/story_again.py): on the narrator's reply, how the people it
     # changed were before it (JSON), so a retelling starts from there. Only the latest reply holds any.
     ('story_messages', 'met_before', 'TEXT'),
+    # On the user's latest line: the replies Another reply took back, with what they had done (JSON), for one Undo.
+    ('story_messages', 'told_before', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition

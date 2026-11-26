@@ -207,3 +207,18 @@ def test_a_slip_cut_from_their_line_was_never_made(client, scene, provider):
     assert knows(client, secret['id']) == {'Mira': 'origin'}
     assert ('companion', 'Mira', '"Same old," Mira says.') in story_lines(client)
     assert all('slip' not in text for role, _name, text in story_lines(client) if role == 'cast')
+
+
+def test_undoing_another_reply_brings_back_what_it_let_slip(client, scene, provider):
+    secret = declare(client, scene)
+    set_life(client, drama=3)
+    provider.respond = lines_say(Mira=[SLIP, SLIP])
+    say(client, 'I sit at the bar. "Mira, any news?"', 'story-0001')
+    told = story_lines(client)
+    provider.respond = lines_say()
+    ok(client.post('/api/story/retry'))
+    assert knows(client, secret['id']) == {'Mira': 'origin'}
+    # Undo (companion/story_again.py `put_back`): the slip was made after all, and the story says so again.
+    ok(client.post('/api/story/retry/undo'))
+    assert knows(client, secret['id']) == {'Mira': 'origin', 'Sam': 'slip'}
+    assert story_lines(client) == told
