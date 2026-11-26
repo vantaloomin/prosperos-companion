@@ -2057,6 +2057,8 @@ export interface StoryMessage {
   crisis_help?: boolean
   /** A line the app said for the user to start a plan's scene: never shown. */
   hidden?: number
+  /** On the user's line: Another reply on it can be undone (companion/story_again.py). */
+  undo?: boolean
   /** Which chapter the line is in, from 1, and when it was written on its city's clock, with no offset
    * (companion/story_chapters.py). */
   chapter: number; local_time: string

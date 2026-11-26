@@ -71,9 +71,23 @@ async def send(request: Request, body: StoryMessage):
     return await story.send(request.app.state, body.text, body.client_id)
 
 
+class StoryEdit(Input):
+    text: str = Field(min_length=1, max_length=40000)
+
+
+@router.put('/messages/{message_id}')
+async def edit(request: Request, message_id: str, body: StoryEdit):
+    return await story.edit(request.app.state, message_id, body.text)
+
+
 @router.post('/retry')
 async def retry(request: Request):
     return await story.retry(request.app.state)
+
+
+@router.post('/retry/undo')
+def undo(request: Request):
+    return story.undo(request.app.state.database)
 
 
 @router.post('/chapter')

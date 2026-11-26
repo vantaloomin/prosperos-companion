@@ -93,6 +93,13 @@ def begin(connection, now: str) -> None:
     connection.execute('INSERT OR IGNORE INTO story_chapters (after_seq, created_at) VALUES (?, ?)', (last, now))
 
 
+def keep_waiting(connection) -> None:
+    """Replies were taken back to be told again (companion/story_again.py), so the story's last seq dropped: a
+    chapter the user started after them still waits for the next line, which may now take a seq that was theirs."""
+    connection.execute('UPDATE OR REPLACE story_chapters SET after_seq=(SELECT MAX(seq) FROM story_messages) '
+                       'WHERE after_seq > (SELECT MAX(seq) FROM story_messages)')
+
+
 def undo(connection) -> None:
     """Take back a chapter the user started, while nothing has been said in it."""
     connection.execute('DELETE FROM story_chapters WHERE after_seq >= COALESCE((SELECT MAX(seq) FROM story_messages '
