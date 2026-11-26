@@ -5,7 +5,7 @@
 - **Your chat shows the scene you just played:** after time with a companion in the Story, their chat went straight
   from one text to the next, even when their next text mentioned the drink at the bar. Their chat now has one quiet
   line where it happened, "In Story at Club Charles · 2:06 to 2:31 PM", with "Read it" to open the Story at that
-  chapter. It follows Settings > Realism > "Story scenes count".
+  chapter. Its times are on the same clock as the chat's own. It follows Settings > Realism > "Story scenes count".
 - **Story chapters and times:** the Story never said whether it was finished, its lines had no times, and "Start a
   new story" sounded like the way to carry on while it really wiped the page and the people you had met. The Story
   is now told in chapters: when you come back to it after a couple of hours a new chapter starts by itself, with its

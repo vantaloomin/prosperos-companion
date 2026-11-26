@@ -267,8 +267,8 @@ SAME_LINE = timedelta(minutes=1)
 def chat_lines(connection, companion: dict) -> list[dict]:
     """The visits that are over, for one line each in their 1:1 chat at the point it happened: "In Story at Club
     Charles · 2:06 to 2:31 PM · Read it" (docs/story.md, "Scenes count"). Only a visit with something said to them, and
-    only while scenes count. `from` and `until` are on the companion's own clock, as their chat's "their time" is;
-    `at` is when the last line was said, for placing it. `chapter` is the Story chapter it can be read in
+    only while scenes count. `from` and `until` are the moments it began and the last thing was said: the chat shows
+    them on the clock its own stamps are on (Iris). `at` is the same last moment, for placing it. `chapter` is the Story chapter it can be read in
     (companion/story_chapters.py), or None once its lines are cleared or further back than the Story shows."""
     if not counts(connection):
         return []
@@ -277,13 +277,9 @@ def chat_lines(connection, companion: dict) -> list[dict]:
                 'ended_at IS NOT NULL ORDER BY last_at DESC LIMIT ?', (companion['id'], companion['active_timeline_id'], CHAT_LINES))
     if not rows:
         return []
-    timezone = zone(companion['version']['timezone'])
     starts = story_chapters.marks(connection, parse(rows[0]['last_at']))[0]
     shown = many(connection, 'SELECT seq, created_at FROM story_messages ORDER BY seq DESC LIMIT ?', (story.HISTORY_LIMIT,))
     written = {row['seq']: parse(row['created_at']) for row in shown}
-
-    def local(value: str) -> str:
-        return parse(value).astimezone(timezone).replace(tzinfo=None).isoformat(timespec='minutes')
 
     def chapter(visit: dict) -> int | None:
         # The same line, not one that took its number after the pages were cleared.
@@ -291,5 +287,5 @@ def chat_lines(connection, companion: dict) -> list[dict]:
         same = line is not None and abs(line - parse(visit['started_at'])) <= SAME_LINE
         return story_chapters.number(starts, visit['first_seq']) if same else None
 
-    return [{'id': visit['id'], 'at': visit['last_at'], 'place': visit['place_name'], 'from': local(visit['started_at']),
-             'until': local(visit['last_at']), 'chapter': chapter(visit)} for visit in reversed(rows)]
+    return [{'id': visit['id'], 'at': visit['last_at'], 'place': visit['place_name'], 'from': visit['started_at'],
+             'until': visit['last_at'], 'chapter': chapter(visit)} for visit in reversed(rows)]

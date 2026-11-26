@@ -1,6 +1,5 @@
 """Scenes count (companion/story_visits.py): time with a companion in the Story is part of their life together."""
 from datetime import timedelta
-from zoneinfo import ZoneInfo
 
 import pytest
 from conftest import reconcile, send, set_life
@@ -10,7 +9,7 @@ from test_story_cast import at_work, script
 from test_together import mira
 
 from companion import story_visits
-from companion.characters import current
+from companion.clock import parse
 from companion.life import steps
 from companion.memory import records
 
@@ -150,14 +149,10 @@ def test_a_finished_visit_is_a_line_in_their_chat_that_opens_its_chapter(client,
     leave(client)
     [visit] = ok(client.get('/api/story/visits'))['visits']
     began = clock.now() - timedelta(minutes=25)
-    with client.app.state.database.connect() as connection:
-        theirs = ZoneInfo(current(connection)['version']['timezone'])  # Their own clock, as their chat's time is.
-
-    def local(moment):
-        return moment.astimezone(theirs).strftime('%Y-%m-%dT%H:%M')
-
-    assert (visit['place'], visit['from'], visit['until'], visit['chapter']) == ('Club Charles', local(began), local(clock.now()), 1)
-    assert visit['at'] > began.isoformat()
+    # The moments themselves: their chat shows them on the clock its own stamps are on.
+    assert (visit['place'], visit['chapter'], visit['until']) == ('Club Charles', 1, visit['at'])
+    minute = timedelta(minutes=1)
+    assert abs(parse(visit['from']) - began) < minute and abs(parse(visit['until']) - clock.now()) < minute
 
     # A later visit is in a later chapter; once the pages are cleared the line stays and "Read it" goes.
     clock.instant = clock.now() + timedelta(hours=2, minutes=30)

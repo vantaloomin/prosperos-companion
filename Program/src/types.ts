@@ -2078,7 +2078,7 @@ export interface StoryPerson {
   ask?: { label: string; line: string } | null
 }
 /** A finished visit with a companion in the Story, for a line in their 1:1 chat (companion/story_visits.py): `at`
- * places it in the history, `from` and `until` are their own clock with no offset, and `chapter` is the Story chapter
+ * places it in the history, `from` and `until` are when it began and when the last thing was said, and `chapter` is the Story chapter
  * it can still be read in, or null. */
 export interface StoryVisit { id: string; at: string; place: string; from: string; until: string; chapter: number | null }
 export interface Story {

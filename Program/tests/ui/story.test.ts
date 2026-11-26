@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { visitText } from '../../src/features/conversation/storyVisits.ts'
+import { clockTime } from '../../src/when.ts'
 import { aroundText, chapterWhen, companionLine, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
@@ -24,11 +25,23 @@ test('chapters are numbered only once there is a second one, written or waiting'
   assert.equal(numbered([{ number: 7 }], null), true)  // Earlier chapters are further back than the page shows.
 })
 
-test('a finished visit reads as one line in their chat', () => {
-  const visit = { place: 'Club Charles', from: '2026-11-16T14:06', until: '2026-11-16T14:31' }
-  assert.equal(visitText(visit), 'In Story at Club Charles · 2:06 to 2:31\u00a0PM')
-  assert.equal(visitText({ ...visit, from: '2026-11-16T11:50', until: '2026-11-16T12:20' }), 'In Story at Club Charles · 11:50\u00a0AM to 12:20\u00a0PM')
-  assert.equal(visitText({ ...visit, from: visit.until }), 'In Story at Club Charles · 2:31\u00a0PM')
+test('a finished visit reads as one line in their chat, on the clock its stamps are on', () => {
+  const at = (day: number, hour: number, minute: number) => new Date(2026, 10, day, hour, minute).toISOString()
+  const now = new Date(2026, 10, 16, 18, 0).getTime()
+  const clock = (value: string) => clockTime(value, now)
+  const visit = { place: 'Club Charles', from: at(16, 14, 6), until: at(16, 14, 31) }
+  // The same half of the day is said once, at the end ("2:06 to 2:31 PM"); across noon each time says its own.
+  const halves = (text: string) => (text.match(/[AP]M/gu) ?? []).length
+  assert.ok(visitText(visit, now).startsWith('In Story at Club Charles · 2:06 to '))
+  assert.ok(visitText(visit, now).endsWith(clock(visit.until)))
+  assert.ok(halves(visitText(visit, now)) <= 1)
+  const noon = { ...visit, from: at(16, 11, 50), until: at(16, 12, 20) }
+  assert.equal(visitText(noon, now), `In Story at Club Charles · ${clock(noon.from)} to ${clock(noon.until)}`)
+  assert.equal(visitText({ ...visit, from: visit.until }, now), `In Story at Club Charles · ${clock(visit.until)}`)
+  // On another day it says the date first, as a stamp does.
+  const earlier = { ...visit, from: at(12, 14, 6), until: at(12, 14, 31) }
+  assert.ok(visitText(earlier, now).startsWith('In Story at Club Charles · Nov 12, 2:06 to '))
+  assert.ok(clock(earlier.until).startsWith('Nov 12, '))
 })
 
 test('who is around reads as a sentence', () => {

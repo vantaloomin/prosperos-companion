@@ -67,8 +67,9 @@ function LookNotes({ notes }: { notes: { text: string; at: string }[] }) {
 /** Time spent together in the Story, at the point in the chat it happened (companion/story_visits.py): the scene is
  * part of the same life, so the chat says it was there. "Read it" opens the Story at that chapter. */
 function StoryVisitNotes({ visits, go }: { visits: StoryVisit[]; go: (view: View) => void }) {
+  const now = appNow()
   return <>{visits.map((visit) => (
-    <p key={visit.id} className="group-note look-note" role="note">{visitText(visit)}
+    <p key={visit.id} className="group-note look-note" role="note">{visitText(visit, now)}
       {visit.chapter !== null && <> · <button type="button" className="text-button inline" onClick={() => { openStoryAt(visit.chapter ?? 1); go('story') }}>Read it</button></>}
     </p>))}</>
 }
