@@ -2023,10 +2023,15 @@ export interface StoryPlace {
   id: string; name: string; kind: string; neighborhood: string; summary?: string
   /** Named spots inside, for detail (companion/world/inside.py): "the back patio". */
   spots?: string[]
+  /** The user's own home (companion/story.py HOME), with no neighbourhood in a city that has none. */
+  home?: boolean
 }
+/** Where the user lives, for "Go home": the city and the place id the story takes for it; `here` once it is there. */
+export interface StoryHome { city_id: string; place_id: string; name: string; here: boolean }
 export interface StoryScene {
   city: { id: string; name: string; era: string }
   place: StoryPlace
+  home: StoryHome | null
   local_time: string
   weather: string
   places: StoryPlace[]

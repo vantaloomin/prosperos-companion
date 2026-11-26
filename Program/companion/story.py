@@ -6,7 +6,9 @@ life together (companion/story_visits.py): their chat is told of it and it leave
 
 The app decides the scene from the city data and the townsfolk rules: the place, the local time and
 weather, and who is there at that hour, the same people the companion's world has. The narrator model
-only voices it. Moving somewhere else is the user's choice in the place picker, not the model's.
+only voices it. Moving somewhere else is the user's choice, not the model's: in the place picker, or by what they
+write ("I walk over to the market", "She walks home"), read by rules (companion/life/scene_now.py). The user's own
+home is a place the story can be at (`HOME`), in the city they live in.
 
 When the story is where a companion is at that hour, they are in the scene and speak for themselves: the
 narrator's reply comes first, then each companion's own line, written by their own character
@@ -31,7 +33,7 @@ from companion.characters import current
 from companion.clock import zone
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
-from companion.life import agenda, ages, encounters, network, scene_now
+from companion.life import agenda, ages, encounters, network, scene_now, where
 from companion.memory.context import NOTE_CLOSE
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
@@ -57,6 +59,11 @@ MOVES_READ = 60  # The latest story lines read for a move (companion/life/scene_
 CHARS_PER_TOKEN = 4
 # The kinds a story starts at when nothing else is chosen: somewhere people sit and talk.
 OPENING_KINDS = ('cafe', 'tavern', 'bar', 'restaurant', 'market', 'park')
+# The user's own home as a place the story can be at: the id the city map has for it (companion/life/citymap.py).
+HOME = '~you'
+HOME_NAME = 'Your home'
+# How the models are told of it: "you" is theirs to use for the user (the narrator) or for themself (a companion).
+HOME_TOLD = "the user's own home"
 
 NARRATOR = """You are the narrator of an open-ended story. The user plays themself, arriving in a real place \
 at a real hour; you describe the world around them and voice everyone they meet.
@@ -122,15 +129,49 @@ def default_city(connection) -> str:
     return home['id'] if home else DEFAULT_CITY
 
 
+def home_place(connection, data: dict) -> dict | None:
+    """The user's own home as a place in this city, or None when they live in another one (companion/life/where.py:
+    every persona has a home in each of their worlds, picked by the app until they change it). It has no rooms of
+    its own: the user knows their home, and the map lets them name its rooms (companion/world/inside.py)."""
+    found = where.your_home(connection)
+    if not found or found[0]['id'] != data['id']:
+        return None
+    return {'id': HOME, 'name': HOME_NAME, 'kind': 'home', 'neighborhood': found[1]['id'] if found[1] else '',
+            'summary': '', 'home': True}
+
+
+def place_of(connection, data: dict, place_id: str | None) -> dict | None:
+    """A place the story can be at in this city: one the city has, or the user's own home."""
+    if place_id == HOME:
+        return home_place(connection, data)
+    place = catalog.find(data, place_id) if place_id else None
+    return place if place in data['places'] else None
+
+
 def scene_row(connection) -> dict:
     """Where the story is; a new story starts in the companion's city (or the default one) at a cafe. A place
     or city that has since gone falls back the same way."""
     row = optional(connection, 'SELECT city_id, place_id FROM story_scene WHERE id=1')
     known = row and changes.resolve(row['city_id'], custom.all_cities(connection))
     data = city_data(connection, row['city_id'] if known else default_city(connection))
-    if known and catalog.find(data, row['place_id']) in data['places']:
+    if known and place_of(connection, data, row['place_id']):
         return {'city_id': row['city_id'], 'place_id': row['place_id']}
     return {'city_id': data['id'], 'place_id': opening_place(data)['id']}
+
+
+def walked(connection, data: dict, place: dict) -> dict:
+    """Where the story's own lines have taken them since the place was picked (companion/life/scene_now.py): to a
+    place the city has, or home. The people they know by name are not the user when a line opens on one."""
+    names = tuple(row['name'].split()[0] for row in story_people.known(connection).values() if row['name']) + \
+        tuple(companion['version']['definition']['name'].split()[0] for companion, _main in story_cast.everyone(connection))
+    return scene_now.story_place(data, place, messages(connection, MOVES_READ), home_place(connection, data), names)
+
+
+def place_now(connection) -> tuple[str, dict]:
+    """(city id, place) the story is at right now, for the map's pin."""
+    row = scene_row(connection)
+    data = city_data(connection, row['city_id'])
+    return row['city_id'], walked(connection, data, place_of(connection, data, row['place_id']))
 
 
 def local_moment(data: dict, now: datetime) -> datetime:
@@ -139,7 +180,9 @@ def local_moment(data: dict, now: datetime) -> datetime:
 
 def present(connection, data: dict, place_id: str, moment: datetime) -> list[dict]:
     """Who the townsfolk rules put at the place now. Companions are not among them: they are in the scene in
-    their own right (companion/story_cast.py)."""
+    their own right (companion/story_cast.py). Nobody's day takes them into the user's own home."""
+    if place_id == HOME:
+        return []
     companion = current(connection)
     cast = encounters.town_cast(connection, companion, data) if companion else encounters.NO_CAST
     found = encounters.present(data, place_id, [moment], {}, cast)
@@ -157,16 +200,21 @@ def present(connection, data: dict, place_id: str, moment: datetime) -> list[dic
 def scene(connection, now: datetime) -> dict:
     row = scene_row(connection)
     data = city_data(connection, row['city_id'])
-    place = catalog.find(data, row['place_id'])
     # Where the story's own lines have walked them since the place was picked (companion/life/scene_now.py).
-    place = scene_now.story_place(data, place, messages(connection, MOVES_READ))
+    place = walked(connection, data, place_of(connection, data, row['place_id']))
     place = inside.with_edits(place, inside.edited(connection, data['id']))
     moment = local_moment(data, now)
     weather = generators.conditions(data, moment.date(), skies.level_of(connection))
     hood = townsfolk.neighborhood_name(data, place['neighborhood'])
+    home = home_spot(connection)
+    # Their own home has only the rooms they named on the map; anywhere else gets its kind's spots.
+    spots = place.get('spots') or [] if place.get('home') else inside.for_place(place, data.get('era'))
     return {'city': {'id': data['id'], 'name': data['name'], 'era': data.get('era', 'modern')},
             'place': {'id': place['id'], 'name': place['name'], 'kind': place['kind'], 'summary': place.get('summary', ''),
-                      'neighborhood': hood, 'spots': inside.names(inside.for_place(place, data.get('era')))},
+                      'neighborhood': hood, 'spots': inside.names([inside.placed(spot) for spot in spots]),
+                      'home': bool(place.get('home'))},
+            # Where "Go home" goes, in whichever city that is; `here` once the story is there.
+            'home': home and home | {'here': place['id'] == HOME and home['city_id'] == data['id']},
             'local_time': moment.isoformat(timespec='minutes'), 'weather': agenda.weather_text(weather, temperature.chosen(connection)) if weather else '',
             # Anyone who has said yes to the user is glad to see them (companion/story_pursuit.py).
             'people': story_pursuit.noted(connection, present(connection, data, place['id'], moment)),
@@ -176,6 +224,12 @@ def scene(connection, now: datetime) -> dict:
             'companions': (found := story_cast.here(connection, data, place['id'], now)),
             # The people a plan under way here is with, for the narrator to voice (companion/story_plans.py).
             'along': story_plans.narrator_people(connection, found)}
+
+
+def home_spot(connection) -> dict | None:
+    """Where the user lives, for "Go home": the city and the place id the story takes for it."""
+    found = where.your_home(connection)
+    return {'city_id': found[0]['id'], 'place_id': HOME, 'name': HOME_NAME} if found else None
 
 
 def person_line(person: dict, place: dict, data: dict, known: dict | None = None) -> str:
@@ -206,7 +260,8 @@ def scene_text(view: dict) -> str:
     data, place = view['data'], view['place']
     moment = datetime.fromisoformat(view['local_time'])
     when = f"{moment:%A} {moment.day} {moment:%B}" + (f", {moment.year}" if data.get('era', 'modern') == 'modern' else '')
-    lines = [f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {data['name']}. {place['summary']}",
+    lines = [home_line(place, data['name']) if place.get('home') else
+             f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {data['name']}. {place['summary']}",
              f"City: {data['summary']}" + ('' if townsfolk.modern(data) else f" The era is {data['era']}."),
              f"Local time: {when}, {moment.strftime('%H:%M')} ({townsfolk.part_of_day(moment.hour * 60 + moment.minute)})."]
     if place.get('spots'):
@@ -216,17 +271,28 @@ def scene_text(view: dict) -> str:
     lines.append('Who is here (their names are for you; the user knows only the names of people they have met):')
     lines += story_cast.narrator_lines(view['companions']) + view['along'] + \
         [person_line(person, {'id': place['id']}, data, view['known'].get(person['sheet']['key']))
-         for person in view['people']] or ['- Nobody the story knows; only passers-by.']
+         for person in view['people']] or [NOBODY_HOME if place.get('home') else '- Nobody the story knows; only passers-by.']
     if view['companions']:
         lines.append(story_cast.beside(view['companions']))
     lines += story_plans.narrator_plan(view['companions'])  # They came together, on purpose.
     return '## Scene\n' + '\n'.join(lines)
 
 
+# The user's own home, as the scene tells it (A/B in project files companion-story-home/ab).
+AT_HOME = 'Place: {home}, in {where}. They live here.'
+NOBODY_HOME = '- Nobody else is here.'
+
+
+def home_line(place: dict, city: str) -> str:
+    """The scene's first line at the user's own home, for the narrator and for a companion there alike."""
+    where_ = f"{place['neighborhood']}, {city}" if place['neighborhood'] else city
+    return AT_HOME.format(home=HOME_TOLD[0].upper() + HOME_TOLD[1:], where=where_)
+
+
 def scene_view(view: dict) -> dict:
     """The scene for the screen: what the user can see, never the names of people they have not met."""
     data = view['data']
-    return {key: view[key] for key in ('city', 'place', 'local_time', 'weather')} | {
+    return {key: view[key] for key in ('city', 'place', 'local_time', 'weather', 'home')} | {
         'places': [{'id': item['id'], 'name': item['name'], 'kind': item['kind'],
                     'neighborhood': townsfolk.neighborhood_name(data, item['neighborhood'])} for item in data['places']],
         # A companion is someone the user knows: by name, and first.
@@ -353,25 +419,31 @@ def move(database, city_id: str, place_id: str | None) -> dict:
     """Go somewhere else: another place in this city, or another city (its opening place unless one is named)."""
     with database.connect(write=True) as connection:
         data = city_data(connection, city_id)
-        place = catalog.find(data, place_id) if place_id else opening_place(data)
-        require(place is not None and place in data['places'], 'No such place in this city.', 404)
+        place = place_of(connection, data, place_id) if place_id else opening_place(data)
+        require(place is not None, 'No such place in this city.', 404)
         row = scene_row(connection)
         # Picking the place the story walked them away from takes them back there (companion/life/scene_now.py).
-        walked = row['city_id'] == data['id'] and scene_now.story_place(
-            data, catalog.find(data, row['place_id']), messages(connection, MOVES_READ))['id'] != place['id']
-        if row != {'city_id': data['id'], 'place_id': place['id']} or walked:
+        away = row['city_id'] == data['id'] and walked(
+            connection, data, place_of(connection, data, row['place_id']))['id'] != place['id']
+        if row != {'city_id': data['id'], 'place_id': place['id']} or away:
             connection.execute(
                 'INSERT INTO story_scene (id, city_id, place_id, updated_at) VALUES (1, ?, ?, ?) ON CONFLICT(id) DO '
                 'UPDATE SET city_id=excluded.city_id, place_id=excluded.place_id, updated_at=excluded.updated_at',
                 (data['id'], place['id'], database.now()))
             where = {'city_id': data['id'], 'place_id': place['id']}
-            hood = townsfolk.neighborhood_name(data, place['neighborhood'])
-            add(connection, database.now(), 'scene', f"You arrive at {place['name']}, {hood}, {data['name']}.", where)
+            add(connection, database.now(), 'scene', arrival(data, place), where)
             # Whoever was with them stays behind; a companion who is at the new place is there when they walk in.
             story_visits.close_all(connection, database.clock.now())  # Their time together ends here.
             story_cast.leave(connection)
             story_cast.sync(connection, add, scene(connection, database.clock.now())['companions'], database.now(), where)
     return story(database)
+
+
+def arrival(data: dict, place: dict) -> str:
+    """The story's own line for a place picked: "You arrive at Lupa, Fells Point, Baltimore.", or "You're home."
+    (Iris, 2026-11-26: the header says where)."""
+    hood = townsfolk.neighborhood_name(data, place['neighborhood'])
+    return "You're home." if place.get('home') else f"You arrive at {place['name']}, {hood}, {data['name']}."
 
 
 def clear(database) -> dict:
@@ -571,7 +643,16 @@ def record(database, text: str, client_id: str, hidden: bool = False) -> dict:
             # Everyone in the scene hears it (companion/story_secrets.py).
             story_secrets.sync(connection, view, database.clock.now())
             story_secrets.heard(connection, user, view)
+            left_behind(connection, view, user, database.clock.now())
         return user
+
+
+def left_behind(connection, view: dict, user: dict, now: datetime) -> None:
+    """A line that walks the user somewhere else and says they part ("I say goodnight and walk home") leaves whoever
+    was with them where they were, as picking a place does. Without it a companion they are talking with comes along."""
+    if view['companions'] and scene_now.parts(user['text']) and place_now(connection)[1]['id'] != view['place']['id']:
+        story_visits.close_all(connection, now)
+        story_cast.leave(connection)
 
 
 async def send(state, text: str, client_id: str) -> dict:

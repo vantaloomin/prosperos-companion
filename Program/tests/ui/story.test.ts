@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aroundText, companionLine, openingAction, openingText, personLine, placeGroups, sceneTime, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
+import { aroundText, companionLine, goHome, homeChoice, openingAction, openingText, personLine, placeGroups, sceneTime, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
@@ -31,6 +31,22 @@ test('places are grouped by neighborhood', () => {
   const place = (id: string, neighborhood: string) => ({ id, name: id, kind: 'cafe', neighborhood })
   assert.deepEqual(placeGroups([place('b', 'Canton'), place('a', 'Fells Point'), place('c', 'Canton')]).map(([hood, items]) => [hood, items.map((item) => item.id)]),
     [['Canton', ['b', 'c']], ['Fells Point', ['a']]])
+})
+
+test('going home is one press from anywhere, and the picker names your home once you are there', () => {
+  const city = { id: 'baltimore', name: 'Baltimore', era: 'modern' }
+  const home = { city_id: 'baltimore', place_id: '~you', name: 'Your home', here: false }
+  // The picker lists their home only while the story is there, so it says where they are.
+  assert.deepEqual(homeChoice({ home: { ...home, here: true } }), { id: '~you', name: 'Your home' })
+  assert.equal(homeChoice({ home }), null)
+  assert.equal(homeChoice({ home: null }), null)
+  assert.deepEqual(goHome({ home }), { city_id: 'baltimore', place_id: '~you' })
+  // Nowhere to go once they are home, or with no home in this world.
+  assert.equal(goHome({ home: { ...home, here: true } }), null)
+  assert.equal(goHome({ home: null }), null)
+  const place = { id: '~you', name: 'Your home', kind: 'home', neighborhood: 'Canton', home: true }
+  assert.equal(whereText({ city, place }), 'Your home, Canton, Baltimore')
+  assert.equal(whereText({ city, place: { ...place, neighborhood: '' } }), 'Your home, Baltimore')
 })
 
 test('a person met says how often and where they are now', () => {

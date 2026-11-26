@@ -136,3 +136,17 @@ def test_with_the_switch_off_the_story_stays_apart(client, barkeep, provider):
     script(provider, 'Hello.')
     send(client, 'hi', 'chat-0001')
     assert 'in person' not in provider.requests[-1]['system'] + provider.requests[-1]['messages'][0]['content']
+
+
+def test_time_together_at_the_users_own_home_reads_right_to_both_of_them():
+    from datetime import UTC, datetime
+    visit = {'place_name': story_visits.AT_YOURS, 'came': 'them', 'doing': '', 'outing_id': None,
+             'ended_at': '2026-11-26T20:00:00+00:00', 'last_at': '2026-11-26T20:00:00+00:00'}
+    memory = story_visits.memory_text(visit, 'Mira')
+    assert memory == {'subject': 'In person with Mira at your place',
+                      'value': 'Mira and you spent time together at your place.'}
+    told = records.as_told({**memory, 'origin': 'automatic', 'layer': 'shared_experience'}, 'Mira')
+    assert told['subject'] == "In person with you at the user's place"
+    assert told['value'] == "You and the user spent time together at the user's place."
+    text = story_visits.told_text(visit, [], datetime(2026, 11, 26, 22, tzinfo=UTC), UTC)
+    assert "you were at the user's place with them, and the two of you spent time together in person" in text
