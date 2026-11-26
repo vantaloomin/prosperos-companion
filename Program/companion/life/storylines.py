@@ -2,7 +2,7 @@
 
 "Omg, my dad just got a promotion." "The new person at work keeps taking credit for my work." "I got
 drunk and kissed my best friend." Each storyline is a fixed template with a cast drawn from the
-circle (or the companion's own work), and two or three beats spread over the following days. Which
+circle (or the companion's own work, or their own days outside it), and two or three beats spread over the following days. Which
 storyline starts on which day, who is in it and how each beat turns out are all decided by a seed
 when it starts, never by a model. Beats stay hidden until their day comes, like the agenda.
 
@@ -27,7 +27,11 @@ from datetime import date, time, timedelta
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, one, optional
 from companion.errors import require
-from companion.life import casting, circle, happenings, pronouns, routine, world_drama
+from companion.life import casting, circle, happenings, position, pronouns, routine, world_drama
+from companion.life.position import BOSSED, STAFF
+from companion.life.story_parts import Beat, Spent, Story, beat, either
+from companion.life.storyline_bank import MORE, MORE_EFFECTS
+from companion.life.storyline_charge import IN_CHARGE
 from companion.world import lifespans, perception
 
 LEVELS = ('quiet', 'realistic', 'dramatic', 'soap opera')
@@ -46,46 +50,6 @@ SETTLED_DAYS = 60
 SPENT_AT = '19:00'
 SPENT_HOURS = (time(18, 0), time(21, 0))
 BUSY = {'work', 'study', 'sleep'}
-
-
-@dataclass(frozen=True)
-class Spent:
-    """A beat that says the companion spent real time with someone in it (v1.4.0): it takes a slot of the companion's
-    day (`summary`, their agenda entry) and the same slot of that person's day (`theirs`, companion/life/joint.py).
-    `short` and `short_share` tell the beat when no slot could take it, without saying where the evening went."""
-    activity: str
-    summary: str
-    theirs: str
-    short: str
-    short_share: str
-    mood: str = 'content'
-    with_cast: int = 0
-
-
-@dataclass(frozen=True)
-class Beat:
-    text: str
-    share: str
-    tone: str = 'mixed'
-    spent: Spent | None = None
-
-
-@dataclass(frozen=True)
-class Story:
-    key: str
-    level: int
-    cast: str
-    stages: tuple[tuple[Beat, ...], ...]
-    gap: tuple[int, int] = (2, 6)
-    own: bool = False  # Started by its own module, never by the drama roll, and outside its caps.
-
-
-def beat(text, share, tone='mixed', spent=None):
-    return (Beat(text, share, tone, spent),)
-
-
-def either(*beats):
-    return tuple(Beat(*item) for item in beats)
 
 
 STORIES = (
@@ -114,7 +78,7 @@ STORIES = (
              "ok don't jinx it but I might be up for a promotion??"),
         either(('{name} got the promotion.', 'I GOT IT. the promotion. I got it!!', 'good'),
                ('{name} did not get the promotion; it went to someone else.',
-                "didn't get the promotion. it's fine. (it's not fine)", 'bad'))), (4, 10)),
+                "didn't get the promotion. it's fine. (it's not fine)", 'bad'))), (4, 10), positions=BOSSED),
     # Realistic: everyday trouble.
     Story('credit_taker', 1, 'work', (
         beat("A new coworker keeps taking credit for {name}'s work in meetings.",
@@ -122,7 +86,8 @@ STORIES = (
         either(('{name} spoke up in a meeting and made it clear whose work it was.',
                 'spoke up in the meeting today. everyone knows whose work it was now', 'good'),
                ('{name} took the credit problem to their manager, who is keeping an eye on it.',
-                "talked to my manager about the credit thing. they're keeping an eye on it"))), (2, 5)),
+                "talked to my manager about the credit thing. they're keeping an eye on it"))), (2, 5),
+        positions=BOSSED),
     Story('friend_breakup', 1, 'friend seeing someone', (
         beat('{a} went through a breakup, and {name} spent the evening on the phone with them.',
              'rough night. {a} got dumped and I was on the phone with them for hours', 'bad', Spent(
@@ -140,14 +105,14 @@ STORIES = (
                  'send-off', "{name} went to the send-off drinks for {a}'s last day at work.",
                  '{own} had send-off drinks with {other}.',
                  "It was {a}'s last day at work.", "{a}'s last day today. it won't be the same", 'social'))),
-     (5, 12)),
+     (5, 12), positions=BOSSED),
     Story('layoff_rumors', 1, 'work', (
         beat("There are rumors of layoffs at {name}'s work.", 'everyone at work is whispering about layoffs. fun times',
              'bad'),
         either(("The layoffs hit another team; {name}'s job is safe.", "my job's safe. the layoffs hit another team. "
                                                                          'feel awful for them though'),
                ('The layoffs at work were called off.', 'false alarm, the layoffs got called off!', 'good'))),
-          (3, 8)),
+          (3, 8), positions=STAFF),
     # Dramatic: health scares, feuds, secret romances.
     Story('parent_health', 2, 'parent', (
         beat("{name}'s {a_rel} {a} had a health scare and is waiting on test results.",
@@ -181,7 +146,7 @@ STORIES = (
         either(('{name} told the new guy to knock it off, and he finally backed off.',
                 'update on the new guy: I told him to knock it off and he actually did', 'good'),
                ('{name} reported the new guy to their manager after he kept at it.',
-                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5)),
+                'had to go to my manager about the new guy. ugh. glad I did though'))), (2, 5), positions=STAFF),
     Story('drunk_kiss', 3, 'best friend, single', (
         beat('{name} got drunk and kissed {a}, their best friend.', 'I got drunk and kissed my best friend. what do I do'),
         beat('{name} and {a} are being weird around each other.', "{a} and I are being so weird around each other. help"),
@@ -212,6 +177,9 @@ STORIES = (
 )
 
 
+# The rest of the bank, past a hundred stories in all (companion/life/storyline_bank.py, v1.5.0).
+STORIES += MORE + IN_CHARGE
+
 # Births and growing families (companion/life/families.py) writes these beats out in full, with the baby's name, the
 # day each storyline starts; the stages here only stand for them.
 STORIES += tuple(Story(key, 0, 'family', (beat('{name} heard some family news from {a}.', 'family news from {a}!', 'good'),),
@@ -219,6 +187,20 @@ STORIES += tuple(Story(key, 0, 'family', (beat('{name} heard some family news fr
                  for key in ('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
 FAMILY = frozenset(('expecting', 'adopting', 'baby_update', 'babysat', 'first_birthday'))
 OWN = frozenset(story.key for story in STORIES if story.own)
+# Storylines the user is part of (companion/life/shared_storylines.py, v1.5.0) are rows here too, with the story
+# `shared:<key>`. That module starts them, writes each beat out in full and decides what comes next from what the user
+# did; this one tells them like any other.
+SHARED = 'shared:'
+SHARED_STORY = Story('shared', 0, 'you', (), own=True)
+
+
+def shared(key: str) -> bool:
+    return key.startswith(SHARED)
+
+
+def own(key: str) -> bool:
+    """Started and run by its own module, never by the drama roll, and outside its caps."""
+    return key in OWN or shared(key)
 
 
 # What each beat (story, beat, the alternative it took) does to the people in it (companion/life/happenings.py), and
@@ -238,10 +220,12 @@ EFFECTS = {
     ('parent_health', 0, 0): ('health_scare', 'a'), ('parent_health', 1, 0): ('results_fine', 'a'),
     ('parent_health', 1, 1): ('treatment', 'a'),
     ('drunk_kiss', 2, 1): ('dating_companion', 'a'),
-}
+} | MORE_EFFECTS
 
 
 def find_story(key) -> Story:
+    if shared(key):
+        return SHARED_STORY
     return next(story for story in STORIES if story.key == key)
 
 
@@ -273,8 +257,12 @@ def casts(story: Story, people: list[dict], definition: dict, known: casting.Fac
     """Every cast this story could have from these people (ids), in circle order: only people the story can be true
     for (companion/life/casting.py). `known` is what the rules know of the world (casting.facts)."""
     known = known or casting.Facts(people=people)
+    if not position.fits(story.positions, known.position):
+        return []  # A story about their work that needs someone above them, or someone under them.
     if story.cast == 'work':
         return [()] if circle.work_blocks(definition) and known.companion_employed else []
+    if story.cast == 'self':  # The companion's own days outside work: true for anyone.
+        return [()]
     if story.cast == 'best friend, single' and (definition.get('relationship') == 'romance' or
                                                  any(person['role'] in PARTNERS for person in people)):
         return []
@@ -309,7 +297,7 @@ def start(connection, companion, people, day: date, level: int, lone: bool = Fal
     in their world gets a few more (companion/life/world_drama.py)."""
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     rng = random.Random(f'storyline:{timeline_id}:{day.isoformat()}')
-    drawn = [row for row in running(connection, timeline_id, day.isoformat()) if row['story'] not in OWN]
+    drawn = [row for row in running(connection, timeline_id, day.isoformat()) if not own(row['story'])]
     if rng.random() >= START[level] * (world_drama.ALONE if lone else 1) or len(drawn) >= RUNNING[level]:
         return None
     since = (day - REPEAT_AFTER).isoformat()
@@ -349,6 +337,8 @@ def settle(connection, companion, today: date, now) -> int:
     people in the storyline as things stand now, and written into the storyline. Returns how many."""
     timeline_id, settled = companion['active_timeline_id'], 0
     for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running'", (timeline_id,)):
+        if shared(row['story']):
+            continue  # What comes next follows what the user did (shared_storylines.follow).
         stages = decode(row['stages'])
         due = [index for index, stage in enumerate(stages) if stage.get('pending') and stage['on'] <= today.isoformat()]
         for index in due:
@@ -425,6 +415,9 @@ def fork_stages(connection, row, copy_id: str, timeline_id: str, cutoff: str) ->
     """A storyline's stages for a new timeline's copy: turnings decided by the fork keep their outcome (copied
     with it), later ones are left for the copy's own engine to decide."""
     from companion import consequences
+    if shared(row['story']):
+        from companion.life import shared_storylines
+        return shared_storylines.fork_stages(connection, row, copy_id, timeline_id, cutoff)
     story, stages = find_story(row['story']), decode(row['stages'])
     for index, stage in enumerate(stages):
         if stage.get('odds'):  # A baby's odds (families.keep_odds), on the news the fork already had.
@@ -457,6 +450,7 @@ def start_due(connection, companion, now) -> int:
     ahead (companion/life/agenda.py extend), so an evening a storyline takes is in the days it fills in."""
     timeline_id, today = companion['active_timeline_id'], local_today(companion, now)
     end_removed(connection, timeline_id, today, now)
+    end_unfitting(connection, companion, today, now)
     level, lone = drama(connection), world_drama.alone(connection)
     cursor = optional(connection, 'SELECT through FROM storyline_days WHERE timeline_id=?', (timeline_id,))
     first = today - timedelta(days=CATCH_UP_DAYS)
@@ -511,7 +505,7 @@ def record_due(connection, companion, now) -> int:
     rows = [row for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running' AND "
                                 'started_on>=? ORDER BY started_on', (companion['active_timeline_id'], (local.date() - timedelta(
                                     days=SETTLED_DAYS * 3)).isoformat()))
-            if row['story'] not in OWN and (decode(row['stages'])[-1]['on'] >= since or decode(row['stages'])[-1].get('pending'))]
+            if not own(row['story']) and (decode(row['stages'])[-1]['on'] >= since or decode(row['stages'])[-1].get('pending'))]
     times, recorded = timing(connection, companion, rows), 0
     for row in rows:
         stages, cast = decode(row['stages']), decode(row['cast_ids'])
@@ -520,8 +514,8 @@ def record_due(connection, companion, now) -> int:
             if not found or not happened(stage, at, today, clock):
                 continue
             kind, who = found
-            for position, subject in enumerate(cast[:len(who)]):
-                other = cast[1 - position] if len(cast) > 1 else None
+            for place, subject in enumerate(cast[:len(who)]):
+                other = cast[1 - place] if len(cast) > 1 else None
                 when = lead_in(connection, subject, stage['on'], at) if spent_of(row, index, stage) else at
                 recorded += happenings.record(connection, companion, subject=subject, source=f"storyline:{row['id']}:{index}",
                                               kind=kind, day=stage['on'], at=when, other=other if who == 'ab' else None,
@@ -547,7 +541,7 @@ def as_plans(connection, timeline_id: str, since: str) -> dict[str, list[dict]]:
     entry names the person, so their own day holds the same evening (companion/life/joint.py)."""
     result = {}
     for row in many(connection, "SELECT * FROM storylines WHERE timeline_id=? AND status='running'", (timeline_id,)):
-        if row['story'] in OWN:
+        if own(row['story']):
             continue
         cast = decode(row['cast_ids'])
         for index, stage in enumerate(decode(row['stages'])):
@@ -634,8 +628,27 @@ def end_removed(connection, timeline_id, today: date, now):
             happenings.take_back(connection, timeline_id, f"storyline:{row['id']}:", now)
 
 
+def end_unfitting(connection, companion, today: date, now):
+    """A story about their work that no longer fits where they stand there (companion/life/position.py: the user
+    says they run the place, or their card now reads that way) ends quietly before its next beat, the way one about
+    someone removed does: an owner is not left waiting to hear whether the layoffs reach them."""
+    held = position.companion_position(connection, companion)
+    if not held:
+        return
+    stories = {story.key: story for story in STORIES}
+    for row in many(connection, "SELECT id, story, stages FROM storylines WHERE timeline_id=? AND status='running'",
+                    (companion['active_timeline_id'],)):
+        story = stories.get(row['story'])
+        if not story or position.fits(story.positions, held):
+            continue
+        last = decode(row['stages'])[-1]
+        if not (last['on'] <= today.isoformat() and not last.get('pending')):
+            connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (row['id'],))
+            happenings.take_back(connection, companion['active_timeline_id'], f"storyline:{row['id']}:", now)
+
+
 # The chat context speaks to the companion: a template's third person becomes "you" before it is filled.
-SECOND_PERSON = (("{name}'s", 'your'), ('{name} is ', 'you are '), ('{name} has ', 'you have '), ('{name} keeps ', 'you keep '),
+SECOND_PERSON = (("{name}'s", 'your'), ('{name} is ', 'you are '), ('{name} was ', 'you were '), ('{name} has ', 'you have '), ('{name} keeps ', 'you keep '),
                  ('but has not', 'but have not'), ('{name} heard they are', 'you heard you are'),
                  ('hitting on them', 'hitting on you'), ('to their manager', 'to your manager'),
                  ('their best friend', 'your best friend'), ('they never knew', 'you never knew'), ('{name}', 'you'))
@@ -662,15 +675,22 @@ PERIOD = {'spent the evening on the phone with': 'spent the evening sitting up w
           "found my half-sibling online. haven't messaged": "found out where my half-sibling lives. haven't written"}
 
 
+# The user in a storyline they are part of: "you" on the screens, "the user" when it is told to the companion.
+USER_SHOWN = {'user': 'you', 'User': 'You', 'user_s': 'your'}
+USER_TOLD = {'user': 'the user', 'User': 'The user', 'user_s': "the user's"}
+
+
 def fill(text: str, row: dict, names: dict, definition: dict, you=False) -> str:
     text = era_words(definition)(text)
     text = second_person(text) if you else text
     cast = decode(row['cast_ids'])
     people = [names.get(person_id, {'name': 'someone', 'role': 'friend'}) for person_id in cast]
-    values = {'name': definition['name'], 'a': '', 'b': '', 'a_rel': '', 'a_them': 'them'}
+    values = {'name': definition['name'], 'a': '', 'b': '', 'a_rel': '', 'a_them': 'them', 'a_their': 'their',
+              **(USER_TOLD if you else USER_SHOWN)}
     if people:
-        values |= {'a': people[0]['name'], 'a_rel': people[0]['role'],
-                   'a_them': pronouns.person(people[0].get('pronouns'))['them']}
+        theirs = pronouns.person(people[0].get('pronouns'))
+        values |= {'a': people[0]['name'], 'a_rel': people[0]['role'], 'a_them': theirs['them'],
+                   'a_their': theirs['their']}
     if len(people) > 1:
         values['b'] = people[1]['name']
     filled = pronouns.said(text.format(**values), THIRD_PERSON, definition)
@@ -776,13 +796,15 @@ def view(row: dict, names: dict, definition: dict, today: str, you=False, clock:
     return {'id': row['id'], 'story': row['story'], 'level': LEVELS[row['level']], 'started_on': row['started_on'],
             'status': row['status'], 'cast': [{'id': person_id, **names[person_id]} for person_id in
                                               decode(row['cast_ids']) if person_id in names],
-            'beats': beats, 'unfolding': row['status'] == 'running' and len(beats) < len(stages)}
+            'beats': beats, 'unfolding': row['status'] == 'running' and len(beats) < len(stages),
+            'with_you': shared(row['story'])}
 
 
-def visible(connection, companion, now, include_ended=False, you=False, shown=False) -> list[dict]:
+def visible(connection, companion, now, include_ended=False, you=False, shown=False, with_you=True) -> list[dict]:
     """Storylines with at least one beat that has happened, newest first; `you` tells them to the companion. Babies
     and children (companion/life/families.py) only reach a prompt while the adult side is off; `shown` is for the
-    screens, which always list them."""
+    screens, which always list them. `with_you` False leaves out the ones the user is part of
+    (companion/life/shared_storylines.py), for readers that pass a beat on in words written about other people."""
     from companion.life import families
     timeline_id, definition = companion['active_timeline_id'], companion['version']['definition']
     local = now.astimezone(zone(companion['version']['timezone']))
@@ -793,6 +815,8 @@ def visible(connection, companion, now, include_ended=False, you=False, shown=Fa
                 'ORDER BY started_on DESC', (timeline_id, today))
     if not shown and families.withheld(connection):
         rows = [row for row in rows if row['story'] not in FAMILY]
+    if not with_you:
+        rows = [row for row in rows if not shared(row['story'])]
     times = timing(connection, companion, rows)
     found = (view(row, names, definition, today, you, clock, times) for row in rows)
     return [item for item in found if item['beats']]
@@ -804,7 +828,8 @@ def context_lines(connection, companion, now) -> list[tuple[str, str]]:
     today = local_today(companion, now)
     recent, pinned = ((today - timedelta(days=days)).isoformat() for days in (RECENT_DAYS, SETTLED_DAYS))
     result = []
-    for item in visible(connection, companion, now, you=True):
+    # One the user is part of is told with their part in it (shared_storylines.context_lines).
+    for item in visible(connection, companion, now, you=True, with_you=False):
         last = item['beats'][-1]
         if last['on'] >= recent:
             text = ' Then: '.join(beat_['text'] for beat_ in item['beats'])
@@ -828,7 +853,8 @@ def fresh_beats(connection, companion, now) -> list[tuple[str, dict]]:
     """Beats that happened today or yesterday, for a first message: (trigger key, beat)."""
     yesterday = (local_today(companion, now) - timedelta(days=1)).isoformat()
     result = []
-    for item in visible(connection, companion, now, you=True):
+    # One the user is part of sends its own texts and invitations (shared_storylines.beats_due).
+    for item in visible(connection, companion, now, you=True, with_you=False):
         for index, beat_ in enumerate(item['beats']):
             if beat_['on'] >= yesterday and not beat_.get('told'):  # Told by the companion already (said_events).
                 result.append((f"storyline:{item['id']}:{index}", beat_))
@@ -838,7 +864,15 @@ def fresh_beats(connection, companion, now) -> list[tuple[str, dict]]:
 def listing(database, include_ended=False) -> list[dict]:
     from companion.characters import require_current
     with database.connect() as connection:
-        return visible(connection, require_current(connection), database.clock.now(), include_ended, shown=True)
+        return on_screen(connection, require_current(connection), database.clock.now(), include_ended)
+
+
+def on_screen(connection, companion, now, include_ended=False) -> list[dict]:
+    """Today's list: the ones the user is part of carry their part in each beat, and leave a week after they are
+    over (shared_storylines.on_today)."""
+    from companion.life import shared_storylines
+    found = visible(connection, companion, now, include_ended, shown=True)
+    return found if include_ended else shared_storylines.on_today(connection, companion, found, now)
 
 
 def end(database, storyline_id) -> list[dict]:
@@ -854,7 +888,7 @@ def end(database, storyline_id) -> list[dict]:
         connection.execute("UPDATE storylines SET status='ended' WHERE id=?", (storyline_id,))
         # What it changed in their lives goes back: the diary line, the breakup, the new job (happenings.py).
         happenings.take_back(connection, row['timeline_id'], f'storyline:{storyline_id}:', database.clock.now())
-        return visible(connection, companion, database.clock.now(), shown=True)
+        return on_screen(connection, companion, database.clock.now())
 
 
 
@@ -892,11 +926,11 @@ def upcoming_odds(connection, companion, now) -> list[dict]:
                     (companion['active_timeline_id'],)):
         story, names = find_story(row['story']), cast_names(connection, row, definition)
         for index, stage in enumerate(decode(row['stages'])):
-            if not stage.get('pending'):
+            if not stage.get('pending') or shared(row['story']):
                 continue
             options = consequences.odds(stage['pending'], facts(connection, companion, row, now), names)
-            for item, beat in zip(options, story.stages[index], strict=True):
-                item['label'] = fill(beat.text, row, names_by_id(connection, row), definition)
+            for item, way in zip(options, story.stages[index], strict=True):
+                item['label'] = fill(way.text, row, names_by_id(connection, row), definition)
             found.append({'label': consequences.tables()[stage['pending']]['label'].format(**names), 'on': stage['on'],
                           'options': options})
     return found

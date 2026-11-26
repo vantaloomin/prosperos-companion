@@ -367,6 +367,16 @@ def copy_recall(connection, parent_id, new_id, ids, cutoff_date):
                                   'message_id': ids.get(row['message_id'])}
                                  for row in many(connection, 'SELECT * FROM trips WHERE timeline_id=? AND start_date<=?',
                                                  (parent_id, cutoff_date))])
+    # Time together in the Story by the fork (companion/story_visits.py): the days still count toward closeness.
+    insert(connection, 'story_visits', [
+        {**row, 'id': identifier(), 'timeline_id': new_id, 'memory_id': None}
+        for row in many(connection, 'SELECT * FROM story_visits WHERE timeline_id=? AND ended_at IS NOT NULL AND '
+                        'local_date<=?', (parent_id, cutoff_date))])
+    # What they said about themselves in a Story scene by the fork (companion/story_said.py) is still true of them.
+    insert(connection, 'self_facts', [
+        {**row, 'id': identifier(), 'timeline_id': new_id}
+        for row in many(connection, "SELECT * FROM self_facts WHERE timeline_id=? AND story_message_id IS NOT NULL AND "
+                        "status IN ('noted', 'kept') AND substr(created_at, 1, 10)<=?", (parent_id, cutoff_date))])
     insert(connection, 'history_corrections', [
         {**row, 'timeline_id': new_id} for row in many(connection, 'SELECT * FROM history_corrections WHERE timeline_id=?',
                                                        (parent_id,)) if history.key_start(row['period_key']) <= cutoff_date])

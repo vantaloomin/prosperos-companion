@@ -252,7 +252,12 @@ export interface MoneySetup {
   pay?: number | null
   /** How they hold their home (companion/life/owning.py); empty is the app's pick. */
   home?: HomeTenure
+  /** Where they stand at work (companion/life/position.py); empty is the app's pick. */
+  position?: Position | ''
 }
+
+/** Runs the place, manages people, or works for someone (companion/life/position.py). */
+export type Position = 'owner' | 'lead' | 'staff'
 
 /** Renting, paying off a mortgage, or owned outright; '' leaves it to the app. */
 export type HomeTenure = '' | 'rent' | 'mortgage' | 'owned'
@@ -355,8 +360,6 @@ export interface WorkspaceSettings {
   ooc_to_helper?: boolean
   /** The markers for those asides; null means the defaults (OOC: and ((...))). */
   ooc_markers?: { open: string; close: string }[] | null
-  /** Story mode (src/features/story) is opt-in, in Settings > Advanced. */
-  story_mode?: boolean
   /** The note under a group message when someone lets a secret slip; on unless turned off. */
   show_secret_slips?: boolean
   /** Hidden values: how companions feel (Today, group members); off unless turned on. */
@@ -437,6 +440,10 @@ export interface Memory {
   in_timeline?: boolean
   /** A value the user said was never true: replaced by nothing, and its old words are marked as wrong. */
   retracted?: boolean
+  /** A shared moment left by time together in the Story (companion/story_visits.py). */
+  in_story?: boolean
+  /** A fact you told them face to face in the Story: the line it came from (companion/story_said.py). */
+  story_line?: string | null
   /** Set on what you said about someone in your life; see Person. */
   person_id?: string | null
 }
@@ -576,6 +583,8 @@ export interface LifeSettings {
   friends_fall: boolean
   /** Breaks and breakups (companion/life/breakups.py): on for real life and drama, off for an easy life. */
   breakups: boolean
+  /** Scenes count (companion/story_visits.py): time with a companion in the Story is part of their life together. */
+  story_counts: boolean
   /** Their own love life (companion/life/love_life.py): 0 nothing new, 1 quiet, 2 true to life, 3 lots going on. */
   love_life: number
   /** Life's big turns (companion/life/big_turns.py): how often life chapters come, 0 off, 1 gentle (good turns only), 2 true to life, 3 eventful. */
@@ -591,6 +600,8 @@ export interface LifeSettings {
   loss: number
   /** Local politics (companion/life/politics.py): 0 off, 1 quiet, 2 true to life, 3 lively. */
   politics_realism: number
+  /** Storylines you are part of (companion/life/shared_storylines.py): 0 off, 1 now and then, 2 true to life, 3 often. */
+  shared_storylines: number
   /** Trolls and snark on posts (companion/life/social.py): 0 off, 1 rivals only, 2 snarky, 3 trolls. */
   trolls_realism: number
 }
@@ -959,6 +970,8 @@ export interface CircleLove {
   people: { id: string; name: string; stands: string | null }[]
 }
 
+export interface KnowsYou { how: '' | 'knows you' | 'knows of you'; why: string; set: boolean; key: string }
+
 export interface CirclePerson {
   kind?: KindShown
   own_kind?: string
@@ -999,6 +1012,9 @@ export interface CirclePerson {
    * `knowing`): 'they' know the companion, or the 'companion' knows of them. `knowing_set` when the user said so. */
   knowing?: Knowing
   knowing_set?: boolean
+  /** Whether they know the user (companion/life/knows_you.py): `how` '' when not, `why` the app's reason, `set` when
+   * the user said so. */
+  knows_you?: KnowsYou | null
   /** What they think of you, once they have met you (companion/life/their_people.py). */
   met?: CircleMet | null
   /** Where they are now; `stay` while a hospital stay or a sick spell has them (companion/life/health_stays.py). */
@@ -1546,7 +1562,10 @@ export interface Closeness {
 /** Something the companion said about themselves (companion/self_facts.py). */
 export interface SelfFact {
   id: string
-  message_id: string
+  /** Null for one said in a Story scene, which has no chat message. */
+  message_id: string | null
+  /** Said in a Story scene (companion/story_said.py). */
+  in_story?: boolean
   category: 'likes' | 'dislikes' | 'favorite' | 'person' | 'pet' | 'never' | 'grew_up' | 'allergy' | 'team' | 'plays'
     | 'works_at' | 'detail' | 'said'
   label: string
@@ -1585,6 +1604,10 @@ export interface StoryBeat {
   on: string; text: string; share: string; tone: 'good' | 'bad' | 'mixed'
   /** The consequence engine's outcome this beat came from, when it could have gone more than one way. */
   consequence: string | null
+  /** In a storyline the user is part of: how the beat reached them, and their part in it (none for a beat nothing
+   * follows, or one that has not reached them yet). */
+  via?: 'text' | 'plan'
+  you?: YourPart
 }
 /** A lasting change to the companion's life (companion/life/chapters.py). */
 /** News travels (companion/news.py): the companion's recent news and who has heard it, in the order they did. */
@@ -1654,7 +1677,13 @@ export interface Storyline {
   cast: { id: string; name: string; role: string }[]
   beats: StoryBeat[]
   unfolding: boolean
+  /** The user is part of it (companion/life/shared_storylines.py): its beats say "you". */
+  with_you: boolean
 }
+/** The user's part in a beat of a storyline they are part of, as far as the app can tell for sure: what they did
+ * about it, or where it stands ('texted': the text is out and still open; 'set': the plan is booked for `on` at
+ * `at`; 'now': the plan is under way). */
+export interface YourPart { did: 'texted' | 'answered' | 'said_yes' | 'said_no' | 'dropped_by' | 'passed' | 'set' | 'now' | 'went' | 'called_off'; on?: string; at?: string }
 
 export interface Occasion { key: string; kind: 'user_birthday' | 'own_birthday' | 'circle_birthday' | 'anniversary' | 'tradition' | 'step_anniversary' | 'death_anniversary'; date: string; days: number; span: string; text: string; template: string | null; person?: string; relation?: string; holiday?: string; tradition?: string; teaser?: string; did?: string; step?: string; turns?: number }
 
@@ -1665,13 +1694,14 @@ export interface TraditionsView { traditions: Tradition[]; removed: Tradition[];
 /** Our year so far (companion/life/scrapbook.py): the stretches there are, and one stretch's pages. */
 export interface ScrapbookPeriod { key: string; title: string; start: string; end: string }
 export interface ScrapbookListing { periods: ScrapbookPeriod[]; featured: string | null; featured_days: number }
-export interface ScrapbookItem { date?: string; text: string }
+/** `until` on an entry that ran over several days (a storyline you were part of): its last day. */
+export interface ScrapbookItem { date?: string; until?: string; text: string }
 export type ScrapbookPage =
   | { kind: 'cover'; title: string; subtitle: string; stats: { value: string; label: string }[] }
   | { kind: 'first'; title: string; date: string; said: string; reply: string | null }
   | { kind: 'photos'; title: string; photos: { ref: string; summary: string; date: string | null }[] }
   | { kind: 'jokes'; title: string; items: ScrapbookItem[]; note: string | null }
-  | { kind: 'closer' | 'moments' | 'their-year'; title: string; items: ScrapbookItem[] }
+  | { kind: 'closer' | 'moments' | 'their-year' | 'with-you'; title: string; items: ScrapbookItem[] }
   | { kind: 'closing'; title: string; text: string }
   | { kind: 'wedding'; title: string; date: string; text: string; items: ScrapbookItem[]; guests: string[]; more?: number; photo: string | null; photo_alt: string }
 export interface Scrapbook extends ScrapbookPeriod { name: string; pages: ScrapbookPage[] }
@@ -2000,20 +2030,48 @@ export interface StoryScene {
   local_time: string
   weather: string
   places: StoryPlace[]
-  /** Who is around, as the user would see them ("the barista there"); never names they have not been given. */
+  /** Who is around, as the user would see them ("the barista there"); never names they have not been given.
+   * A companion who is here comes first, by name. */
   around: string[]
+  /** Companions in the scene right now (companion/story_cast.py): each answers in their own lines. */
+  companions: { id: string; name: string }[]
+  /** The plan being played here (companion/story_plans.py): the companion came with the user, on purpose. */
+  plan: StoryPlan | null
+}
+/** A plan with a companion under way somewhere the story can go: `what` reads after "for" ("dinner"), `until` is
+ * '21:00', `people` are who it is with besides the two of them, `storyline` marks one a storyline booked. */
+export interface StoryPlan {
+  outing_id: string; companion_id: string; name: string; what: string; until: string; place: string; storyline: boolean
+  people: { name: string; role: string }[]
 }
 export interface StoryMessage {
-  id: string; seq: number; role: 'user' | 'narrator' | 'scene'; text: string; reply_to: string | null
+  /** 'companion' is a companion's own line in the scene (`speaker`, `name`); 'cast' says one came or went. */
+  id: string; seq: number; role: 'user' | 'narrator' | 'scene' | 'companion' | 'cast'; text: string; reply_to: string | null
   status: 'complete' | 'failed'; error: string | null; city_id: string; place_id: string; created_at: string
+  client_id: string | null; speaker: string | null; name: string | null
   crisis_help?: boolean
+  /** A line the app said for the user to start a plan's scene: never shown. */
+  hidden?: number
+}
+/** A companion as the Story has them now: in the scene (`here`), somewhere the story can go (`place`), or neither. */
+export interface StoryCompanion {
+  key: string; id: string; name: string; main: boolean; here: boolean; doing: string; city: string | null
+  place: { id: string; name: string; city_id: string } | null
+  /** Their plan with the user under way, at `place` (companion/story_plans.py). */
+  plan: StoryPlan | null
 }
 /** Someone the user has met in their story (companion/story_people.py), with where their rules put them now. */
 export interface StoryPerson {
   key: string; name: string; role: string; city: string; meetings: number; last_met_at: string; notes: string[]
   doing: string; place: { id: string; name: string; city_id: string } | null
+  /** They said yes when the user asked them out in the story (companion/story_pursuit.py). */
+  matched?: boolean
+  /** Set once they became a companion. */
+  companion_id?: string | null
+  /** While they are in the scene and have not said yes: the button that asks for the user, and the line it says. */
+  ask?: { label: string; line: string } | null
 }
-export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; ready: boolean; can_switch: boolean }
+export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; companions: StoryCompanion[]; ready: boolean; can_switch: boolean }
 
 /** The dating app (companion/dating.py): the user's profile, the deck, matches and any Story mode date. */
 export type DatingGender = 'woman' | 'man' | 'nonbinary'
@@ -2035,6 +2093,8 @@ export interface DatingMatch extends DatingCard {
   city: { id: string; name: string }
   /** Set once the match became a companion. */
   companion_id: string | null
+  /** They said yes in the user's own story, not on the app (companion/story_pursuit.py). */
+  in_story?: boolean
   places: DatingPlace[]
   /** They have since moved away or passed away (companion/world/turnover.py). */
   left?: TownLeft | null
@@ -2053,8 +2113,6 @@ export interface Dating {
   watching?: boolean
   /** Who the user is in this world, so a new profile starts filled in. */
   persona?: { name: string; gender: string; age: number | null; about: string } | null
-  /** Whether Story mode is on, so a match can be met there. */
-  story: boolean
   /** Whether an image backend is set up, so "Show photo" can make one. */
   photos: boolean
   deck: DatingCard[]
@@ -2449,7 +2507,7 @@ export interface AdminView {
 /** Something that changed at work (companion/life/work.py): a raise, a promotion, a project wrapped up, a new job. */
 export interface WorkEvent {
   id: string
-  kind: 'raise' | 'freeze' | 'promotion' | 'project' | 'laid-off' | 'quit' | 'new-job'
+  kind: 'raise' | 'freeze' | 'promotion' | 'project' | 'laid-off' | 'quit' | 'new-job' | 'good-year' | 'flat-year'
   local_date: string
   /** "the yearly raise, about 3.2%", "wrapped up the spring menu change; it went well". */
   text: string
@@ -2473,6 +2531,8 @@ export interface WorkLifeView {
   meter: { vacation_total: number; vacation_used: number; allowance: number; pay_percent: number; level: number } | null
   /** Same days every week, shifts that change weekly, or freelance gigs (companion/life/shifts.py). */
   hours: 'staff' | 'rota' | 'freelance'
+  /** Where they stand at work, null for a student, a freelancer or between jobs (companion/life/position.py). */
+  position?: Position | null
   /** A student (companion/life/work.py STUDY), and what they study. */
   studying?: boolean
   field?: string

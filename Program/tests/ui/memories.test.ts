@@ -150,3 +150,8 @@ test('a moment with only a start happened then, and a hand-written one is dated 
   assert.equal(happenedAt(''), null)
   assert.equal(happenedAt('2026-05-03'), new Date('2026-05-03T00:00').toISOString())
 })
+
+test('a moment from the Story says so on its date line', () => {
+  const show = (value: string) => value.slice(0, 10)
+  assert.deepEqual(dateParts(memory('bar', { layer: 'shared_experience', in_story: true, stated_at: '2026-11-16T12:00:00Z' }), show), ['In Story · 2026-11-16'])
+})

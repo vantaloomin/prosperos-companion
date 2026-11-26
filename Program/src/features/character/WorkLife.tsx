@@ -34,7 +34,9 @@ export function WorkLife({ name }: { name: string }) {
  * has classes and no raise (Iris). */
 function introText(view: WorkLifeView | null | undefined): string {
   if (view?.studying) return 'Their studies run on their own: busy and light weeks, and one piece of coursework at a time that the app picks to fit what they study.'
-  return `Their job runs on its own: busy and slow weeks, a raise once a year, and one project at a time that the app picks to fit their job and city.${view ? HOURS_TEXT[view.hours] : ''}`
+  // Whoever runs the place has no raise to get: the place has a good or a flat year (companion/life/work.py `owners_year`).
+  const year = view?.position === 'owner' ? 'a good or flat year for the place' : 'a raise once a year'
+  return `Their job runs on its own: busy and slow weeks, ${year}, and one project at a time that the app picks to fit their job and city.${view ? HOURS_TEXT[view.hours] : ''}`
 }
 
 function WorkDetails({ view }: { view: WorkLifeView }) {

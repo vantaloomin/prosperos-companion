@@ -3476,6 +3476,7 @@
   {
    "id": "cook",
    "name": "Cook",
+   "position": "lead",
    "sector": "domestic-service",
    "schedule": "early",
    "employment": "staff",
@@ -3773,6 +3774,7 @@
   {
    "id": "detective",
    "name": "Detective sergeant",
+   "position": "lead",
    "sector": "law-enforcement",
    "schedule": "flexible",
    "employment": "freelance",

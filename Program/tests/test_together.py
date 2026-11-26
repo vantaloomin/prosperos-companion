@@ -288,6 +288,37 @@ def test_a_walk_is_gone_for_not_got(client, nearby, clock, monkeypatch):
     assert trigger.template.startswith('Want to go for a walk at ')
 
 
+def test_a_suggested_day_is_never_a_week_or_more_off(client, nearby, clock, monkeypatch):
+    """A tester's "friday at 4" was booked for the Friday after: the nearer days were skipped and the text only
+    names the weekday."""
+    import random
+    from datetime import timedelta
+
+    from companion.life import outings
+    monkeypatch.setattr(together, 'SUGGESTIONS', ('walk',))
+    today = clock.now().date()
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        local = clock.now().astimezone(__import__('zoneinfo').ZoneInfo('UTC'))
+        seen = []
+
+        def free(_connection, _companion, wanted, _local, days=()):
+            seen.append(wanted['day'])
+            return next(((day, '16:00') for day in days if day >= wanted['day']), None)
+
+        # Only two days from now and nine days from now are free; the first look starts past the nearer one.
+        near, far = today + timedelta(days=2), today + timedelta(days=9)
+        monkeypatch.setattr(outings, 'when_free', lambda *args: free(*args, days=(near, far)))
+        rng = random.Random(1)
+        monkeypatch.setattr(rng, 'randint', lambda _low, _high: 4)
+        [trigger] = together.outing_suggestion(connection, companion, local, 'get-together:test', rng)
+        assert seen == [today + timedelta(days=4), today + timedelta(days=1)]
+        assert trigger.sources[1] == near.isoformat() and f'on {near:%A}' in trigger.reason
+        # Nothing free inside the week: no suggestion this time, rather than a day whose name misleads.
+        monkeypatch.setattr(outings, 'when_free', lambda *args: free(*args, days=(far,)))
+        assert together.outing_suggestion(connection, companion, local, 'get-together:test', rng) == []
+
+
 def another_companion(client, name):
     """A second companion in Baltimore, stepped back (a switch of focus brings them in)."""
     from companion.characters import insert_version

@@ -32,6 +32,7 @@ from companion.life import (
     feed,
     home,
     kids,
+    knows_you,
     long_distance,
     loss,
     love_life,
@@ -53,6 +54,7 @@ from companion.life import (
     said_events,
     scene_now,
     shared_people,
+    shared_storylines,
     simulation,
     social,
     steps,
@@ -263,6 +265,7 @@ def circle_change(request: Request, person_id: str, change) -> dict:
             agenda.extend(connection, companion, engine.world, now)
         found = next(person for person in agenda.circle_view(connection, timeline_id, now, include_removed=True)
                      if person['id'] == person_id)
+        found['knows_you'] = knows_you.for_circle(connection, companion, now).get(person_id)
         return with_pets(connection, companion, engine.world, [found], now)[0]
 
 
@@ -284,7 +287,9 @@ def read_circle(request: Request, include_removed: bool = False):
         # Their children and a due month while expecting (companion/life/families.py), in words only.
         kids = families.for_circle(connection, companion, now)
         also = shared_people.also_known(connection, companion)
+        knows = knows_you.for_circle(connection, companion, now)  # Whether they know the user (life/knows_you.py).
         own = [{**person, 'stage': stages.get(person['id']), 'met': met.get(person['id']), **love.get(person['id'], {}),
+                'knows_you': knows.get(person['id']),
                 **kids.get(person['id'], {'children': [], 'expecting': None}), 'also': also.get(person['id'], [])}
                for person in people]
         # People from the other companions' circles this one knows too (companion/life/shared_people.py).
@@ -413,6 +418,18 @@ def set_person_tie(request: Request, person_id: str, body: PersonTie):
     """How someone knows another person in the circle, as the user says; it changes both their cards."""
     return circle_change(request, person_id, lambda connection, now: circle.set_tie(
         connection, person_id, body.other_id, body.how, now))
+
+
+class PersonKnowsYou(Input):
+    """Whether someone in the circle knows the user ('' is not at all); None is the app's pick (life/knows_you.py)."""
+    how: Literal['knows you', 'knows of you', ''] | None = None
+
+
+@router.put('/circle/{person_id}/knows-you')
+def set_person_knows_you(request: Request, person_id: str, body: PersonKnowsYou):
+    """Whether someone knows the user, as the user says."""
+    return circle_change(request, person_id, lambda connection, now: knows_you.set_knows_you(
+        connection, person_id, body.how, now))
 
 
 @router.post('/circle/people')
@@ -609,7 +626,7 @@ def map_change(request: Request, action=None):
                     now)
         if action:
             action(connection, companion, network.city(connection, companion), now)
-        return citymap.build(connection, companion, now, bool(settings(connection)['story_mode']))
+        return citymap.build(connection, companion, now)
 
 
 @router.get('/map')
@@ -749,13 +766,14 @@ def trip_places(request: Request, trip_id: str):
 
 
 @router.post('/trips/{trip_id}/{action}')
-def change_visit(request: Request, trip_id: str, action: Literal['cancel', 'undo', 'elsewhere', 'home', 'stay'],
-                 body: TripPlace | None = None):
-    """Call off a weekend visit or a trip together that has not started (companion/life/long_distance.py), or undo
-    that; send a trip together somewhere else (the place picked, or one the app picks), or head home from one early
+def change_visit(request: Request, trip_id: str,
+                 action: Literal['cancel', 'remove', 'undo', 'elsewhere', 'home', 'stay'], body: TripPlace | None = None):
+    """Call off a weekend visit or a trip together that has not started, or remove one that was never really planned
+    with no calling off in the story (companion/life/long_distance.py), or undo either; send a trip together somewhere else (the place picked, or one the app picks), or head home from one early
     and undo that (companion/life/away_together.py)."""
     database = db(request)
-    change = {'cancel': long_distance.cancel, 'undo': long_distance.undo, 'elsewhere': away_together.elsewhere,
+    change = {'cancel': long_distance.cancel, 'remove': long_distance.remove, 'undo': long_distance.undo,
+              'elsewhere': away_together.elsewhere,
               'home': away_together.head_home, 'stay': away_together.stay_on}[action]
     if action == 'elsewhere' and body and body.key:
         change = partial(away_together.elsewhere, key=body.key)
@@ -828,7 +846,7 @@ def read_web(request: Request):
     database = db(request)
     with database.connect() as connection:
         require_current(connection)
-        return web.build(connection, database.clock.now(), bool(settings(connection)['story_mode']))
+        return web.build(connection, database.clock.now())
 
 
 @router.get('/townsfolk')
@@ -927,7 +945,9 @@ CHANGES = {'moving_in:': lambda: moving_in.change, 'steps:': lambda: steps.chang
            # How a business, a health turn or a parent's care is going (big_turns.py).
            'business:': lambda: big_turns.change_stage, 'health:': lambda: big_turns.change_stage,
            'caring:': lambda: big_turns.change_stage, 'kids:': lambda: kids.change,
-           'baby:': lambda: families.change_baby}
+           'baby:': lambda: families.change_baby,
+           # A turning in a storyline the user is part of (shared_storylines.py).
+           'shared:': lambda: shared_storylines.change}
 
 
 @router.post('/consequences/{consequence_id}/change')

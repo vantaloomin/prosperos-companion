@@ -26,6 +26,7 @@ from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
 from companion.errors import require
 from companion.life import composer, money, onward, own_plans, routine
+from companion.memory.dates import WEEKDAYS
 from companion.memory.extraction import SENTENCE
 from companion.world import added_places, catalog, custom, generators, inside, skies, temperature
 
@@ -220,12 +221,17 @@ def asking_clause(sentence: str) -> str | None:
 
 
 def day_asked(sentence: str, today: date, holidays: dict) -> date | None:
-    """The day the ask names. A holiday named only outside the clause that asks ("a walk Sunday also my sister
-    texted a seating chart for thanksgiving") sets the day only when nothing else does."""
+    """The day the ask names. A day named only outside the clause that asks sets it only when the clause names none:
+    "tuesday's a mess, let's walk friday" is Friday (a tester's plan landed on the Tuesday a week on, 1.5 proof run),
+    and a holiday in "a walk Sunday also my sister texted a seating chart for thanksgiving" is not the day."""
     clause = asking_clause(sentence)
     if clause:
         near = {name: day for name, day in holidays.items()
                 if re.search(rf"\b{re.escape(name)}\b", clause.replace("'", ''), re.IGNORECASE)}
+        whole, lower = own_plans.when(sentence, today, near), sentence.lower()
+        if whole and lower.find(whole[1].lower()) < lower.find(clause.strip().lower()) and \
+                (own := day_in(clause, today, near)):
+            return own  # The day named before the ask ("tuesday's a mess, ...") is not the one asked for.
         if found := day_in(sentence, today, near):
             return found
     return day_in(sentence, today, holidays)
@@ -336,6 +342,22 @@ def first_day(local_now: datetime, at: str) -> date:
     later = local_now + timedelta(hours=1)
     return local_now.date() if later.date() == local_now.date() and later.strftime('%H:%M') <= at else \
         local_now.date() + timedelta(days=1)
+
+
+LATER_WEEK = re.compile(r'\b(?:week|next|following|after)\b', re.IGNORECASE)
+
+
+def named_today(wanted: dict, local_now: datetime) -> dict:
+    """ "Friday" or "this Friday" said on the Friday itself is today while its time is still ahead, not a week on."""
+    today = local_now.date()
+    if wanted['day'] != today + timedelta(days=7) or LATER_WEEK.search(wanted['sentence']):
+        return wanted
+    found = own_plans.when(wanted['sentence'], today, {})
+    name = WEEKDAYS[today.weekday()]
+    if not found or found[0] != wanted['day'] or not re.fullmatch(rf'(?:(?:on|this|for) )*{name}', found[1].lower()):
+        return wanted
+    at = wanted['at'] or ACTIVITIES[wanted['activity']][2]
+    return {**wanted, 'day': today} if first_day(local_now, at) == today else wanted
 
 
 def when_free(connection, companion: dict, wanted: dict, local_now: datetime) -> tuple[date, str] | None:
@@ -456,6 +478,7 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> dict | N
         return None  # Things are tense: they would rather not, for now (the reply says so).
     if wanted['activity'] == 'hobby' and not wanted['at']:
         wanted = {**wanted, 'at': hobbies.usual_at(connection, wanted['hobby'], wanted['day'] or local_now.date())}
+    wanted = named_today(wanted, local_now)
     found = when_free(connection, companion, {**wanted, 'firm': firm}, local_now)
     if not found:
         return None
@@ -1475,13 +1498,15 @@ def listing(connection, companion: dict, now: datetime) -> list[dict]:
     version = companion['version']
     since = (now.astimezone(zone(version['timezone'])).date() - timedelta(days=14)).isoformat()
     found = in_force(connection, companion['active_timeline_id'], since, include_cancelled=True)
+    from companion import story_plans  # Under way somewhere the Story can go: it can be played there.
     from companion.life import our_child  # An evening out with a child at home: who watches them (screen only).
-    return [{**where_now(connection, companion, outing, now), 'state': state(outing, version['timezone'], now),
-             'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
-             'undo_move': onward.undoable(outing, version['timezone'], now),
-             'cost_text': money_text(companion, outing).strip(),
-             'sitter': our_child.sitter_view(connection, companion, outing),
-             **choices(connection, companion, outing, now)} for outing in found]
+    shown = [{**where_now(connection, companion, outing, now), 'state': state(outing, version['timezone'], now),
+              'undo': undoable_home(outing, now) or undoable_cancel(outing, version['timezone'], now),
+              'undo_move': onward.undoable(outing, version['timezone'], now),
+              'cost_text': money_text(companion, outing).strip(),
+              'sitter': our_child.sitter_view(connection, companion, outing),
+              **choices(connection, companion, outing, now)} for outing in found]
+    return [{**item, 'story': story_plans.playable(connection, companion, item)} for item in shown]
 
 
 def where_now(connection, companion: dict, outing: dict, now: datetime) -> dict:

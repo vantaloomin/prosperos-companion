@@ -1,5 +1,5 @@
 {
-  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause, closeness and stacked (for user:rough_patch: the Rough patches slider 0 to 3, what happened, how close the companion feels to the user 1 to 5, and how many rough patches over the same thing are already open or started that day), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:gesture choice (companion/life/rough_patches.py, a make-up gesture in the chat) reads big_warmth / big_social (for a big gesture: the companion's warmth and how social they are, 0 to 2), big_proud (1 for a big gesture when their description says proud or stubborn), small_warmth, small_social and small_proud (the same for a small kindness), sheet, level and serious (1 when the rough patch is over a secret or someone else). The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion. The breakup choices (user:strained, user:thinking, user:break, user:falling_out, user:after_break, user:talk_round, user:back_together, user:reach_out; companion/life/breakups.py) read drama, level (the Rough patches slider), closeness, step (how far along the pair is, 0 dating to 7 married), patches (big rough patches of the user's making in the last 45 days, weighed: one over the same thing as another still open counts half, the next a quarter), stacked (how many of those counted for less), cause (the open rough patch's cause), talked (times the user reached out during a break), ended_by (them, you or break), days_apart and months since it ended. The wedding:* choice (companion/life/wedding.py) reads tier (the companion's pay tier, 0 to 3), social (how outgoing they are, 0 to 2), people (how many people are in their circle), drama, pace and affords (the biggest wedding their savings cover: 0 small, 1 proper, 2 big). For chapter:next, age is the companion's age now (companion/life/ages.py) and together is 1 while they live with the user. The family:* choices (companion/life/parenthood.py) read age (the companion's age), warmth (0 to 2), wants (yes, someday or no: whether the companion wants children), married (1 once you two are married), pace, mood, short_days and closeness_over (as for steps:*), and for family:route can_them and can_you (1 when that partner could carry a baby), can_carry (1 when either could), your_age (yours), tier (the companion's pay tier, 0 to 3) and old (1 in a city from an older era).",
+  "about": "Odds tables for the consequence engine (companion/consequences.py). Each choice lists its options in the order the code knows them. An option starts at its weight; every rule whose reader matches multiplies the weight by `times` and adds its `why` to the reasons shown in \"Why it went this way\". Readers: drama (0 quiet to 3 soap opera), closeness_a / closeness_b (how close the companion is to the first / second person in the story, 1 to 5), tie (how the two people know each other: old friends, friends, coworkers, family, married), age_a (the first person's age), sheet (words in the companion's own description; the word groups are in the code), minds (for the user:* choices: 0 to 3, the intensity of an emotional trait the user built into the character that speaks to it; names {trait}), level, cause, closeness and stacked (for user:rough_patch: the Rough patches slider 0 to 3, what happened, how close the companion feels to the user 1 to 5, and how many rough patches over the same thing are already open or started that day), mood and money (the sum of the marks earlier outcomes left on the companion, negative for low or tight). An option's `marks` are what it leaves when picked: kind mood or money with an amount, or avoid (keep away from `about`), on me, a or b, for `days`; `ripple` also reaches the companions who feel close to them; `told` is how the companion carries it, told to them as \"you\" in the chat context. The user:gesture choice (companion/life/rough_patches.py, a make-up gesture in the chat) reads big_warmth / big_social (for a big gesture: the companion's warmth and how social they are, 0 to 2), big_proud (1 for a big gesture when their description says proud or stubborn), small_warmth, small_social and small_proud (the same for a small kindness), sheet, level and serious (1 when the rough patch is over a secret or someone else). The user:* and chapter:* choices name each option's `label`; can_<kind> (1 or 0) says whether that life chapter is possible at all, and friends counts the friends in their circle. Names in `why`: {name} the companion, {a} and {b} the people in the story. The love:* choices (companion/life/love_life.py) read love_life (the Their love life slider, 0 to 3), step (how far along the pair is, 0 dating to 7 married), can_up and card (the Life deck's caught-their-eye card in the last month); {partner} names the one they are seeing. The people:* choices (companion/life/their_people.py) read kind (parent, sibling or friend: who the person meeting you is to the companion), romance (1 when you and the companion are a couple), closeness (how close you and the companion are, 1 to 5), pace and social; names {name} the person meeting you (the companion, for a night out) and {b} the companion. The breakup choices (user:strained, user:thinking, user:break, user:falling_out, user:after_break, user:talk_round, user:back_together, user:reach_out; companion/life/breakups.py) read drama, level (the Rough patches slider), closeness, step (how far along the pair is, 0 dating to 7 married), patches (big rough patches of the user's making in the last 45 days, weighed: one over the same thing as another still open counts half, the next a quarter), stacked (how many of those counted for less), cause (the open rough patch's cause), talked (times the user reached out during a break), ended_by (them, you or break), days_apart and months since it ended. The wedding:* choice (companion/life/wedding.py) reads tier (the companion's pay tier, 0 to 3), social (how outgoing they are, 0 to 2), people (how many people are in their circle), drama, pace and affords (the biggest wedding their savings cover: 0 small, 1 proper, 2 big). For chapter:next, age is the companion's age now (companion/life/ages.py) and together is 1 while they live with the user. The family:* choices (companion/life/parenthood.py) read age (the companion's age), warmth (0 to 2), wants (yes, someday or no: whether the companion wants children), married (1 once you two are married), pace, mood, short_days and closeness_over (as for steps:*), and for family:route can_them and can_you (1 when that partner could carry a baby), can_carry (1 when either could), your_age (yours), tier (the companion's pay tier, 0 to 3) and old (1 in a city from an older era). The `shared:` choices are turnings in a storyline the user is part of (companion/life/shared_storylines.py), picked once the app knows what the user did; they read the storyline readers plus closeness (the companion's with the user, 1 to 5) and romance (1 when the two are a couple).",
   "choices": {
     "storyline:friend_new_job:1": {
       "label": "Whether {a} takes the new job",
@@ -433,6 +433,2443 @@
               "is": "old friends",
               "times": 1.3,
               "why": "{a} and {b} go way back"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_big_job:1": {
+      "label": "How the big job at work goes",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} is driven and it shows at work"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.6,
+              "why": "{name} is easily distracted at work"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has had a rough few weeks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_raise:1": {
+      "label": "Whether {name} gets the raise",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.6,
+              "why": "{name} is driven and it shows at work"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.3,
+              "why": "{name} asks for what {name} is worth"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 60,
+              "note": "{name} has a bigger paycheck",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.4,
+              "why": "{name} is shy about pressing the point"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_new_boss:1": {
+      "label": "How the new boss turns out",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} gets along with most people"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.4,
+              "why": "the drama level favours setbacks"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.3,
+              "why": "{name} does not take well to being watched"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is worn down by the new boss at work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_mistake:1": {
+      "label": "How the mistake at work ends",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard to put things right"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.5,
+              "why": "{name} is easily distracted at work"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 10,
+              "note": "{name} is smarting from a talking-to at work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_contest:1": {
+      "label": "Who gets the assignment",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.7,
+              "why": "{name} is driven and it shows at work"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.3,
+              "why": "{name} speaks up for what {name} wants"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} is shy about pushing forward"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has had a rough few weeks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 10,
+              "note": "{name} is sore about losing the assignment at work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_review:1": {
+      "label": "How {name}'s review goes",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.6,
+              "why": "{name} is driven and it shows at work"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.7,
+              "why": "{name} is easily distracted at work"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has had a rough few weeks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_complaint:1": {
+      "label": "How the complaint at work ends",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is easy to get along with, and people say so"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.4,
+              "why": "{name} is blunt, and it can rub people the wrong way"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 10,
+              "note": "{name} is stung by the complaint at work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_new_hours:1": {
+      "label": "What becomes of the change of hours",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.4,
+              "why": "a quiet world lets things settle"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level keeps it hanging"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_inspection:1": {
+      "label": "How the inspection goes",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} worked hard to get the place ready"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.3,
+              "why": "{name} is easily distracted at work"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_gossip:1": {
+      "label": "How the gossip at work ends",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.8,
+              "why": "{name} doesn't take nonsense from anyone"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} would rather wait and see than confront anyone"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} gives people the benefit of the doubt"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_blamed:1": {
+      "label": "Whether the truth comes out at work",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.6,
+              "why": "{name} speaks up when something is unfair"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name} would rather keep the peace than fight it"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is angry about taking the blame at work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_boss_clash:1": {
+      "label": "How things stand with the boss",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            },
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} is stubborn about apologising"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is tense about the boss at work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_changing_hands:1": {
+      "label": "What becomes of {name}'s workplace",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "a quiet world lets things settle"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.4,
+              "why": "the drama level favours upheaval"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_missing_money:1": {
+      "label": "What becomes of the missing money",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "a quiet world lets things settle"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the drama level keeps the mystery going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is uneasy about the mood at work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_poached:1": {
+      "label": "What {name} does with the rival offer",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name} likes things to stay the same"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.3,
+              "why": "{name} would rather not rock the boat"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.6,
+              "why": "{name} is driven and knows what {name} is worth"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.3,
+              "why": "{name} is not shy about bargaining"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is tight for {name}"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 60,
+              "note": "{name} has better terms at work",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_back_room:1": {
+      "label": "Whether the back room stays quiet",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "a quiet world keeps its secrets"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level lets nothing stay secret"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 10,
+              "note": "{name} is upset that people at work think {name} told",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:work_the_books:1": {
+      "label": "What {name} does about the books",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.8,
+              "why": "{name} speaks up when something is wrong"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level favours a showdown"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.7,
+              "why": "{name} would rather keep out of trouble"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is tight, and {name} cannot risk the job"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is uneasy about staying quiet over the books",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:coworker_slacking:1": {
+      "label": "Whether {a} starts pulling their weight",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.7,
+              "why": "{name} says what needs saying"
+            },
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} and {a} are close, and {a} listens"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name} is shy about bringing it up"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 10,
+              "note": "{name} is worn down by doing {a}'s share at work",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:coworker_confided:1": {
+      "label": "Whether {a} stays at work",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "{name} and {a} are close, and that is a reason to stay"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level keeps it hanging"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:coworker_blowup:1": {
+      "label": "Whether {name} and {a} patch things up",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.8,
+              "why": "{name} and {a} are close, and it's worth fixing"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 1.5,
+              "why": "{name} and {a} weren't that close to begin with"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} is stubborn about apologising"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has had a rough few weeks and has less patience"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is keeping some distance from {a} at work",
+              "about": "a"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:parent_cough:1": {
+      "label": "What the doctor says about the cough",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "a quiet world lets things settle"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 65,
+              "times": 1.4,
+              "why": "{a} is not as young as {a} used to be"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:parent_tight_money:1": {
+      "label": "How {a}'s money worries end",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.6,
+              "why": "money is tight for {name} too"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "{name} and {a} are close, and {name} would not let it lie"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.2,
+              "why": "{name} is generous with family"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 30,
+              "note": "{name} helped {a} out with some money",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:parent_row:1": {
+      "label": "Whether {name} and {a} make peace",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.8,
+              "why": "{name} and {a} are close, and it's worth fixing"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} is stubborn about apologising"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "{name} has had a rough few weeks and has less patience"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is low about the row with {a}",
+              "amount": -1,
+              "ripple": true
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:parent_will:1": {
+      "label": "How the fight over the will ends",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "{name} and {a} are close and can talk them round"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level keeps it going"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:parents_kitchen:1": {
+      "label": "What becomes of the kitchen",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {a} and helped find a middle way"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours a stalemate"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:parents_big_fight:1": {
+      "label": "Whether {a} and {b} patch things up",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {a} and can talk them round"
+            },
+            {
+              "reader": "closeness_b",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {b} and can talk them round"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is worried about {a} and {b}",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:sibling_race:1": {
+      "label": "Whether {a} finishes the race",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {a} and cheered all the way"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 50,
+              "times": 1.4,
+              "why": "{a} is not as young as {a} used to be"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:sibling_borrowed:1": {
+      "label": "Whether {a} pays {name} back",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "{name} and {a} are close, and {a} would not let it slide"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:sibling_decision:1": {
+      "label": "Whether {a} takes {name}'s advice",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.6,
+              "why": "{name} and {a} are close, and {a} listens"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 1.5,
+              "why": "{a} has always been one to go against advice"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:sibling_argument:1": {
+      "label": "Whether {name} and {a} make up",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.8,
+              "why": "{name} and {a} are close, and it's worth fixing"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} is stubborn about apologising"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is keeping out of the way of {a}",
+              "about": "a"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:sibling_confided:1": {
+      "label": "What becomes of {a}'s news",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} and {a} are close, and {name} argued for telling"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the drama level keeps the secret going"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:sibling_family_money:1": {
+      "label": "How it ends between {name} and {a}",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.7,
+              "why": "{name} and {a} are close, and it's worth fixing"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} holds on to a grievance"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is tight for {name}, which makes it sting more"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is not speaking to {a}",
+              "about": "a"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:grandparent_stubborn:1": {
+      "label": "Whether {a} accepts some help",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.7,
+              "why": "{name} and {a} are close, and {a} gives way for {name}"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:grandparent_dizzy:1": {
+      "label": "What the doctor says about the dizzy spell",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "a quiet world lets things settle"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "age_a",
+              "at_least": 80,
+              "times": 1.4,
+              "why": "{a} is at an age to take things slower"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.2,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:cousin_favor:1": {
+      "label": "Whether {name} does the favor",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "{name} and {a} are close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} finds it hard to say no to family"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} is not afraid to say no"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "{name} has had a rough few weeks and has little to spare"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:cousin_dinner_row:1": {
+      "label": "Whether {a} apologizes to the family",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "{name} and {a} are close and can talk them round"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the drama level keeps it going"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:cousin_debts:1": {
+      "label": "Whether {a} comes clean about the debts",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.6,
+              "why": "{name} and {a} are close, and {name} argued for telling"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the drama level keeps the secret going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is weighed down by keeping {a}'s secret",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:neighbor_racket:1": {
+      "label": "Whether the nights get quiet again",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.7,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name} is shy about knocking on the door"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 7,
+              "note": "{name} is short on sleep and patience",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:neighbor_repair:1": {
+      "label": "Whether {name} and {a} agree about the repair",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.4,
+              "why": "{name} would rather split it than quarrel"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} will not pay for what is not owed"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is tight for {name}"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:neighbor_accused:1": {
+      "label": "Whether {a} learns the truth",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.4,
+              "why": "a quiet world lets things settle"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is keeping out of the way of {a}",
+              "about": "a"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_contest:1": {
+      "label": "How {a} does in the contest",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.2,
+              "why": "{name} is in good spirits and cheering loudly"
+            }
+          ]
+        },
+        {
+          "weight": 2
+        }
+      ]
+    },
+    "storyline:friend_early_mornings:1": {
+      "label": "Whether the early mornings last",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.6,
+              "why": "{name} sticks at things"
+            },
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} and {a} are close, which makes it easier to get up"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name} likes a slow morning at home"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.4,
+              "why": "{name} is not one for routines"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_bet:1": {
+      "label": "Who wins the bet",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name} hates to lose"
+            }
+          ]
+        },
+        {
+          "weight": 1
+        }
+      ]
+    },
+    "storyline:friend_canceled:1": {
+      "label": "Whether {a} makes it up to {name}",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.7,
+              "why": "{name} and {a} are close, and {a} knows it matters"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 1.5,
+              "why": "{name} and {a} weren't that close to begin with"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 14,
+              "note": "{name} has stopped asking {a} to do things",
+              "about": "a"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_broke_it:1": {
+      "label": "Whether {a} makes it right",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "{name} and {a} are close, and {a} knows it matters"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.3,
+              "why": "{name} is shy about making a fuss"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_might_move:1": {
+      "label": "Whether {a} stays",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "{name} and {a} are close, and that is a reason to stay"
+            },
+            {
+              "reader": "age_a",
+              "at_least": 55,
+              "times": 1.4,
+              "why": "{a} is past starting over somewhere new"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level keeps it hanging"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_bad_boss:1": {
+      "label": "Whether {a} stands up to the boss",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {a} and keeps telling them to speak up"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.3,
+              "why": "{name} gives blunt advice"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_broken_confidence:1": {
+      "label": "Whether {name} trusts {a} again",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.8,
+              "why": "{name} and {a} are close, and it's worth fixing"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 1.5,
+              "why": "{name} and {a} weren't that close to begin with"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} does not forget a broken confidence"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is keeping {a} at a distance",
+              "about": "a"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_loan:1": {
+      "label": "Whether {name} lends {a} the money",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.8,
+              "why": "{name} and {a} are close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} finds it hard to say no to a friend"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 45,
+              "note": "{name} lent {a} a good sum of money",
+              "amount": -1
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 2,
+              "why": "money is tight for {name}"
+            },
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 1.6,
+              "why": "{name} and {a} aren't that close"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_pulling_away:1": {
+      "label": "Why {a} has been pulling away",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.8,
+              "why": "{name} and {a} are close, and {a} owes {name} the truth"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_most": 3,
+              "times": 1.4,
+              "why": "{name} and {a} have not been as close lately"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "note": "{name} is sad about drifting from {a}",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_caught_lying:1": {
+      "label": "What was behind {a}'s lie",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.6,
+              "why": "{name} and {a} are close"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.4,
+              "why": "a quiet world keeps to good news"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "avoid",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is giving {a} some space",
+              "about": "a"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friend_strayed:1": {
+      "label": "What {a} does about the affair",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.3,
+              "why": "a quiet world keeps its secrets"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "{name} and {a} are close, and {name} argued for honesty"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level brings it into the open"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friends_cook_off:1": {
+      "label": "Who wins the cook-off",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 5,
+              "times": 1.2,
+              "why": "{name} has a soft spot for {a}"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_b",
+              "at_least": 5,
+              "times": 1.2,
+              "why": "{name} has a soft spot for {b}"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friends_same_evening:1": {
+      "label": "How {name} settles the evening",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 1.6,
+              "why": "{a} and {b} go way back"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is good at keeping the peace"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 5,
+              "times": 1.4,
+              "why": "{name} is closest to {a}"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level favours a sulk"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friends_owed_money:1": {
+      "label": "Whether {b} pays {a} back",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 1.6,
+              "why": "{a} and {b} go way back"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "coworkers",
+              "times": 1.4,
+              "why": "{a} and {b} only know each other from work"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friends_behind_back:1": {
+      "label": "What {b} says about it",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_b",
+              "at_least": 4,
+              "times": 1.7,
+              "why": "{name} and {b} are close, and {b} owes {name} the truth"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "note": "{name} is hurt and does not know whom to believe",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friends_unspoken:1": {
+      "label": "Whether {a} tells {b}",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "{name} and {a} are close, and {name} gave {a} a push"
+            },
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 1.3,
+              "why": "{a} and {b} go way back"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "coworkers",
+              "times": 1.4,
+              "why": "{a} and {b} work together, which makes it awkward"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friends_party_kiss:1": {
+      "label": "What {a} and {b} do after the kiss",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 1.3,
+              "why": "{a} and {b} go way back"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.2,
+              "why": "the drama level favours a romance"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "coworkers",
+              "times": 1.5,
+              "why": "{a} and {b} work together, which makes it awkward"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:friends_scene:1": {
+      "label": "Whether {a} and {b} make up",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "old friends",
+              "times": 2,
+              "why": "{a} and {b} go way back"
+            },
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {a} and can talk them round"
+            },
+            {
+              "reader": "closeness_b",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "{name} is close to {b} and can talk them round"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "tie",
+              "is": "coworkers",
+              "times": 1.5,
+              "why": "{a} and {b} only know each other from work"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:own_stray_cat:1": {
+      "label": "What becomes of the cat",
+      "options": [
+        {
+          "weight": 1
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.2,
+              "why": "{name} made the cat feel welcome on the street"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:own_lost_book:1": {
+      "label": "Whether {name}'s book turns up",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "a quiet world lets things settle"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 7,
+              "note": "{name} is sad about the lost book",
+              "amount": -1
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:own_overcharged:1": {
+      "label": "How it goes at the shop",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.8,
+              "why": "{name} doesn't take nonsense from anyone"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name} is shy about making a fuss"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:own_double:1": {
+      "label": "Whether {name} meets the lookalike",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.4,
+              "why": "{name} went looking"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.3,
+              "why": "{name} did not go looking"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:own_old_quarrel:1": {
+      "label": "What {name} does about the old quarrel",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.8,
+              "why": "{name} doesn't hold grudges"
+            },
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.7,
+              "why": "{name} holds on to a grievance"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.3,
+              "why": "{name} would rather avoid a scene"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:own_rumor:1": {
+      "label": "How the rumor ends",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.4,
+              "why": "{name} would rather wait it out"
+            },
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.3,
+              "why": "a quiet world lets things settle"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.8,
+              "why": "{name} doesn't take nonsense from anyone"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:own_notes:1": {
+      "label": "What is behind the notes",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.4,
+              "why": "a quiet world lets things settle"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the drama level keeps the mystery going"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:own_inheritance:1": {
+      "label": "What becomes of {name}'s inheritance",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 1.5,
+              "why": "a quiet world lets things settle"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 45,
+              "note": "{name} has a little money from an inheritance",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.5,
+              "why": "the drama level favours setbacks"
             }
           ]
         }
@@ -4561,6 +6998,1395 @@
               "is": 1,
               "times": 3,
               "why": "on an easy life things blow over"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:steadied": {
+      "label": "How {name}'s big day at work goes after talking it over with you",
+      "options": [
+        {
+          "label": "It goes well",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "you two are close, and your word steadies {name}"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name} is driven and had prepared"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "It goes fine, with a stumble",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} is shy in front of a room"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.4,
+              "why": "{name} left the preparing late"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level is high"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:ex_reply": {
+      "label": "What {name} does about the ex's message after telling you",
+      "options": [
+        {
+          "label": "{name} writes back to close the door",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.6,
+              "why": "{name} says things straight"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "you two are close, and {name} wants it settled"
+            }
+          ]
+        },
+        {
+          "label": "{name} leaves it unanswered",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids an awkward exchange"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 0.7,
+              "why": "the drama level is high"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:took_advice": {
+      "label": "Whether {name} goes with what you said",
+      "options": [
+        {
+          "label": "{name} goes with what you said",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close, and {name} trusts your read"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is easygoing about taking a suggestion"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 0.7,
+              "why": "{name} is stubborn about doing things one way"
+            }
+          ]
+        },
+        {
+          "label": "{name} goes another way",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} is stubborn about doing things one way"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.3,
+              "why": "{name} decides fast and alone"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.2,
+              "why": "the drama level is high"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:went_for_it": {
+      "label": "Whether {name} goes for it after talking it over with you",
+      "options": [
+        {
+          "label": "{name} goes for it",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "you two are close, and your word gives {name} a push"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.4,
+              "why": "{name} is driven"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name} is restless and likes a leap"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} holds off",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} is shy about putting it to the test"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.3,
+              "why": "{name} likes things settled"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.2,
+              "why": "money has been tight for {name}"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:kept_at_it": {
+      "label": "Whether {name} keeps at it",
+      "options": [
+        {
+          "label": "{name} keeps at it",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "you two are close, and {name} did not want to tell you it had slipped"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} is driven"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "{name} eases off",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.6,
+              "why": "{name} drifts when nobody is checking"
+            },
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.3,
+              "why": "{name} is restless and on to the next thing"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.3,
+              "why": "money has been tight for {name}"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:a_comes_round": {
+      "label": "Whether {a} comes round",
+      "options": [
+        {
+          "label": "{a} comes round",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness_a",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "{name} and {a} are close"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is quick to smooth things over"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.2,
+              "why": "you two are close, and {name} speaks well of you"
+            }
+          ]
+        },
+        {
+          "label": "{a} stays put out",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.4,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.4,
+              "why": "{name} is too proud to make the first move"
+            },
+            {
+              "reader": "closeness_a",
+              "at_most": 2,
+              "times": 1.3,
+              "why": "{name} and {a} are not that close"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:came_off": {
+      "label": "Whether it comes off",
+      "options": [
+        {
+          "label": "It comes off",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name} had put the work in"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "you two are close, and having you in on it steadied {name}"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "It falls a little flat",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.4,
+              "why": "{name} left it late"
+            },
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.3,
+              "why": "{name} is shy with eyes on"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level is high"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:how_taken": {
+      "label": "How {name} takes it",
+      "options": [
+        {
+          "label": "{name} takes it easily",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.5,
+              "why": "you two are close, and {name} feels sure of you"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} is easygoing"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 0.7,
+              "why": "{name} has been low lately"
+            }
+          ]
+        },
+        {
+          "label": "It stays with {name}",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.5,
+              "why": "{name} does not let things go easily"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.4,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "closeness",
+              "at_most": 2,
+              "times": 1.3,
+              "why": "you two are still finding your feet"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:told_them": {
+      "label": "Whether {name} says something",
+      "options": [
+        {
+          "label": "{name} says something",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.6,
+              "why": "{name} says things straight"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.4,
+              "why": "you two are close, and talking to you settled it"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.2,
+              "why": "the drama level is high"
+            }
+          ]
+        },
+        {
+          "label": "{name} lets it lie",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name} avoids an awkward exchange"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} would sooner keep the peace"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:money_call": {
+      "label": "Whether {name} spends or saves",
+      "options": [
+        {
+          "label": "{name} keeps the money",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "you two are close, and {name} listened"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.4,
+              "why": "{name} is driven about a goal"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money has been tight for {name}"
+            }
+          ]
+        },
+        {
+          "label": "{name} spends it",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.4,
+              "why": "{name} is restless and acts on a whim"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "{name} has been low lately and wanted a treat"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.2,
+              "why": "{name} loses track of a plan"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:found_it": {
+      "label": "Whether it turns up",
+      "options": [
+        {
+          "label": "It turns up",
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.2,
+              "why": "you two are close, and {name} went over the day with you carefully"
+            }
+          ]
+        },
+        {
+          "label": "It is gone",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level is high"
+            },
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.3,
+              "why": "{name} loses track of things"
+            }
+          ]
+        }
+      ]
+    },
+    "shared:work_call": {
+      "label": "Whether {name} speaks up at work",
+      "options": [
+        {
+          "label": "{name} speaks up",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.6,
+              "why": "{name} says things straight"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.3,
+              "why": "{name} is driven and wants the credit"
+            },
+            {
+              "reader": "closeness",
+              "at_least": 4,
+              "times": 1.3,
+              "why": "you two are close, and talking to you gave {name} the nerve"
+            }
+          ]
+        },
+        {
+          "label": "{name} lets it go",
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.6,
+              "why": "{name} avoids a confrontation"
+            },
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.3,
+              "why": "{name} lets a slight pass"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.2,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_big_order:1": {
+      "label": "How the big order at their place goes",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.5,
+              "why": "{name} lets things slide"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_new_hire:1": {
+      "label": "How the new hire turns out",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_thin_takings:1": {
+      "label": "Whether a slow stretch costs someone their job",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level means somebody gets hurt"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is already tight"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "amount": -1,
+              "note": "{name} is sore about letting someone go"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_mistake:1": {
+      "label": "How the mistake at their place ends",
+      "options": [
+        {
+          "weight": 3,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "unfocused",
+              "times": 1.5,
+              "why": "{name} lets things slide"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 30,
+              "amount": -1,
+              "note": "{name} lost a good customer over a mistake"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_complaint:1": {
+      "label": "How the complaint about their place ends",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_best_worker_leaving:1": {
+      "label": "Who fills the shifts after the best worker leaves",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "amount": -1,
+              "note": "{name} is worn out covering shifts"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_supplier_prices:1": {
+      "label": "How they deal with the supplier putting prices up",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is already tight"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_rival_opens:1": {
+      "label": "How much trade the rival takes",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 30,
+              "amount": -1,
+              "note": "{name} is watching the till since the rival opened"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_landlord:1": {
+      "label": "How the rent talk with the landlord goes",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is already tight"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "money",
+              "on": "me",
+              "days": 30,
+              "amount": -1,
+              "note": "{name} is paying more rent for the place"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_unpaid_tab:1": {
+      "label": "Whether the regular pays the tab",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_raise_asked:1": {
+      "label": "Whether they can give the raise",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "money",
+              "at_least": 1,
+              "times": 1.4,
+              "why": "money is good just now"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "money",
+              "at_most": -1,
+              "times": 1.4,
+              "why": "money is already tight"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_right_hand:1": {
+      "label": "How things stand with their right hand",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            },
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} is stubborn about it"
+            },
+            {
+              "reader": "drama",
+              "at_least": 3,
+              "times": 1.3,
+              "why": "the drama level keeps it going"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "amount": -1,
+              "note": "{name} is still tense with the right hand at the place"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_offer_to_buy:1": {
+      "label": "How they turn the offer down",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            },
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name} likes the place the way it is"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name} wants more"
+            },
+            {
+              "reader": "mood",
+              "at_most": -1,
+              "times": 1.2,
+              "why": "{name} has been low lately"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_poached_worker:1": {
+      "label": "Whether the best worker stays",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "amount": -1,
+              "note": "{name} lost the best worker at the place to a rival"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_expand:1": {
+      "label": "What they decide about growing",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "homebody",
+              "times": 1.5,
+              "why": "{name} likes the place the way it is"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "restless",
+              "times": 1.5,
+              "why": "{name} wants more"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:owner_skimming:1": {
+      "label": "Whether they catch who was skimming",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            },
+            {
+              "reader": "sheet",
+              "has": "driven",
+              "times": 1.5,
+              "why": "{name} works hard at it"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 14,
+              "amount": -1,
+              "note": "{name} no longer trusts the staff as before"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_cut_team:1": {
+      "label": "Whether they keep the whole team",
+      "options": [
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_most": 0,
+              "times": 2,
+              "why": "the drama level keeps things gentle"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 1,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.5,
+              "why": "the drama level means somebody gets hurt"
+            }
+          ],
+          "marks": [
+            {
+              "kind": "mood",
+              "on": "me",
+              "days": 21,
+              "amount": -1,
+              "note": "{name} is sore about letting one of the team go"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_caught_between:1": {
+      "label": "How the change nobody wants ends",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_hard_review:1": {
+      "label": "How the hard review goes",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            },
+            {
+              "reader": "mood",
+              "at_least": 1,
+              "times": 1.3,
+              "why": "{name} has been in good spirits"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_creep:1": {
+      "label": "How they deal with the new guy",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:lead_not_speaking:1": {
+      "label": "Whether the two on the team make peace",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "forgiving",
+              "times": 1.5,
+              "why": "{name} doesn't hold grudges"
+            },
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "stubborn",
+              "times": 1.6,
+              "why": "{name} is stubborn about it"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
+            }
+          ]
+        }
+      ]
+    },
+    "storyline:staff_slacking:1": {
+      "label": "Whether the talk with the slacker works",
+      "options": [
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "assertive",
+              "times": 1.5,
+              "why": "{name} says what needs saying"
+            }
+          ]
+        },
+        {
+          "weight": 2,
+          "rules": [
+            {
+              "reader": "sheet",
+              "has": "shy",
+              "times": 1.5,
+              "why": "{name} avoids a fight"
+            },
+            {
+              "reader": "drama",
+              "at_least": 2,
+              "times": 1.3,
+              "why": "the drama level favours setbacks"
             }
           ]
         }

@@ -50,7 +50,7 @@ function MapArea({ data, asList, selected, onSelect, streetsFailed, onFail, comp
   const picked = data.places.find((item) => item.id === selected) ?? null
   const [removed, setRemoved] = useRemoved()
   const gone = (place: MapPlace) => { onSelect(null); setRemoved(place) }
-  const card = (inline: boolean) => picked && <PlaceCard inline={inline} place={picked} city={data.city.id} hoods={data.hoods} enclosed={data.city.enclosed === true} story={data.story} companion={companion} onClose={() => onSelect(null)} go={go} onRemoved={gone} />
+  const card = (inline: boolean) => picked && <PlaceCard inline={inline} place={picked} city={data.city.id} hoods={data.hoods} enclosed={data.city.enclosed === true} companion={companion} onClose={() => onSelect(null)} go={go} onRemoved={gone} />
   return (
     <div className="map-area">
       {asList ? <PlaceList places={data.places} selected={selected} onPick={(id) => onSelect(id === selected ? null : id)} card={card(true)} />

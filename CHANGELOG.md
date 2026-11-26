@@ -76,6 +76,39 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.5.0 "A Most Majestic Vision" (2026-11-26)
+
+- **Storylines you are part of (#616 #621 #624 #625 #627):** life/shared_storylines.py runs storylines with the user
+  in the cast (world/data/shared_storylines.json, 110 stories in seven families), one at a time, reaching the user by
+  a first text or an invitation that books a plan; nothing waits, and only what the app can detect for sure (answered,
+  said yes or no, went, called off, passed) turns them, through the consequence engine. Per-world slider
+  life_settings.shared_storylines ("Things that involve you", default True to life). Their own chat section with the
+  user's part; Today's "Things that involve you" section, "Part of a storyline" on plan cards, and the scrapbook page
+  "Things you were part of". A skipped plan the companion keeps (`kept`) is held in their day.
+- **Storyline bank over a hundred (#617, also in 1.4.2 as #618):** life/storyline_bank.py adds 116 stories, new
+  single casts (friend, sibling, grandparent, neighbor) and 'self'.
+- **Story in every world (#615):** no switch; tab between Matchlight and Today; map "Go there in your story".
+- **Companions in the scene (#622):** life/story_cast.py places companions by their own day; they speak for
+  themselves after the narrator (prompt 'story-companion').
+- **Scenes count (#623):** story_visits counts days talked, one shared moment per visit, steps said in person and a
+  chat 'where' line; switch life_settings.story_counts.
+- **Scenes stick (#636 #637):** story_said.py turns scene lines into memories (story_memories) and self facts, and
+  feeds moods and rough patches.
+- **Secrets in scenes (#639):** story_secrets.py tells the scene who is there, guards a companion line that gives a
+  secret away (redraft, then a held line, or a slip at Soap opera) and records witnesses; tests/test_who_may_know.py
+  sweeps every channel.
+- **Ask someone out in Story (#628):** story_pursuit.py answers by the person's own life; a yes is a dating match
+  with `source` 'story'.
+- **Play a plan as a scene (#631):** story_plans.py; POST /api/story/plan and /api/story/plan/begin.
+- **Job positions (#635 #638 #640 #641):** life/position.py reads owner / lead / staff; work stories gated by
+  position, owner and lead stories, a good or flat year, chat position line, Position picker on the character form.
+- **Fixes:** plans a week late (#634); 1.5 proof-run fixes: the day in the asking clause wins, Story on the
+  companion's clock in their city, stale remote-hours line (#643); CI split and lighter PR runs (#619 #632); steadier
+  media test (#629).
+- **1.4.2, folded in (#642):** plans said in chat skip meetups and junk words (#609); trips only from what was said,
+  "Never planned" (#610); work said done ends the project (#611); who in a circle knows you (#612); feed pictures
+  follow the moment (#613); townsfolk meetings for companions who mostly work and stay in (#614, #626).
+
 ## v1.4.1 (2026-11-12)
 
 - **Places you name join the map (#602):** a place the user names that the city lacks is added per world

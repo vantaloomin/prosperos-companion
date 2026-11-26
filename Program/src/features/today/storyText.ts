@@ -1,5 +1,5 @@
 import { calendarDay } from '../../when.ts'
-import type { Occasion } from '../../types'
+import type { Occasion, Storyline, YourPart } from '../../types'
 
 /** One line for Today: "Your birthday is in 3 days", "Tomorrow: Thanksgiving is always at their mom Ruth's…",
  * "It's been three months since you two started talking", "In 3 days it will be a year since you two swapped keys",
@@ -56,9 +56,52 @@ export const DRAMA_LEVELS = [
   { value: 3, label: 'Soap opera', hint: 'Drunk kisses, separations, family secrets.' },
 ] as const
 
+/** The "Things that involve you" slider's steps (Settings > Realism, companion/life/shared_storylines.py). */
+export const SHARED_STORY_LEVELS = [
+  { label: 'Off', hint: 'Nothing they start draws you in. You still hear their news.' },
+  { label: 'Now and then', hint: 'Every few weeks something comes up that includes you: a friend who wants to meet you, a favor, a place to show you.' },
+  { label: 'True to life', hint: 'About once a week something comes up that includes you. Going, answering or letting it pass each lead somewhere different.' },
+  { label: 'Often', hint: 'Something that includes you is nearly always under way, one at a time.' },
+]
+
 /** 40th, 21st, 52nd. */
 export function ordinal(value: number): string {
   const tens = value % 100
   const end = tens >= 10 && tens <= 20 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[value % 10] ?? 'th'
   return `${value}${end}`
+}
+
+export const STORYLINES_KEY = ['storylines']
+
+/** Today has two lists of storylines: the ones the user is part of ("Things that involve you") and the rest
+ * ("Going on in their world"). */
+export function withYou(items: Storyline[], involved: boolean): Storyline[] {
+  return items.filter((item) => item.with_you === involved)
+}
+
+/** Where a storyline sits on Today, for the plan card's "See it". */
+export function storylineAnchor(id: string): string {
+  return `storyline-${id}`
+}
+
+const DID: Partial<Record<YourPart['did'], string>> = {
+  answered: 'You wrote back.', said_yes: 'You said yes.', said_no: 'You said no.', dropped_by: 'You came by.',
+  now: 'Happening now.', went: 'You went.', called_off: 'You called it off.',
+}
+
+/** The user's part in a beat, only from what the app knows for sure: "Mira texted you about it.", "You wrote back.",
+ * "Set for Fri, Nov 20 at 7:00 PM.", "You went.", "You let it go by." Nothing for a beat they had no part in, or an
+ * invitation that never went out. */
+export function yourPart(you: YourPart | undefined, name: string, via: 'text' | 'plan' = 'text'): string {
+  if (!you) return ''
+  if (you.did === 'texted') return `${name.split(' ')[0]} texted you about it.`
+  if (you.did === 'set') return you.on && you.at ? `Set for ${storyDate(you.on)} at ${clock(you.at)}.` : ''
+  if (you.did === 'passed') return via === 'plan' ? '' : 'You let it go by.'
+  return DID[you.did] ?? ''
+}
+
+/** "7:00 PM" from "19:00", kept on one line (as outingText's timeText). */
+function clock(hhmm: string): string {
+  const [hours, minutes] = hhmm.split(':').map(Number)
+  return new Date(Date.UTC(2000, 0, 1, hours, minutes)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }).replace(/\s/gu, '\u00a0')
 }

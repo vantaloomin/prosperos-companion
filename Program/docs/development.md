@@ -132,6 +132,15 @@ Work is planned in releases, and each upcoming release has its own branch made a
 
 - **Every pull request targets the branch of the release it belongs to**, not `main`. CI runs on pull
   requests into any branch.
+- **A pull request into a release branch runs a lighter CI**, so it goes green sooner: the backend tests on
+  Linux only (as three jobs side by side) and without the tests listed in `tests/slow_tests.txt`, and no backend tests at all when it only
+  touches the front end (`src/`, `tests/ui/`, `public/`) or the written docs. Windows, macOS and the slow tests
+  run when it merges, on the push to the release branch, and on every pull request into `main`. Look at that
+  run after merging: a failure there belongs to the pull request that was just merged. A pull request that
+  changes `ci.yml`, `requirements.lock.txt` or `pyproject.toml` runs everything.
+- **Do not merge or rebase the release branch into a pull request's branch just to bring it up to date.** Each
+  update starts a whole new CI run, and nothing requires it. Do it only when GitHub reports a conflict, or when
+  the pull request needs a change that landed after it branched.
 - **Only hotfixes target `main`** (a fix for something already released). After a hotfix merges, merge `main`
   into every open release branch so they keep it, and so a later release never undoes it.
 - **Cutting a release** is one pull request from `release/v<version>` into `main`, carrying the version numbers,

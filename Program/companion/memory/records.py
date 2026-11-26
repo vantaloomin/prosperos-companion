@@ -190,6 +190,8 @@ def revise(connection, memory, timestamp, *, value, plan_status=None, applies_fr
          timestamp, timestamp, memory['id']))
     connection.execute('INSERT INTO memory_sources (memory_id, message_id) '
                        'SELECT ?, message_id FROM memory_sources WHERE memory_id=?', (new_id, memory['id']))
+    from companion import story_said  # Imported here: the Story reads this module.
+    story_said.carry(connection, memory['id'], new_id)
     connection.execute('UPDATE memories SET ended_by_id=? WHERE ended_by_id=?', (new_id, memory['id']))
     connection.execute('UPDATE closeness_jokes SET memory_id=? WHERE memory_id=?', (new_id, memory['id']))
     vectors.forget(connection, 'memory', [memory['id']])
@@ -326,9 +328,15 @@ def listing(database, include_history=False) -> list[dict]:
         # Memories from another timeline stay listed so they can be corrected or deleted, marked as
         # not applying to the current one (C4, M6).
         followed = {row['supersedes_id'] for row in rows if row['supersedes_id']}
+        # Shared moments left by time together in the Story (companion/story_visits.py): the card says so.
+        story = {row['memory_id'] for row in many(connection, 'SELECT memory_id FROM story_visits WHERE memory_id IS NOT NULL')}
+        # Facts told face to face in the Story (companion/story_said.py): the card shows the line they came from.
+        from companion import story_said  # Imported here: the Story reads this module.
+        told_there = story_said.lines_for(connection, companion['id'])
         # A superseded memory nothing replaced or absorbed was retracted: the user said it was wrong.
         return [{**with_sources(connection, row), 'current': current_at(row, now),
-                 'in_timeline': in_scope(row, timelines, share),
+                 'in_timeline': in_scope(row, timelines, share), 'in_story': row['id'] in story,
+                 'story_line': told_there.get(row['id']),
                  'retracted': row['status'] == 'superseded' and not row['merged_into_id'] and row['id'] not in followed}
                 for row in rows]
 

@@ -66,7 +66,8 @@ BACKGROUND_LOOKUP_DEADLINE = 20.0
 # Columns that record a one-time switch to a new default, not settings.
 MARKERS = ('texts_first_on_by_default', 'events_on_by_default', 'loss_by_preset')
 FLAGS = ('automatic_events', 'catch_up_on_return', 'phrase_with_model', 'texts_first', 'paced_replies', 'day_shifts',
-         'on_her_mind', 'pets_can_die', 'friends_fall', 'breakups', 'people_pass_away', 'model_routines')
+         'on_her_mind', 'pets_can_die', 'friends_fall', 'breakups', 'people_pass_away', 'model_routines',
+         'story_counts')
 NEWS_EVERY = timedelta(minutes=10)
 UNFINISHED = ('planned', 'running', 'interrupted')
 
@@ -1070,7 +1071,9 @@ class LifeEngine:
             LOG.exception("A watched day's entry could not be written.")
 
     def due_entry(self):
-        with self.database.connect() as connection:
+        # A write connection: the day's lines catch up their thoughts and deck as they are read, and a write in a read
+        # transaction fails at once when another write lands first (sqlite "database is locked").
+        with self.database.connect(write=True) as connection:
             config, life = config_for(connection, 'life'), life_settings(connection)
             if config is None or not life['phrase_with_model'] or settings(connection)['paused_at'] is not None:
                 return None

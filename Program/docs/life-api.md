@@ -422,7 +422,11 @@ city. None of this runs on a timer: asking where someone is at any moment gives 
 simulation would, and costs nothing for the people nobody asks about.
 
 When the agenda sends the companion somewhere real for leisure, an errand or a social plan, someone there by
-their rules may cross paths with them (`companion/life/encounters.py`; at most one a day). The first time is
+their rules may cross paths with them (`companion/life/encounters.py`; at most one a day). A week of work and
+evenings in has its chances too: a lunch out during a shift counts, neighbors may be on their street on the way
+out to a shift or class and on the way home, and an ordinary shift may bring someone at the place they work when
+it is on the map. After three days without meeting anyone (`QUIET_DAYS`), the next time someone is around they
+get talking for sure. The first time is
 a chat with a stranger; the second reveals what they are working toward; from the third the companion knows
 their flaw and what they seem to want, and later meetings bring their news. People already met can turn up
 wherever their rules take them. A meeting counts once its slot has happened and the entry still records it
@@ -456,10 +460,10 @@ GET /api/world/cities/<id>/neighborhoods/<hood>/people?on=<date>&at=<HH:MM>   # 
 Today > Map, Story mode's Map button and the "Show on map" links on Today open the companion's city
 (`companion/life/citymap.py`). Every place in the city pack is a pin, placed near its neighbourhood's centre
 (packs have no per-place coordinates, so the card says "Location approximate"). Their home, their usual
-places (two or more visits in 60 days), places from the last two weeks and Story mode's scene are marked;
+places (two or more visits in 60 days), places from the last two weeks and the scene of a story that has begun are marked;
 companions have no set workplace yet, so nothing is marked as work. A place's card shows its spots, the last
-three things that happened there with them, the townsfolk they know who are regulars there, and "Go there"
-(Story mode on, moves the scene) or "Suggest going together" (puts a line in their composer, never sends it).
+three things that happened there with them, the townsfolk they know who are regulars there, "Suggest going together"
+(puts a line in their composer, never sends it) and "Go there in your story" (moves the story's scene).
 Real public cities of today use OpenStreetMap tiles in the interface, which needs internet; past-era, fictional, original and
 private cities, or a street map that fails to load, get a drawn map in the same colours: each neighbourhood a
 district shaped by its neighbours, with side streets, main roads to the districts it borders, parks, and any
@@ -474,7 +478,7 @@ GET /api/life/map    # {city: {id, name, lat, lon, real}, hoods: [{id, name, lat
 Today > Who knows who draws everyone the user has met or heard about as a web (`companion/life/web.py`):
 the companions and their ties to each other, each companion's circle and how its members know each other,
 people met through them, townsfolk met around town (staff at the same place are coworkers), the people the
-user told a companion about, Matchlight matches and, with Story mode on, people met in the story. It is read
+user told a companion about, Matchlight matches and, people met in the story. It is read
 from what the app already keeps, with no model and nothing stored; secrets, closeness and moods stay out.
 Dragged bubbles keep their place in this browser.
 
@@ -628,7 +632,10 @@ left to the consequence engine on its day (below). Later beats stay hidden until
 opera; default 1) sets how often one starts (about 4%, 8%, 15% or 28% of days), how many run at once
 (1 to 4) and which templates can happen: quiet keeps to good news; realistic adds everyday trouble
 (a coworker taking credit, a friend's breakup, layoff rumors); dramatic adds health scares, feuds and
-secret romances; soap opera adds drunk kisses, separations and family secrets. A template doesn't
+secret romances; soap opera adds drunk kisses, separations and family secrets. The bank holds over a hundred
+templates (the first nineteen in `storylines.py`, the rest in `companion/life/storyline_bank.py`, which also says
+how a line must be written), about the companion's work, their own days outside it, a coworker, a parent or both,
+a sibling, a grandparent, a cousin, a neighbor, a friend or two friends. A template doesn't
 repeat within 90 days, a person is in one running storyline at a time, and a companion in a romance
 with the user never gets one about their own love life.
 
@@ -648,6 +655,50 @@ the user; Today keeps the third person. A settled storyline stays in the context
 still bring the outcome back (embedded like memories when semantic recall is on).
 A beat from today or yesterday can open a conversation, using its `share` line when no model is
 connected. Days are decided as the agenda extends, up to 14 days back after time away.
+
+#### Storylines you are part of
+
+From v1.5.0 the world also starts things that involve the user (`companion/life/shared_storylines.py`, bank
+`world/data/shared_storylines.json`): a friend who wants to meet them, a favor, a place to show them. A shared
+storyline is a row in the same table with the story `shared:<key>` and `with_you: true` in its view, so Today
+lists it, the context tells it and the user can end it like any other. Its text says "you" for the user on the
+screens and "the user" when told to the companion.
+
+In the chat context it has a section of its own (`shared_storylines.HEADING`; the other storylines' heading says
+"never to the user"), one line per storyline: each beat with the day it tells of (a beat that says how a plan went
+carries the plan's day, not the morning after), then the user's part in the latest beat as far as the app can tell
+(not told yet, told and not answered, knows about it, said yes or no, came by, let it go by; for a plan not asked
+yet, set for a day and not happened yet, happening now, came, called it off) and "What comes next is not decided
+yet." while more is to come. Wording A/B of 2026-11-18: it reads no worse and no better than the line it replaced.
+
+Each beat reaches the user through something that exists: a first text, or an invitation whose first text books an
+outing (Today's "Out together"; with someone from their circle it is a meet-up, and going makes that person someone
+who has met the user). No beat waits. When the next beat's day comes, the app reads what the user did about the
+last one, only what it can tell for sure: for a text `answered`, `said_yes`, `said_no`, `dropped_by` or, after 18
+hours, `passed`; for a plan `went`, `called_off` or `passed` (the invitation never went out). The bank's `then`
+names the beat that follows each; where it could go more than one way the consequence engine decides (choices
+`shared:*`, subject `shared:<storyline id>:<beat>`), and the user can make it go the other way while nothing has
+followed it. A plan still ahead holds the next beat until the day after it.
+
+A plan the companion keeps without the user is in their day. When the user calls a plan off, or its day comes and
+the invitation never went out, and the beat that follows has a `kept` line in the bank ("went for drinks with Nancy
+without you"), `shared_storylines.as_plans` gives the agenda that time as one of the companion's plans: the hour
+the plan was booked for (the activity's usual hour when it was never booked), the place it was booked at, and the
+person from their circle when the plan was with them, so that person's day holds it too. The entry carries
+`storyline: {id, beat}` and no post. It is held as soon as the user is known not to be coming, not the morning
+after when the beat is told. A beat without `kept` (they stayed in, or dropped the plan) holds nothing, and a slot
+that is already past, or taken by work, stays as it was.
+
+One runs at a time, never two beats on one day, nothing above the world's drama level, and a story fits only where
+it can be true (the relationship, how long the two have talked, the city's era, a plan in person only in the same
+city, a visit to the companion's home only while the two live apart, a cast who has or has not met the user). The
+bank holds 110 stories in seven families: their people, favors, their work, around town, a third person (dramatic
+worlds only), growing closer and their goal. The Life setting `shared_storylines` (0 off, 1 now and then, 2 true
+to life, 3 often; default 2) sets the daily chance one starts (0, 10%, 35%, 60%), the rest after the last one (7, 2,
+1 days) and the quiet-spell floor: after 21, 6 or 3 days with none, one starts. Nothing starts before the two have
+talked for two days, while the user has not written for three, while one is under way, on a break, in a big rough
+patch of the user's making, in raw grief, or while the user only watches. The roll is made once a day and never
+for days the app was closed. The town's news, On their mind and the companion's mood leave these storylines out.
 
 #### The consequence engine
 

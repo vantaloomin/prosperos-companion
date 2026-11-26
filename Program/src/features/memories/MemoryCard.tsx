@@ -82,15 +82,20 @@ function PinButton({ memory, actions }: { memory: Memory; actions: MemoryActions
   return <button type="button" className="text-button" onClick={() => actions.pin(memory, !memory.pinned)}><Icon aria-hidden="true" />{memory.pinned ? 'Unpin' : 'Pin'}</button>
 }
 
+function clip(text: string): string {
+  return text.length > 160 ? `${text.slice(0, 160)}…` : text
+}
+
 function Sources({ memory, sources }: { memory: Memory; sources: Map<string, Message> }) {
   const ids = memory.source_message_ids
   const added = addedLine(memory)
+  if (memory.story_line) return <p className="memory-source">Said in Story: <q>{clip(memory.story_line)}</q></p>
   if (!ids.length) return added && <p className="memory-source subtle">{added}</p>
   return (
     <ul className="memory-source" aria-label="Where this came from">
       {ids.map((id) => {
         const message = sources.get(id)
-        return <li key={id}>{message ? (message.redacted ? 'From a message you deleted.' : <>From your message: <q>{message.text.length > 160 ? `${message.text.slice(0, 160)}…` : message.text}</q></>) : 'From an earlier message in your conversation.'}</li>
+        return <li key={id}>{message ? (message.redacted ? 'From a message you deleted.' : <>From your message: <q>{clip(message.text)}</q></>) : 'From an earlier message in your conversation.'}</li>
       })}
     </ul>
   )

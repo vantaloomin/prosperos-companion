@@ -20,6 +20,7 @@ import { Recommendations } from './Recommendations'
 import { Chapters } from './Chapters'
 import { Reactions } from './Reactions'
 import { Storylines } from './Storylines'
+import { InvolvesYou } from './InvolvesYou'
 import { Townsfolk } from './Townsfolk'
 import { OnTheirMind } from './OnTheirMind'
 import { OutTogether, Trips } from './OutTogether'
@@ -128,6 +129,7 @@ export function Today({ companion, go }: { companion: Companion; go: (view: View
       <Recommendations name={name} />
       <Chapters name={name} />
       <WordGetsAround name={name} />
+      <InvolvesYou name={name} />
       <Storylines name={name} />
       <LittleThings moments={data.moments} dreams={data.dreams} name={name} />
       <Reactions name={name} />

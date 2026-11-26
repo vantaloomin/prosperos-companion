@@ -182,7 +182,7 @@ function WeddingPage({ page }: { page: Extract<ScrapbookPage, { kind: 'wedding' 
 function Items({ items }: { items: ScrapbookItem[] }) {
   return (
     <ul className="year-items">
-      {items.map((item, index) => <li key={`${item.date ?? ''}-${index}`}>{item.date && <time dateTime={item.date}>{dayText(item.date)}</time>}<span>{item.text}</span></li>)}
+      {items.map((item, index) => <li key={`${item.date ?? ''}-${index}`}>{item.date && <time dateTime={item.date}>{item.until && item.until !== item.date ? `${dayText(item.date)} to ${dayText(item.until)}` : dayText(item.date)}</time>}<span>{item.text}</span></li>)}
     </ul>
   )
 }

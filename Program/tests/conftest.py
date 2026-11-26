@@ -3,6 +3,7 @@ import json
 import os
 import zlib
 from datetime import UTC, datetime, time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -90,6 +91,9 @@ def no_storylines(monkeypatch):
     """Storylines start on seeded days (companion/life/storylines.py) and would add context lines and first
     messages to unrelated tests; tests/test_storylines.py turns them back on."""
     monkeypatch.setattr('companion.life.storylines.START', (0, 0, 0, 0))
+    # Likewise the ones the user is part of (companion/life/shared_storylines.py), which a quiet-spell floor starts
+    # for sure; tests/test_shared_storylines.py turns them on.
+    monkeypatch.setattr('companion.life.shared_storylines.ACTIVE', False)
     # Likewise a birthday seeded by the companion's id (companion/life/occasions.py).
     monkeypatch.setattr('companion.life.occasions.SEEDED', False)
     # And replies held while the companion is busy (companion/life/pacing.py), on by default in the app.
@@ -247,16 +251,36 @@ def no_character_sheets(monkeypatch):
     monkeypatch.setattr('companion.images.sheet.ENABLED', False)
 
 
+def slow_tests():
+    """The tests listed in tests/slow_tests.txt, as (file name, test name)."""
+    lines = (Path(__file__).parent / 'slow_tests.txt').read_text(encoding='utf-8').splitlines()
+    return {tuple(line.strip().split('::')) for line in lines if line.strip() and not line.startswith('#')}
+
+
+def pytest_configure(config):
+    config.addinivalue_line('markers', 'slow: one of the slowest tests (tests/slow_tests.txt); an ordinary pull '
+                                       'request leaves these out')
+
+
 def pytest_collection_modifyitems(config, items):
-    """COMPANION_TEST_SHARD=2/3 runs the second third of the tests, picked by test name, so a slow CI runner can
-    spread one suite over several jobs (.github/workflows/ci.yml)."""
+    """Marks the tests in tests/slow_tests.txt as slow. Then COMPANION_TEST_SHARD=2/3 runs the second third of the
+    tests, so CI can spread one suite over several jobs (.github/workflows/ci.yml). The slow tests are dealt out
+    one by one, so no part gets most of them; the rest are picked by test name."""
+    slow = slow_tests()
+    heavy = []
+    for item in items:
+        if (Path(str(item.fspath)).name, item.originalname) in slow:
+            item.add_marker(pytest.mark.slow)
+            heavy.append(item.nodeid)
     shard = os.environ.get('COMPANION_TEST_SHARD')
     if not shard:
         return
     index, count = (int(part) for part in shard.split('/'))
+    part = {nodeid: place % count for place, nodeid in enumerate(sorted(heavy))}
     kept, dropped = [], []
     for item in items:
-        (kept if zlib.crc32(item.nodeid.encode()) % count == index - 1 else dropped).append(item)
+        mine = part.get(item.nodeid, zlib.crc32(item.nodeid.encode()) % count) == index - 1
+        (kept if mine else dropped).append(item)
     config.hook.pytest_deselected(items=dropped)
     items[:] = kept
 

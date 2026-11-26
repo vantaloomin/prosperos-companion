@@ -30,11 +30,14 @@ WORKED_BY = {'groom': M, 'falconer': M, 'squire': M, 'man-at-arms': M, 'court-cl
 
 # The ages someone works it at, youngest to oldest (schema Career.ages): never a 55-year-old squire.
 AGES = {'squire': [18, 24]}
+# Where a career stands at work (companion/life/position.py); unlisted careers are read from the card.
+POSITION = {'alewife': 'owner', 'merchant': 'owner', 'miller': 'lead'}
 
 
 def career(id, name, sector, schedule, pay, summary, themes):
     return {'id': id, 'name': name, 'sector': sector, 'schedule': schedule, 'pay': pay, 'summary': summary,
             'themes': themes, 'eras': ['medieval'], 'employment': EMPLOYMENT.get(id, 'staff')} | (
+        {'position': POSITION[id]} if id in POSITION else {}) | (
         {'worked_by': WORKED_BY[id]} if id in WORKED_BY else {}) | ({'ages': AGES[id]} if id in AGES else {})
 
 

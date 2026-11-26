@@ -41,6 +41,14 @@ def test_asking_out_is_read_from_the_message():
     assert asked('Drinks Friday at 9pm at the Owl Bar?') == ('drinks', '2026-10-09', '21:00', 'named-owl-bar')
 
 
+def test_the_day_in_the_clause_that_asks_wins_over_one_named_before_it():
+    # 1.5 proof run on a tester's world: "Tuesday's a mess" booked the walk for Tuesday a week on, not Friday.
+    assert asked("tuesday's a mess, let's walk friday instead")[:2] == ('walk', '2026-10-09')
+    assert asked('Tuesday is a mess, want to go for a walk Friday at 4?')[:3] == ('walk', '2026-10-09', '16:00')
+    # With no day in the clause that asks, a day elsewhere in the sentence still counts.
+    assert asked('On Saturday, want to get coffee?')[:2] == ('coffee', '2026-10-10')
+
+
 def test_questions_about_their_plans_the_past_and_refusals_are_not_asking():
     for text in ('Are you going to dinner with Dana Friday?', 'Did you have dinner Friday?',
                  "I don't want to get dinner Friday.", 'Dinner was great.', 'What did you do this weekend?'):
@@ -168,6 +176,21 @@ def test_a_busy_day_moves_to_the_nearest_free_one(client, mira, provider):
     send(client, 'Coffee with me Saturday too?', 'client-out-05')
     # Saturday already has an outing, so coffee goes to Sunday.
     assert [item['local_date'] for item in listing(client)['outings']] == ['2026-10-10', '2026-10-11']
+
+
+def test_the_weekday_it_is_today_means_today_not_a_week_on(client, mira, provider, clock):
+    # The world is at Monday noon. "Monday" and "this Monday" are tonight; a week on has to be said.
+    send(client, 'Want to get dinner this Monday?', 'client-day-01')
+    [outing] = listing(client)['outings']
+    assert (outing['asked_date'], outing['local_date'], outing['at_time']) == ('2026-10-05', '2026-10-05', '19:00')
+    assert 'They asked for' not in provider.requests[-1]['prompt']
+    local = clock.now().replace(hour=12, minute=0)
+    for text, at, day in (('Drinks Monday?', None, TODAY), ('Coffee on Monday?', None, TODAY + timedelta(days=7)),
+                          ('Dinner next Monday?', None, TODAY + timedelta(days=7)),
+                          ('Dinner a week from Monday?', None, TODAY + timedelta(days=7)),
+                          ('Want to get dinner Friday?', None, TODAY + timedelta(days=4))):
+        wanted = outings.proposal(text, TODAY, {}, catalog.city('baltimore'))
+        assert outings.named_today(wanted, local)['day'] == day, text  # Coffee is at 10:30, already past at noon.
 
 
 def test_a_named_place_is_kept_and_the_bill_comes_out_of_their_budget(client, mira, provider, clock):

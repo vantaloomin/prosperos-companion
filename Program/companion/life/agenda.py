@@ -55,6 +55,7 @@ from companion.life import (
     recommendations,
     rough_patches,
     routine,
+    shared_storylines,
     stays,
     steps,
     storylines,
@@ -170,6 +171,8 @@ def extend(connection, companion, world, now) -> dict:
     long_distance.finish_due(connection, companion, now)
     onward.plan_due(connection, companion, now)  # A second place for meetups (companion/life/onward.py).
     outings.finish_due(connection, companion, now)
+    from companion import story_visits  # Imported here: the Story reads the agenda.
+    story_visits.settle(connection, now)  # Time together in the Story that has ended.
     if work.plan_ahead(connection, companion, world, now).get('shifts'):
         companion = by_id(connection, companion['id'])  # This week's shifts or gigs shape the days ahead.
     admin.plan_ahead(connection, companion, world, now)
@@ -200,6 +203,7 @@ def extend(connection, companion, world, now) -> dict:
     moving_in.advance(connection, companion, now)
     love_life.advance(connection, companion, world, now)
     their_people.advance(connection, companion, now)
+    shared_storylines.advance(connection, companion, now)  # Storylines the user is part of (v1.5.0).
     wedding.advance(connection, companion, now)
     expecting.advance(connection, companion, world, now)  # Before the big days: a pregnancy brings a baby shower.
     our_child.advance(connection, companion, world, now)
@@ -303,7 +307,11 @@ def companion_days(connection, timeline_id, companion, now) -> tuple[dict, dict,
     arrivals = expecting.arrival_days(connection, companion, since) if companion else {}
     away = {local_date: trip for local_date, trip in trips.by_date(connection, timeline_id, since).items()
             if local_date not in arrivals}
-    plans = {local_date: found for local_date, found in pinned_plans(connection, timeline_id, since).items()
+    plans = pinned_plans(connection, timeline_id, since)
+    # A plan with the user that they keep on their own once the user is not coming (shared_storylines.py).
+    for local_date, found in (shared_storylines.as_plans(connection, companion, since, now) if companion else {}).items():
+        plans[local_date] = plans.get(local_date, []) + found
+    plans = {local_date: found for local_date, found in plans.items()
              if local_date not in away and local_date not in arrivals}
     repinned = repin(connection, timeline_id, plans) + trips.repin(connection, timeline_id, away) + \
         expecting.repin(connection, timeline_id, arrivals)
@@ -429,6 +437,8 @@ def plan_entry(plan: dict, block: dict, definition: dict) -> dict:
         return admin.entry(plan, block, definition)
     if 'babysit' in plan:  # An evening out while the user babysits (companion/life/own_family.py).
         return own_family.entry(plan, block, definition)
+    if 'kept' in plan:  # A plan with the user they kept on their own (companion/life/shared_storylines.py).
+        return shared_storylines.entry(plan, block, definition)
     if 'storyline' in plan:  # The friend after a breakup, a send-off (companion/life/storylines.py).
         return storylines.entry(plan, block, definition)
     return big_days.entry(plan, block, definition) if 'big_day' in plan else own_plans.entry(plan, block, definition)

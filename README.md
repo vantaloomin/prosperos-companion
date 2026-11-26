@@ -25,7 +25,7 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
 
 ## Where it's at
 
-**Version 1.3, "A Sea-Change", came out on November 3, 2026.** It gives every screen a quieter, simpler look, lets your companion go away with you for a long weekend or a week, and lets a date move on to a second place nearby. The [release notes](Program/docs/releases/v1.3.0.md) have the details and the [changelog](CHANGELOG.md) has every release before it.
+**Version 1.5, "A Most Majestic Vision", came out on November 26, 2026.** Things in your companion's life now come to include you, Story is a full part of every world with your companion in the scene, and companions who run their own place are treated that way at work. The [release notes](Program/docs/releases/v1.5.0.md) have the details and the [changelog](CHANGELOG.md) has every release before it.
 
 Releases come often, usually a few a week, and each one is a full release with a Windows installer. Windows is the main platform. On a Mac it runs from the source scripts; there's no Mac app yet. See [Known issues](#known-issues) for what hasn't been tried on real setups.
 
@@ -56,7 +56,7 @@ Releases come often, usually a few a week, and each one is a full release with a
 
 **Cities and worlds.** Built-in real cities (Baltimore, Chicago, New York, Miami, New Orleans, Los Angeles, San Diego, Las Vegas, London, Osaka, Jeju), period ones (Victorian London, 1920s New York), fantasy and public-domain ones (Camelot, the Emerald City), a generation ship, originals such as steampunk Calderwick and frontier Whitlock, and Grandport from Oak's dark fantasy world Neokosmos (CC BY-NC-SA 4.0, used with permission). Build your own, or have **Prospero's Draft Table** draw up a new place from one line. Cities change month to month as places open and close.
 
-**Yours to shape.** Guided character creation from a one-line idea, character cards and lorebooks from other apps, a full character editor, five chat styles, Story mode, timelines that branch from any message, a model per job, a Realism page for how life plays out, backups and restore, and phone access over your own Tailscale network or home Wi-Fi.
+**Yours to shape.** Guided character creation from a one-line idea, character cards and lorebooks from other apps, a full character editor, five chat styles, your own Story with a narrator, timelines that branch from any message, a model per job, a Realism page for how life plays out, backups and restore, and phone access over your own Tailscale network or home Wi-Fi.
 
 <table>
   <tr>
@@ -94,9 +94,7 @@ What's planned next:
 
 | Release | Title | What it brings |
 | --- | --- | --- |
-| 1.4 | Another Storm Brewing | Weather that settles in (rain, fog and snow that last, tomorrow's forecast, real weather from a weather service), their own words (pet phrases and repeated AI-isms caught early, plus your own words to drop or swap), making up after a fight in a way that fits who they are, and Draw Things, A1111 and Forge for pictures, including on a Mac. |
-| 1.5 | Rich and Strange | Little moments while you're out together, who they're becoming as their personality shifts with what you live through, what they're working toward over years, and moods with more shades, causes and memory. |
-| 1.6 | Sounds and Sweet Airs | A quiet hint of the weather where you are together, and talking out loud on calls. |
+| 1.6 | Sounds and Sweet Airs | What your companion is working toward over the years, little moments while you're out together, moods with more shades and causes that linger, and two worlds open at once in their own windows. |
 
 Plans change as we go. See the [releases](https://github.com/vantaloomin/prosperos-companion/releases) for what has actually shipped.
 
@@ -192,7 +190,7 @@ Found a bug? [Open an issue](https://github.com/vantaloomin/prosperos-companion/
 - [Worlds and personas](Program/docs/worlds.md)
 - [Matchlight, the dating app](Program/docs/dating.md)
 - [Group chats](Program/docs/group-chat.md)
-- [Story mode](Program/docs/story.md)
+- [Story](Program/docs/story.md)
 - [Voice notes](Program/docs/voice-notes.md)
 - [Author's note](Program/docs/authors-note.md)
 - [Bring your characters](Program/docs/bring-your-characters.md)

@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
-import type { CareerSummary, CharacterDefinition, CitySummary, Employment, HomeTenure, MoneySetup, SpendingStyle } from '../../types'
+import type { CareerSummary, CharacterDefinition, CitySummary, Employment, HomeTenure, MoneySetup, Position, SpendingStyle } from '../../types'
 import { Field, TextInput } from '../../components/Fields'
 import { useWorkspaceSettings } from '../../companion'
-import { guessLabel, OWN_WORK, todayIso, workChoices, workHint } from './money'
+import { guessLabel, OWN_WORK, POSITIONS, positionGuessLabel, todayIso, workChoices, workHint } from './money'
 import { useSettled } from './useSettled'
 import { PayField } from './PayField'
 
@@ -51,6 +51,17 @@ function useGuess(definition: CharacterDefinition, asking: boolean) {
   })
 }
 
+/** Where the app reads them as standing at work, for "Picked for them" (companion/life/position.py `guess`). */
+function usePositionGuess(definition: CharacterDefinition) {
+  const { name, identity, background, routine, appearance, personality, home_city: homeCity, money } = useSettled(definition)
+  const body = { name, identity, background, routine, appearance, personality, money: { ...money, position: '' } }
+  return useQuery({
+    queryKey: ['position-guess', homeCity, body], enabled: homeCity !== '',
+    queryFn: () => api<{ position: Position | '' }>(`/world/cities/${encodeURIComponent(homeCity)}/position`, body),
+    staleTime: Infinity, placeholderData: (previous) => previous,
+  })
+}
+
 /** Their home city's era, for the words the pickers use. */
 function useEra(homeCity: string): string | undefined {
   const cities = useQuery({ queryKey: ['cities'], queryFn: () => api<CitySummary[]>('/world/cities'), staleTime: Infinity })
@@ -68,6 +79,21 @@ function useWorkChoices({ money, home_city: homeCity }: CharacterDefinition): Ca
   const era = cities.data?.find((city) => city.id === homeCity)?.era
   const adult = useWorkspaceSettings().data?.adult_side === true
   return workChoices(homeCity ? offered.data : undefined, careers.data ?? [], era, money.career, adult)
+}
+
+/** Where they stand at work: the app's read until the user picks one (companion/life/position.py). */
+function PositionField({ definition, onChange }: { definition: CharacterDefinition; onChange: (position: Position | '') => void }) {
+  const guess = usePositionGuess(definition).data?.position
+  return (
+    <Field label="Position" hint="Whoever runs the place has no boss: no yearly review, never laid off. Left as picked for them, it follows their work and “Who they are”.">
+      {(id, hint) => (
+        <select id={id} aria-describedby={hint} value={definition.money.position ?? ''} onChange={(event) => onChange(event.target.value as Position | '')}>
+          <option value="">{positionGuessLabel(definition.home_city ? guess : undefined)}</option>
+          {POSITIONS.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+        </select>
+      )}
+    </Field>
+  )
 }
 
 /** Their work and money habits; pay, rent and prices come from their home city's data. */
@@ -116,6 +142,7 @@ export function MoneyFields({ definition, onChange }: Props) {
           </select>
         )}
       </Field>
+      <PositionField definition={definition} onChange={(position) => set({ position })} />
       <Field label="Home" hint="Left as picked for them, their words, age and pay decide.">
         {(id, hint) => (
           <select id={id} aria-describedby={hint} value={money.home ?? ''} onChange={(event) => set({ home: event.target.value as HomeTenure })}>

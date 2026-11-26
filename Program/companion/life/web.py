@@ -5,7 +5,7 @@ and their ties to each other (companion/memory/pairs.py), each companion's circl
 each other (companion/life/circle.py), someone one companion's circle shares with another
 (companion/life/shared_people.py), people met through them (companion/life/network.py), townsfolk met
 around town (companion/life/encounters.py), the people the user has told a companion about
-(companion/memory/people.py), Matchlight matches (companion/dating.py) and people the user met in Story mode
+(companion/memory/people.py), who in a circle knows the user (companion/life/knows_you.py), Matchlight matches (companion/dating.py) and people the user met in Story mode
 (companion/story_people.py). Secrets, closeness and moods are left out, so the web shows only who knows who.
 
 A node is {id, name, kind, detail, hood, companion_id?, main?}; a link is {source, target, label, kind}.
@@ -13,7 +13,7 @@ Townsfolk and network people keep their keys as ids, so someone two companions m
 """
 from companion.database import many
 from companion.errors import DomainError
-from companion.life import circle, encounters, network, shared_people
+from companion.life import circle, encounters, knows_you, network, shared_people
 from companion.memory import pairs
 from companion.world import turnover
 
@@ -62,7 +62,7 @@ def companions(connection) -> list[dict]:
     return [found for row in rows if (found := by_id(connection, row['id']))]
 
 
-def build(connection, now, story_on: bool = False) -> dict:
+def build(connection, now) -> dict:
     web = Web()
     persona = connection.execute('SELECT name FROM persona WHERE id=1').fetchone()
     web.add(YOU, (persona and persona['name']) or 'You', 'you')
@@ -77,8 +77,20 @@ def build(connection, now, story_on: bool = False) -> dict:
     for companion in cast:  # Someone from another companion's circle they know too (companion/life/shared_people.py).
         for person in shared_people.shared_with(connection, companion, now):
             web.link(pairs.companion_key(companion['id']), person['key'], person['role'])
-    add_yours(connection, web, cast, story_on)
+    add_yours(connection, web, cast)
+    for companion in cast:  # Who in their circle knows the user, or has heard of them (companion/life/knows_you.py).
+        add_knows_you(web, knows_you.for_circle(connection, companion, now).values())
+    for key in knows_you.chatted(connection):  # Townsfolk who were in a group chat with the user.
+        if web.nodes.get(key, {}).get('kind') == 'townsperson':
+            web.link(key, YOU, 'in a group chat together', 'you')
     return web.view()
+
+
+def add_knows_you(web: Web, people) -> None:
+    """A link from each person to the user: solid when they know the user, dotted when they only know of them."""
+    for found in people:
+        if found['how']:
+            web.link(found['key'], YOU, knows_you.label(found), 'you' if found['how'] == knows_you.KNOWS else 'met')
 
 
 def add_companion(connection, web: Web, companion: dict, now):
@@ -135,7 +147,7 @@ def add_townsfolk(web: Web, key: str, people: list[dict]):
                 web.link(first['key'], second['key'], f"work at {first['place']['name']}", 'work')
 
 
-def add_yours(connection, web: Web, cast: list[dict], story_on: bool):
+def add_yours(connection, web: Web, cast: list[dict]):
     """The user's own people: those told to a companion, matches, and people met in Story mode."""
     seen = {}
     for companion in cast:
@@ -155,10 +167,9 @@ def add_yours(connection, web: Web, cast: list[dict], story_on: bool):
             continue  # Their city or place has gone.
         web.add(row['person_key'], sheet['full'], 'match', sheet.get('occupation') or sheet['role'])
         web.link(YOU, row['person_key'], 'match', 'partner')
-    if story_on:
-        for person in many(connection, 'SELECT key, name, meetings FROM story_people'):
-            web.add(person['key'], person['name'], 'townsperson', 'Met in your story')
-            web.link(YOU, person['key'], 'met in your story', 'met')
+    for person in many(connection, 'SELECT key, name, meetings FROM story_people'):
+        web.add(person['key'], person['name'], 'townsperson', 'Met in your story')
+        web.link(YOU, person['key'], 'met in your story', 'met')
 
 
 def companion_for(connection, key: str) -> str | None:

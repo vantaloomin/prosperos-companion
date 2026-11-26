@@ -455,6 +455,33 @@ ADDED_COLUMNS = (
     # Celsius or Fahrenheit (companion/world/temperature.py): 'auto' picks by the companion's city.
     ('workspace_settings', 'temperature_unit',
      "TEXT NOT NULL DEFAULT 'auto' CHECK (temperature_unit IN ('auto', 'C', 'F'))"),
+    # A companion's own line in the Story (companion/story_cast.py): whose it is and the name it shows under; on a
+    # 'cast' line, who came or went.
+    ('story_messages', 'speaker', 'TEXT'),
+    ('story_messages', 'name', 'TEXT'),
+    # Storylines you are part of (companion/life/shared_storylines.py, Settings > Realism > Their days > Things that
+    # involve you): how often the world starts one, 0 off, 1 now and then, 2 true to life, 3 often; and the last day
+    # its daily roll was made on a timeline.
+    ('life_settings', 'shared_storylines', 'INTEGER NOT NULL DEFAULT 2 CHECK (shared_storylines BETWEEN 0 AND 3)'),
+    ('storyline_days', 'shared_through', 'TEXT'),
+    # Scenes count (companion/story_visits.py, Settings > Realism > Story scenes count): time with a companion in the
+    # Story leaves a shared moment, counts toward closeness and can reach a relationship step. On unless turned off.
+    ('life_settings', 'story_counts', 'INTEGER NOT NULL DEFAULT 1 CHECK (story_counts IN (0, 1))'),
+    # A plan played in the Story (companion/story_plans.py): the outing a visit was part of. It leaves its own memory,
+    # so the visit adds none.
+    ('story_visits', 'outing_id', 'TEXT'),
+    # Said about themselves in a Story scene (companion/story_said.py): the scene line and the timeline, for a fact
+    # with no chat message.
+    ('self_facts', 'story_message_id', 'TEXT'),
+    ('self_facts', 'timeline_id', 'TEXT'),
+    # A line the app said for the user to start a plan's scene: the models read it, the screen and exports do not.
+    ('story_messages', 'hidden', 'INTEGER NOT NULL DEFAULT 0'),
+    # Where a match was made: 'app' on the dating app, 'story' when someone said yes to the user in their own story
+    # (companion/story_pursuit.py).
+    ('dating_swipes', 'source', "TEXT NOT NULL DEFAULT 'app' CHECK (source IN ('app', 'story'))"),
+    # A trip or visit the user took off Today as never planned (companion/life/long_distance.py `remove`): status
+    # 'cancelled' with no cancelled_at, so nobody in the story calls it off; this says when, for Undo.
+    ('trips', 'removed_at', 'TEXT'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
@@ -474,6 +501,12 @@ WIDENED_CHECKS = (
     ('circle_children', "'friend', 'ours')"),
     # Trips away together (companion/life/away_together.py).
     ('trips', "'host', 'together')"),
+    # Companions in the Story's scene, in their own lines (companion/story_cast.py).
+    ('story_messages', "'scene', 'companion', 'cast')"),
+    # What a companion says about themselves in a Story scene has no chat message (companion/story_said.py).
+    ('self_facts', 'message_id TEXT REFERENCES messages(id)'),
+    # An owner's good and flat years in place of a review (companion/life/work.py `owners_year`).
+    ('work_events', "'new-job', 'good-year', 'flat-year')"),
 )
 
 
@@ -488,7 +521,10 @@ def initialize(connection, timestamp: str):
     add_columns(connection)
     widen_context_categories(connection)
     widen_checks(connection)
+    connection.execute('CREATE INDEX IF NOT EXISTS self_facts_message ON self_facts(message_id)')
+    connection.execute('CREATE UNIQUE INDEX IF NOT EXISTS self_facts_story ON self_facts(timeline_id, story_message_id, key)')
     connection.execute('CREATE INDEX IF NOT EXISTS life_admin_day ON life_admin(timeline_id, status, local_date)')
+    connection.execute('CREATE INDEX IF NOT EXISTS work_events_day ON work_events(timeline_id, local_date)')
     connection.execute('CREATE INDEX IF NOT EXISTS relationship_steps_pair ON relationship_steps(timeline_id, other, ladder)')
     connection.execute('CREATE INDEX IF NOT EXISTS circle_children_timeline ON circle_children(timeline_id, status, born_on)')
     connection.execute('CREATE INDEX IF NOT EXISTS circle_children_parent ON circle_children(parent_id)')
@@ -559,6 +595,8 @@ UPGRADE_READ = {0: {'read_pace': 1}}
 # Family shapes (v1.1.8): an easy life's new families are gentle, a dramatic one's have more drama.
 UPGRADE_FAMILY_SHAPES = {0: {'family_shapes': 1}, 3: {'family_shapes': 3}}
 STRINGS_READ = {1: {'read_pace': 1}}
+# Things that involve you (v1.5.0) the same way: a dramatic world gets them often; every other world true to life.
+UPGRADE_SHARED = {3: {'shared_storylines': 3}}
 
 
 def add_columns(connection):
@@ -571,7 +609,7 @@ def add_columns(connection):
     for column, upgrade in (('breakups', UPGRADE_REALISM), ('life_turns', UPGRADE_TURNS),
                            ('growing_families', UPGRADE_FAMILIES), ('family_life', UPGRADE_FAMILY_LIFE),
                            ('inner_voice', UPGRADE_DREAMS), ('their_look', UPGRADE_LOOK), ('read_pace', UPGRADE_READ),
-                           ('family_shapes', UPGRADE_FAMILY_SHAPES)):
+                           ('family_shapes', UPGRADE_FAMILY_SHAPES), ('shared_storylines', UPGRADE_SHARED)):
         if ('life_settings', column) in added:
             preset_upgrade(connection, upgrade)
     if ('life_settings', 'inner_voice') in added:

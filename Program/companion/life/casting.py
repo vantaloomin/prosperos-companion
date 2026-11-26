@@ -42,6 +42,7 @@ class Facts:
     people: list[dict] = field(default_factory=list)
     close: object = None            # (row) -> closeness stage 1 to 5, or None when unknown
     companion_employed: bool = True
+    position: str = 'staff'         # where the companion stands at work (companion/life/position.py)
     love_level: int = 2             # Their love life slider (love_life.level)
     weddings: frozenset = frozenset()  # circle ids with a wedding of their own planned (big_days)
     modern: bool = True             # the companion's city is of today's era (phones)
@@ -187,6 +188,23 @@ def single_best_friend(row: dict, facts: Facts) -> bool:
     return close_friend(row, facts) and single(row, facts) and facts.love_level > 0
 
 
+def friend(row: dict, facts: Facts) -> bool:
+    """Any friend who confides in the companion, family aside."""
+    return confidant(row, facts) and not family(row)
+
+
+def sibling(row: dict, facts: Facts) -> bool:
+    return kind(row) == 'sibling' and circle.knowing(row) == 'both'
+
+
+def grandparent(row: dict, facts: Facts) -> bool:
+    return kind(row) in circle.GRANDPARENTS and circle.knowing(row) == 'both'
+
+
+def neighbor(row: dict, facts: Facts) -> bool:
+    return kind(row) == 'neighbor' and circle.knowing(row) == 'both' and not adversary(row)
+
+
 SINGLE = {
     'employed parent': employed_parent,
     'independent parent': independent_parent,
@@ -198,6 +216,10 @@ SINGLE = {
     'friend seeing someone': friend_seeing_someone,
     'close friend': close_friend,
     'best friend, single': single_best_friend,
+    'friend': friend,
+    'sibling': sibling,
+    'grandparent': grandparent,
+    'neighbor': neighbor,
 }
 
 
@@ -236,16 +258,21 @@ def facts(connection, companion: dict, people: list[dict], day: date) -> Facts:
         "SELECT person_id FROM big_days WHERE timeline_id=? AND kind='wedding' AND person_id IS NOT NULL "
         "AND status IN ('planned', 'invited', 'declined')", (companion['active_timeline_id'],)))
     definition = companion['version']['definition']
+    from companion.life import position
     return Facts(people=people, close=close, companion_employed=companion_employed(connection, companion),
+                 position=position.companion_position(connection, companion) or 'staff',
                  love_level=love_life.level(connection), weddings=weddings,
                  modern=perception.era_modern(definition), today=day,
                  states={row['id']: circle_love.state(connection, row, people) for row in people})
 
 
 def companion_employed(connection, companion: dict) -> bool:
-    """The companion works for someone else and is not between jobs: a manager, a promotion and layoffs are real."""
+    """The companion has a job at a place and is not between jobs: not freelance, not studying for their keep. Who is
+    above them, if anyone, is their position (companion/life/position.py, `Facts.position`)."""
     from companion.life import outings, work
     definition = companion['version']['definition']
+    if definition.get('business'):
+        return True  # A business of their own (companion/life/business.py): the stories of whoever runs a place.
     if not work.works(definition):
         return False
     career = work.career_of(definition, outings.city_data(connection, definition)) if connection else None

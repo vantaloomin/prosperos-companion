@@ -160,7 +160,9 @@ def spread_news(client) -> list[str]:
 def test_removing_someone_ends_their_storylines(client, social, clock, monkeypatch):
     monkeypatch.setattr(storylines, 'START', (1, 1, 1, 1))
     clock.instant = clock.now().replace(hour=21, minute=30)
-    monkeypatch.setattr(storylines, 'STORIES', tuple(story for story in storylines.STORIES if story.cast.startswith('friend ')))
+    # Unfinished ones: a story whose only beat has happened is settled, and stays told.
+    monkeypatch.setattr(storylines, 'STORIES', tuple(story for story in storylines.STORIES
+                                                     if story.cast.startswith('friend ') and len(story.stages) > 1))
     reconcile(client)
     item = client.get('/api/life/storylines').json()[0]
     client.post(f"/api/life/circle/{item['cast'][0]['id']}/remove")
@@ -325,3 +327,52 @@ def test_a_beat_today_waits_for_its_time(client, social, clock, monkeypatch):
         lines = narrator.companion_lines(connection, require_current(connection), clock.now())
     told = [line for line in lines if line['kind'] == 'story']
     assert told and all(line['at'][11:16] == when for line in told)
+
+
+def test_the_bank_holds_over_a_hundred_stories_at_every_level_of_drama():
+    """v1.5.0: nineteen stories were too few for a long world (a tester's three weeks met three). The drama roll
+    draws from over a hundred, with good news to spare for a quiet world."""
+    drawn = [story for story in storylines.STORIES if not story.own]
+    assert len(drawn) >= 100 and len({story.key for story in storylines.STORIES}) == len(storylines.STORIES)
+    upto = [sum(story.level <= level for story in drawn) for level in range(4)]
+    assert upto[0] >= 40 and upto[1] >= 80 and upto[3] == len(drawn)
+    assert all(sum(story.level == level for story in drawn) >= 15 for level in range(4))
+    # Quiet keeps to good news: nothing there ends badly.
+    from companion.life import storyline_bank
+    assert all(beat.tone != 'bad' for story in storyline_bank.MORE if story.level == 0 for stage in story.stages
+               for beat in stage)
+
+
+def test_new_stories_never_speak_of_the_companion_as_they():
+    """The chat context tells a beat as "you": a "they" or "their" about the companion would stay behind, and a verb
+    after their name must still read after "you". The last beat names whose news it is (tester, 2026-10-29)."""
+    from companion.life import storyline_bank
+    names = {'p1': {'name': 'Ana', 'role': 'sister'}, 'p2': {'name': 'Rui', 'role': 'friend'}}
+    row = {'cast_ids': '["p1", "p2"]'}
+    for story in storyline_bank.MORE:
+        for index, stage in enumerate(story.stages):
+            for beat in stage:
+                assert not re.search(r'\{name\} (?!is |has |keeps |was |and )\w+s\b', beat.text), beat.text
+                assert '. {name}' not in beat.text
+                told = storylines.fill(beat.text, row, names, {'name': 'Mya Freeman'}, you=True)
+                assert not re.search(r'\byou (is|has|was|keeps)\b|\byour?s\b', told, re.IGNORECASE), told
+                if index == len(story.stages) - 1:
+                    assert re.search(r'\byou|Ana|Rui', told, re.IGNORECASE), told
+    told = {storylines.fill(beat.text, row, names, {'name': 'Mya Freeman'}, you=True)
+            for story in storyline_bank.MORE for stage in story.stages for beat in stage}
+    assert 'You were handed a big job at work, the kind that gets noticed.' in told
+    assert 'Your sister Ana borrowed money from you and has gone quiet about paying it back.' in told
+    assert 'Ana lent Rui money and wants it back, and you keep hearing both sides.' in told
+    assert 'Your book never turned up, and you have given up looking.' in told
+
+
+def test_new_casts_only_take_people_the_story_can_be_true_for():
+    people = [{'id': 'pal', 'role': 'friend', 'details': '{}'}, {'id': 'sis', 'role': 'sister', 'details': '{}'},
+              {'id': 'gran', 'role': 'grandmother', 'details': '{}'}, {'id': 'next', 'role': 'neighbor', 'details': '{}'},
+              {'id': 'foe', 'role': 'rival', 'details': '{}'}, {'id': 'co', 'role': 'coworker', 'details': '{}'}]
+    for key, cast in (('friend_thanks', 'pal'), ('sibling_dinner', 'sis'), ('grandparent_keepsake', 'gran'),
+                      ('neighbor_basket', 'next')):
+        assert storylines.casts(storylines.find_story(key), people, {}) == [(cast,)], key
+    # The companion's own days need no one, and no job.
+    assert storylines.casts(storylines.find_story('own_found_money'), [], {}) == [()]
+    assert storylines.casts(storylines.find_story('work_praise'), [], {}) == []

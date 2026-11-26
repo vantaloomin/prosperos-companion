@@ -78,7 +78,9 @@ def test_the_evening_after_a_breakup_is_in_both_their_days(client, clock, monkey
     evening = clock.now().replace(hour=19).isoformat()
     [mine] = rows_at(client, 'companion', evening)
     assert mine['entry']['with']['id'] == friend['id'] and mine['entry']['storyline']['id'] == row['id']
-    assert mine['entry']['summary'] == f"Mira spent the evening on the phone with {friend['name']} after the breakup."
+    # The day's entry may also say what happened at home (a pet that fell ill, companion/life/home.py touch).
+    assert mine['entry']['summary'].startswith(
+        f"Mira spent the evening on the phone with {friend['name']} after the breakup.")
     [theirs] = rows_at(client, friend['id'], evening)
     assert theirs['entry']['summary'] == f"{friend['name']} spent the evening on the phone with Mira after the breakup."
     assert theirs['entry']['joint'] and theirs['starts_at'][11:16] == '18:00'

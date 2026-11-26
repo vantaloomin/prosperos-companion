@@ -140,7 +140,8 @@ def installed(database) -> dict:
 def uninstall(database) -> dict:
     """Delete the user's profile and every swipe; companions made from matches stay companions."""
     with database.connect(write=True) as connection:
-        connection.execute('DELETE FROM dating_swipes')
+        # Someone who said yes in the user's own story was never the app's to forget (companion/story_pursuit.py).
+        connection.execute("DELETE FROM dating_swipes WHERE source='app'")
         connection.execute('DELETE FROM dating_profile')
     return state(database)
 
@@ -217,7 +218,7 @@ def deck(connection, data: dict, mine: dict) -> tuple[list[dict], int]:
 def dry_spell(connection) -> int:
     """How many likes in a row, latest first, were not returned. Passes neither count nor end it."""
     misses = 0
-    for row in many(connection, 'SELECT matched FROM dating_swipes WHERE liked=1 ORDER BY created_at DESC, rowid DESC'):
+    for row in many(connection, "SELECT matched FROM dating_swipes WHERE liked=1 AND source='app' ORDER BY created_at DESC, rowid DESC"):
         if row['matched']:
             break
         misses += 1
@@ -310,6 +311,7 @@ def matches(connection, database) -> list[dict]:
             continue  # Their city or place has gone.
         companion = optional(connection, 'SELECT id FROM companions WHERE townsfolk_key=?', (row['person_key'],))
         found.append(card(sheet, data, database) | {'city': {'id': data['id'], 'name': data['name']},
+                                                     'in_story': row['source'] == 'story',
                                                      'companion_id': companion and companion['id'],
                                                      'places': date_places(data, sheet),
                                                      'left': None if companion else left(sheet, data)})
@@ -337,8 +339,13 @@ def match(connection, key: str) -> dict | None:
     if row is None:
         return None
     sheet, data = person(connection, key, row['town'])
+    in_story = row['source'] == 'story'
     return {'sheet': sheet, 'data': data, 'town': row['town'], 'details': dating.details(sheet, data, matched=True),
-            'noun': words(data)['noun'], 'met': met_on(data)}
+            'noun': words(data)['noun'], 'met': IN_STORY if in_story else met_on(data), 'in_story': in_story}
+
+
+# How the profile of someone who said yes in the user's own story says they met (companion/story_pursuit.py).
+IN_STORY = 'Met the user in person around town, and said yes when the user asked to see them again'
 
 
 def met_on(data: dict) -> str:
@@ -348,11 +355,6 @@ def met_on(data: dict) -> str:
 
 
 # Dates in Story mode -------------------------------------------------------------------------------------------------
-
-def story_on(connection) -> bool:
-    """Whether Story mode is switched on (Settings), so a match can be met in the story."""
-    return bool(settings(connection).get('story_mode'))
-
 
 def active(connection) -> dict | None:
     """The date going on now: one that was not ended, while the story is still where it began (the latest
@@ -370,7 +372,6 @@ def go_on_date(database, key: str, place_id: str) -> dict:
         row = optional(connection, 'SELECT * FROM dating_swipes WHERE person_key=? AND matched=1', (key,))
         require(row is not None, 'You can only ask out someone you matched with.', 409)
         require(not observer.watching(connection), PAUSED, 409)
-        require(story_on(connection), 'Turn on Story mode in Settings to meet them in a story.', 409)
         sheet, data = person(connection, key, row['town'])
         gone = left(sheet, data)
         if gone:
@@ -447,7 +448,7 @@ def state(database) -> dict:
         return {'surface': kind, 'words': words(data), 'city': {'id': data['id'], 'name': data['name']},
                 'profile': mine and {key: mine[key] for key in ('name', 'age', 'gender', 'interested_in', 'looking_for',
                                                                  'age_min', 'age_max', 'bio')},
-                'persona': persona(connection), 'story': story_on(connection), 'photos': bool(backends.ordered(connection, enabled_only=True)),
+                'persona': persona(connection), 'photos': bool(backends.ordered(connection, enabled_only=True)),
                 'deck': [dating.card(sheet, data, database.clock.now().date(), found) for sheet, found in shown],
                 'remaining': left, 'matches': matches(connection, database), 'date': date,
                 'undo': (mine or {}).get('last_answer') or None,

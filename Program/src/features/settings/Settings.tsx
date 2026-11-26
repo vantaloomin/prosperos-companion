@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import type { Companion } from '../../types'
-import { StoryModeSetting } from './StoryModeSetting'
 import { ModelCalls } from './ModelCalls'
 import { Backups } from './Backups'
 import { DataFolder } from './DataFolder'
@@ -177,7 +176,7 @@ function TabContent({ tab, companion, pages }: { tab: SettingsTab; companion: Co
     pictures: <ImageSettings />,
     devices: <><NotificationSettings /><PhoneSettings /></>,
     data: <>{!remote && <DataFolder />}<Backups /><DebugSettings name={name} />{!remote && <><ModelCalls /><TownsfolkMix /><DebugMatches /></>}</>,
-    advanced: <><StoryModeSetting /><PromptSettings /></>,
+    advanced: <PromptSettings />,
   }
   return content[tab]
 }

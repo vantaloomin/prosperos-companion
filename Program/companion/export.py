@@ -149,15 +149,16 @@ def story(database) -> Transcript:
     from companion.world import changes, custom
     now = database.clock.now()
     with database.connect() as connection:
-        rows = many(connection, "SELECT * FROM story_messages WHERE status='complete' ORDER BY seq")
+        rows = many(connection, "SELECT * FROM story_messages WHERE status='complete' AND hidden=0 ORDER BY seq")
         cities = custom.all_cities(connection)
         places = []
         for city_id in dict.fromkeys(row['city_id'] for row in rows):
             data = changes.resolve(city_id, cities)
             places.append(data['name'] if data else city_id)
-        speakers = {'user': YOU, 'narrator': NARRATOR, 'scene': ''}
-        entries = [Entry(speakers[row['role']], row['text'], parse(row['created_at']), row['role'] == 'user')
-                   for row in rows]
+        # A companion in the scene speaks under their own name (companion/story_cast.py).
+        speakers = {'user': YOU, 'narrator': NARRATOR}
+        entries = [Entry(row['name'] if row['role'] == 'companion' else speakers.get(row['role'], ''), row['text'],
+                         parse(row['created_at']), row['role'] == 'user') for row in rows]
         return Transcript('Story', 'story', user_zone(connection), now, entries, places)
 
 

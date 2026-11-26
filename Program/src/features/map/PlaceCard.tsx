@@ -11,7 +11,7 @@ import { WHERE_KEY } from '../conversation/whereText'
 import { TOGETHER_KEY } from '../today/outingText'
 import { ADDED_KINDS, dropByFound, dropByHint, dropByLabel, dropByLines, historyLine, isHome, spotList, suggestHint, suggestion, type DropByResult, type MapHood, type MapPlace } from './mapText'
 
-interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; story: boolean; companion: Companion; onClose: () => void; go: (view: View) => void
+interface Props { inline?: boolean; place: MapPlace; city: string; hoods: MapHood[]; enclosed: boolean; companion: Companion; onClose: () => void; go: (view: View) => void
   /** A place added when the user named it was taken off the map: the map closes the card and offers Undo. */
   onRemoved?: (place: MapPlace) => void }
 
@@ -19,7 +19,7 @@ const storage = () => { try { return window.localStorage } catch { return undefi
 
 /** A tapped place: what it is, what happened there with them, who is usually there, and where to go next. A home says
  * whose it is; theirs and the places in town can be edited here, and the user's own home is changed where they live. */
-export function PlaceCard({ inline, place, city, hoods, enclosed, story, companion, onClose, go, onRemoved }: Props) {
+export function PlaceCard({ inline, place, city, hoods, enclosed, companion, onClose, go, onRemoved }: Props) {
   const client = useQueryClient()
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
@@ -58,7 +58,7 @@ export function PlaceCard({ inline, place, city, hoods, enclosed, story, compani
       <CardHeader place={place} name={name} editable={!editing && (place.id === '~home' || !isHome(place))} onEdit={() => setEditing(true)} onClose={onClose} />
       {editing ? <EditPlace place={place} hoods={hoods} enclosed={enclosed} name={name} onDone={() => setEditing(false)} onRemoved={onRemoved} />
         : <PlaceFacts place={place} />}
-      {!editing && <PlaceDetails place={place} name={name} timezone={companion.version.definition.timezone} story={story} goThere={() => void goThere()} suggest={suggest} go={go} visit={visit} />}
+      {!editing && <PlaceDetails place={place} name={name} timezone={companion.version.definition.timezone} goThere={() => void goThere()} suggest={suggest} go={go} visit={visit} />}
       {error && <p className="field-error" role="alert">{error}</p>}
     </aside>
   )
@@ -82,10 +82,10 @@ function CardHeader({ place, name, editable, onEdit, onClose }: { place: MapPlac
 }
 
 interface Visit { found: string; going: boolean; dropBy: () => void }
-interface DetailsProps { place: MapPlace; name: string; timezone?: string; story: boolean; goThere: () => void; suggest: () => void; go: (view: View) => void; visit: Visit }
+interface DetailsProps { place: MapPlace; name: string; timezone?: string; goThere: () => void; suggest: () => void; go: (view: View) => void; visit: Visit }
 
 /** What happened there with them, who is usually there, and what to do next: nothing for someone else's home. */
-function PlaceDetails({ place, name, timezone, story, goThere, suggest, go, visit }: DetailsProps) {
+function PlaceDetails({ place, name, timezone, goThere, suggest, go, visit }: DetailsProps) {
   return <>
     {place.history.length > 0 && <section>
       <h3>With {name}</h3>
@@ -94,19 +94,19 @@ function PlaceDetails({ place, name, timezone, story, goThere, suggest, go, visi
       </li>)}</ul>
     </section>}
     {place.regulars.length > 0 && <p className="subtle">Regulars: {place.regulars.join(', ')}</p>}
-    <NextSteps place={place} name={name} story={story} goThere={goThere} suggest={suggest} visit={visit} />
+    <NextSteps place={place} name={name} goThere={goThere} suggest={suggest} visit={visit} />
   </>
 }
 
-/** What to do next: drop by (theirs or their work), then an invitation or Story mode's Go there; for the user's own
- * home, where to change it; nothing for someone else's home. */
-function NextSteps({ place, name, story, goThere, suggest, visit }: Omit<DetailsProps, 'timezone' | 'go'>) {
+/** What to do next: drop by (theirs or their work), an invitation, and going there in the user's own story; for the
+ * user's own home, where to change it; nothing for someone else's home. */
+function NextSteps({ place, name, goThere, suggest, visit }: Omit<DetailsProps, 'timezone' | 'go'>) {
   const home = place.id === '~home'
   if (place.id === '~you') return <YourHome />
   if (!home && isHome(place)) return null
   return <>
-    {!story && place.drop_by && <DropBy place={place} name={name} visit={visit} />}
-    <PlaceAction story={story} name={name} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} quiet={!story && Boolean(place.drop_by)} />
+    {place.drop_by && <DropBy place={place} name={name} visit={visit} />}
+    <PlaceAction name={name} home={home ? name : null} here={place.pins.includes('scene')} goThere={goThere} suggest={suggest} quiet={Boolean(place.drop_by)} />
   </>
 }
 
@@ -287,16 +287,15 @@ function DropBy({ place, name, visit }: { place: MapPlace; name: string; visit: 
   </>
 }
 
-/** With Story mode on, moving the scene there (not offered where the scene already is); else an invitation draft: for
- * their own home (`home` is their name), dinner at their place (they cook). Beside Drop by
- * (`quiet`), the invitation is the second button. */
-function PlaceAction({ story, name, home, here, goThere, suggest, quiet }: { story: boolean; name: string; home: string | null; here: boolean; goThere: () => void; suggest: () => void; quiet: boolean }) {
-  const kind = quiet ? 'button' : 'button primary'
-  if (!story) return <div className="map-action">
-    <button type="button" className={kind} onClick={suggest}>{home !== null ? `Suggest dinner at ${home}'s place` : 'Suggest going together'}</button>
-    <InfoTip id="map-suggest-tip" label="the invitation" text={suggestHint(name)} />
-  </div>
-  if (home !== null) return null
-  return here ? null : <button type="button" className="button primary" onClick={goThere}>Go there</button>
+/** An invitation draft: for their own home (`home` is their name), dinner at their place (they cook). Beside Drop by
+ * (`quiet`), the invitation is the second button. Under it, moving the user's own story there: not for a home, and
+ * not where the story already is. */
+function PlaceAction({ name, home, here, goThere, suggest, quiet }: { name: string; home: string | null; here: boolean; goThere: () => void; suggest: () => void; quiet: boolean }) {
+  return <>
+    <div className="map-action">
+      <button type="button" className={quiet ? 'button' : 'button primary'} onClick={suggest}>{home !== null ? `Suggest dinner at ${home}'s place` : 'Suggest going together'}</button>
+      <InfoTip id="map-suggest-tip" label="the invitation" text={suggestHint(name)} />
+    </div>
+    {home === null && !here && <button type="button" className="button" onClick={goThere}>Go there in your story</button>}
+  </>
 }
-

@@ -101,13 +101,15 @@ def ines(client, monkeypatch, provider):
 def test_picks_saved_before_the_world_had_its_own_titles_are_drawn_again(client, ines):
     client.get('/api/life/media')
     database = client.app.state.database
-    shared = sorted(SHARED['book'])[0]
+    # A title no bank or city holds: the fresh draw is from the shared bank about four times in ten, so a shared
+    # title here would now and then be drawn again by chance (the timeline's seed is new on every run).
+    old = 'A Book From Before The City Had Its Own'
     with database.connect(write=True) as connection:
         assert decode(connection.execute('SELECT profile FROM media_state').fetchone()[0])['world'] == 'built'
         connection.execute("UPDATE media_state SET profile=json_remove(profile, '$.world')")
-        connection.execute("UPDATE media_items SET title=? WHERE kind='book' AND status='current'", (shared,))
+        connection.execute("UPDATE media_items SET title=? WHERE kind='book' AND status='current'", (old,))
     view = client.get('/api/life/media').json()
     assert [item['kind'] for item in view['now']] == ['book', 'show', 'music']
-    assert all(item['title'] != shared for item in view['now'])
+    assert all(item['title'] != old for item in view['now'])
     with database.connect() as connection:
         assert decode(connection.execute('SELECT profile FROM media_state').fetchone()[0])['world'] == 'built'

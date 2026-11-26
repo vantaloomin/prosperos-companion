@@ -366,10 +366,13 @@ def book(connection, companion: dict, home: dict, option: dict, first: date, now
     today = now.astimezone(zone(companion['version']['timezone'])).date()
     why = 'no-time' if count > 3 else 'weekends'
     if on is not None:
+        # The day said or nothing: never some other weekend the user didn't name (tester 2026-11-18, a Monday by
+        # the river came out as Saturday to Sunday at the old abbey town).
         trip = on_day(connection, companion, home, option, on, count, today, year, message_id, seed)
         if trip:
             trips.insert(connection, companion, trip, now)
             return trip, ''
+        return None, 'that-day'
     first = max(first, today + timedelta(days=WEEK_FROM if count > 3 else ASK_FROM))
     for saturday in saturdays(first, weeks):
         days = span_for(connection, companion, home, saturday, count, today)
@@ -434,6 +437,7 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
     definition = companion['version']['definition']
     holidays = own_plans.holiday_dates(connection, definition, today)
     first = asked_day(message['text'], today, holidays) or today
+    on = exact_day(ask['sentence'], today, holidays)
     seed = f"away:{companion['active_timeline_id']}:{message['id']}"
     option, why = resolve(connection, home, ask, year, seed, first.month, likes(definition))
     if why == 'not-a-trip':
@@ -444,8 +448,7 @@ def note(connection, message: dict, companion: dict, timestamp: str) -> bool:
         from companion.life import rough_patches
         if rough_patches.turned_down(connection, companion, message, 'trip', now):
             return True
-        trip, why = book(connection, companion, home, option, first, now, year, message['id'], seed,
-                         on=exact_day(ask['sentence'], today, holidays))
+        trip, why = book(connection, companion, home, option, first, now, year, message['id'], seed, on=on)
         if trip:
             return True
     # A real place out of reach aboard ship is said so (together.TRIP_REASONS 'aboard').

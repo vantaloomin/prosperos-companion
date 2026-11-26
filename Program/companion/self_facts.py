@@ -250,13 +250,16 @@ def opposite(fact: Fact) -> str | None:
 
 def in_force(connection, timeline_id) -> list[dict]:
     """Facts whose message, or a copy of it, is an active complete message on this timeline. A reply to
-    a message the user excluded or deleted from recall usually repeats it, so its facts leave with it (M12)."""
+    a message the user excluded or deleted from recall usually repeats it, so its facts leave with it (M12).
+    What they said in a Story scene (companion/story_said.py) holds on the timeline it was said on."""
     rows = many(connection, "SELECT self_facts.*, messages.reply_to AS reply_to, messages.id AS shown_id FROM "
                 "self_facts JOIN messages ON (messages.id=self_facts.message_id OR "
                 "messages.origin_id=self_facts.message_id) WHERE self_facts.status IN ('noted', 'kept') "
                 "AND messages.timeline_id=? AND messages.active=1 AND messages.status='complete' "
                 'AND messages.redacted_at IS NULL ORDER BY self_facts.created_at', (timeline_id,))
-    return shown(connection, timeline_id, rows)
+    scene = many(connection, "SELECT * FROM self_facts WHERE story_message_id IS NOT NULL AND timeline_id=? AND "
+                 "status IN ('noted', 'kept')", (timeline_id,))
+    return sorted(shown(connection, timeline_id, rows) + scene, key=lambda row: row['created_at'])
 
 
 def shown(connection, timeline_id, rows: list[dict]) -> list[dict]:
@@ -321,13 +324,15 @@ def note(connection, message: dict, timestamp: str) -> list[dict]:
     # A companion out of focus may text first too (companion/life/openers.py); the message says whose it is.
     companion = for_timeline(connection, message['timeline_id']) or require_current(connection)
     from companion.clock import parse
-    from companion.life import said_events
+    from companion.life import said_events, work_said
     from companion.memory import self_suggest
     self_suggest.queue(connection, message, timestamp)
     lowercase = texting.style(companion['version']['definition'])['lowercase']
     added = record(connection, companion, message, extract(message['text'], lowercase), timestamp)
     # News about their people sticks to their record (Hit List #103).
     said_events.notice(connection, companion, message, lowercase, parse(timestamp))
+    # Their work project said to be done is done (companion/life/work_said.py).
+    work_said.notice(connection, companion, message, parse(timestamp))
     return added
 
 
@@ -338,7 +343,8 @@ def same_value(old: str, new: str) -> bool:
 
 
 def record(connection, companion: dict, message: dict, facts: list[Fact], timestamp: str) -> list[dict]:
-    """Note facts from one message, each as a conflict when it contradicts what is on record."""
+    """Note facts from one message, each as a conflict when it contradicts what is on record. A line of theirs in a
+    Story scene comes as {'story': True, 'id': its story_messages id, 'timeline_id': ...} (companion/story_said.py)."""
     current = in_force(connection, message['timeline_id'])
     known = {row['key']: row for row in current}
     added = []
@@ -355,11 +361,13 @@ def record(connection, companion: dict, message: dict, facts: list[Fact], timest
                               self_checks.definition_clash(fact, definition)):
             clash = {'id': reason}
         status = 'conflict' if clash else 'noted'
-        row_id = identifier()
+        row_id, scene = identifier(), message.get('story')
         inserted = connection.execute(
-            'INSERT OR IGNORE INTO self_facts (id, companion_id, message_id, key, category, subject, value, statement, '
-            'status, conflicts_with, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (row_id, companion['id'], message['id'], fact.key, fact.category, fact.subject, fact.value,
+            'INSERT OR IGNORE INTO self_facts (id, companion_id, message_id, story_message_id, timeline_id, key, '
+            'category, subject, value, statement, status, conflicts_with, created_at) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (row_id, companion['id'], None if scene else message['id'], message['id'] if scene else None,
+             message['timeline_id'] if scene else None, fact.key, fact.category, fact.subject, fact.value,
              fact.statement[:300], status, clash['id'] if clash else None, timestamp)).rowcount
         if inserted:
             added.append(one(connection, 'SELECT * FROM self_facts WHERE id=?', (row_id,)))
@@ -419,7 +427,8 @@ def pet_link(row: dict, tracked: set[str] | None) -> str | None:
 
 def view(row: dict, connection=None, tracked: set[str] | None = None) -> dict:
     result = {key: row[key] for key in ('id', 'message_id', 'category', 'subject', 'value', 'statement', 'status',
-                                        'conflicts_with', 'created_at', 'decided_at')} | {'label': LABELS[row['category']]}
+                                        'conflicts_with', 'created_at', 'decided_at')} | {
+        'label': LABELS[row['category']], 'in_story': bool(row.get('story_message_id'))}
     if link := pet_link(row, tracked):
         from companion.life import pets
         result |= {'pet_link': link, 'pet_kind': pets.kind_for_word(row['subject'])}
@@ -440,7 +449,9 @@ def listing(database) -> dict:
         active = {row['id'] for row in in_force(connection, timeline_id)}
         conflicts = many(connection, "SELECT self_facts.* FROM self_facts JOIN messages ON messages.id=message_id "
                          "WHERE self_facts.status='conflict' AND messages.timeline_id=? AND messages.active=1",
-                         (timeline_id,))
+                         (timeline_id,)) + many(
+            connection, "SELECT * FROM self_facts WHERE status='conflict' AND story_message_id IS NOT NULL AND "
+            'timeline_id=?', (timeline_id,))
         rows = [row for row in in_force(connection, timeline_id) if row['id'] in active] + conflicts
         tracked = tracked_pets(connection, timeline_id)
         return {'facts': [view(row, connection, tracked) for row in sorted(rows, key=lambda row: row['created_at'])]}

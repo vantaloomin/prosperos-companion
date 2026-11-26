@@ -464,6 +464,7 @@ TRIP_REASONS = {
     'too-far': ("{place} is too far to get to and back in the time you could take off", 'somewhere closer'),
     'no-time': ("you have no time off coming up for a trip that long", 'a long weekend somewhere closer'),
     'weekends': ("you have no free weekend for it in the next few months", 'another time'),
+    'that-day': ("the day they named doesn't work for you for a trip away", 'another weekend'),
     'money': ("you can't afford {place} any time soon; you pay your own way", 'somewhere cheaper'),
     'elsewhere': ("{place} is out of reach: there is no way to get there from your world", 'somewhere you can go'),
     'aboard': ("{place} is out of reach: you live aboard ship, and the ship goes nowhere near it",
@@ -707,6 +708,7 @@ def suggest_due(connection, companion: dict, now: datetime) -> list:
 
 
 SUGGESTIONS = ('coffee', 'drinks', 'walk', 'dinner', 'lunch-out')
+SAME_NAME = timedelta(days=7)  # From here on a weekday's name alone no longer says which one.
 
 
 def outing_suggestion(connection, companion: dict, local: datetime, key: str, rng: random.Random) -> list:
@@ -718,7 +720,11 @@ def outing_suggestion(connection, companion: dict, local: datetime, key: str, rn
     activity = rng.choice(SUGGESTIONS)
     wanted = {'activity': activity, 'day': local.date() + timedelta(days=rng.randint(1, 4)), 'at': None, 'firm': False}
     found = outings.when_free(connection, companion, wanted, local)
-    if not found:
+    if found and found[0] - local.date() >= SAME_NAME:
+        # The text names only the weekday ("friday at 4"), which reads as the coming one: a free day a week or more
+        # off would land the plan a week after the day both of them mean, so a nearer free day is taken, or none.
+        found = outings.when_free(connection, companion, {**wanted, 'day': local.date() + timedelta(days=1)}, local)
+    if not found or found[0] - local.date() >= SAME_NAME:
         return []
     day, at = found
     place = outings.pick_place(data, activity, day, at, definition, key, False)

@@ -1,12 +1,13 @@
-import type { StoryPerson, StoryPlace, StoryScene } from '../../types'
+import type { StoryCompanion, StoryMessage, StoryPerson, StoryPlace, StoryPlan, StoryScene } from '../../types'
+import { timeText } from '../today/outingText.ts'
 
-/** "Tuesday, 9:40 am" from the scene's local time, which is the city's own clock with no offset. */
+/** "Tuesday, 9:40 AM" from the scene's local time, which is the city's own clock with no offset. */
 export function sceneTime(localTime: string): string {
   const [day, clock] = localTime.split('T')
   const [year, month, date] = day.split('-').map(Number)
   const [hour, minute] = clock.split(':').map(Number)
   const weekday = new Date(Date.UTC(year, month - 1, date)).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
-  return `${weekday}, ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'am' : 'pm'}`
+  return `${weekday}, ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`
 }
 
 const COUNTS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
@@ -64,9 +65,69 @@ export function spotsText(spots: string[]): string {
   return `Inside: ${spots.join(', ')}`
 }
 
-/** "Met once · now working as the barista at The Daily Grind" */
+/** "Met once · now working as the barista at The Daily Grind"; "Met 3 times · said yes · now …" once they said yes
+ * to the user asking them out. */
 export function personLine(person: StoryPerson): string {
   const times = person.meetings === 1 ? 'once' : person.meetings === 2 ? 'twice' : `${person.meetings} times`
   const where = person.place && !person.doing.includes(person.place.name) ? ` at ${person.place.name}` : ''
-  return `Met ${times} · now ${person.doing}${where}`
+  return `Met ${times}${person.matched ? ' · said yes' : ''} · now ${person.doing}${where}`
+}
+
+/** The plan being played where the story is: "Here with Mira for dinner, until 9:00 PM." */
+export function planText(plan: StoryPlan): string {
+  return `Here with ${plan.name} for ${plan.what}, until ${timeText(plan.until)}.`
+}
+
+/** Whether nothing has been said since the story arrived where it is: the last line is the app's own. */
+export function justArrived(messages: Pick<StoryMessage, 'role'>[]): boolean {
+  const last = messages[messages.length - 1]
+  return !!last && (last.role === 'scene' || last.role === 'cast')
+}
+
+/** Where the opening line and its button show, if at all: above an empty story, or under the lines that say who
+ * came when a plan is under way here and nothing has been said since. */
+export function openingPlace(story: { scene: { plan?: StoryPlan | null }; messages: Pick<StoryMessage, 'role'>[] }): 'top' | 'bottom' | null {
+  if (story.scene.plan) return justArrived(story.messages) ? 'bottom' : null
+  return story.messages.some((message) => message.role === 'user') ? null : 'top'
+}
+
+/** A story's first open, before anything is said: "Your own story in Baltimore, told by a narrator.", or with a
+ * companion "Play out a scene with Mira, anywhere in Baltimore." When their day has them nowhere the story can go,
+ * the line says so: "Play out a scene anywhere in Baltimore. Mira isn't out right now." With a plan under way
+ * (companion/story_plans.py) somewhere else it is the plan: "You and Mira are at Lupa now, for dinner." Where the
+ * plan is, the scene's own line already says it, so there is none. */
+export function openingText(scene: { city: { name: string }; plan?: StoryPlan | null }, companion?: StoryCompanion): string {
+  if (scene.plan) return ''
+  if (!companion) return `Your own story in ${scene.city.name}, told by a narrator.`
+  if (companion.plan) return `You and ${companion.name} are at ${companion.plan.place} now, for ${companion.plan.what}.`
+  if (companion.here || companion.place) return `Play out a scene with ${companion.name}, anywhere in ${scene.city.name}.`
+  return `Play out a scene anywhere in ${scene.city.name}. ${companion.name} isn't out right now.`
+}
+
+/** What the first-open button says and the first line it sends for the user: finding the companion when the story
+ * can go to them, else looking around. With a plan under way it says nothing for the user: "Go to Lupa" only goes
+ * there, and "Start the scene" (`begin`) has the narrator open the scene the two are already in. */
+export function openingAction(companion?: StoryCompanion, plan?: StoryPlan | null): { label: string; line: string; find: string | null; begin?: boolean } {
+  if (plan) return { label: 'Start the scene', line: '', find: null, begin: true }
+  if (companion?.plan) return { label: `Go to ${companion.plan.place}`, line: '', find: companion.key }
+  if (!companion || !(companion.here || companion.place)) return { label: 'Look around', line: 'I look around.', find: null }
+  return { label: `Find ${companion.name}`, line: `I look around for ${companion.name}.`, find: companion.here ? null : companion.key }
+}
+
+/** "Here with you", "Now at Club Charles" (with the city when it is another one), or "Not out right now"; with a
+ * plan under way, "Here with you for dinner" or "At Lupa for dinner with you". */
+export function companionLine(companion: StoryCompanion, city: string): string {
+  if (companion.here) return companion.plan ? `Here with you for ${companion.plan.what}` : 'Here with you'
+  if (!companion.place) return 'Not out right now'
+  if (companion.plan) return `At ${companion.place.name} for ${companion.plan.what} with you`
+  return `Now at ${companion.place.name}${companion.city && companion.city !== city ? `, ${companion.city}` : ''}`
+}
+
+/** Who is writing while a sent line waits for its replies: the narrator first, then each companion in the scene
+ * who has not answered it yet. */
+export function writingText(messages: StoryMessage[], clientId: string, companions: { id: string; name: string }[]): string {
+  const sent = messages.find((message) => message.client_id === clientId)
+  const replies = sent ? messages.filter((message) => message.reply_to === sent.id && message.status === 'complete') : []
+  const next = companions.find((companion) => !replies.some((reply) => reply.speaker === companion.id))
+  return replies.some((reply) => reply.role === 'narrator') && next ? `${next.name} is answering…` : 'The narrator is writing…'
 }

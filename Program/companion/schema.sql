@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
   custom_palette TEXT NOT NULL DEFAULT '',
   -- Light or dark: 'system' matches the computer (Paper or Ink), 'paper' is the light profile, 'scheme' uses color_scheme.
   theme TEXT NOT NULL DEFAULT 'system' CHECK (theme IN ('system', 'scheme', 'paper')),
-  -- Story mode (companion/story.py) is opt-in: off, its tab and API stay hidden.
+  -- Unused since 1.5: the Story (companion/story.py) is part of every world, with no switch.
   story_mode INTEGER NOT NULL DEFAULT 0 CHECK (story_mode IN (0, 1)),
   -- The note under a group message when someone lets a secret slip (companion/secrets.py).
   show_secret_slips INTEGER NOT NULL DEFAULT 1 CHECK (show_secret_slips IN (0, 1)),
@@ -930,11 +930,12 @@ CREATE TABLE IF NOT EXISTS openers (
 CREATE INDEX IF NOT EXISTS openers_message ON openers(message_id);
 
 -- What the companion said about themselves (companion/self_facts.py): fiction about the character,
--- tied to the message it came from, noted automatically and kept or removed by the user.
+-- tied to the message it came from, noted automatically and kept or removed by the user. One said in a Story scene
+-- has no message: `story_message_id` and `timeline_id` say where it was said instead (companion/story_said.py).
 CREATE TABLE IF NOT EXISTS self_facts (
   id TEXT PRIMARY KEY,
   companion_id TEXT NOT NULL REFERENCES companions(id),
-  message_id TEXT NOT NULL REFERENCES messages(id),
+  message_id TEXT REFERENCES messages(id),
   key TEXT NOT NULL,
   category TEXT NOT NULL,
   subject TEXT NOT NULL,
@@ -1272,8 +1273,9 @@ CREATE TABLE IF NOT EXISTS companion_plans (
 );
 CREATE INDEX IF NOT EXISTS companion_plans_message ON companion_plans(message_id);
 
--- Story mode (companion/story.py): the user's own free-form story with a narrator, apart from every
--- companion. One scene (where the user is) and its history; no companion prompt ever reads them.
+-- Story mode (companion/story.py): the user's own free-form story with a narrator. One scene (where the user is)
+-- and its history. A companion who is in the scene speaks in their own lines (role 'companion', with `speaker` and
+-- `name`, companion/story_cast.py); a 'cast' line says they came or went. Time together there counts (story_visits, below).
 CREATE TABLE IF NOT EXISTS story_scene (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   city_id TEXT NOT NULL,
@@ -1284,7 +1286,7 @@ CREATE TABLE IF NOT EXISTS story_scene (
 CREATE TABLE IF NOT EXISTS story_messages (
   id TEXT PRIMARY KEY,
   seq INTEGER NOT NULL UNIQUE,
-  role TEXT NOT NULL CHECK (role IN ('user', 'narrator', 'scene')),
+  role TEXT NOT NULL CHECK (role IN ('user', 'narrator', 'scene', 'companion', 'cast')),
   text TEXT NOT NULL,
   client_id TEXT UNIQUE,
   reply_to TEXT,
@@ -2011,7 +2013,7 @@ CREATE TABLE IF NOT EXISTS work_events (
   id TEXT PRIMARY KEY,
   timeline_id TEXT NOT NULL REFERENCES timelines(id),
   key TEXT NOT NULL,
-  kind TEXT NOT NULL CHECK (kind IN ('raise', 'freeze', 'promotion', 'project', 'laid-off', 'quit', 'new-job')),
+  kind TEXT NOT NULL CHECK (kind IN ('raise', 'freeze', 'promotion', 'project', 'laid-off', 'quit', 'new-job', 'good-year', 'flat-year')),
   local_date TEXT NOT NULL,
   text TEXT NOT NULL,
   pay REAL NOT NULL DEFAULT 1,
@@ -3061,4 +3063,48 @@ CREATE TABLE IF NOT EXISTS added_places (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (city_id, place_id)
+);
+
+-- Companions in the Story's scene right now (companion/story_cast.py): each reads the story from the line they
+-- came in at, never what was said before.
+CREATE TABLE IF NOT EXISTS story_cast (
+  companion_id TEXT PRIMARY KEY,
+  since_seq INTEGER NOT NULL,
+  joined_at TEXT NOT NULL
+);
+
+-- Time with a companion in the Story (companion/story_visits.py): one row for each stretch of the story a companion
+-- was in the scene with the user. `said` counts the user's lines to them and `heard` their own; `came` is who came to
+-- whom. An ended visit keeps how it ended (`excerpt`) for their chat and the shared moment it left (`memory_id`).
+CREATE TABLE IF NOT EXISTS story_visits (
+  id TEXT PRIMARY KEY,
+  companion_id TEXT NOT NULL,
+  timeline_id TEXT NOT NULL,
+  city_id TEXT NOT NULL,
+  place_id TEXT NOT NULL,
+  place_name TEXT NOT NULL,
+  doing TEXT NOT NULL DEFAULT '',
+  came TEXT NOT NULL DEFAULT 'user' CHECK (came IN ('user', 'them')),
+  local_date TEXT NOT NULL,
+  first_seq INTEGER NOT NULL,
+  last_seq INTEGER NOT NULL,
+  said INTEGER NOT NULL DEFAULT 0,
+  heard INTEGER NOT NULL DEFAULT 0,
+  started_at TEXT NOT NULL,
+  last_at TEXT NOT NULL,
+  ended_at TEXT,
+  excerpt TEXT NOT NULL DEFAULT '[]',
+  memory_id TEXT
+);
+CREATE INDEX IF NOT EXISTS story_visits_timeline ON story_visits(timeline_id, last_at);
+
+-- Facts the user told a companion face to face in the Story (companion/story_said.py): the memory and the line it
+-- came from, kept here because a new story clears the lines. A corrected memory's new version is linked too.
+CREATE TABLE IF NOT EXISTS story_memories (
+  memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
+  companion_id TEXT NOT NULL,
+  timeline_id TEXT NOT NULL,
+  story_message_id TEXT NOT NULL,
+  said TEXT NOT NULL,
+  created_at TEXT NOT NULL
 );

@@ -68,8 +68,9 @@ def pick(seed: str, options) -> str:
 
 def beats(connection, companion, day: date, now) -> list[tuple]:
     first, found = first_name(companion), []
+    # A storyline the user is part of is told with "you" for the user, so it stays out of their own thoughts.
     for item in storylines.visible(connection, companion, now):
-        if item['story'] in SECRET_STORIES:
+        if item['story'] in SECRET_STORIES or item.get('with_you'):
             continue
         for index, beat in enumerate(item['beats']):
             if beat['on'] == day.isoformat():

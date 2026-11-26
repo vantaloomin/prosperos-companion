@@ -111,3 +111,24 @@ test('how a stage went names the business once and keeps each row short (Iris, v
   assert.equal(outcomeRow('steps:ask', 0, 'They say yes'), 'They say yes')
   assert.equal(markLine('the business is growing', 'Fri, Oct 30'), 'The business is growing, until Fri, Oct 30')
 })
+
+test('a storyline you are part of says your part only where you had one', async () => {
+  const { yourPart, withYou, storylineAnchor } = await import('../../src/features/today/storyText.ts')
+  assert.equal(yourPart(undefined, 'Mira Costa'), '')
+  assert.equal(yourPart({ did: 'texted' }, 'Mira Costa'), 'Mira texted you about it.')
+  assert.equal(yourPart({ did: 'answered' }, 'Mira'), 'You wrote back.')
+  assert.equal(yourPart({ did: 'said_yes' }, 'Mira'), 'You said yes.')
+  assert.equal(yourPart({ did: 'said_no' }, 'Mira'), 'You said no.')
+  assert.equal(yourPart({ did: 'dropped_by' }, 'Mira'), 'You came by.')
+  assert.equal(yourPart({ did: 'passed' }, 'Mira'), 'You let it go by.')
+  // An invitation: set for a day, under way, then how it went; one that never went out says nothing.
+  assert.equal(yourPart({ did: 'set', on: '2026-11-20', at: '19:00' }, 'Mira', 'plan'), 'Set for Fri, Nov 20 at 7:00 PM.')
+  assert.equal(yourPart({ did: 'now' }, 'Mira', 'plan'), 'Happening now.')
+  assert.equal(yourPart({ did: 'went' }, 'Mira', 'plan'), 'You went.')
+  assert.equal(yourPart({ did: 'called_off' }, 'Mira', 'plan'), 'You called it off.')
+  assert.equal(yourPart({ did: 'passed' }, 'Mira', 'plan'), '')
+  const items = [{ id: 'a', with_you: true }, { id: 'b', with_you: false }] as never
+  assert.deepEqual(withYou(items, true).map((item) => item.id), ['a'])
+  assert.deepEqual(withYou(items, false).map((item) => item.id), ['b'])
+  assert.equal(storylineAnchor('a'), 'storyline-a')
+})

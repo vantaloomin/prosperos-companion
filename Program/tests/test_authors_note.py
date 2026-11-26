@@ -104,7 +104,6 @@ def test_a_group_chat_has_its_own_note(client, cast, provider):  # noqa: F811
 
 @pytest.mark.parametrize('enabled', [True, False])
 def test_the_story_narrator_reads_the_story_note(client, connected, provider, enabled):
-    assert ok(client.put('/api/settings', json={'story_mode': True}))['story_mode'] is True
     put(client, 'story', 'Make it rain all evening.', enabled=enabled)
     ok(client.post('/api/story/messages', json={'text': 'I step outside.', 'client_id': 'story-note-1'}))
     latest = provider.requests[-1]['messages'][-1]['content']

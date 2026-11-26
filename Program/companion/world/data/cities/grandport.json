@@ -3106,6 +3106,7 @@
   {
    "id": "naval-officer",
    "name": "Naval officer",
+   "position": "lead",
    "sector": "military",
    "schedule": "rotating",
    "employment": "staff",
@@ -3268,6 +3269,7 @@
   {
    "id": "tavern-keeper",
    "name": "Tavern keeper",
+   "position": "owner",
    "sector": "hospitality",
    "schedule": "evening",
    "employment": "staff",

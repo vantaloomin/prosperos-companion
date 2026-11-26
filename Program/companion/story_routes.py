@@ -1,21 +1,12 @@
 """Story mode API (companion/story.py, docs/story.md)."""
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from pydantic import Field
 
 from companion import story
-from companion.database import settings
-from companion.errors import DomainError
 from companion.models import Input
 
-
-def switched_on(request: Request):
-    """Story mode is opt-in (Settings > Advanced > Story mode); while it is off the API is not there either."""
-    with request.app.state.database.connect() as connection:
-        if not settings(connection)['story_mode']:
-            raise DomainError('Story mode is off. Turn it on in Settings > Advanced.', 404, 'story_off')
-
-
-router = APIRouter(prefix='/api/story', dependencies=[Depends(switched_on)])
+# The Story is part of every world (1.5): no switch, so the API is always there.
+router = APIRouter(prefix='/api/story')
 
 
 class StoryMessage(Input):
@@ -45,6 +36,24 @@ class StoryPerson(Input):
 @router.post('/find')
 def find(request: Request, body: StoryPerson):
     return story.find(request.app.state.database, body.key)
+
+
+class StoryPlan(Input):
+    outing_id: str = Field(min_length=1, max_length=80)
+
+
+@router.post('/plan')
+def play(request: Request, body: StoryPlan):
+    return story.play(request.app.state.database, body.outing_id)
+
+
+class StoryBegin(Input):
+    client_id: str = Field(min_length=8, max_length=100)
+
+
+@router.post('/plan/begin')
+async def begin(request: Request, body: StoryBegin):
+    return await story.begin(request.app.state, body.client_id)
 
 
 @router.post('/messages')

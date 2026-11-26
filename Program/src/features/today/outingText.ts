@@ -9,7 +9,9 @@ export interface OutingHobby { id: string; label: string; session: string; toget
 /** Meeting their people (companion/life/their_people.py): who comes, and whether it is the first time you meet them. */
 export interface OutingPerson { id: string; name: string; role: string }
 /** A big day in their circle (companion/life/big_days.py): `title` names it ("Leo's wedding"), `gift` is what they bring, `own` marks their own day (their wedding, graduation or retirement party), and `standing_up` their own wedding, where the user stands up with them. */
-export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; kids?: Pick<OutingPerson, 'name' | 'role'>[]; first?: boolean; label?: string; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean; own?: boolean; quiet?: boolean }
+export interface OutingPlace { id: string; name: string; kind: string; neighborhood: string; summary: string; cost: string; cuisine: string; city: string; hobby?: OutingHobby | null; people?: OutingPerson[]; kids?: Pick<OutingPerson, 'name' | 'role'>[]; first?: boolean; label?: string; big_day?: string; title?: string; event?: string; gift?: string | null; standing_up?: boolean; own?: boolean; quiet?: boolean
+  /** The storyline the user is part of that this plan came from (companion/life/shared_storylines.py). */
+  storyline?: string }
 export interface Outing {
   id: string; local_date: string; at_time: string; until_time: string; activity: string; asked_date: string | null
   place: OutingPlace; named: boolean; cost: number; cost_text: string; state: OutingState; rolls: number
@@ -25,15 +27,17 @@ export interface Outing {
   /** The scene keeps up (companion/life/scene_now.py): the chat took them somewhere ('place', 'yours', 'theirs', or on
    * the move: 'transit', 'way', 'there', 'outside'); `back` for a minute or two after, to be back at `to`. */
   scene?: OutingScene | null
+  /** Under way somewhere the Story can go: it can be played there as a scene (companion/story_plans.py). */
+  story?: boolean
 }
 export interface OutingScene { back: boolean; to: string; kind: string }
 export interface OutingNext { place: OutingPlace; activity: string; at: string; asked: boolean }
-/** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; 'together' for a trip away together (companion/life/away_together.py); '' for a trip of their own. `undo` is true for a visit called off a little while ago, `home_undo` for a trip together just cut short. `away` says how a trip together travels ('plane', 'steamship', 'tram') and its preposition ('in Lisbon', 'on the garden deck'). */
+/** `visit` marks a weekend visit with the user across the distance (companion/life/long_distance.py): 'to-you' when they come to stay with you, 'host' when you go to stay with them; 'together' for a trip away together (companion/life/away_together.py); '' for a trip of their own. `undo` is true for a visit called off (or `removed`, taken off as never planned) a little while ago, `home_undo` for a trip together just cut short. `away` says how a trip together travels ('plane', 'steamship', 'tram') and its preposition ('in Lisbon', 'on the garden deck'). */
 export interface Trip {
   id: string; start_date: string; end_date: string; city_id: string; city_name: string; kind: 'getaway' | 'family'
   company: { id: string; name: string; role: string } | null; landmark: { name: string; summary: string } | null
   sunny: boolean; cost_text: string; state: OutingState; postcard_message_id: string | null
-  visit: '' | 'to-you' | 'host' | 'together'; undo: boolean; home_undo?: boolean
+  visit: '' | 'to-you' | 'host' | 'together'; undo: boolean; home_undo?: boolean; removed?: boolean
   away?: { prep: string; by: string; hours: number } | null
 }
 export interface Together { outings: Outing[]; trips: Trip[] }
@@ -143,6 +147,11 @@ export function outingWhen(outing: Outing, name: string): string {
   const when = `${dayText(outing.local_date)}, ${timeText(outing.moved_at ?? outing.at_time)}`
   const moved = outing.asked_date && outing.asked_date !== outing.local_date ? ` (${dayText(outing.asked_date)} didn't work for ${name})` : ''
   return `${when}${moved}`
+}
+
+/** Where a plan's card sits on Today, for a storyline's "See the plan". */
+export function outingAnchor(id: string): string {
+  return `outing-${id}`
 }
 
 export const OUTING_STATES: Record<OutingState, string> = { planned: 'Coming up', now: 'Out now', done: 'Done', cancelled: 'Called off' }

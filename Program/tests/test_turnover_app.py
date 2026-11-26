@@ -64,7 +64,6 @@ def test_the_map_and_who_knows_who_leave_out_where_someone_used_to_be(monkeypatc
 def test_a_match_who_left_town_cant_be_met_on_a_date(client, clock):
     connect(client)
     ok(client.put('/api/debug-matches', json={'on': True}))
-    ok(client.put('/api/settings', json={'story_mode': True}))
     state = ok(client.put('/api/dating/profile', json=PROFILE))
     leaving = None
     while state['deck'] and leaving is None:
