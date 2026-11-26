@@ -162,12 +162,6 @@ def settle(connection, add, found: dict | None, user: dict, city_id: str, now: s
         add(connection, now, 'cast', found['line'], user, reply_to=user['id'])
 
 
-def forget(connection) -> None:
-    """A new story: the people met in it go, and so do the ones who said yes in it, unless they became a companion."""
-    connection.execute('DELETE FROM dating_swipes WHERE source=? AND person_key NOT IN '
-                       '(SELECT townsfolk_key FROM companions WHERE townsfolk_key IS NOT NULL)', (SOURCE,))
-
-
 def noted(connection, people: list[dict]) -> list[dict]:
     """The scene's people, with a line for the narrator on anyone who has said yes to the user."""
     keys = {row['person_key'] for row in connection.execute('SELECT person_key FROM dating_swipes WHERE matched=1')}

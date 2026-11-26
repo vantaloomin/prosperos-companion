@@ -358,7 +358,7 @@ def met_on(data: dict) -> str:
 
 def active(connection) -> dict | None:
     """The date going on now: one that was not ended, while the story is still where it began (the latest
-    scene line is its arrival; going somewhere else or starting a new story ends it)."""
+    scene line is its arrival; going somewhere else or clearing the story's pages ends it)."""
     row = optional(connection, 'SELECT * FROM dating_dates WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1')
     if row is None:
         return None

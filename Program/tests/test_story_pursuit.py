@@ -113,8 +113,7 @@ def test_someone_who_says_yes_is_a_match_who_can_become_a_companion(client, cloc
     ok(client.post('/api/companion/cast/switch', json={'key': sheet['key'], 'definition': draft['definition']}))
     members = ok(client.get('/api/companion/cast'))['members']
     assert [member['main'] for member in members] == [True, False] and members[1]['name'] == 'Mira'
-    # Deleting the dating profile keeps someone the app never matched; a new story lets go of the people met in it,
-    # but never a companion.
+    # Deleting the dating profile keeps someone the app never matched, and so does clearing the story's pages.
     ok(client.delete('/api/dating/profile'))
     with client.app.state.database.connect() as connection:
         assert story_pursuit.matched(connection, sheet['key'])
@@ -137,7 +136,7 @@ def test_a_no_is_told_by_the_narrator_and_leaves_no_match(client, clock, provide
     assert 'does not say yes' not in provider.requests[-1]['messages'][-1]['content']
 
 
-def test_a_new_story_lets_go_of_who_said_yes_in_it_but_not_of_app_matches(client, clock, provider):
+def test_clearing_the_pages_keeps_who_said_yes_in_the_story_and_the_apps_matches(client, clock, provider):
     connect(client)
     sheet = someone(client, clock, 'yes')  # No dating profile: who the user is in this world is enough.
     say(client, provider, f"I ask {sheet['name']} out.", 'story-0001')
@@ -147,7 +146,8 @@ def test_a_new_story_lets_go_of_who_said_yes_in_it_but_not_of_app_matches(client
         connection.execute("INSERT INTO dating_swipes (person_key, city_id, town, liked, matched, created_at) "
                            "VALUES ('town:baltimore:x:0', 'baltimore', '', 1, 1, '2026-01-01T00:00:00+00:00')")
         assert turnover.today(data)
+    # A yes is the world's, not the page's (companion/story_chapters.py).
     ok(client.delete('/api/story'))
     with client.app.state.database.connect() as connection:
-        assert not story_pursuit.matched(connection, sheet['key'])
+        assert story_pursuit.matched(connection, sheet['key'])
         assert story_pursuit.matched(connection, 'town:baltimore:x:0')

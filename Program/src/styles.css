@@ -220,6 +220,17 @@ a.button { color: inherit; text-decoration: none; }
 .story-said.their-name .story-speaker { color: var(--their-name); }
 .story-user { margin: 0 0 20px auto; max-width: 85%; padding: 10px 14px; border-radius: 12px; background: var(--accent-tint); white-space: pre-wrap; overflow-wrap: anywhere; width: fit-content; }
 .story-move { margin-bottom: 20px; text-align: center; font-size: 0.8125rem; color: var(--muted); font-style: italic; }
+/* Chapters and times (companion/story_chapters.py): one ongoing story, a heading where a chapter begins, the hour on each line. */
+.story-chapter { margin: 28px 0 24px; text-align: center; color: var(--muted); font-size: 0.8125rem; }
+.story-chapter:first-child { margin-top: 4px; }
+.story-chapter h2 { display: flex; align-items: center; gap: 14px; margin: 0 0 4px; font-family: var(--read-font); font-size: 1.0625rem; font-weight: 500; color: var(--text); }
+.story-chapter h2::before, .story-chapter h2::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+.story-chapter p { margin: 0; }
+.story-chapter .text-button { font-size: inherit; }
+.story-time { font-family: var(--ui-font); font-size: 0.75rem; font-style: normal; color: var(--muted); white-space: nowrap; }
+.story-move .story-time::before { content: '· '; }
+.story-mine { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-bottom: 20px; }
+.story-mine .story-user { margin: 0; }
 .story-people summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); }
 .story-people ul { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: var(--card-gap); max-height: 40dvh; overflow-y: auto; }
 .story-people li { display: flex; flex-direction: column; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 10px; }
