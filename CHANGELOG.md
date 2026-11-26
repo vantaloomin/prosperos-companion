@@ -2,42 +2,6 @@
 
 ## Unreleased
 
-- **The day you ask for:** "Tuesday's a mess, want to walk Friday at 4?" booked the walk for Tuesday a week on. The
-  day in the part of the message that asks now wins.
-- **Story keeps your companion's clock:** a companion set to a time zone other than their city's (your own, say) had
-  the Story in their city running on the city's clock, so a scene could be at midnight while their day had them out,
-  or in the evening while they slept. In their city the Story now runs on their clock.
-- **No made-up remote job:** a companion whose hours had been fitted to yours, and whose time zone was later set to
-  yours, was still told they work remotely for a team in another time zone. That line now goes once your clocks match.
-
-- **Bosses are not laid off:** every companion with a job was treated as an employee, so someone who runs the fighting
-  pits could hear rumors of layoffs at their work. The app now works out where a companion stands at work from their
-  card and their career: runs the place, manages people, or works for someone. Whoever runs the place no longer gets
-  a yearly review, a promotion, layoffs, a new boss or a quarrel with one, and their away messages leave the boss out.
-  A story already under way that no longer fits ends quietly.
-- **Chat knows who runs the place:** a companion who runs the place, or manages people, is told so in chat, with "You have run it for" in place of "You have been at this job for" and the year told as business up or flat. In a 10-model test, an owner asked who they answer to made up a boss 8 times in 30 before and once after.
-- **Position on the character form:** Work and money has a Position picker beside Hours: Runs the place, Manages people or Works for someone. Left as "Picked for them", it shows what the app read from their work and card. The Work life panel says "Runs the place." or "Manages people." first, and an owner's intro talks about good and flat years in place of a raise.
-- **Stories for whoever is in charge:** a companion who runs the place now has stories of their own: slow stretches
-  and maybe letting someone go, a supplier putting prices up, a rival opening nearby, the landlord, a record week,
-  someone on the staff skimming, an offer to buy the place, and more. Once a year their place has a good year or a
-  flat one instead of a review. A companion who manages people gets stories from the middle: told to cut the team,
-  caught between the team and the bosses, a hard review to give, a target hit. A business your companion opened in
-  one of Life's big turns gets these stories too.
-- **Ask someone out in your story:** charming someone in a scene used to lead nowhere. Now you can ask them out,
-  in your own words or with "Ask Dana out" on their card under People you've met. Their own life answers: someone
-  seeing someone says so, someone not drawn to you turns you down, and anyone else is likelier to say yes the more
-  days you have come by. Someone who says yes can become a companion with Start talking, as a Matchlight match
-  does, in the same world as the companions you already have. They also show under Your matches in Matchlight as
-  "Met in your story". No dating profile is needed.
-- **Story is part of every world:** the Story tab used to be hidden behind a switch in Settings > Advanced. It is
-  now always there, between Matchlight and Today, with no switch. A story you have not begun opens on one line and
-  a Look around button. On the map, a place offers "Go there in your story" under "Suggest going together" and
-  Drop by, which a switched-on Story used to replace, and Matchlight's "Meet in your story" is always on offer.
-- **Finished work stays finished:** when your companion told you their project at work was done ("the register's
-  finally done"), the app kept them on it until its due date, so the next day they were back at it, even on a day
-  off. Now saying it is done ends it: the next project starts the day after, and choosing another version of that
-  reply brings it back. A project you wrote yourself, or gave a due date, stays until you change it.
-
 - **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat
   message. Posts now have a Comment button: your comment goes under the post, and whoever posted answers you there,
   your companion on their own posts and a friend on theirs, once they would have seen it (sooner or later by
@@ -111,11 +75,39 @@
 - **Duplicate a model profile:** each profile in Settings > Models has a Duplicate button that copies
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
-- **More storylines:** the things that unfold over days in a companion's life and their circle's came from a bank
-  of nineteen stories, so a long world met the same few again. The bank now holds over a hundred: more good news
-  for a quiet world, more everyday trouble at Realistic, and more to go wrong at Dramatic and Soap opera. New ones
-  are about a sibling, a grandparent, a neighbor, any friend, and the companion's own days outside work. How often
-  one starts is unchanged (Settings > Realism > Drama).
+
+## v1.5.0 "A Most Majestic Vision" (2026-11-26)
+
+- **Storylines you are part of (#616 #621 #624 #625 #627):** life/shared_storylines.py runs storylines with the user
+  in the cast (world/data/shared_storylines.json, 110 stories in seven families), one at a time, reaching the user by
+  a first text or an invitation that books a plan; nothing waits, and only what the app can detect for sure (answered,
+  said yes or no, went, called off, passed) turns them, through the consequence engine. Per-world slider
+  life_settings.shared_storylines ("Things that involve you", default True to life). Their own chat section with the
+  user's part; Today's "Things that involve you" section, "Part of a storyline" on plan cards, and the scrapbook page
+  "Things you were part of". A skipped plan the companion keeps (`kept`) is held in their day.
+- **Storyline bank over a hundred (#617, also in 1.4.2 as #618):** life/storyline_bank.py adds 116 stories, new
+  single casts (friend, sibling, grandparent, neighbor) and 'self'.
+- **Story in every world (#615):** no switch; tab between Matchlight and Today; map "Go there in your story".
+- **Companions in the scene (#622):** life/story_cast.py places companions by their own day; they speak for
+  themselves after the narrator (prompt 'story-companion').
+- **Scenes count (#623):** story_visits counts days talked, one shared moment per visit, steps said in person and a
+  chat 'where' line; switch life_settings.story_counts.
+- **Scenes stick (#636 #637):** story_said.py turns scene lines into memories (story_memories) and self facts, and
+  feeds moods and rough patches.
+- **Secrets in scenes (#639):** story_secrets.py tells the scene who is there, guards a companion line that gives a
+  secret away (redraft, then a held line, or a slip at Soap opera) and records witnesses; tests/test_who_may_know.py
+  sweeps every channel.
+- **Ask someone out in Story (#628):** story_pursuit.py answers by the person's own life; a yes is a dating match
+  with `source` 'story'.
+- **Play a plan as a scene (#631):** story_plans.py; POST /api/story/plan and /api/story/plan/begin.
+- **Job positions (#635 #638 #640 #641):** life/position.py reads owner / lead / staff; work stories gated by
+  position, owner and lead stories, a good or flat year, chat position line, Position picker on the character form.
+- **Fixes:** plans a week late (#634); 1.5 proof-run fixes: the day in the asking clause wins, Story on the
+  companion's clock in their city, stale remote-hours line (#643); CI split and lighter PR runs (#619 #632); steadier
+  media test (#629).
+- **1.4.2, folded in (#642):** plans said in chat skip meetups and junk words (#609); trips only from what was said,
+  "Never planned" (#610); work said done ends the project (#611); who in a circle knows you (#612); feed pictures
+  follow the moment (#613); townsfolk meetings for companions who mostly work and stay in (#614, #626).
 
 ## v1.4.1 (2026-11-12)
 
