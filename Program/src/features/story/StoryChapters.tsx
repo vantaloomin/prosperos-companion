@@ -10,7 +10,7 @@ import { chapterWhen, lineTime } from './storyText'
  * until something is said in it. */
 export function ChapterHeading({ chapter, onUndo }: { chapter: StoryChapter; onUndo?: () => void }) {
   return (
-    <div className="story-chapter">
+    <div className="story-chapter" id={`story-chapter-${chapter.number}`}>
       <h2>Chapter {chapter.number}</h2>
       <p>{chapterWhen(chapter.local_time)}</p>
       {chapter.by && <p>The same story goes on. Everything before it still happened.

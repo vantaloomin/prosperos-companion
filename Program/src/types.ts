@@ -2077,6 +2077,10 @@ export interface StoryPerson {
   /** While they are in the scene and have not said yes: the button that asks for the user, and the line it says. */
   ask?: { label: string; line: string } | null
 }
+/** A finished visit with a companion in the Story, for a line in their 1:1 chat (companion/story_visits.py): `at`
+ * places it in the history, `from` and `until` are when it began and when the last thing was said, and `chapter` is the Story chapter
+ * it can still be read in, or null. */
+export interface StoryVisit { id: string; at: string; place: string; from: string; until: string; chapter: number | null }
 export interface Story {
   scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; companions: StoryCompanion[]; ready: boolean; can_switch: boolean
   /** The chapters the lines shown are in, and the one waiting for its first line, if any. */

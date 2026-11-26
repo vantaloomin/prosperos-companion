@@ -64,11 +64,35 @@ function calendar(then: number, now: number): string {
 /** Retro IM's "[9:14 PM]": the clock time alone today, with the date before it on older messages. */
 export function clockTime(value: string, now: number): string {
   const then = Date.parse(value)
-  if (Number.isNaN(then)) return ''
-  const clock = CLOCK.format(then)
-  if (daysBetween(then, now) === 0) return clock
+  return Number.isNaN(then) ? '' : `${dayBefore(then, now)}${CLOCK.format(then)}`
+}
+
+/** The date that goes before a clock time once it is not today: "Nov 16, ", with the year when it is not this one's. */
+function dayBefore(then: number, now: number): string {
+  if (daysBetween(then, now) === 0) return ''
   const sameYear = new Date(then).getFullYear() === new Date(now).getFullYear()
-  return `${(sameYear ? DAY : DAY_YEAR).format(then)}, ${clock}`
+  return `${(sameYear ? DAY : DAY_YEAR).format(then)}, `
+}
+
+/** A clock time in two pieces, "2:06" and "PM" (no second piece on a 24-hour clock). */
+function clockPieces(then: number): [string, string] {
+  const parts = CLOCK.formatToParts(then)
+  const half = parts.find((part) => part.type === 'dayPeriod')?.value ?? ''
+  return [parts.filter((part) => part.type !== 'dayPeriod').map((part) => part.value).join('').trim(), half]
+}
+
+/**
+ * A stretch of time on the same clock as `clockTime`, so it reads right between a chat's stamps: "2:06 to 2:31 PM",
+ * "11:50 AM to 12:20 PM" across noon, "Nov 16, 2:06 to 2:31 PM" once it is not today (the day it began), and one
+ * time when it began and ended in the same minute.
+ */
+export function clockRange(from: string, until: string, now: number): string {
+  const began = Date.parse(from), ended = Date.parse(until)
+  if (Number.isNaN(began) || Number.isNaN(ended)) return ''
+  const last = CLOCK.format(ended)
+  if (Math.floor(began / MINUTE) === Math.floor(ended / MINUTE)) return `${dayBefore(ended, now)}${last}`
+  const [bare, half] = clockPieces(began)
+  return `${dayBefore(began, now)}${half === clockPieces(ended)[1] ? bare : CLOCK.format(began)} to ${last}`
 }
 
 /** A chat list's "when" (Iris, v0.14): the clock time today, "Jan 4" this year, "Jan 4, 2026" before, so names keep the room. */
