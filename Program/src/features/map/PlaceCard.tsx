@@ -99,10 +99,10 @@ function PlaceDetails({ place, name, timezone, goThere, suggest, go, visit }: De
 }
 
 /** What to do next: drop by (theirs or their work), an invitation, and going there in the user's own story; for the
- * user's own home, where to change it; nothing for someone else's home. */
+ * user's own home, where to change it and going home in their story; nothing for someone else's home. */
 function NextSteps({ place, name, goThere, suggest, visit }: Omit<DetailsProps, 'timezone' | 'go'>) {
   const home = place.id === '~home'
-  if (place.id === '~you') return <YourHome />
+  if (place.id === '~you') return <YourHome here={place.pins.includes('scene')} goThere={goThere} />
   if (!home && isHome(place)) return null
   return <>
     {place.drop_by && <DropBy place={place} name={name} visit={visit} />}
@@ -255,7 +255,7 @@ function grow(box: HTMLTextAreaElement) {
 }
 
 /** The user's own home: the app picked it, and it is changed with the rest of where they live in this world. */
-function YourHome() {
+function YourHome({ here, goThere }: { here: boolean; goThere: () => void }) {
   const change = (event: MouseEvent) => {
     event.preventDefault()
     window.history.pushState({ focus: 'persona-home' }, '', '#worlds')
@@ -264,6 +264,7 @@ function YourHome() {
   return <>
     <p className="subtle">Where you live in this world. The app picked it; you can change it.</p>
     <a className="button" href="#worlds" onClick={change}>Change where you live</a>
+    {!here && <button type="button" className="button" onClick={goThere}>Go home in your story</button>}
   </>
 }
 

@@ -206,3 +206,71 @@ def test_the_story_in_the_companions_city_keeps_the_companions_clock(client, clo
     # Another city keeps its own clock.
     moved = ok(client.put('/api/story/scene', json={'city_id': 'chicago'}))['scene']
     assert moved['local_time'] == clock.now().astimezone(ZoneInfo('America/Chicago')).isoformat()[:16]
+
+
+def test_your_own_home_is_a_place_the_story_can_go(client, clock, provider):
+    make(client, 'Warm and curious.')
+    connect(client)
+    opened = ok(client.get('/api/story'))['scene']
+    # Every persona has a home in the world (companion/life/where.py): "Go home" goes there.
+    assert opened['home'] == {'city_id': 'baltimore', 'place_id': story.HOME, 'name': 'Your home', 'here': False}
+    assert all(place['id'] != story.HOME for place in opened['places'])
+    moved = ok(client.put('/api/story/scene', json={'city_id': 'baltimore', 'place_id': story.HOME}))
+    scene = moved['scene']
+    assert scene['place']['id'] == story.HOME and scene['place']['name'] == 'Your home' and scene['place']['home']
+    assert scene['place']['neighborhood'] and scene['place']['spots'] == [] and scene['home']['here'] is True
+    assert scene['around'] == [] and moved['messages'][-1]['text'] == "You're home."
+    # Going home again adds nothing.
+    assert len(ok(client.put('/api/story/scene', json={'city_id': 'baltimore', 'place_id': story.HOME}))['messages']) == 1
+
+    provider.replies = [[Chunk('The door clicks shut behind you.'), Chunk('', 'stop')]]
+    say(client, 'I put the kettle on.', 'story-0001')
+    system = provider.requests[-1]['system']
+    assert f"Place: The user's own home, in {scene['place']['neighborhood']}, Baltimore. They live here." in system
+    assert '- Nobody else is here.' in system and 'passers-by.' not in system.split('## Scene')[1]
+    assert 'Spots here' not in system and 'Your home' not in system
+    # The map's pin for the story is on their home.
+    pins = {place['id']: place['pins'] for place in ok(client.get('/api/life/map'))['places']}
+    assert 'scene' in pins[story.HOME] and sum('scene' in found for found in pins.values()) == 1
+
+
+def test_the_story_goes_home_from_another_city_and_not_to_a_home_that_is_not_there(client, clock):
+    make(client, 'Warm and curious.')
+    away = ok(client.put('/api/story/scene', json={'city_id': 'new-york'}))['scene']
+    assert away['home']['city_id'] == 'baltimore' and away['home']['here'] is False
+    assert client.put('/api/story/scene', json={'city_id': 'new-york', 'place_id': story.HOME}).status_code == 404
+    back = ok(client.put('/api/story/scene', json={'city_id': 'baltimore', 'place_id': story.HOME}))['scene']
+    assert back['city']['id'] == 'baltimore' and back['home']['here'] is True
+    # A home moved to another city leaves the story at that city's opening place, not at a home that is gone.
+    world = ok(client.get('/api/worlds'))['world']
+    ok(client.put(f"/api/worlds/{world['id']}/home", json={'city_id': 'chicago'}))
+    scene = ok(client.get('/api/story'))['scene']
+    assert scene['place']['id'] != story.HOME and scene['home'] == {
+        'city_id': 'chicago', 'place_id': story.HOME, 'name': 'Your home', 'here': False}
+
+
+def test_the_story_follows_the_user_home_by_what_they_write(client, clock, provider):
+    make(client, 'Warm and curious.')
+    connect(client)
+    start = ok(client.get('/api/story'))['scene']['place']
+    provider.replies = [[Chunk('You pull your coat tighter and set off at a brisk pace.'), Chunk('', 'stop')]]
+    say(client, '*She simply walks home, as fast as possible*', 'story-0001')
+    # The narrator tells this very reply at home, and the screen is there with it.
+    assert "Place: The user's own home, in" in provider.requests[-1]['system']
+    scene = ok(client.get('/api/story'))['scene']
+    assert scene['place']['id'] == story.HOME and scene['home']['here'] is True
+    # Picking the place they walked away from takes them back: the user's own choice wins.
+    back = ok(client.put('/api/story/scene', json={'city_id': 'baltimore', 'place_id': start['id']}))
+    assert back['scene']['place']['id'] == start['id'] and back['messages'][-1]['text'].startswith('You arrive at')
+    # From home, a place named in a line is walked to, and home again after it.
+    ok(client.put('/api/story/scene', json={'city_id': 'baltimore', 'place_id': story.HOME}))
+    with client.app.state.database.connect() as connection:
+        data = story.city_data(connection, 'baltimore')
+        home = story.home_place(connection, data)
+    from companion.life import scene_now
+    near = next(place for place in data['places'] if scene_now.near(data, home, place)
+                and scene_now.known_place(data, place['name'], home) is place)
+    say(client, f"I walk over to {near['name']}.", 'story-0002')
+    assert ok(client.get('/api/story'))['scene']['place']['id'] == near['id']
+    say(client, 'I pay and head back to my place.', 'story-0003')
+    assert ok(client.get('/api/story'))['scene']['place']['id'] == story.HOME

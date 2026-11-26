@@ -24,9 +24,28 @@ feature.
 The app decides the scene, the same way the life sim decides the companion's day
 (`companion/story.py`):
 
-- **Where:** the city and place the user picked under "Go somewhere else…". A new story starts in
-  the companion's city (Baltimore without one) at its first cafe. Moving adds a line to the story
-  ("You arrive at …") that the narrator sees as a note.
+- **Where:** the city and place the user picked under "Go somewhere else…", then wherever the story's
+  own lines have walked them since. A new story starts in the companion's city (Baltimore without
+  one) at its first cafe. Moving by the picker adds a line to the story ("You arrive at …", or
+  "You're home.") that the narrator sees as a note.
+- **Moves in the text:** rules read the user's and the narrator's lines since the last picked move
+  (`scene_now.story_place`, phrases in `companion/world/data/scene_moves.json`), one after another,
+  and the scene follows: to a place the map knows ("I walk over to the Charles Theatre") and to the
+  user's own home ("She simply walks home", "I head back to my apartment", "You let yourself in at
+  your place"). No model is asked and nothing is confirmed; the header, the picker and the map's
+  "story is here" pin all read the same place (`story.place_now`). Only the user's own going counts:
+  "Dana walks home", "you should go home" and "I watch them head home" move nobody. A companion in
+  the scene comes along, unless the user's line says they part ("I say goodnight and walk home",
+  "I go home alone"), which ends the time together as a picked move does. Places the map does not
+  know, vehicles and other people's homes are not followed.
+- **Home:** where the user lives in this world (`companion/life/where.py`) is a place the story can
+  be at, in its own city only (`story.home_place`, id `~you`, "Your home"). "Go home" is the first
+  choice under "Go somewhere else…" and on their home's card on the map; the Place list names
+  "Your home" only while the story is there. At home the narrator is told "Place: The user's own
+  home, in Remington, Baltimore. They live here." and "Nobody else is here." instead of passers-by
+  (A/B on seven models, `/mnt/project-files/companion-story-home/ab/report.md`). No townsfolk are
+  placed there, and the rooms are only ones the user has named. With nobody there the screen says
+  "It's just you." where a public place says "Nobody you would notice is here."
 - **When:** the app clock (debug time included) in the city's own timezone.
 - **Weather:** the city's typical weather for the date (`generators.conditions`).
 - **Who is there:** the townsfolk rules at that moment (`encounters.present`): people seeded at the
@@ -82,9 +101,9 @@ without it the narrator wrote the companion's words in 50 of 85 replies, with it
 
 | Request | Does |
 | --- | --- |
-| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `messages` each carry `chapter` (from 1) and `local_time` (when the line was written, on its city's clock, no offset); `chapters` are the chapters those lines are in with the `local_time` of each one's first line, and `next_chapter` is the one waiting for its first line (`{number, by, local_time}`, `by` 'asked' or 'time'), else null ([Chapters and times](#chapters-and-times)). `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
+| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `messages` each carry `chapter` (from 1) and `local_time` (when the line was written, on its city's clock, no offset); `chapters` are the chapters those lines are in with the `local_time` of each one's first line, and `next_chapter` is the one waiting for its first line (`{number, by, local_time}`, `by` 'asked' or 'time'), else null ([Chapters and times](#chapters-and-times)). `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene.home` is the user's own home as somewhere to go (`{city_id, place_id, name, here}`, null when they have none) and `scene.place.home` is true while the story is there. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
 | `GET /api/story/visits` | `{visits}`: the main companion's finished visits with something said to them, oldest first (the latest 60), each `{id, at, place, from, until, chapter}` for a line in their chat. `at` places it in the history, `from` and `until` are when it began and when the last thing was said, `chapter` is the chapter it can be read in or null. Empty while Story scenes count is off. |
-| `PUT /api/story/scene` `{city_id, place_id?}` | Moves there; a city alone means its opening place. 404 for an unknown city or place. |
+| `PUT /api/story/scene` `{city_id, place_id?}` | Moves there; a city alone means its opening place. `place_id` `~you` is the user's own home, in the city they live in. 404 for an unknown city or place. |
 | `POST /api/story/messages` `{text, client_id}` | Saves the user's line once per `client_id` and returns `{message, reply, replies}`: `reply` is the narrator's, `replies` all of them in order, a companion's own lines after it. A failed reply is saved with `status: failed` and its `error`. Sending the same `client_id` again returns the saved replies and writes only what is missing. 409 `no_connection` without a model; the line stays saved. |
 | `POST /api/story/find` `{key}` | Moves the story to where someone the user has met is now, or a companion (`companion:<id>`). 404 if not met, 409 if they are nowhere the story can go. |
 | `POST /api/story/plan` `{outing_id}` | Plays a plan under way as a scene: moves the story to where the plan is ([Playing a plan](#playing-a-plan)). 404 for an unknown outing, 409 when it is not under way or is somewhere the story cannot go. |

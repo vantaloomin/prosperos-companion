@@ -66,9 +66,10 @@ export function grouped(around: string[]): string[] {
   })
 }
 
-/** "Nobody you would notice is here.", "The barista is here.", "A regular and two neighbors are here." */
-export function aroundText(around: string[]): string {
-  if (!around.length) return 'Nobody you would notice is here.'
+/** "Nobody you would notice is here.", "The barista is here.", "A regular and two neighbors are here."; at the
+ * user's own home, where there are no passers-by, "It's just you." */
+export function aroundText(around: string[], home = false): string {
+  if (!around.length) return home ? "It's just you." : 'Nobody you would notice is here.'
   const names = grouped(around).map((who, index) => index ? who : who[0].toUpperCase() + who.slice(1))
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   return `${list} ${around.length === 1 ? 'is' : 'are'} here.`
@@ -81,8 +82,20 @@ export function placeGroups(places: StoryPlace[]): [string, StoryPlace[]][] {
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
 }
 
-export function whereText(scene: StoryScene): string {
-  return `${scene.place.name}, ${scene.place.neighborhood}, ${scene.city.name}`
+/** "Lupa, Fells Point, Baltimore"; "Your home, Canton, Baltimore", or without the neighbourhood where there is none. */
+export function whereText(scene: Pick<StoryScene, 'place' | 'city'>): string {
+  return [scene.place.name, scene.place.neighborhood, scene.city.name].filter(Boolean).join(', ')
+}
+
+/** The user's own home as the place picker's first choice while the story is there, so the picker says where they
+ * are; null anywhere else ("Go home" is how to get there). */
+export function homeChoice(scene: Pick<StoryScene, 'home'>): { id: string; name: string } | null {
+  return scene.home?.here ? { id: scene.home.place_id, name: scene.home.name } : null
+}
+
+/** Where "Go home" goes, or null when there is nowhere to go: they are home already, or have no home in this world. */
+export function goHome(scene: Pick<StoryScene, 'home'>): { city_id: string; place_id: string } | null {
+  return scene.home && !scene.home.here ? { city_id: scene.home.city_id, place_id: scene.home.place_id } : null
 }
 
 /** "Inside: the back patio, the bar seats" */

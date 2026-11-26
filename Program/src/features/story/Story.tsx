@@ -1,6 +1,6 @@
 import { Fragment, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Map as MapIcon, MapPin, RotateCcw, Send } from 'lucide-react'
+import { Home, Map as MapIcon, MapPin, RotateCcw, Send } from 'lucide-react'
 import { api, newId } from '../../api'
 import type { View } from '../../companion'
 import type { CitySummary, Story as StoryData, StoryChapter, StoryMessage, StoryScene } from '../../types'
@@ -8,7 +8,7 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { InfoTip } from '../../components/InfoTip'
 import { AiFooter, CrisisNote } from '../../components/Safety'
-import { aroundText, chapterWhen, numbered, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, whereText, writingText } from './storyText'
+import { aroundText, chapterWhen, goHome, homeChoice, numbered, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, whereText, writingText } from './storyText'
 import { StoryPeople } from './StoryPeople'
 import { ChapterHeading, LineTime, StoryFooter } from './StoryChapters'
 import { useStoryScroll } from './useStoryScroll'
@@ -123,7 +123,7 @@ function SceneBar({ scene, onMap, onMove }: { scene: StoryScene; onMap: () => vo
       <p><MapPin aria-hidden="true" /> <strong>{whereText(scene)}</strong></p>
       <p className="subtle">{sceneTime(scene.local_time)}{scene.weather ? ` · ${scene.weather}` : ''}</p>
       {!!scene.place.spots?.length && <p className="subtle">{spotsText(scene.place.spots)}</p>}
-      <p>{aroundText(scene.around)}</p>
+      <p>{aroundText(scene.around, scene.place.home)}</p>
       {scene.plan && <p className="story-plan">{planText(scene.plan)}</p>}
       {scene.plan?.storyline && <p>Part of a storyline.</p>}
       {moving ? <GoElsewhere scene={scene} onDone={() => setMoving(false)} onMove={onMove} />
@@ -137,11 +137,16 @@ function SceneBar({ scene, onMap, onMove }: { scene: StoryScene; onMap: () => vo
 
 interface GoProps { scene: StoryScene; onDone: () => void; onMove: (body: { city_id: string; place_id?: string }) => Promise<void> }
 
+/** Going somewhere else: home in one press, first and apart (Iris, 2026-11-26), then a city and a place in it. The
+ * story also follows what the user writes (companion/life/scene_now.py). */
 function GoElsewhere({ scene, onDone, onMove }: GoProps) {
   const cities = useQuery({ queryKey: ['world-cities'], queryFn: () => api<CitySummary[]>('/world/cities') })
   const [place, setPlace] = useState(scene.place.id)
+  const home = goHome(scene)
+  const here = homeChoice(scene)
   return (
     <div className="story-go form-actions">
+      {home && <div className="story-go-home"><button type="button" className="button" onClick={() => void onMove(home).then(onDone)}><Home aria-hidden="true" />Go home</button></div>}
       <label>City
         <select value={scene.city.id} onChange={(event) => void onMove({ city_id: event.target.value })}>
           <CityOptions cities={cities.data ?? [scene.city]} />
@@ -149,6 +154,7 @@ function GoElsewhere({ scene, onDone, onMove }: GoProps) {
       </label>
       <label>Place
         <select value={place} onChange={(event) => setPlace(event.target.value)}>
+          {here && <option value={here.id}>{here.name}</option>}
           {placeGroups(scene.places).map(([hood, places]) => (
             <optgroup key={hood} label={hood}>
               {places.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.kind})</option>)}

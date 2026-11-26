@@ -191,3 +191,28 @@ def test_the_story_export_has_their_lines_under_their_name(client, barkeep, prov
     exported = client.get('/api/export/story', params={'format': 'md'})
     assert exported.status_code == 200, exported.text
     assert 'Mira looks up. "You came."' in exported.text and 'Mira is here.' in exported.text
+
+
+def test_a_companion_comes_home_with_the_user_unless_the_line_says_they_part(client, barkeep, provider):
+    at_work(client)
+    script(provider, 'The bar is dim and nearly empty.', 'Mira looks up from the taps. "You came."')
+    say(client, 'I look around.', 'story-0001')
+    # Walking home in the middle of talking with her: she comes along, and is told whose home it is.
+    script(provider, 'The two of you step out into the evening.', '"Lead the way," Mira says.')
+    say(client, 'Mira and I walk back to my place.', 'story-0002')
+    scene = ok(client.get('/api/story'))['scene']
+    assert scene['place']['home'] and scene['around'] == ['Mira']
+    narrator, own = provider.requests[-2], provider.requests[-1]
+    assert "Place: The user's own home, in" in narrator['system'] and 'Mira speaks and acts for' in narrator['system']
+    assert "Place: The user's own home, in" in own['system'] and 'at Your home' not in own['messages'][-1]['content']
+    assert "You are Mira, in person with the user at the user's own home." in own['messages'][-1]['content']
+    # Back at the bar, a line that says goodnight and walks home leaves her there: only the narrator answers.
+    at_work(client)
+    script(provider, 'Mira nods from behind the bar.', '"Back so soon?"')
+    say(client, 'I sit at the bar.', 'story-0003')
+    before = len(provider.requests)
+    script(provider, 'The street is quiet on your way back.')
+    sent = say(client, '"Goodnight, Mira." I walk home.', 'story-0004')
+    assert [row['role'] for row in sent['replies']] == ['narrator'] and len(provider.requests) == before + 1
+    scene = ok(client.get('/api/story'))['scene']
+    assert scene['place']['home'] and scene['around'] == [] and 'Mira speaks' not in provider.requests[-1]['system']

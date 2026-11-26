@@ -37,6 +37,10 @@ LINE_CHARS = 220
 CAME = {'user': 'the user came by {place} while you were {doing}',
         'them': 'you came by {place} and found the user there'}
 DOING = {story_cast.AT_WORK: 'at work there'}
+# The user's own home (companion/story.py HOME) as a visit keeps it: the user reads "your place" on Memories, and the
+# companion is told "the user's place" (memory/records.py as_told).
+AT_YOURS = 'your place'
+CAME_HOME = "you were at the user's place with them"
 TOLD = ('- {when}, {came}, and the two of you spent time together in person. It really happened, and you remember '
         'it. You are apart again now, texting.')
 # A plan played in the Story (companion/story_plans.py): the 'together' section already says what and where, and
@@ -68,7 +72,8 @@ def start(connection, item: dict, user: dict, view: dict, now: datetime) -> dict
         'INSERT INTO story_visits (id, companion_id, timeline_id, city_id, place_id, place_name, doing, came, '
         'local_date, first_seq, last_seq, started_at, last_at, outing_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (visit_id, item['id'], companion['active_timeline_id'], view['city']['id'], view['place']['id'],
-         view['place']['name'], item['doing'], came, day, user['seq'], user['seq'], stamp(now), stamp(now),
+         AT_YOURS if view['place'].get('home') else view['place']['name'], item['doing'], came, day, user['seq'],
+         user['seq'], stamp(now), stamp(now),
          item['plan']['id'] if item.get('plan') else None))
     return optional(connection, 'SELECT * FROM story_visits WHERE id=?', (visit_id,))
 
@@ -185,6 +190,9 @@ def memory_text(visit: dict, name: str) -> dict:
     goes by their first name; the companion reads it the other way round (memory/records.py as_told). Plain, with
     no date (Iris: the card's own line says "In Story" and when), so time at the same place again is the same
     moment (records.find_duplicate): one for each place they have been together."""
+    if visit['place_name'] == AT_YOURS:  # Named in the subject too, so it turns round whole for the companion.
+        return {'subject': f'In person with {name} at {AT_YOURS}',
+                'value': f'{name} and you spent time together at {AT_YOURS}.'}
     return {'subject': f"In person at {visit['place_name']}",
             'value': f"{name} and you spent time together at {visit['place_name']}."}
 
@@ -232,8 +240,8 @@ def told_text(visit: dict, lines: list[dict], now: datetime, timezone) -> str:
     if visit['outing_id']:
         text = TOLD_PLAN.format(when=when, place=visit['place_name'])
     else:
-        came = CAME[visit['came']].format(place=visit['place_name'],
-                                          doing=DOING.get(visit['doing'], 'there on your own time'))
+        came = CAME_HOME if visit['place_name'] == AT_YOURS else CAME[visit['came']].format(
+            place=visit['place_name'], doing=DOING.get(visit['doing'], 'there on your own time'))
         text = TOLD.format(when=when, came=came)
     if not lines:
         return text
