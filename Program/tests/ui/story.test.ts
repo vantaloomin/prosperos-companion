@@ -1,11 +1,26 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aroundText, companionLine, goHome, homeChoice, openingAction, openingText, personLine, placeGroups, sceneTime, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
+import { aroundText, chapterWhen, companionLine, goHome, homeChoice, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
   assert.equal(sceneTime('2026-10-06T00:30'), 'Tuesday, 12:30 AM')
   assert.equal(sceneTime('2026-10-06T21:40'), 'Tuesday, 9:40 PM')
+})
+
+test('a chapter says the day and hour it began, and a line the hour it was written', () => {
+  assert.equal(chapterWhen('2026-11-26T20:06'), 'Thursday, November 26 · 8:06 PM')
+  assert.equal(lineTime('2026-11-26T20:06'), '8:06 PM')
+  assert.equal(lineTime('2026-11-26T23:58', '2026-11-26T20:06'), '11:58 PM')
+  // Played past midnight, a line says which day it is by then.
+  assert.equal(lineTime('2026-11-27T00:10', '2026-11-26T20:06'), 'Fri 12:10 AM')
+})
+
+test('chapters are numbered only once there is a second one, written or waiting', () => {
+  assert.equal(numbered([{ number: 1 }], null), false)
+  assert.equal(numbered([{ number: 1 }], { number: 2 }), true)
+  assert.equal(numbered([{ number: 1 }, { number: 2 }], null), true)
+  assert.equal(numbered([{ number: 7 }], null), true)  // Earlier chapters are further back than the page shows.
 })
 
 test('who is around reads as a sentence', () => {
@@ -117,7 +132,7 @@ test('a companion in the people list says where they are now', () => {
 
 test('while a line waits, the narrator writes first and then each companion in the scene answers', () => {
   const row = (id: string, role: 'user' | 'narrator' | 'companion', extra: object = {}) => ({ id, seq: 1, role, text: '', reply_to: null,
-    status: 'complete' as const, error: null, city_id: 'b', place_id: 'p', created_at: '', client_id: null, speaker: null, name: null, ...extra })
+    status: 'complete' as const, error: null, city_id: 'b', place_id: 'p', created_at: '', client_id: null, speaker: null, name: null, chapter: 1, local_time: '2026-10-06T09:05', ...extra })
   const cast = [{ id: '1', name: 'Mira' }]
   assert.equal(writingText([], 'c1', cast), 'The narrator is writing…')
   const sent = row('u1', 'user', { client_id: 'c1' })

@@ -183,7 +183,7 @@ def sync(connection, add, present: list[dict], now: str, where: dict) -> None:
 
 
 def leave(connection) -> None:
-    """The user went somewhere else, or began a new story: nobody is with them any more."""
+    """The user went somewhere else, or cleared the pages: nobody is with them any more."""
     connection.execute('DELETE FROM story_cast')
 
 

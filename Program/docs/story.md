@@ -4,7 +4,8 @@ The **Story** tab is the user's own free-form story: they play themself in one o
 narrator describes the place and voices the people there. When the story is where a companion is at
 that hour, they are in the scene and speak for themselves ([Companions in the scene](#companions-in-the-scene)).
 The story has its own tables (`story_scene`, `story_messages`, `story_cast`). Time spent with a companion
-there counts in their life together ([Scenes count](#scenes-count)).
+there counts in their life together ([Scenes count](#scenes-count)). It is one ongoing story in a world that keeps
+going: it is told in chapters and is never finished ([Chapters and times](#chapters-and-times)).
 
 ## Part of every world
 
@@ -83,7 +84,7 @@ where they are.
   habits go, as on an outing. A line that names only someone else in the scene ("Dana, could I get the
   bill?") is not theirs to answer, and neither is a message out of the story (OOC).
 - **What they know:** a companion reads the story only from the line they came in at (`story_cast`
-  keeps it), never what was said before or somewhere else. Going somewhere else or starting a new story
+  keeps it), never what was said before or somewhere else. Going somewhere else or clearing the pages
   leaves them behind.
 - **The narrator** is told who speaks for themself: in the scene, with a line to keep its own part
   short, and again after the user's latest line. It reads a companion's lines under their name.
@@ -99,16 +100,46 @@ without it the narrator wrote the companion's words in 50 of 85 replies, with it
 
 | Request | Does |
 | --- | --- |
-| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene.home` is the user's own home as somewhere to go (`{city_id, place_id, name, here}`, null when they have none) and `scene.place.home` is true while the story is there. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
+| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `messages` each carry `chapter` (from 1) and `local_time` (when the line was written, on its city's clock, no offset); `chapters` are the chapters those lines are in with the `local_time` of each one's first line, and `next_chapter` is the one waiting for its first line (`{number, by, local_time}`, `by` 'asked' or 'time'), else null ([Chapters and times](#chapters-and-times)). `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene.home` is the user's own home as somewhere to go (`{city_id, place_id, name, here}`, null when they have none) and `scene.place.home` is true while the story is there. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
 | `PUT /api/story/scene` `{city_id, place_id?}` | Moves there; a city alone means its opening place. `place_id` `~you` is the user's own home, in the city they live in. 404 for an unknown city or place. |
 | `POST /api/story/messages` `{text, client_id}` | Saves the user's line once per `client_id` and returns `{message, reply, replies}`: `reply` is the narrator's, `replies` all of them in order, a companion's own lines after it. A failed reply is saved with `status: failed` and its `error`. Sending the same `client_id` again returns the saved replies and writes only what is missing. 409 `no_connection` without a model; the line stays saved. |
 | `POST /api/story/find` `{key}` | Moves the story to where someone the user has met is now, or a companion (`companion:<id>`). 404 if not met, 409 if they are nowhere the story can go. |
 | `POST /api/story/plan` `{outing_id}` | Plays a plan under way as a scene: moves the story to where the plan is ([Playing a plan](#playing-a-plan)). 404 for an unknown outing, 409 when it is not under way or is somewhere the story cannot go. |
 | `POST /api/story/plan/begin` `{client_id}` | Starts the scene of the plan being played here with no line from the user: saves a hidden user line once per `client_id` and returns what `POST /api/story/messages` does. 409 with no plan under way here. |
 | `POST /api/story/retry` | Writes again what failed in the replies to the latest user line; with nothing failed, tells them all again. |
-| `DELETE /api/story` | Starts a new story: the history and the people met go, the scene stays. |
+| `POST /api/story/chapter` | Starts a new chapter: the next line begins it. Nothing is cleared. 409 with nothing in the story yet. Returns what `GET /api/story` does. |
+| `DELETE /api/story/chapter` | Takes back a chapter the user started, while nothing has been said in it. |
+| `DELETE /api/story` | Clears the pages: the lines and the chapters go. The people met, whoever said yes and the scene stay. |
 
 Start over and Delete character keep the story (it is in `start_over.WORKSPACE`).
+
+## Chapters and times
+
+The Story is one story that goes on as long as the world does. Nothing has to be finished or cleared to go on with
+it, and the page says so in two ways (`companion/story_chapters.py`). Both are for the page and the export only: no
+model reads a chapter or a line's time, and the narrator reads the story across chapters as before.
+
+- **The time on a line:** the user's own lines and the app's lines ("Mira is here. · 8:06 PM") show the hour they
+  were written, on the city's own clock, the same clock the scene's time is on (the companion's own clock in their
+  city). It is read from the line's `created_at`, so nothing new is stored. A line written on a later day than its
+  chapter began (played past midnight) says the day too ("Fri 12:10 AM"). A reply comes moments after its line, so
+  it shows no time of its own on the reading page; pointing at it says when (Iris).
+- **Chapters:** rules decide them from the lines' own times. A line that comes two hours or more after the one before
+  it starts a new chapter (`GAP`, the stretch a visit with a companion ends at). A reply never starts one, so a reply
+  told again the next day stays with its line. Each chapter has a heading above its first line: "Chapter 2" and
+  "Tuesday, October 6 · 7:50 AM". A story with one chapter shows no heading: "Chapter 1" appears once there is a
+  second, written or waiting. A story written before chapters existed is read the same way, so it has them too.
+- **Coming back:** when the story is opened two hours or more after its last line, the next chapter's heading is
+  already at the end, with "The same story goes on. Everything before it still happened." The next line
+  begins it.
+- **Start a new chapter:** the link under the box starts one now (`story_chapters`: the next line after `after_seq`
+  begins it). Nothing is cleared. Until something is said in it, Undo takes it back. Asked for and then left a
+  while, it is still one chapter.
+- **Clear the pages…:** the one thing that removes anything, and only the writing: the lines and the chapters. The
+  people met still know the user, whoever said yes still has, time with companions still counts and the scene stays
+  where it is. They are the world's, not the page's. The dialog says so and offers the export first.
+- **Exports:** the story's HTML and Markdown are in chapters ("Chapter 2 · Tuesday, October 6, 2026") with each
+  line's time on its city's clock ("Times are each city's own.").
 
 ## People you've met
 
@@ -129,14 +160,15 @@ profile says "Has met the user in person …".
 Other features that put the user with someone (a date, say) record the meeting with
 `story_people.meet(connection, sheet, city_id, now, local_day, notes)`.
 
-Starting a new story clears the people met too. Companions are not in this list's table: they are listed
-above it from their own days.
+Clearing the story's pages keeps the people met: they are part of the world, and they still know the user
+([Chapters and times](#chapters-and-times)). Companions are not in this list's table: they are listed above it from
+their own days.
 
 ## Scenes count
 
 Time the user spends with a companion in the Story is part of their life together (`companion/story_visits.py`,
 table `story_visits`). A visit is one stretch of the story with a companion in the scene. It opens with the
-user's first line while they are there. It ends when the user goes somewhere else or starts a new story, when the
+user's first line while they are there. It ends when the user goes somewhere else or clears the pages, when the
 companion's day takes them away, or when nothing has been said for two hours. Everything here is rules, with no
 model call:
 
@@ -166,8 +198,8 @@ model call:
   were together, who came to whom, and the last six lines the two of them said (`story_visits.context_lines`).
   After that it is the memory.
 
-A line to someone else in the scene, or one out of the story (OOC: or ((...))), counts for nothing. A new story
-clears the lines but not the time spent: visits are settled before the lines go.
+A line to someone else in the scene, or one out of the story (OOC: or ((...))), counts for nothing. Clearing the
+pages clears the lines but not the time spent: visits are settled before the lines go.
 
 Settings > Realism > "Story scenes count" (`life_settings.story_counts`, on by default) turns all of it off. The
 story is then apart from the companion's life, as it was before 1.5.
@@ -234,8 +266,8 @@ rules answer, the same ones the dating app reads (`companion/world/dating.py`). 
   story and Unmatch. They become a companion as a match does (`companion/cast.py`): a romance, in the town they
   were met in, starting as close as the times the user has met them, with a profile that says they met in person.
   The companion already there steps back and stays in the same world.
-- Starting a new story lets go of whoever said yes in it, unless they became a companion. Deleting the dating
-  profile keeps them: they were never the app's.
+- Someone who said yes stays a match when the story's pages are cleared, and when the dating profile is deleted:
+  they were never the page's or the app's.
 
 ## Secrets and news in a scene
 

@@ -1,7 +1,7 @@
 """Scenes count (1.5, docs/story.md): time the user spends with a companion in the Story is part of their life together.
 
 A visit is one stretch of the story with a companion in the scene (`story_visits`): it opens with the user's first
-line while they are there and ends when the user moves on, starts a new story, the companion's day takes them
+line while they are there and ends when the user moves on, clears the pages, the companion's day takes them
 away, or nothing has been said for a while. Rules only, no model:
 
 - A day the user talked with them in person counts as a day talked, as a day of texting does
@@ -210,7 +210,7 @@ def settle(connection, now: datetime, keep: set[str] | None = None) -> int:
 
 
 def close_all(connection, now: datetime) -> None:
-    """The user went somewhere else or began a new story: every visit ends here, before the lines can go."""
+    """The user went somewhere else or cleared the pages: every visit ends here, before the lines can go."""
     for visit in open_visits(connection):
         close(connection, visit, now)
 

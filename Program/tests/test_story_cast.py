@@ -178,7 +178,7 @@ def test_a_new_story_and_going_elsewhere_leave_them_behind(client, barkeep, prov
     assert cleared['messages'] == []
     with client.app.state.database.connect() as connection:
         assert connection.execute('SELECT COUNT(*) FROM story_cast').fetchone()[0] == 0
-    # Still at the bar: she is in the scene again with the first line of the new story.
+    # Still at the bar: she is in the scene again with the first line after the pages are cleared.
     script(provider, 'The bar is dim.', '"Back already?"')
     say(client, 'I look around.', 'story-0001')
     assert lines(client)[0] == ('cast', 'Mira is here.')

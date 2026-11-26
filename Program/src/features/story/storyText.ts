@@ -1,13 +1,38 @@
 import type { StoryCompanion, StoryMessage, StoryPerson, StoryPlace, StoryPlan, StoryScene } from '../../types'
 import { timeText } from '../today/outingText.ts'
 
-/** "Tuesday, 9:40 AM" from the scene's local time, which is the city's own clock with no offset. */
-export function sceneTime(localTime: string): string {
-  const [day, clock] = localTime.split('T')
+/** The parts of a local time ("2026-11-26T20:06"), which is the city's own clock with no offset. */
+function parts(localTime: string): { day: Date; clock: string } {
+  const [day, time] = localTime.split('T')
   const [year, month, date] = day.split('-').map(Number)
-  const [hour, minute] = clock.split(':').map(Number)
-  const weekday = new Date(Date.UTC(year, month - 1, date)).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
-  return `${weekday}, ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`
+  const [hour, minute] = time.split(':').map(Number)
+  return { day: new Date(Date.UTC(year, month - 1, date)), clock: `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}` }
+}
+
+const dayText = (day: Date, options: Intl.DateTimeFormatOptions) => day.toLocaleDateString('en-US', { ...options, timeZone: 'UTC' })
+
+/** "Tuesday, 9:40 AM" from the scene's local time. */
+export function sceneTime(localTime: string): string {
+  const { day, clock } = parts(localTime)
+  return `${dayText(day, { weekday: 'long' })}, ${clock}`
+}
+
+/** "Thursday, November 26 · 8:06 PM" under a chapter's number: when its first line was written. */
+export function chapterWhen(localTime: string): string {
+  const { day, clock } = parts(localTime)
+  return `${dayText(day, { weekday: 'long', month: 'long', day: 'numeric' })} · ${clock}`
+}
+
+/** "8:06 PM" on a line. On a later day than its chapter began (played past midnight) it says which: "Fri 12:10 AM". */
+export function lineTime(localTime: string, began?: string): string {
+  const { day, clock } = parts(localTime)
+  return began && began.slice(0, 10) !== localTime.slice(0, 10) ? `${dayText(day, { weekday: 'short' })} ${clock}` : clock
+}
+
+/** Whether chapters have headings yet: once the story has a second chapter, written or waiting. A book with one
+ * chapter needs no number (Iris). */
+export function numbered(chapters: { number: number }[], next: unknown): boolean {
+  return !!next || chapters.some((chapter) => chapter.number > 1)
 }
 
 const COUNTS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']

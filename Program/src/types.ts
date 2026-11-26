@@ -2057,7 +2057,13 @@ export interface StoryMessage {
   crisis_help?: boolean
   /** A line the app said for the user to start a plan's scene: never shown. */
   hidden?: number
+  /** Which chapter the line is in, from 1, and when it was written on its city's clock, with no offset
+   * (companion/story_chapters.py). */
+  chapter: number; local_time: string
 }
+/** A chapter of the Story with the time of its first line. `by` is set on one still waiting for its first line:
+ * 'asked' when the user started it, 'time' when the story was picked up again after a while. */
+export interface StoryChapter { number: number; local_time: string; by?: 'asked' | 'time' | null }
 /** A companion as the Story has them now: in the scene (`here`), somewhere the story can go (`place`), or neither. */
 export interface StoryCompanion {
   key: string; id: string; name: string; main: boolean; here: boolean; doing: string; city: string | null
@@ -2076,7 +2082,11 @@ export interface StoryPerson {
   /** While they are in the scene and have not said yes: the button that asks for the user, and the line it says. */
   ask?: { label: string; line: string } | null
 }
-export interface Story { scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; companions: StoryCompanion[]; ready: boolean; can_switch: boolean }
+export interface Story {
+  scene: StoryScene; messages: StoryMessage[]; people: StoryPerson[]; companions: StoryCompanion[]; ready: boolean; can_switch: boolean
+  /** The chapters the lines shown are in, and the one waiting for its first line, if any. */
+  chapters: StoryChapter[]; next_chapter: StoryChapter | null
+}
 
 /** The dating app (companion/dating.py): the user's profile, the deck, matches and any Story mode date. */
 export type DatingGender = 'woman' | 'man' | 'nonbinary'

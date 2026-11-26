@@ -23,6 +23,7 @@ from companion import (
     safety,
     secrets,
     story_cast,
+    story_chapters,
     story_people,
     story_plans,
     story_pursuit,
@@ -339,8 +340,9 @@ def messages(connection, limit: int = HISTORY_LIMIT) -> list[dict]:
 def story(database) -> dict:
     with database.connect() as connection:
         view = scene(connection, database.clock.now())
-        return {'scene': scene_view(view), 'messages': messages(connection), 'people': people(connection, view),
-                'companions': companions(connection, view),
+        # Each line with its chapter and the time on its city's clock (companion/story_chapters.py).
+        return {'scene': scene_view(view), **story_chapters.dated(connection, messages(connection), view),
+                'people': people(connection, view), 'companions': companions(connection, view),
                 'ready': config_for(connection, JOB) is not None, 'can_switch': current(connection) is not None}
 
 
@@ -447,14 +449,25 @@ def arrival(data: dict, place: dict) -> str:
 
 
 def clear(database) -> dict:
-    """A new story: the history and the people met go, the scene stays where it is."""
+    """Clear the pages: the written lines go and nothing else does. The people met still know the user, whoever said
+    yes still has, and the scene stays where it is: they are the world's, not the page's."""
     with database.connect(write=True) as connection:
         # Time spent with a companion still happened (companion/story_visits.py): it is settled before the lines go.
         story_visits.close_all(connection, database.clock.now())
         connection.execute('DELETE FROM story_messages')
-        connection.execute('DELETE FROM story_people')
-        story_pursuit.forget(connection)
+        connection.execute('DELETE FROM story_chapters')
         story_cast.leave(connection)
+    return story(database)
+
+
+def chapter(database, start: bool) -> dict:
+    """Start a new chapter of the same story, or take that back while nothing is in it (companion/story_chapters.py).
+    Nothing is cleared either way."""
+    with database.connect(write=True) as connection:
+        if start:
+            story_chapters.begin(connection, database.now())
+        else:
+            story_chapters.undo(connection)
     return story(database)
 
 
