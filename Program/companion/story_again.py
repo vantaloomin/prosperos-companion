@@ -22,7 +22,7 @@ point of the story: the story goes on from the new words, as every later reply r
 left behind follows it: the sentences kept about the people met, what a companion said about themselves and, for a
 line of the latest exchange, what it let the others in the scene learn.
 """
-from companion import story_cast, story_chapters, story_people, story_said, story_secrets, story_visits
+from companion import story_cast, story_chapters, story_people, story_private, story_said, story_secrets, story_visits
 from companion.database import decode, encode, many, optional
 
 PEOPLE = ('city_id', 'name', 'first_met_at', 'last_met_at', 'last_day', 'meetings', 'notes')
@@ -156,6 +156,7 @@ def reword(connection, user: dict, text: str, view: dict, now, timestamp: str) -
     let_go(connection)
     connection.execute('UPDATE story_messages SET text=? WHERE id=?', (text, user['id']))
     said = {**user, 'text': text, 'told_before': None}
+    story_private.mark(connection, said, view)
     story_visits.said_again(connection, said, user['text'], view, now)
     story_secrets.sync(connection, view, now)
     story_secrets.heard(connection, said, view)

@@ -15,6 +15,9 @@ What follows from it:
   and one it was for is told so in their own notes (OWN). Their answer is as private as the line (REPLY_TAG).
 - Only the one it was for hears it in the secrets and news ledgers (companion/story_secrets.py, `heard`). The
   townsfolk the narrator voices are in neither, so from them it goes no further.
+- A companion it was not for is not told of it in their own chat either, during the visit or after it: the line
+  keeps who it was for (`mark`), and what their chat reads of the scene leaves it out (companion/story_visits.py,
+  `lines_of`).
 
 The narrator's own wording has a standing line for what these phrases miss (companion/story.py, NARRATOR).
 """
@@ -146,6 +149,25 @@ def read(text: str, companions: list[dict], people: list[dict]) -> dict | None:
     if named and (len(named) == 1 or named[0][0] < named[1][0]):
         return {'who': everyone[named[0][1]]}
     return {'who': everyone[0] if len(everyone) == 1 and not named else None}
+
+
+UNKNOWN = '?'
+
+
+def kept(found: dict | None) -> str | None:
+    """What a line keeps of its private moment (story_messages.private_for): who it was for as 'kind:id', UNKNOWN
+    when the rules can't tell, None for a line said in the open."""
+    if found is None:
+        return None
+    return f"{found['who']['kind']}:{found['who']['id']}" if found['who'] else UNKNOWN
+
+
+def mark(connection, user: dict, view: dict) -> None:
+    """The user's line was just saved or reworded: who it was for stays on it, since only now is it known who was
+    there. What a companion is told of the scene later, in their chat, leaves out a line that was for someone else
+    (companion/story_visits.py `lines_of`)."""
+    found = None if user.get('hidden') else read(user['text'], view['companions'], view['people'])
+    connection.execute('UPDATE story_messages SET private_for=? WHERE id=?', (kept(found), user['id']))
 
 
 def for_companion(found: dict | None, item: dict) -> bool:
