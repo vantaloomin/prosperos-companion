@@ -291,13 +291,20 @@ def test_the_day_of_a_death_is_told_quietly_from_then_on():
 
 
 
-def test_the_companions_people_in_town_can_be_watched_too(client, companion, watching):
+def test_the_companions_people_in_town_can_be_watched_too(client, clock, companion, watching):
     circle = [choice for choice in watching['choices'] if choice['kind'] == 'circle']
     assert circle, watching['choices']  # Their mom, their friends: everyone in the circle who lives in town.
     assert all(choice['owner'] == 'Mira' and choice['line'].startswith("Mira's ") for choice in circle)
     found = client.put('/api/observer', json={'focus': circle[0]['key']}).json()
     assert found['focus']['kind'] == 'circle' and found['focus']['why'] == 'Lives in town.'
     told = feed(client)
+    # A few quiet slots in a row have nothing written (about 1 run in 200 over the first days): let their week go on.
+    for _ in range(8):
+        if lines(told):
+            break
+        clock.advance(timedelta(hours=20))
+        reconcile(client)
+        told = feed(client)
     assert told['focus']['key'] == circle[0]['key'] and lines(told)
     first = circle[0]['name'].split()[0]
     assert all(first in line['text'] for line in lines(told) if line['kind'] == 'day')
