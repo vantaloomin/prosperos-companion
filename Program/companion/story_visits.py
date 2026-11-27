@@ -19,7 +19,7 @@ from the companion's life again, as it was before 1.5.
 """
 from datetime import datetime, timedelta
 
-from companion import in_character, story_cast, story_said
+from companion import in_character, story_cast, story_private, story_said
 from companion.characters import by_id
 from companion.clock import parse, stamp, zone
 from companion.database import decode, encode, identifier, many, optional
@@ -49,6 +49,13 @@ TOLD_PLAN = ('- {when}, at {place}, the two of you talked face to face, on the p
              'happened, and you remember it.')
 ENDED = ' How it ended, in the words that were said:'
 SAID = ' The latest of what was said:'
+# A visit still going on (`going`): they are with the user right now, so their chat is face to face, as on an outing
+# (companion/life/outings.py IN_PERSON). A/B in project files companion-story-together/ab: of 100 replies each, the
+# chat treated the two as together in 33 told "apart again now" and in 99 told this; a sentence more ("the same
+# moment, not a new meeting") bought nothing.
+NOW = '- Right now you are with the user at {place}, in person. {came} {talk}'
+NOW_HOME = "- Right now you are at the user's place with them, in person. {talk}"
+NOW_CAME = {'user': 'They came by while you were {doing}.', 'them': 'You came by and found them there.'}
 
 
 def counts(connection) -> bool:
@@ -71,6 +78,13 @@ def going(connection, companion: dict, now: datetime) -> dict | None:
                      'WHERE v.companion_id=? AND v.timeline_id=? AND v.ended_at IS NULL ORDER BY v.started_at DESC '
                      'LIMIT 1', (companion['id'], companion['active_timeline_id']))
     return visit if visit and now - parse(visit['last_at']) <= IDLE else None
+
+
+def header(visit: dict) -> str:
+    """The line in their chat's header while a visit goes on, worded as an outing's is (companion/life/status.py):
+    'Together at Club Charles', 'At your place'."""
+    from companion.life.together import TOGETHER_AT
+    return 'At your place' if visit['place_name'] == AT_YOURS else f"{TOGETHER_AT}{visit['place_name']}"
 
 
 # While the scene goes on ----------------------------------------------------------------------------
@@ -165,10 +179,17 @@ def fresh_lines(connection, companion: dict, user: dict, now: datetime) -> list[
 # When it ends ---------------------------------------------------------------------------------------
 
 def lines_of(connection, visit: dict) -> list[dict]:
-    """What the two of them said during the visit: the user's lines and the companion's own, in order."""
-    return many(connection, "SELECT role, text FROM story_messages WHERE seq>=? AND seq<=? AND status='complete' AND hidden=0 AND "
-                "(role='user' OR (role=? AND speaker=?)) ORDER BY seq",
-                (visit['first_seq'], visit['last_seq'], story_cast.ROLE, visit['companion_id']))
+    """What the two of them said during the visit: the user's lines and the companion's own, in order. A line the
+    user meant for someone else alone (companion/story_private.py) is not theirs to be told: their chat had "you
+    backed the other guy" from a bet whispered to the stagehand. One the rules can't place is theirs only when they
+    answered it."""
+    theirs = story_private.kept({'who': {'kind': 'companion', 'id': visit['companion_id']}})
+    own = (story_cast.ROLE, visit['companion_id'])
+    return many(connection, "SELECT role, text FROM story_messages line WHERE seq>=? AND seq<=? AND status='complete' AND "
+                "hidden=0 AND ((role=? AND speaker=?) OR (role='user' AND (private_for IS NULL OR private_for=? OR "
+                "(private_for=? AND EXISTS (SELECT 1 FROM story_messages answer WHERE answer.reply_to=line.id AND "
+                "answer.role=? AND answer.speaker=? AND answer.status='complete'))))) ORDER BY seq",
+                (visit['first_seq'], visit['last_seq'], *own, theirs, story_private.UNKNOWN, *own))
 
 
 def excerpt(lines: list[dict]) -> list[dict]:
@@ -273,10 +294,30 @@ def told_text(visit: dict, lines: list[dict], now: datetime, timezone) -> str:
     return f"{text}{ENDED if visit['ended_at'] or not visit['outing_id'] else SAID}\n{said_lines}"
 
 
+def now_text(visit: dict, lines: list[dict]) -> str:
+    """What their chat is told while the visit is going on: where the two of them are right now, in person, and the
+    latest of what was said there."""
+    from companion.life.outings import IN_PERSON
+    if visit['place_name'] == AT_YOURS:
+        text = NOW_HOME.format(talk=IN_PERSON)
+    else:
+        came = NOW_CAME[visit['came']].format(doing=DOING.get(visit['doing'], 'there on your own time'))
+        text = NOW.format(place=visit['place_name'], came=came, talk=IN_PERSON)
+    if not lines:
+        return text
+    said_lines = '\n'.join(f"  {'The user' if line['who'] == 'user' else 'You'}: {line['text']}" for line in lines)
+    return f'{text}{SAID}\n{said_lines}'
+
+
 def context_lines(connection, companion: dict, now: datetime) -> list[tuple[str, str]]:
-    """(identity, line) for the 'where' section of their 1:1 chat: the latest visit of the last day or so."""
+    """(identity, line) for the 'where' section of their 1:1 chat: the visit going on right now, else the latest
+    one of the last day or so. A plan played in the Story keeps its own line: its 'together' section says the rest."""
     if not counts(connection):
         return []
+    here = going(connection, companion, now)
+    if here and not here['outing_id']:
+        lines = excerpt(lines_of(connection, here))
+        return [(f"story-now:{here['id']}:{len(lines)}", now_text(here, lines))]
     visit = optional(connection, 'SELECT * FROM story_visits WHERE companion_id=? AND timeline_id=? AND said>0 '
                      'ORDER BY last_at DESC LIMIT 1', (companion['id'], companion['active_timeline_id']))
     if visit is None or now - parse(visit['ended_at'] or visit['last_at']) > TOLD_FOR:

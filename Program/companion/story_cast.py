@@ -244,11 +244,13 @@ def own_line(row: dict, pronouns: str | None = None) -> str:
 
 # A companion's own turn ---------------------------------------------------------------------------
 
-def line(row: dict, tags: dict | None = None) -> str:
-    """A line of the scene, the same for every speaker, their own included. `tags` marks the private ones
-    (companion/story_private.py)."""
+def line(row: dict, tags: dict | None = None, unheard: dict | None = None) -> str:
+    """A line of the scene, the same for every speaker, their own included. `tags` marks the private ones, and
+    `unheard` stands in for the ones this reader did not hear (companion/story_private.py)."""
     if row['role'] in ('scene', NOTE):
         return f"[{YOU.sub(lambda match: 'The user' + ('’s' if match[1] else ''), row['text'])}]"
+    if row['id'] in (unheard or {}):
+        return unheard[row['id']]
     return story_private.tagged(f"{LABELS.get(row['role'], row['name'])}: {row['text']}", row, tags)
 
 
@@ -290,13 +292,16 @@ def scene_part(view: dict, item: dict, seen) -> str:
     return '## The scene\n' + '\n'.join(lines)
 
 
-def shared_part(connection, view: dict, item: dict, rows: list[dict], budget: int, seen) -> str:
+def shared_part(connection, view: dict, item: dict, rows: list[dict], budget: int, seen) -> tuple[str, str]:
+    """What everyone in the scene is told: the rules, which stay the same from turn to turn, and the scene with what
+    has been said so far, which changes with every line."""
     kept = window(rows, int(budget * TRANSCRIPT_SHARE))
     tags = story_private.tags(rows, view, seen)  # What was for one person alone says so, for everyone who reads it.
-    transcript = '## The scene so far\n' + ('\n'.join(line(row, tags) for row in kept) or
+    unheard = story_private.unheard(rows, view, item, seen)  # What was not for them, they do not read.
+    transcript = '## The scene so far\n' + ('\n'.join(line(row, tags, unheard) for row in kept) or
                                             '(Nothing has been said yet.)')
-    return '\n\n'.join((prompt_library.text(connection, 'story-companion', name=item['name']),
-                        scene_part(view, item, seen), transcript))
+    return (prompt_library.text(connection, 'story-companion', name=item['name']),
+            f'{scene_part(view, item, seen)}\n\n{transcript}')
 
 
 def story_lines(connection, view: dict, item: dict, rows: list[dict], now: datetime) -> list[tuple[str, str]]:
@@ -343,11 +348,17 @@ def here_first(connection, since_seq: int) -> bool:
 
 
 def prompt(connection, view: dict, item: dict, config: dict, user: dict, seen) -> dict:
-    """One companion's request: the shared part, then their private sections, then the turn."""
+    """One companion's request. What stays the same from turn to turn comes first, as the system prompt: the rules
+    of a scene, then their own character and notes. What changes with every line is sent with the turn: the scene,
+    what has been said so far, their private notes for this reply, then the ask. The scene used to stand before
+    their notes, so no two turns began alike and a service that reuses the start of a prompt (Claude's API by its
+    marks, a local model by itself) read the whole of it again for every line (real-model run of 1.5.2: 22 of 26
+    companion turns reused nothing; A/B 2026-11-27)."""
     from companion import story_visits  # Imported here: it reads this module.
     budget = config['context_tokens'] - config['max_output_tokens']
     rows = visible(connection, item['id'])
-    shared = shared_part(connection, view, item, rows, budget, seen)
+    rules, scene = shared_part(connection, view, item, rows, budget, seen)
+    shared = f'{rules}\n\n{scene}'
     private = context.build(connection, item['companion'], view['now'], max(budget - token_estimate(shared), 1000),
                             group={'older': [], 'query': user['text'], 'previous': None, 'shared': shared,
                                    'in_person': True, 'section': 'story',
@@ -355,8 +366,9 @@ def prompt(connection, view: dict, item: dict, config: dict, user: dict, seen) -
                                    # A relationship step the user's line just settled (companion/story_visits.py).
                                    + story_visits.fresh_lines(connection, item['companion'], user, view['now'])})
     turn = TURN.format(name=item['name'])
-    return {'system': f"{shared}\n\n{private['system']}", 'turn': turn,
-            'messages': [{'role': 'user', 'content': f"{context.NOTE_OPEN}\n{private['note']}\n\n{turn}"}]}
+    return {'system': f"{rules}\n\n{private['system']}", 'turn': turn,
+            'messages': [{'role': 'user',
+                          'content': f"{context.NOTE_OPEN}\n{scene}\n\n{private['note']}\n\n{turn}"}]}
 
 
 def tidy(text: str, item: dict, view: dict) -> str:

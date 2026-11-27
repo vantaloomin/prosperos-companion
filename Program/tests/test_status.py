@@ -181,3 +181,10 @@ def test_a_chapter_shows_as_shared_unless_it_talks_to_the_user():
     assert status.public_chapter("We're open!! Day one of the bakery.", 'x') == "We're open!! Day one of the bakery."
     talking = status.public_chapter("Hear me out: what if we stopped renting? I found a place, a row house.", 'x')
     assert talking in status.NEWS['good']
+
+
+def test_together_somewhere_the_phone_header_shows_the_place_alone():
+    # The icon beside it, the pin or the Story's book, says together (Iris, 2026-11-27).
+    assert status.short({'text': 'Together at Towson Diner'}) == {'short': 'Towson Diner'}
+    assert status.short({'text': 'At your place'}) == {} and status.short({'text': ''}) == {}
+    assert status.short({'text': 'Away together in Lisbon', 'short': 'Lisbon'}) == {'short': 'Lisbon'}

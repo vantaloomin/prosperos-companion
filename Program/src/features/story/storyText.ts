@@ -195,6 +195,17 @@ export function againLabel(messages: StoryMessage[], line: StoryMessage): 'Try a
   return !replies.length || replies.some((reply) => reply.status === 'failed') ? 'Try again' : 'Another reply'
 }
 
+/** Beside Another reply, while the newest exchange holds a reply the service stopped at the "Longest reply" limit
+ * (companion/story_cut.py; the reply itself was trimmed to its last full sentence). The words that lead up to
+ * "longest reply limit", which links to its setting. It names whose reply it was unless that is the one read last. */
+export function cutShort(messages: StoryMessage[], line: StoryMessage): string | null {
+  const replies = messages.filter((message) => message.reply_to === line.id && message.status === 'complete' && (message.role === 'narrator' || message.role === 'companion'))
+  const cut = replies.filter((reply) => reply.cut)
+  if (!cut.length) return null
+  if (cut.length > 1 || cut[0].id === replies[replies.length - 1].id) return 'Cut short at the'
+  return cut[0].role === 'companion' ? `${cut[0].name}'s line was cut short at the` : "The narrator's reply was cut short at the"
+}
+
 /** The story while the latest line is answered again: its failed replies are gone at once, and with none failed all
  * of them, as the server does. `text` is the line's new words when it was edited. */
 export function toldAgain(messages: StoryMessage[], line: StoryMessage, text?: string): StoryMessage[] {

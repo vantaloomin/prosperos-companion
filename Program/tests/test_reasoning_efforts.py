@@ -110,3 +110,25 @@ def test_the_profile_takes_the_replacement_and_offers_only_the_levels_the_model_
     text_models.learn_effort(app.state.database, config, 'low', ['low'])
     again = next(item for item in client.get('/api/models').json()['profiles'] if item['id'] == created['id'])
     assert again['config']['reasoning_effort'] == 'none'
+
+
+def test_the_profile_remembers_a_model_that_ran_out_of_room_while_thinking(client, app):
+    created = client.post('/api/models/profiles', json={'name': 'Luna', 'config': {
+        'provider': 'anthropic', 'model': 'luna'}, 'api_key': 'k'}).json()
+    config = {'profile_id': created['id'], 'model': 'luna'}
+    text_models.learn_thinking(app.state.database, config)
+    text_models.learn_thinking(app.state.database, config)  # Told again: nothing changes.
+    profile = next(item for item in client.get('/api/models').json()['profiles'] if item['id'] == created['id'])
+    reported = profile['config']['reported_capabilities']
+    assert reported['model_id'] == 'luna' and reported['thinks_past_limit'] is True
+    assert profile['revision'] == created['revision'] + 1
+    with app.state.database.connect() as connection:
+        assert text_models.config_for(connection, 'chat')['reported_capabilities']['thinks_past_limit']
+    # Saving the profile from Settings keeps it; another model on the profile starts without it.
+    saved = client.put(f'/api/models/profiles/{created["id"]}', json={
+        'name': 'Luna', 'config': profile['config'], 'expected_revision': profile['revision']})
+    assert saved.status_code == 200, saved.text
+    assert saved.json()['config']['reported_capabilities']['thinks_past_limit']
+    text_models.learn_thinking(app.state.database, {**config, 'model': 'sol'})
+    again = next(item for item in client.get('/api/models').json()['profiles'] if item['id'] == created['id'])
+    assert again['revision'] == saved.json()['revision']

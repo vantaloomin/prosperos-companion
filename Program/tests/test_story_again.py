@@ -11,6 +11,7 @@ from test_story_pursuit import PROFILE, someone
 from test_together import mira
 
 from companion import story_pursuit
+from companion.memory.context import NOTE_CLOSE
 
 
 def lines(client):
@@ -30,7 +31,7 @@ def test_another_reply_tells_the_latest_reply_again_in_its_place(client, clock, 
     assert retold['message']['id'] == sent['message']['id'] and retold['reply']['id'] != sent['reply']['id']
     assert lines(client) == [('user', 'Mh.. good evening...'), ('narrator', 'The server nods toward the garden.')]
     # The narrator is asked for the same line again, without the reply it gave before.
-    assert provider.requests[-1]['messages'][-1] == {'role': 'user', 'content': 'Mh.. good evening...'}
+    assert provider.requests[-1]['messages'][-1]['content'].endswith(f'{NOTE_CLOSE}\nMh.. good evening...')
     assert 'met_before' not in retold['reply'] and 'met_before' not in retold['message']
 
 
@@ -55,7 +56,7 @@ def test_editing_the_latest_line_answers_the_new_words(client, clock, provider):
     assert edited['message']['id'] == sent['message']['id'] and edited['message']['text'] == 'Good evening.'
     assert lines(client) == [('user', 'I sit down.'), ('narrator', 'A man waves you over.'),
                              ('user', 'Good evening.'), ('narrator', '"Evening," the server says.')]
-    assert provider.requests[-1]['messages'][-1] == {'role': 'user', 'content': 'Good evening.'}
+    assert provider.requests[-1]['messages'][-1]['content'].endswith(f'{NOTE_CLOSE}\nGood evening.')
     assert edit(client, sent['message']['id'], ' ').status_code == 422
 
 

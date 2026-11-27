@@ -982,7 +982,7 @@ each at most once per timeline:
 | `follow_up` | One of the last four messages, from the companion in the last 18 hours, says they want to hear about something later ("I'd like to hear how the search is going later"), and they now have a free moment (below) | No (template: "Okay, free for a minute. How's … going?") |
 | `news` | An open thread in the companion's life settled in the last day | Yes |
 | `news` | They met another companion around town for the first time in the last day (Small world, above) | No (template: "You'll never guess who I ran into at …") |
-| `reminder` | An event committed in the last day shares a distinctive word with a user fact or shared experience | Yes |
+| `reminder` | An event committed in the last day shares two distinctive words with a user fact or shared experience, or the word the memory is named for. The companion's and the user's names do not count, and a memory used this way rests for a week. The model is told how long ago the memory is from | Yes |
 | `silence` | Only with an absence trait: no word from the user for two days | No (template by intensity) |
 | `usual_time` | The user usually starts a conversation around now (see below) and the companion is free, on a seeded 50% roll per day and stretch, at a seeded minute 0 to 25 minutes into it | No (template by time of the user's day, e.g. "Any lunch plans today?") |
 | `check_in` | A free moment, on a seeded roll per day and moment (lunch 50%, after work or class 70%, free evening 35%), at a seeded minute 5 to 50 minutes into it | No (template per moment) |

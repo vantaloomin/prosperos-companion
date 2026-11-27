@@ -76,6 +76,36 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.5.2 (2026-11-27)
+
+- **Chat is face to face during a Story visit (#653 #654):** while a visit is going on the companion's 1:1 chat is
+  told the two are together in person (`together.in_person`): read at once, no texting habits, openers, calls or
+  drop-bys. A goodbye in chat ends the visit. "Talk to Mira" in the box, "Together at Club Charles" in the header
+  and chat list; on a phone the header shows the place alone. A/B on ten models: the chat treated the two as
+  together in 33 of 100 replies before and 99 after.
+- **A whisper stays out of the companion's chat (#656):** the user's line keeps who it was for
+  (`story_messages.private_for`), and `story_visits.lines_of` leaves out a line that was for someone else alone.
+- **A companion who did not hear a whisper no longer reads its words (#663):** in their scene so far the line is a
+  note that something passed (`story_private.unheard`), and it holds after the story moves. A/B on 12 models: knew
+  what was whispered in 11 of 68 replies with the tag, 1 of 68 with the stand-in.
+- **A cut Story reply ends on a full sentence and says so (#660):** story_cut.py trims a reply stopped at "Longest
+  reply" to its last full sentence; `story_messages.cut`; "Cut short at the longest reply limit" under the newest
+  exchange.
+- **A model that thinks past the reply limit is remembered across restarts (#659):** `thinks_past_limit` on the
+  model's profile, so the first reply after a restart already asks for low effort.
+- **Story prompts keep what stays the same first (#662):** a companion's system prompt is the scene rules and their
+  own sections, and the narrator's is its rules; the scene and the story so far are sent with the turn. On Claude's
+  API a companion's turn after the first went from about 5 cents to about 1.5 on a long-running world. A/B on 12
+  models, 408 replies: level or a little better on every count.
+- **"Reminded of" first texts (#661):** a day event joins a memory on two telling words or the word the memory is
+  named for, names do not count, the reason line says how long ago the memory is from, and a used memory rests for a
+  week. A/B on 12 models: texts that told the memory as today's fell from 41% to 13%.
+- **A plan asked after "but" (#657):** `outings.asking_clause` starts the ask after "but", "though" or "so" when a
+  question follows, comma or not.
+- **A work project already said to be done is read back before the first reply (#658):** the read-back runs in
+  agenda.extend, before anything is written on a new version.
+- **Fixes:** steadier kids test (#655).
+
 ## v1.5.1 (2026-11-27)
 
 - **Story: another reply, Undo and Edit (#645):** story_again.py; Another reply (Try again after a failure), Undo

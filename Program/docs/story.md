@@ -56,7 +56,8 @@ The app decides the scene, the same way the life sim decides the companion's day
   never placed by the townsfolk rules and the narrator never voices them.
 
 The narrator model only voices the scene. Its prompt is "The Story narrator" in Settings > Advanced
-(`NARRATOR`, [prompts.md](prompts.md)), followed by a `## Scene` section with the facts above. The
+(`NARRATOR`, [prompts.md](prompts.md)); a `## Scene` section with the facts above is sent as a note with
+the user's latest line, so that the start of the prompt stays the same from line to line. The
 narrator gets the names of the people present, with a rule not to use a name until that person
 gives it. The screen lists them only as the user would see them ("the barista", "a
 regular").
@@ -79,9 +80,10 @@ where they are.
   companion with where they are now and "Go to Mira" when that is somewhere the story can go.
 - **Who answers:** the narrator's reply comes first, then each companion in the scene in their own line,
   shown under their name. Each is one ordinary model call with the conversation's text model, the group
-  chat way: the scene rules ("Companions in the Story" in Settings > Advanced), the scene and the story
-  since they came in, the same for every speaker, then their own 1:1 sections with one "This scene"
-  section (where they are and why, who came to whom), then the turn. They talk in person: the texting
+  chat way. The system prompt holds what stays the same from line to line: the scene rules ("Companions in
+  the Story" in Settings > Advanced), then their own 1:1 sections. What changes is sent with the turn: the
+  scene and the story since they came in, the same for every speaker, then their notes for this reply with
+  one "This scene" section (where they are and why, who came to whom), then the ask. They talk in person: the texting
   habits go, as on an outing. A line that names only someone else in the scene ("Dana, could I get the
   bill?") is not theirs to answer, and neither is a message out of the story (OOC).
 - **What they know:** a companion reads the story only from the line they came in at (`story_cast`
@@ -226,9 +228,10 @@ model call:
   flowers"), with a grin or a nudge making it teasing. A promise said in person stays with chat. Their own line can
   make up ("We're good"). Their line in the scene is written knowing their mood and any rough patch with the user
   (`story_said.feeling_lines`; A/B in project files companion-story-stick/ab: shown 20/117 before, 97/117 after).
-- **Their chat afterward:** for a day and a half, the 'where' section of their 1:1 chat says when and where they
-  were together, who came to whom, and the last six lines the two of them said (`story_visits.context_lines`).
-  After that it is the memory.
+- **Their chat afterward:** once the visit is over, for a day and a half, the 'where' section of their 1:1 chat
+  says when and where they were together, who came to whom, and the last six lines the two of them said
+  (`story_visits.context_lines`). After that it is the memory. While the visit is still going on the chat is face
+  to face instead ([Between the Story and the chat](#between-the-story-and-the-chat)).
 - **A line in their chat:** a finished visit with something said to them shows as one of the app's own lines in
   their 1:1 chat, at the point it happened: "In Story at Club Charles · 2:06 to 2:31 PM · Read it"
   (`story_visits.chat_lines`, `GET /api/story/visits`). The times are on the clock the chat's own stamps are on
@@ -248,13 +251,26 @@ story is then apart from the companion's life, as it was before 1.5.
 ## Between the Story and the chat
 
 The Story and a companion's 1:1 chat point at each other, so neither is a dead end (Iris's 1.5.1 handoff spec).
-All of it is rules and links: nothing here changes what a model is told.
+The links are rules; the one thing a model is told is that the two are together while a visit goes on.
 
-- **Their chat while you are with them:** while a visit with them is open ([Scenes count](#scenes-count)), their
-  chat's where strip says "With you at Club Charles, in Story" with "Back to the story". Nothing is blocked, and the
-  box to write in stays "Message Mira": their chat is still a text, as its model is told nothing new. The strip goes when the visit ends: the user goes somewhere
-  else, the companion's day takes them away, or nothing has been said for two hours. An outing, a call or a visit
-  in chat keeps its own strip (`story` on `GET /api/life/where`, `story.for_chat`, `story_visits.going`).
+- **Their chat while you are with them:** while a visit with them is going on ([Scenes count](#scenes-count)),
+  their 1:1 chat is face to face, as it is on an outing. Its where strip says "With you at Club Charles, in Story"
+  with "Back to the story", the header and the chat list say "Together at Club Charles" with the book where an
+  outing has the pin (`status.where`, kind `story`; on a phone just "Club Charles" beside the icon and no time, as for
+  an outing), and the box to write in says "Talk to Mira". Their reply is told "Right now you are with
+  the user at Club Charles, in person. They came by while you were at work there. Talk as if you are there
+  together, face to face, not texting…" with the latest six lines said in the scene (`story_visits.now_text`), in
+  place of "You are apart again now, texting". A/B on ten models, 300 replies
+  (`/mnt/project-files/companion-story-together/ab/report.md`): told they were apart, the reply treated the two as
+  together in 33 of 100 and spoke from somewhere else in 42; told this, 99 and 0. By rules, as on an outing (`together.in_person`): the reply is read
+  at once, their texting habits stop, they do not text or call first, nobody else knocks, and a picture is of the
+  scene. One test decides all of it and the strip (`story_visits.going`): the user has said something in the scene
+  while they were there, they are still in it, and the last line is under two hours old.
+- **How that ends:** the user goes somewhere else in the Story, the companion's day takes them away, nothing is
+  said for two hours, or the user says goodbye in the chat ("I should head home"), which ends it as it ends an
+  outing (`together.story_goodbye`). The story itself stays where it is. From then on their chat is told what the
+  next section says ("Their chat afterward"). An outing, a call or a visit in chat keeps its own strip, and a plan
+  played in the Story is an outing already (`story` on `GET /api/life/where`, `story.for_chat`).
 - **From the Story to their chat:** a companion who is not in the scene has "Message Mira" beside "Go to Mira" on
   their card in People you know (the era's own word: "Write to Gwen"). One who is here has neither. When they
   leave, the story's line reads "Mira has gone. · 4:39 PM · Message Mira", the time before the link.
@@ -379,17 +395,28 @@ regular across the room could answer a name the user had written down and shown 
   is the only one who does, with "The user meant that for you alone. Nobody else here caught it. Keep your answer
   just as quiet." in their own notes. When the rules can't tell who it was for, companions answer as for any line.
 - **It stays marked:** for as long as the story stays at the place, the line carries "[Private: only the server saw
-  or heard this.]" in what the narrator and each companion read, and a companion's answer to one that was theirs
+  or heard this.]" in what the narrator and the one it was for read, and a companion's answer to one that was theirs
   carries "[Private: only the user heard this.]".
+- **A companion it was not for never reads the words** (1.5.2). In their scene so far the line is "[The user says or
+  shows something to Mira, for Mira alone. You did not see or hear what it was.]" and Mira's answer is "[Mira
+  answers the user too quietly for you to hear.]". The line keeps who it was for, so this holds after the story
+  moves somewhere else. With only the tag, a companion asked about it directly gave the words away in 11 of 68
+  replies across 12 models; with the words gone, in none (A/B 2026-11-27). A line the rules can't place stays as it
+  was, tagged, since the one it was for may be that companion.
 - **Who heard:** in the secrets and news ledgers a private line is heard only by the one it was for, and a
   companion's answer to one only by the user. Townsfolk are in neither ledger, so what is whispered to one goes no
   further. A line it was not for is not said to a companion either: no relationship step, nothing remembered from
   it (`story_cast.speakers`, read by `companion/story_visits.py`).
+- **Their chat afterwards:** a companion's own chat is told how the time together went in the words that were said
+  ("Scenes count"). A line that was for someone else alone is left out of that, during the visit and after it:
+  the line keeps who it was for (`story_messages.private_for`, set when it is saved or reworded) and
+  `story_visits.lines_of` reads past it. Before 1.5.2 a bet whispered to a stagehand came back in the companion's
+  texts that night. A line the rules can't place is theirs only when they answered it.
 - **The narrator's own wording** has one standing line for what the phrases miss: "People know only what they
   could see or hear from where they are. ..." Someone who reworded the narrator keeps their wording; everything
   above is code and works either way.
-- Not done: nobody overhears a whisper at any drama setting, and the private words are still in what a companion's
-  model reads (marked, not cut).
+- Not done: nobody overhears a whisper at any drama setting, and the narrator still reads the private words
+  (marked), so what it writes about the answer is read by everyone.
 - **A/B (2026-11-26, ten models, two runs each, a blind judge):** over four private scenes (the notepad, a whisper,
   a slipped note, a question asked later) someone it was not for showed they knew it in 15 of 79 replies before
   and 0 of 80 with the note, the tag and the standing line; the standing line alone gave 1 of 80. The one it was

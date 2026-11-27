@@ -15,6 +15,11 @@ What follows from it:
   and one it was for is told so in their own notes (OWN). Their answer is as private as the line (REPLY_TAG).
 - Only the one it was for hears it in the secrets and news ledgers (companion/story_secrets.py, `heard`). The
   townsfolk the narrator voices are in neither, so from them it goes no further.
+- A companion it was not for does not read the words in the scene either: in their scene so far the line is a note
+  that something passed (UNHEARD), and so is the answer of the companion it was for (`unheard`).
+- A companion it was not for is not told of it in their own chat either, during the visit or after it: the line
+  keeps who it was for (`mark`), and what their chat reads of the scene leaves it out (companion/story_visits.py,
+  `lines_of`). One the rules can't place is left out too, unless they answered it.
 
 The narrator's own wording has a standing line for what these phrases miss (companion/story.py, NARRATOR).
 """
@@ -86,6 +91,10 @@ TAG = '[Private: only {who} saw or heard this.]'
 TAG_SOMEONE = '[Private: only the one it was meant for saw or heard this.]'
 # On a companion's answer to a line that was for them alone.
 REPLY_TAG = '[Private: only the user heard this.]'
+# In a companion's scene so far, in place of a line that was for someone else alone, and of that one's answer:
+# they are told that something passed, never what.
+UNHEARD = '[The user says or shows something to {who}, for {who} alone. You did not see or hear what it was.]'
+UNHEARD_REPLY = '[{name} answers the user too quietly for you to hear.]'
 # In a companion's own notes, when the user's latest line was for them alone.
 OWN = 'The user meant that for you alone. Nobody else here caught it. Keep your answer just as quiet.'
 
@@ -148,6 +157,25 @@ def read(text: str, companions: list[dict], people: list[dict]) -> dict | None:
     return {'who': everyone[0] if len(everyone) == 1 and not named else None}
 
 
+UNKNOWN = '?'
+
+
+def kept(found: dict | None) -> str | None:
+    """What a line keeps of its private moment (story_messages.private_for): who it was for as 'kind:id', UNKNOWN
+    when the rules can't tell, None for a line said in the open."""
+    if found is None:
+        return None
+    return f"{found['who']['kind']}:{found['who']['id']}" if found['who'] else UNKNOWN
+
+
+def mark(connection, user: dict, view: dict) -> None:
+    """The user's line was just saved or reworded: who it was for stays on it, since only now is it known who was
+    there. What a companion is told of the scene later, in their chat, leaves out a line that was for someone else
+    (companion/story_visits.py `lines_of`)."""
+    found = None if user.get('hidden') else read(user['text'], view['companions'], view['people'])
+    connection.execute('UPDATE story_messages SET private_for=? WHERE id=?', (kept(found), user['id']))
+
+
 def for_companion(found: dict | None, item: dict) -> bool:
     who = found and found['who']
     return bool(who) and who['kind'] == 'companion' and who['id'] == item['id']
@@ -201,6 +229,36 @@ def tags(rows: list[dict], view: dict, seen=None, skip: str | None = None) -> di
             found[row['id']] = REPLY_TAG
     found.pop(skip, None)
     return found
+
+
+def unheard(rows: list[dict], view: dict, item: dict, seen=None) -> dict[str, str]:
+    """{line id: what stands in its place} in one companion's scene so far: a line of the user's that was for someone
+    else alone, and a companion's answer to one that was theirs. A tag on the line was not enough: the words were
+    still in the prompt, and asked about it directly a companion gave them away (A/B 2026-11-27: 12 of 34 with the
+    tag, Claude Haiku among them). Who a line was for is read from the line (`mark`), so it holds after the story
+    moves on; one from before lines kept that is read as the tags are. A line the rules can't place stays, tagged,
+    since the one it was for may be this companion."""
+    start = max((index for index, row in enumerate(rows) if row['role'] == 'scene'), default=-1)
+    own, found, theirs = kept({'who': {'kind': 'companion', 'id': item['id']}}), {}, set()
+    for index, row in enumerate(rows):
+        if row['role'] == 'user':
+            for_, who = meant(row, view, index > start)
+            if for_ and for_ not in (own, UNKNOWN):
+                found[row['id']] = UNHEARD.format(who=shown(who, view, seen) or 'someone else')
+                theirs.add((row['id'], for_.partition(':')[2]))
+        elif row['role'] == 'companion' and (row.get('reply_to'), row.get('speaker')) in theirs:
+            found[row['id']] = UNHEARD_REPLY.format(name=row['name'])
+    return found
+
+
+def meant(row: dict, view: dict, here: bool) -> tuple[str | None, dict | None]:
+    """Who a line of the user's was for, as the line keeps it, and that one as the scene has them when they are in
+    it still. `here`: the line was said at this place, so one saved before lines kept it can be read now."""
+    if row.get('hidden'):
+        return None, None
+    private = read(row['text'], view['companions'], view['people'])
+    for_ = row.get('private_for') or (kept(private) if here else None)
+    return for_, private['who'] if private and for_ and kept(private) == for_ else None
 
 
 def tagged(text: str, row: dict, found: dict[str, str] | None) -> str:

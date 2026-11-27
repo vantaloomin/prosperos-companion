@@ -7,6 +7,7 @@ from test_drafting import connect
 from test_social_circle import make
 
 from companion import story
+from companion.memory.context import NOTE_CLOSE
 
 
 def test_the_story_is_there_in_every_world_with_no_switch(client):
@@ -68,12 +69,13 @@ def test_the_narrator_is_given_the_scene_and_the_companion_never_sees_the_story(
     say(client, 'I order a coffee and the secret password is plum.', 'story-0001')
     request = provider.requests[-1]
     assert 'You are the narrator of an open-ended story' in request['system']
-    assert f"Place: {place['name']}" in request['system'] and 'Weather:' in request['system']
+    assert f"Place: {place['name']}" in request['prompt'] and 'Weather:' in request['prompt']
     # Named spots inside the place are detail for the narrator and the screen (companion/world/inside.py).
     spots = moved['scene']['place']['spots']
-    assert spots and f"Spots here, for detail only (nobody moves between them): {', '.join(spots)}." in request['system']
-    assert all(person['sheet']['full'] in request['system'] for person in people)
-    assert request['messages'][0]['content'].startswith('[You arrive at')
+    assert spots and f"Spots here, for detail only (nobody moves between them): {', '.join(spots)}." in request['prompt']
+    assert all(person['sheet']['full'] in request['prompt'] for person in people)
+    # The scene stands with the latest line, not in the system prompt, so the start of the prompt can be reused.
+    assert 'Place:' not in request['system'] and f'{NOTE_CLOSE}\n[You arrive at' in request['messages'][0]['content']
     assert 'secret password is plum' in request['messages'][-1]['content']
 
     send(client, 'Hi Mira!', 'client-0001')
@@ -146,8 +148,8 @@ def test_people_named_in_the_story_are_met_and_remembered(client, clock, provide
     # Next time they are in the scene, the narrator remembers; another mention the same day is not another meeting.
     provider.replies = [[Chunk(f'{them["name"]} nods.'), Chunk('', 'stop')]]
     say(client, f'I wave at {them["name"]}.', 'story-0003')
-    assert 'The user has met them once and knows their name' in provider.requests[-1]['system']
-    assert 'From before: "I\'m' in provider.requests[-1]['system']
+    assert 'The user has met them once and knows their name' in provider.requests[-1]['prompt']
+    assert 'From before: "I\'m' in provider.requests[-1]['prompt']
     assert ok(client.get('/api/story'))['people'][0]['meetings'] == 1
 
     # They can become the main character, with the story's meeting in their profile.
@@ -225,7 +227,7 @@ def test_your_own_home_is_a_place_the_story_can_go(client, clock, provider):
 
     provider.replies = [[Chunk('The door clicks shut behind you.'), Chunk('', 'stop')]]
     say(client, 'I put the kettle on.', 'story-0001')
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert f"Place: The user's own home, in {scene['place']['neighborhood']}, Baltimore. They live here." in system
     assert '- Nobody else is here.' in system and 'passers-by.' not in system.split('## Scene')[1]
     assert 'Spots here' not in system and 'Your home' not in system
@@ -256,7 +258,7 @@ def test_the_story_follows_the_user_home_by_what_they_write(client, clock, provi
     provider.replies = [[Chunk('You pull your coat tighter and set off at a brisk pace.'), Chunk('', 'stop')]]
     say(client, '*She simply walks home, as fast as possible*', 'story-0001')
     # The narrator tells this very reply at home, and the screen is there with it.
-    assert "Place: The user's own home, in" in provider.requests[-1]['system']
+    assert "Place: The user's own home, in" in provider.requests[-1]['prompt']
     scene = ok(client.get('/api/story'))['scene']
     assert scene['place']['id'] == story.HOME and scene['home']['here'] is True
     # Picking the place they walked away from takes them back: the user's own choice wins.

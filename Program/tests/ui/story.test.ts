@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { visitText } from '../../src/features/conversation/storyVisits.ts'
 import { clockTime } from '../../src/when.ts'
-import { againLabel, aroundText, chapterWhen, companionLine, goHome, goneFrom, homeChoice, latestLine, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, toldAgain, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
+import { againLabel, aroundText, chapterWhen, companionLine, cutShort, goHome, goneFrom, homeChoice, latestLine, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, toldAgain, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
@@ -193,4 +193,19 @@ test('only the latest line can be told again or changed, until the story goes on
   assert.deepEqual(toldAgain(failed, failed[2], 'new').map((item: { text: string }) => item.text), ['u1', 'n1', 'new'])
   // Once the story has gone somewhere else, the line is part of what happened.
   assert.equal(latestLine([...told, row('s', 'scene')]), null)
+})
+
+test('a reply cut short at the reply limit says so beside Another reply, naming whose unless it is the last', () => {
+  const row = (id: string, role: string, reply_to: string | null = null, cut = false, name: string | null = null) =>
+    ({ id, seq: 0, role, text: id, reply_to, status: 'complete', error: null, city_id: 'c', place_id: 'p', created_at: '', client_id: null, speaker: null, name, cut }) as never
+  const line = row('u1', 'user')
+  assert.equal(cutShort([line, row('n1', 'narrator', 'u1')], line), null)
+  assert.equal(cutShort([line, row('n1', 'narrator', 'u1', true)], line), 'Cut short at the')
+  assert.equal(cutShort([line, row('n1', 'narrator', 'u1'), row('m1', 'companion', 'u1', true, 'Mira')], line), 'Cut short at the')
+  // The narrator was cut and Mira answered after: the line names whose reply it was.
+  assert.equal(cutShort([line, row('n1', 'narrator', 'u1', true), row('m1', 'companion', 'u1', false, 'Mira')], line), "The narrator's reply was cut short at the")
+  assert.equal(cutShort([line, row('n1', 'narrator', 'u1'), row('m1', 'companion', 'u1', true, 'Mira'), row('k1', 'companion', 'u1', false, 'Kenji')], line), "Mira's line was cut short at the")
+  assert.equal(cutShort([line, row('n1', 'narrator', 'u1', true), row('m1', 'companion', 'u1', true, 'Mira')], line), 'Cut short at the')
+  // A note that someone came or went is no reply.
+  assert.equal(cutShort([line, row('n1', 'narrator', 'u1', true), row('c1', 'cast', 'u1')], line), 'Cut short at the')
 })

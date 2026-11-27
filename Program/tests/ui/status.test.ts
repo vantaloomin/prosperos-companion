@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { shown, spoken, statusLabel, stickHint, whereGlyph } from '../../src/features/status/statusText.ts'
+import { sameClock, shown, spoken, statusLabel, stickHint, whereGlyph } from '../../src/features/status/statusText.ts'
 import { preview } from '../../src/features/chats/chatText.ts'
 
 test('the away line shows while they are away, else their status', () => {
@@ -35,5 +35,15 @@ test('the chat list shows luggage on a weekend visit, a phone on a call, else a 
   assert.equal(whereGlyph({ state: 'together', kind: 'home', text: 'Home together' }), 'home')
   assert.equal(whereGlyph({ state: 'call', kind: 'call', text: 'On a call' }), 'phone')
   assert.equal(whereGlyph({ state: 'apart', kind: 'long-distance', text: 'Long distance, London, 5 hours ahead' }), 'pin')
+  // With you in the Story (companion/story_visits.py): the outing's words, and the book where the pin goes.
+  assert.equal(whereGlyph({ state: 'together', kind: 'story', text: 'Together at Club Charles' }), 'book')
+  assert.deepEqual(shown({ text: 'coffee first', set_by: 'app', away: null, where: { state: 'together', kind: 'story', text: 'Together at Club Charles' } }), { text: 'Together at Club Charles', away: 'book' })
+  // The phone's header shows the place alone beside the icon (companion/life/status.py `short`).
+  assert.deepEqual(shown({ text: '', set_by: 'app', away: null, where: { state: 'together', kind: 'story', text: 'Together at Club Charles', short: 'Club Charles' } }), { text: 'Together at Club Charles', away: 'book', short: 'Club Charles' })
   assert.equal(whereGlyph(null), 'pin')
+  // Together in one place their clock is yours: the phone's header leaves the time out until you part.
+  assert.ok(sameClock({ text: '', set_by: 'app', away: null, where: { state: 'together', kind: 'story', text: 'Together at Club Charles', short: 'Club Charles' } }))
+  assert.ok(sameClock({ text: '', set_by: 'app', away: null, where: { state: 'together', kind: 'out', text: 'Together at Towson Diner', short: 'Towson Diner' } }))
+  assert.ok(!sameClock({ text: 'coffee first', set_by: 'app', away: null, where: { state: 'apart', kind: 'long-distance', text: 'Long distance, London, 5 hours ahead' } }))
+  assert.ok(!sameClock({ text: '', set_by: 'app', away: null, where: { state: 'call', kind: 'call', text: 'On a call' } }) && !sameClock(null))
 })

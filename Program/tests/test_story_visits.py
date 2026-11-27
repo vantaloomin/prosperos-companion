@@ -8,9 +8,9 @@ from test_story import ok, say
 from test_story_cast import at_work, script
 from test_together import mira
 
-from companion import story_visits
+from companion import story, story_visits
 from companion.clock import parse
-from companion.life import steps
+from companion.life import status, steps, together
 from companion.memory import records
 
 
@@ -72,6 +72,104 @@ def test_their_chat_knows_the_scene_happened_and_how_it_ended(client, barkeep, p
         companion = story_visits.by_id(connection, ok(client.get('/api/story'))['companions'][0]['id'])
         later = client.app.state.database.clock.now() + timedelta(hours=40)
         assert story_visits.context_lines(connection, companion, later) == []
+
+
+def test_while_the_scene_goes_on_their_chat_is_face_to_face_until_a_goodbye(client, barkeep, provider):
+    def told():
+        return provider.requests[-1]['system'] + ''.join(str(message['content']) for message in provider.requests[-1]['messages'])
+    at_work(client)
+    talk(client, provider)
+    script(provider, 'Mira sets down the cloth. "Ten, if the night stays this quiet."')
+    send(client, 'So what time do you get off tonight?', 'chat-0001')
+    assert 'Right now you are with the user at Club Charles, in person. They came by while you were at work there. ' \
+           'Talk as if you are there together, face to face, not texting' in told()
+    assert 'The latest of what was said:\n  The user: I lean on the bar. "Mira, tell me about your day, part 1."' in told()
+    assert 'apart again' not in told()
+    with client.app.state.database.connect() as connection:
+        companion = story_visits.by_id(connection, ok(client.get('/api/story'))['companions'][0]['id'])
+        now = client.app.state.database.clock.now()
+        assert together.in_person(connection, companion, now)  # Read at once, no texting habits, no call or knock.
+        # Their chat's header and the chat list read as on an outing, with the book where the pin goes.
+        assert status.view(connection, companion, now)['where'] == {
+            'state': 'together', 'kind': 'story', 'text': 'Together at Club Charles', 'short': 'Club Charles'}
+    # A goodbye in the chat ends the time together, as it ends an outing: the chat is texting again.
+    script(provider, 'Get home safe.')
+    send(client, 'I should head home, see you tomorrow', 'chat-0002')
+    assert 'You are apart again now, texting. How it ended, in the words that were said:' in told()
+    assert 'Right now you are with the user' not in told()
+    assert ok(client.get('/api/life/where'))['story']['with'] is None
+    with client.app.state.database.connect() as connection:
+        assert not together.in_person(connection, companion, client.app.state.database.clock.now())
+        assert status.view(connection, companion, client.app.state.database.clock.now())['where']['state'] == 'apart'
+
+
+def test_a_line_whispered_to_someone_else_stays_out_of_their_chat(client, barkeep, provider, monkeypatch):
+    """A bet whispered to the stagehand came back in the companion's texts that night: "you backed the other guy"."""
+    def told():
+        return provider.requests[-1]['system'] + ''.join(str(message['content']) for message in provider.requests[-1]['messages'])
+    with client.app.state.database.connect() as connection:
+        data = story.city_data(connection, 'baltimore')
+        moment = story.local_moment(data, client.app.state.database.clock.now())
+        person = next(found[0] for place in data['places']
+                      if (found := story.present(connection, data, place['id'], moment)))
+    monkeypatch.setattr(story, 'present', lambda *_args: [person])
+    name = person['sheet']['name']
+    at_work(client)
+    talk(client, provider)
+    script(provider, f'{name} nods once and says nothing.')
+    bet = say(client, f'I whisper to {name}: "Ten against Mira tonight, keep it between us."', 'story-0003')
+    assert [row['role'] for row in bet['replies']] == ['narrator']
+    # While they are still together, her chat reads what she heard and not what she did not.
+    script(provider, 'Mira sets down the cloth. "Ten."')
+    send(client, 'So what time do you get off tonight?', 'chat-0001')
+    assert 'part 2' in told() and 'Ten against Mira' not in told()
+    # A whisper to her is hers to remember.
+    script(provider, 'The bar hums quietly.', 'Mira nods. "Done."')
+    say(client, 'I whisper to Mira, "save me the corner seat."', 'story-0004')
+    # One the rules can't place (nobody named, two people there) is hers only if she answers it.
+    script(provider, 'A glass clinks somewhere.', 'Mira leans in. "Go on."')
+    say(client, 'I whisper, "is the back door ever locked?"', 'story-0005')
+    with client.app.state.database.connect() as connection:
+        marks = [row['private_for'] for row in connection.execute("SELECT private_for FROM story_messages WHERE role='user' ORDER BY seq")]
+        visit = story_visits.open_visits(connection)[0]
+        assert marks == [None, None, f"person:{person['sheet']['key']}", f"companion:{visit['companion_id']}", '?']
+        assert 'is the back door ever locked' in str(story_visits.lines_of(connection, visit))
+        connection.execute("UPDATE story_messages SET status='failed' WHERE role='companion' AND text LIKE '%Go on.%'")
+        assert 'is the back door ever locked' not in str(story_visits.lines_of(connection, visit))
+        connection.rollback()
+    # Afterwards too: what her chat is told of how it ended.
+    leave(client)
+    script(provider, 'It was good to see you.')
+    send(client, 'that was fun', 'chat-0002')
+    assert 'How it ended, in the words that were said:' in told()
+    assert 'save me the corner seat' in told() and 'Ten against Mira' not in told()
+
+
+def test_a_whisper_said_again_out_loud_is_heard(client, barkeep, provider, monkeypatch):
+    def told():
+        return provider.requests[-1]['system'] + ''.join(str(message['content']) for message in provider.requests[-1]['messages'])
+    with client.app.state.database.connect() as connection:
+        data = story.city_data(connection, 'baltimore')
+        moment = story.local_moment(data, client.app.state.database.clock.now())
+        person = next(found[0] for place in data['places']
+                      if (found := story.present(connection, data, place['id'], moment)))
+    monkeypatch.setattr(story, 'present', lambda *_args: [person])
+    name = person['sheet']['name']
+    at_work(client)
+    talk(client, provider)
+    script(provider, f'{name} nods once and says nothing.')
+    bet = say(client, f'I whisper to {name}: "Ten against Mira tonight."', 'story-0003')
+    with client.app.state.database.connect() as connection:
+        kept = connection.execute('SELECT private_for FROM story_messages WHERE id=?', (bet['message']['id'],)).fetchone()
+        assert kept['private_for'] == f"person:{person['sheet']['key']}"
+    script(provider, f'{name} laughs.', 'Mira looks up. "I heard that."')
+    ok(client.put(f"/api/story/messages/{bet['message']['id']}", json={'text': f'I say to {name}, loud enough for the bar: "Ten against Mira tonight."'}))
+    with client.app.state.database.connect() as connection:
+        kept = connection.execute('SELECT private_for FROM story_messages WHERE id=?', (bet['message']['id'],)).fetchone()
+        assert kept['private_for'] is None
+    script(provider, 'Mira sets down the cloth. "Ten."')
+    send(client, 'So what time do you get off tonight?', 'chat-0001')
+    assert 'Ten against Mira tonight' in told()
 
 
 def test_one_line_is_not_a_moment_and_a_day_leaves_one(client, barkeep, provider):
@@ -191,7 +289,7 @@ def test_their_chat_says_when_you_are_with_them_in_the_story_and_when_the_story_
     assert story_now() == {'with': None, 'meet': {'place': 'Club Charles', 'here': True}, 'plan': None}
     talk(client, provider, lines=1)
     assert story_now() == {'with': {'place': 'Club Charles'}, 'meet': None, 'plan': None}
-    assert ok(client.get('/api/life/where'))['state'] == 'apart'  # The chat's own state and prompt are as they were.
+    assert ok(client.get('/api/life/where'))['state'] == 'apart'  # The outing state is as it was: the strip and the box follow `story`.
     # Gone quiet for long enough, the visit is over whether or not it has been closed yet.
     clock.instant = clock.now() + story_visits.IDLE + timedelta(minutes=5)
     assert story_now()['with'] is None

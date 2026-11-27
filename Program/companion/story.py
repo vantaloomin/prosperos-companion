@@ -25,6 +25,7 @@ from companion import (
     story_again,
     story_cast,
     story_chapters,
+    story_cut,
     story_people,
     story_plans,
     story_private,
@@ -37,7 +38,7 @@ from companion.clock import zone
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
 from companion.life import agenda, ages, encounters, network, scene_now, where
-from companion.memory.context import NOTE_CLOSE
+from companion.memory.context import NOTE_CLOSE, NOTE_OPEN
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
 from companion.text_models import CHAT, config_for, default_name, key_for, reply_config
@@ -328,20 +329,20 @@ def add(connection, now: str, role: str, text: str, where: dict, **extra) -> dic
     message_id = identifier()
     connection.execute(
         'INSERT INTO story_messages (id, seq, role, text, client_id, reply_to, status, error, city_id, place_id, '
-        'created_at, speaker, name, hidden) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'created_at, speaker, name, hidden, cut) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (message_id, next_seq(connection), role, text, extra.get('client_id'), extra.get('reply_to'),
          extra.get('status', 'complete'), extra.get('error'), where['city_id'], where['place_id'], now,
-         extra.get('speaker'), extra.get('name'), int(bool(extra.get('hidden')))))
+         extra.get('speaker'), extra.get('name'), int(bool(extra.get('hidden'))), int(bool(extra.get('cut')))))
     return one(connection, 'SELECT * FROM story_messages WHERE id=?', (message_id,))
 
 
 def messages(connection, limit: int = HISTORY_LIMIT) -> list[dict]:
     rows = many(connection, 'SELECT id, seq, role, text, client_id, reply_to, status, error, city_id, place_id, '
-                'created_at, speaker, name, hidden, told_before IS NOT NULL AS undo FROM story_messages ORDER BY seq DESC '
-                'LIMIT ?', (limit,))
+                'created_at, speaker, name, hidden, cut, told_before IS NOT NULL AS undo FROM story_messages '
+                'ORDER BY seq DESC LIMIT ?', (limit,))
     # The app's crisis note under a user's line that sounds like self-harm (companion/safety.py).
-    return [{**row, 'undo': bool(row['undo']), 'crisis_help': row['role'] == 'user' and safety.crisis(row['text'])}
-            for row in reversed(rows)]
+    return [{**row, 'undo': bool(row['undo']), 'cut': bool(row['cut']),
+             'crisis_help': row['role'] == 'user' and safety.crisis(row['text'])} for row in reversed(rows)]
 
 
 def story(database) -> dict:
@@ -530,25 +531,31 @@ def model_messages(rows: list[dict], budget_chars: int, pronouns: dict | None = 
     return chat
 
 
-def steered(chat: list[dict], steer: str) -> list[dict]:
-    """The story's author's note (companion/authors_note.py) right before the user's latest words."""
-    if not steer or not chat or chat[-1]['role'] != 'user':
-        return chat
-    return [*chat[:-1], {'role': 'user', 'content': f"{steer}\n{NOTE_CLOSE}\n{chat[-1]['content']}"}]
+def noted(chat: list[dict], scene_: str, steer: str) -> list[dict]:
+    """The scene as it stands, and the story's author's note (companion/authors_note.py), right before the user's
+    latest words. They are sent with the turn and not in the system prompt because they change with every line (the
+    clock, who is here): everything before them then reads the same as it did a turn ago, and a service that
+    reuses the start of a prompt (Claude's API by its marks, a local model by itself) reads only what is new
+    (real-model run of 1.5.2: no narrator turn reused anything; A/B 2026-11-27)."""
+    note = '\n'.join(part for part in (NOTE_OPEN, scene_, steer, NOTE_CLOSE) if part)
+    if not chat or chat[-1]['role'] != 'user':
+        return [*chat, {'role': 'user', 'content': note}]
+    return [*chat[:-1], {'role': 'user', 'content': f"{note}\n{chat[-1]['content']}"}]
 
 
 def prompt(connection, now: datetime, config: dict, latest: dict) -> dict:
     view = scene(connection, now)
-    system = prompt_library.text(connection, 'story-narrator') + '\n\n' + scene_text(view)
-    if in_character.out_of_character(latest['text']):
+    system, scene_ = prompt_library.text(connection, 'story-narrator'), scene_text(view)
+    aside = in_character.out_of_character(latest['text'])
+    if aside:
         system += '\n\n' + in_character.OUT_OF_CHARACTER_NOTE.format(name='the narrator', model=default_name(config))
-    budget = (config['context_tokens'] - config['max_output_tokens']) * CHARS_PER_TOKEN - len(system)
+    budget = (config['context_tokens'] - config['max_output_tokens']) * CHARS_PER_TOKEN - len(system) - len(scene_)
     rows = [row for row in messages(connection) if row['seq'] <= latest['seq']]
     chat = model_messages(rows, max(budget, 2000), {item['id']: item['pronouns'] for item in view['companions']},
                           story_private.tags(rows, view, skip=latest['id']))
+    chat = noted(chat, scene_, '' if aside else authors_note.prompt_text(connection, 'story'))
     ask = None
-    if not in_character.out_of_character(latest['text']):
-        chat = steered(chat, authors_note.prompt_text(connection, 'story'))
+    if not aside:
         # What the line whispers or shows to one person is for them alone (companion/story_private.py).
         chat = story_private.after(chat, None if latest.get('hidden') else story_private.read(
             latest['text'], view['companions'], view['people']))
@@ -560,25 +567,29 @@ def prompt(connection, now: datetime, config: dict, latest: dict) -> dict:
             'city_id': view['city']['id'], 'day': datetime.fromisoformat(view['local_time']).date()}
 
 
-async def write(state, packet: dict, config: dict, active: bool) -> tuple[str, str | None]:
-    """One reply from the model, the narrator's or a companion's, with the sentences that break character dropped."""
+async def write(state, packet: dict, config: dict, active: bool) -> tuple[str, str | None, bool]:
+    """One reply from the model, the narrator's or a companion's, with the sentences that break character dropped.
+    One the service stopped at the reply limit ends at its last full sentence, and says it was cut
+    (companion/story_cut.py)."""
     conversation = state.conversation
-    guard, text, error = in_character.Guard(active), [], None
+    guard, text, error, cut = in_character.Guard(active), [], None, False
     async with conversation.scheduler.reserve(config, CONVERSATION):
         async for chunk in conversation.provider.stream(config, key_for(state.vault, config), packet['system'],
                                                         packet['messages']):
             text.append(guard.feed(chunk.text))
             if chunk.finish_reason == 'content_filter':
                 error = INCOMPLETE[chunk.finish_reason]
+            cut = cut or chunk.finish_reason == 'length'
     text.append(guard.flush())
-    return ''.join(text).strip(), error
+    said = ''.join(text).strip()
+    return (story_cut.trimmed(said) if cut else said), error, cut
 
 
-async def attempt(state, packet: dict, config: dict, active: bool) -> tuple[str, str | None]:
+async def attempt(state, packet: dict, config: dict, active: bool) -> tuple[str, str | None, bool]:
     try:
         return await write(state, packet, config, active)
     except DomainError as failure:
-        return '', failure.message
+        return '', failure.message, False
 
 
 def replies(connection, user: dict) -> list[dict]:
@@ -599,7 +610,7 @@ async def narrate(state, user: dict) -> tuple[dict, dict]:
                         "status='complete'", (user['id'],))
     if told:
         return told, packet['view']
-    text, error = await attempt(state, packet, config, not in_character.out_of_character(user['text']))
+    text, error, cut = await attempt(state, packet, config, not in_character.out_of_character(user['text']))
     status = 'complete' if text and not error else 'failed'
     error = None if status == 'complete' else error or 'The model returned no story text.'
     with database.connect(write=True) as connection:
@@ -609,7 +620,8 @@ async def narrate(state, user: dict) -> tuple[dict, dict]:
         if status == 'complete' and not in_character.out_of_character(user['text']):
             story_people.note_exchange(connection, packet['people'], packet['city_id'], user['text'], text,
                                        database.now(), packet['day'])
-        told = add(connection, database.now(), 'narrator', text, user, reply_to=user['id'], status=status, error=error)
+        told = add(connection, database.now(), 'narrator', text, user, reply_to=user['id'], status=status, error=error,
+                   cut=cut)
         if status == 'complete':
             story_pursuit.settle(connection, add, packet['ask'], user, packet['city_id'], database.now(), packet['day'])
             story_again.keep(connection, told, before)
@@ -630,12 +642,12 @@ async def speak(state, user: dict, item: dict) -> dict:
     if steer:  # The story's author's note, last of the notes, right before the turn.
         packet = story_secrets.noted(packet, steer)
     active = in_character.applies(user['text'], item['companion']['version']['definition'])
-    text, error, guard = await kept(state, packet, config, active, item, view, watch, user['id'])
+    text, error, guard, cut = await kept(state, packet, config, active, item, view, watch, user['id'])
     status = 'complete' if text and not error else 'failed'
     error = None if status == 'complete' else error or f"The model returned nothing for {item['name']}."
     with database.connect(write=True) as connection:
         line = add(connection, database.now(), story_cast.ROLE, text, user, reply_to=user['id'], status=status,
-                   error=error, speaker=item['id'], name=item['name'])
+                   error=error, speaker=item['id'], name=item['name'], cut=cut)
         story_visits.heard(connection, line, database.clock.now())
         # Everyone here hears it; a slip that stays says so.
         if story_secrets.heard(connection, line, view) and guard == 'revealed':
@@ -645,26 +657,26 @@ async def speak(state, user: dict, item: dict) -> dict:
 
 
 async def kept(state, packet: dict, config: dict, active: bool, item: dict, view: dict, watch: list[dict],
-               seed: str) -> tuple[str, str | None, str | None]:
+               seed: str) -> tuple[str, str | None, str | None, bool]:
     """A companion's line, checked when someone here must not find out what they know (companion/story_secrets.py):
     a line that gives it away is written once more with a reminder; if it still does, it stays only at the soap opera
-    drama setting ('revealed'), and otherwise they think better of it ('held'). Returns the text, error and what
-    the check did."""
-    text, error = await attempt(state, packet, config, active)
+    drama setting ('revealed'), and otherwise they think better of it ('held'). Returns the text, error, what
+    the check did and whether the service cut the line short."""
+    text, error, cut = await attempt(state, packet, config, active)
     text = story_cast.tidy(text, item, view)
     found = story_secrets.given(watch, text, item) if text and not error else []
     if not found:
-        return text, error, None
+        return text, error, None, cut
     with state.database.connect() as connection:
         note = story_secrets.reminder(connection, view, item, found)
         allowed = secrets.slips_allowed(connection)
-    text, error = await attempt(state, story_secrets.noted(packet, note), config, active)
+    text, error, cut = await attempt(state, story_secrets.noted(packet, note), config, active)
     text = story_cast.tidy(text, item, view)
     if error or not text or not story_secrets.given(watch, text, item):
-        return text, error, 'redrafted'
+        return text, error, 'redrafted', cut
     if allowed:
-        return text, None, 'revealed'
-    return story_secrets.held(item, seed), None, 'held'
+        return text, None, 'revealed', cut
+    return story_secrets.held(item, seed), None, 'held', False
 
 
 async def answer(state, user: dict) -> list[dict]:
@@ -696,6 +708,7 @@ def record(database, text: str, client_id: str, hidden: bool = False) -> dict:
             story_cast.sync(connection, add, view['companions'], database.now(), where)
             story_again.let_go(connection)  # The story goes on: Another reply can no longer be undone.
             user = add(connection, database.now(), 'user', text, where, client_id=client_id, hidden=hidden)
+            story_private.mark(connection, user, view)  # Who a whisper was for stays on the line.
             # Time with a companion counts (companion/story_visits.py): read before anyone answers the line.
             story_visits.said(connection, user, view, database.clock.now())
             # Everyone in the scene hears it (companion/story_secrets.py).

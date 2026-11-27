@@ -22,7 +22,7 @@ point of the story: the story goes on from the new words, as every later reply r
 left behind follows it: the sentences kept about the people met, what a companion said about themselves and, for a
 line of the latest exchange, what it let the others in the scene learn.
 """
-from companion import story_cast, story_chapters, story_people, story_said, story_secrets, story_visits
+from companion import story_cast, story_chapters, story_people, story_private, story_said, story_secrets, story_visits
 from companion.database import decode, encode, many, optional
 
 PEOPLE = ('city_id', 'name', 'first_met_at', 'last_met_at', 'last_day', 'meetings', 'notes')
@@ -156,6 +156,7 @@ def reword(connection, user: dict, text: str, view: dict, now, timestamp: str) -
     let_go(connection)
     connection.execute('UPDATE story_messages SET text=? WHERE id=?', (text, user['id']))
     said = {**user, 'text': text, 'told_before': None}
+    story_private.mark(connection, said, view)
     story_visits.said_again(connection, said, user['text'], view, now)
     story_secrets.sync(connection, view, now)
     story_secrets.heard(connection, said, view)
@@ -171,8 +172,9 @@ def editable(row: dict) -> bool:
 def reword_reply(connection, row: dict, text: str, view: dict, met: list[tuple[dict, dict]], timestamp: str) -> dict:
     """The narrator's reply or a companion's line with the user's wording. `met` is (their `known` row, their sheet)
     for everyone the user has met."""
-    connection.execute('UPDATE story_messages SET text=? WHERE id=?', (text, row['id']))
-    changed = {**row, 'text': text}
+    # In the user's wording it is whole, whatever the service cut short before (companion/story_cut.py).
+    connection.execute('UPDATE story_messages SET text=?, cut=0 WHERE id=?', (text, row['id']))
+    changed = {**row, 'text': text, 'cut': 0}
     if row['role'] == 'narrator':
         for known, sheet in met:
             story_people.reworded(connection, known, sheet, row['text'], text)
@@ -201,4 +203,4 @@ def shown(row: dict) -> dict:
     """A story line as the API gives it: without what is kept for a retelling, and with whether Another reply on it
     can be undone (`undo`)."""
     return {**{key: value for key, value in row.items() if key not in ('met_before', 'told_before')},
-            'undo': bool(row.get('told_before'))}
+            'undo': bool(row.get('told_before')), 'cut': bool(row.get('cut'))}

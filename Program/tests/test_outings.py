@@ -45,6 +45,12 @@ def test_the_day_in_the_clause_that_asks_wins_over_one_named_before_it():
     # 1.5 proof run on a tester's world: "Tuesday's a mess" booked the walk for Tuesday a week on, not Friday.
     assert asked("tuesday's a mess, let's walk friday instead")[:2] == ('walk', '2026-10-09')
     assert asked('Tuesday is a mess, want to go for a walk Friday at 4?')[:3] == ('walk', '2026-10-09', '16:00')
+    # With no comma (real-model run, 1.5.2): the plan was read as asked for Tuesday and landed on Friday only because
+    # the companion worked the days between, so Today said "Tue didn't work for Sett".
+    assert asked('Tuesday is a mess for me but do you want to get tea together friday at 4?')[:3] == \
+        ('coffee', '2026-10-09', '16:00')
+    assert asked('Monday is a mess but want to go for a walk Thursday at 4?')[:3] == ('walk', '2026-10-08', '16:00')
+    assert asked('Tuesday is a mess for me though do you want to go for a walk Friday?')[:2] == ('walk', '2026-10-09')
     # With no day in the clause that asks, a day elsewhere in the sentence still counts.
     assert asked('On Saturday, want to get coffee?')[:2] == ('coffee', '2026-10-10')
 

@@ -210,11 +210,14 @@ def together_now(connection, companion: dict, now: datetime) -> dict | None:
 
 
 def in_person(connection, companion: dict, now: datetime) -> bool:
-    """Together right now: out, at one of their places, on a weekend visit (companion/life/long_distance.py), or home
-    together of an evening when they live together (companion/life/moving_in.py)."""
+    """Together right now: out, at one of their places, on a weekend visit (companion/life/long_distance.py), home
+    together of an evening when they live together (companion/life/moving_in.py), or with the user in the Story
+    (companion/story_visits.py `going`, the test the chat's "With you at …, in Story" strip uses)."""
+    from companion import story_visits
     from companion.life import long_distance, moving_in
     return bool(together_now(connection, companion, now) or long_distance.visiting(connection, companion, now)
-                or moving_in.home_state(connection, companion, now))
+                or moving_in.home_state(connection, companion, now)
+                or story_visits.going(connection, companion, now))
 
 
 def outing_today(connection, companion: dict, day: date, now: datetime) -> bool:
@@ -343,12 +346,23 @@ def ended_by_words(connection, companion: dict, message: dict, now: datetime) ->
     """The user saying goodbye while together ("I should head home"), or "not now" to a knock, ends it then."""
     found = together_now(connection, companion, now)
     if not found or found['ended_at']:
-        return False
+        return story_goodbye(connection, companion, message, now)
     knocked = found['place'].get('knock') and now - started(found, companion) < NOT_NOW_WINDOW
     if LEAVING.search(message['text']) or (knocked and NOT_NOW.search(message['text'])):
         connection.execute('UPDATE outings SET ended_at=? WHERE id=?', (stamp(now), found['id']))
         return True
     return False
+
+
+def story_goodbye(connection, companion: dict, message: dict, now: datetime) -> bool:
+    """A goodbye in their chat while the two are together in the Story (companion/story_visits.py) ends that time
+    together, as it ends an outing: the chat is texting again. The story itself stays where it is."""
+    from companion import story_visits
+    visit = story_visits.going(connection, companion, now)
+    if not visit or visit['outing_id'] or not LEAVING.search(message['text']):
+        return False
+    story_visits.close(connection, visit, now)
+    return True
 
 
 def started(outing: dict, companion: dict) -> datetime:
@@ -544,6 +558,9 @@ def kind_of(outing: dict) -> str:
     return 'theirs' if outing['place']['kind'] == 'home' else 'out'
 
 
+TOGETHER_AT = 'Together at '  # The plain case; a phone's header shows the place alone (companion/life/status.py).
+
+
 def together_text(outing: dict, companion: dict) -> str:
     """'Together at Lupa', 'At your place', "At Mira's place"."""
     place = outing['place']
@@ -559,7 +576,7 @@ def together_text(outing: dict, companion: dict) -> str:
         return f"Your wedding at {place['name']}"
     if place.get('big_day') and place.get('title'):  # companion/life/big_days.py
         return f"At {place['title']} at {place['name']}"
-    return f"Together at {place['name']}"
+    return f"{TOGETHER_AT}{place['name']}"
 
 
 def hours_apart(connection, companion: dict, now: datetime) -> str:

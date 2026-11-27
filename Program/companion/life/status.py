@@ -302,14 +302,31 @@ def view(connection, companion: dict, now) -> dict:
     """{text, set_by: 'app'|'you', away: {text, glyph}|None, where: {state, kind, text}}."""
     mine = users_line(connection, companion, now)
     retro = retro_on(connection)
-    from companion.life import together
-    found = together.state(connection, companion, now)
     return {'text': mine or decades.without_emoji(written(connection, companion, now, retro)),
             'set_by': 'you' if mine else 'app',
             'away': away(connection, companion, now, retro),
-            # Together or apart (companion/life/together.py), in plain words: '' while apart in the same city.
-            'where': {'state': found['state'], 'kind': found['kind'], 'text': found['text'],
-                      **({'short': found['short']} if found.get('short') else {})}}
+            'where': where(connection, companion, now)}
+
+
+def where(connection, companion: dict, now) -> dict:
+    """Together or apart (companion/life/together.py), in plain words: '' while apart in the same city. With the
+    user in the Story reads as an outing does, "Together at Club Charles", with kind 'story' for the book."""
+    from companion import story_visits
+    from companion.life import together
+    found = together.state(connection, companion, now)
+    visit = story_visits.going(connection, companion, now) if found['state'] == 'apart' else None
+    if visit:
+        found = {'state': 'together', 'kind': 'story', 'text': story_visits.header(visit)}
+    return {'state': found['state'], 'kind': found['kind'], 'text': found['text'], **short(found)}
+
+
+def short(found: dict) -> dict:
+    """The phone's wording where it differs. Together somewhere, the phone's header shows the place alone ("Club
+    Charles"): its icon, the pin or the book, says together, and the strip under it says the rest (Iris, 2026-11-27)."""
+    from companion.life.together import TOGETHER_AT
+    if found.get('short'):
+        return {'short': found['short']}
+    return {'short': found['text'][len(TOGETHER_AT):]} if found['text'].startswith(TOGETHER_AT) else {}
 
 
 def for_all(connection, now) -> dict[str, dict]:

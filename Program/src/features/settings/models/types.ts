@@ -1,6 +1,6 @@
 // Provider presets and profile shapes adapted from prosperos-study src/features/models/types.ts at bbcbde4.
 export type Provider = 'openai' | 'anthropic' | 'openrouter' | 'google' | 'nanogpt' | 'compatible' | 'local' | 'kobold' | 'codex' | 'claude_code'
-export interface ReportedCapabilities { model_id: string; context_tokens?: number | null; max_output_tokens?: number | null; supported_parameters?: string[] | null; supported_efforts?: string[] | null }
+export interface ReportedCapabilities { model_id: string; context_tokens?: number | null; max_output_tokens?: number | null; supported_parameters?: string[] | null; supported_efforts?: string[] | null; thinks_past_limit?: boolean | null }
 export interface ProfileConfig {
   provider: Provider
   model: string

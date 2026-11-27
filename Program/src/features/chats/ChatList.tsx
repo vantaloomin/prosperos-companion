@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Home, Luggage, MapPin, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
+import { BookOpen, Home, Luggage, MapPin, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
 import type { View } from '../../companion'
 import type { Chat } from '../../types'
 import { Stamp } from '../../components/Stamp'
@@ -47,11 +47,11 @@ export function ChatList({ go, current = null }: { go: (view: View) => void; cur
   )
 }
 
-/** Together or apart in plain words under the preview ("At your place", "Long distance, Lisbon", "On a call", luggage on a weekend visit); nothing while apart nearby. */
+/** Together or apart in plain words under the preview ("At your place", "Long distance, Lisbon", "On a call", luggage on a weekend visit, the book in the Story); nothing while apart nearby. */
 export function ChatWhere({ chat }: { chat: Chat }) {
   const text = chat.status?.where?.text
   const magic = useMagicCalls()
-  const Glyph = { phone: magic ? Sparkles : Phone, luggage: Luggage, pin: MapPin, home: Home }[whereGlyph(chat.status?.where)]
+  const Glyph = { phone: magic ? Sparkles : Phone, luggage: Luggage, pin: MapPin, home: Home, book: BookOpen }[whereGlyph(chat.status?.where)]
   return text ? <span className="chat-row-where"><Glyph aria-hidden="true" /><span>{text}</span></span> : null
 }
 

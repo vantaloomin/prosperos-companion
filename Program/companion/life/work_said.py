@@ -9,6 +9,9 @@ word ("done", "finished", "wrapped up", "handed in"), with no hedge ("almost don
 done till Friday", a question). A match ends the project on the day it was said, with how it went, and the next one
 starts the day after; upcoming days that named the old project are composed again.
 
+Once per project their replies since it started are read too, when their days are brought up to date (`read_back`):
+a companion who said it before this rule existed is on the next project before the first reply on a new version.
+
 The companion's words stick only while the message does: another version chosen, or the message deleted, brings the
 project back (`sweep`). A project the user wrote or gave a due date stays: what the user set wins over chat. Rules
 only, no model, nothing the user has to approve.
@@ -103,19 +106,45 @@ def notice(connection, companion: dict, message: dict, now: datetime) -> bool:
     sweep(connection, companion, now)
     if message['role'] != 'companion' or message['status'] != 'complete' or message['timeline_id'] != timeline_id:
         return False
+    if read_back(connection, companion, now):
+        return True
+    found = running(connection, timeline_id)
+    return bool(found) and read(connection, companion, found, [message], now)
+
+
+def running(connection, timeline_id: str) -> dict | None:
+    """Their work state while a project runs that chat may end: not one the user wrote or gave a due date."""
     found = work.state(connection, timeline_id)
     if not found or found['status'] != 'working' or not work.level(connection):
-        return False
+        return None
+    return None if found['project'].get('own') or found['project'].get('own_due') else found
+
+
+def read(connection, companion: dict, found: dict, messages: list[dict], now: datetime) -> bool:
     project = found['project']
-    if project.get('own') or project.get('own_due'):
-        return False
-    for said in [*([] if project.get('read_back') else earlier(connection, timeline_id, project, message)), message]:
+    for said in messages:
         day = local_day(companion, said)
         if day.isoformat() >= project['started'] and said_done(said['text'], project['title']):
             finish(connection, companion, found, day, said['id'], now)
             return True
-    if not project.get('read_back'):
-        work.update(connection, timeline_id, now, project={**project, 'read_back': True})
+    return False
+
+
+def read_back(connection, companion: dict, now: datetime) -> bool:
+    """Read the companion's replies since the running project started, once per project. It runs each time their
+    days are brought up to date (agenda.extend), which is before anything is written on a new version: a world from
+    before 1.4.2 whose companion already said "register's done" has the next project in its notes for the first
+    reply. Read only after that reply (as 1.4.2 did), the reply itself said "the register is still eating my week",
+    and a model followed those words over the notes for days (real-model run of 1.5.2)."""
+    if not work.ACTIVE:
+        return False
+    timeline_id = companion['active_timeline_id']
+    found = running(connection, timeline_id)
+    if not found or found['project'].get('read_back'):
+        return False
+    if read(connection, companion, found, earlier(connection, timeline_id, found['project']), now):
+        return True
+    work.update(connection, timeline_id, now, project={**found['project'], 'read_back': True})
     return False
 
 
@@ -123,12 +152,11 @@ def local_day(companion: dict, message: dict) -> date:
     return parse(message['created_at']).astimezone(zone(companion['version']['timezone'])).date()
 
 
-def earlier(connection, timeline_id: str, project: dict, message: dict) -> list[dict]:
-    """The companion's replies on the timeline since the running project started, read once per project: a world
-    from before 1.4.2 whose companion already said it was done heals with its next reply."""
+def earlier(connection, timeline_id: str, project: dict) -> list[dict]:
+    """The companion's replies on the timeline since the running project started."""
     return many(connection, "SELECT id, text, created_at FROM messages WHERE timeline_id=? AND role='companion' AND "
-                "status='complete' AND active=1 AND redacted_at IS NULL AND id!=? AND created_at>=? ORDER BY seq",
-                (timeline_id, message['id'], project['started']))
+                "status='complete' AND active=1 AND redacted_at IS NULL AND created_at>=? ORDER BY seq",
+                (timeline_id, project['started']))
 
 
 def finish(connection, companion: dict, found: dict, day: date, message_id: str, now: datetime) -> None:
