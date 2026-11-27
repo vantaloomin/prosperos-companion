@@ -696,6 +696,7 @@ def record(database, text: str, client_id: str, hidden: bool = False) -> dict:
             story_cast.sync(connection, add, view['companions'], database.now(), where)
             story_again.let_go(connection)  # The story goes on: Another reply can no longer be undone.
             user = add(connection, database.now(), 'user', text, where, client_id=client_id, hidden=hidden)
+            story_private.mark(connection, user, view)  # Who a whisper was for stays on the line.
             # Time with a companion counts (companion/story_visits.py): read before anyone answers the line.
             story_visits.said(connection, user, view, database.clock.now())
             # Everyone in the scene hears it (companion/story_secrets.py).
