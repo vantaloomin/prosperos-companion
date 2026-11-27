@@ -149,3 +149,30 @@ def test_a_failed_reply_says_what_the_service_answered(status, body, expected):
         collect(provider)
     said = body.get('detail') or body.get('message') or body['error']['message']
     assert expected in error.value.message and f'It said: "{said}"' in error.value.message
+
+
+def test_a_profile_that_remembers_the_model_thinks_past_the_limit_asks_for_less_from_the_first_reply():
+    """The lesson holds past a restart: the profile keeps it for the model it has (text_models.learn_thinking)."""
+    bodies, told = [], []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return sse({'choices': [{'delta': {'reasoning': 'hmm', 'content': 'so anyway'}, 'finish_reason': 'length'}]})
+
+    config = {**CONFIG, 'provider': 'openrouter', 'base_url': 'https://openrouter.ai/api/v1'}
+    remembered = {**config, 'reported_capabilities': {'model_id': 'm', 'thinks_past_limit': True}}
+
+    async def run(*configs):
+        provider = ChatProvider(httpx.MockTransport(handler))
+        provider.learned_thinking = told.append
+        for each in configs:
+            [chunk async for chunk in provider.stream(each, 'k', 'system', [{'role': 'user', 'content': 'hi'}])]
+    asyncio.run(run(remembered))
+    assert bodies[0]['reasoning'] == {'effort': 'low'} and not told, 'nothing new to tell the profile'
+    # Remembered for another model, it says nothing about this one; the profile is told once, the first time.
+    bodies.clear()
+    chat.THINKS_PAST_THE_LIMIT.clear()
+    other = {**config, 'reported_capabilities': {'model_id': 'other', 'thinks_past_limit': True}}
+    asyncio.run(run(other, other))
+    assert 'reasoning' not in bodies[0] and bodies[1]['reasoning'] == {'effort': 'low'}
+    assert [each['model'] for each in told] == ['m']

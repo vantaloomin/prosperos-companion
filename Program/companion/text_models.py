@@ -317,6 +317,29 @@ def learn_effort(database, config: dict, instead: str | None, levels: list[str] 
                            (encode(saved), database.now(), profile_id))
 
 
+def learn_thinking(database, config: dict):
+    """The model ran out of reply room while reasoning (providers/chat.py): its profile remembers, so after the next
+    start of the app it is asked to think less from the first reply. Before, one long reply was cut short each time
+    the app started (real-model run of 1.5.2). A thinking setting the user picks on the profile still wins, and a
+    profile whose model changed meanwhile is left as it is."""
+    profile_id = config.get('profile_id')
+    if not profile_id:
+        return
+    with database.connect(write=True) as connection:
+        row = optional(connection, 'SELECT * FROM model_profiles WHERE id=?', (profile_id,))
+        saved = decode(row['config']) if row else None
+        if not saved or saved.get('model') != config.get('model'):
+            return
+        reported = saved.get('reported_capabilities') or {}
+        if reported.get('model_id') != saved['model']:
+            reported = {'model_id': saved['model']}
+        if reported.get('thinks_past_limit'):
+            return
+        saved['reported_capabilities'] = {**reported, 'thinks_past_limit': True}
+        connection.execute('UPDATE model_profiles SET config=?, revision=revision+1, updated_at=? WHERE id=?',
+                           (encode(saved), database.now(), profile_id))
+
+
 def require_assignable(connection, profile_id: str):
     """A profile doing a job, or in a Mix, must stay able to do it."""
     row = profile_row(connection, profile_id)
