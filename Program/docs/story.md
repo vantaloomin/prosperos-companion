@@ -251,13 +251,13 @@ The Story and a companion's 1:1 chat point at each other, so neither is a dead e
 All of it is rules and links: nothing here changes what a model is told.
 
 - **Their chat while you are with them:** while a visit with them is open ([Scenes count](#scenes-count)), their
-  chat's where strip says "With you at Club Charles, in Story" with "Back to the story", and the box to write in
-  reads as it does face to face. Nothing is blocked. The strip goes when the visit ends: the user goes somewhere
+  chat's where strip says "With you at Club Charles, in Story" with "Back to the story". Nothing is blocked, and the
+  box to write in stays "Message Mira": their chat is still a text, as its model is told nothing new. The strip goes when the visit ends: the user goes somewhere
   else, the companion's day takes them away, or nothing has been said for two hours. An outing, a call or a visit
   in chat keeps its own strip (`story` on `GET /api/life/where`, `story.for_chat`, `story_visits.going`).
 - **From the Story to their chat:** a companion who is not in the scene has "Message Mira" beside "Go to Mira" on
   their card in People you know (the era's own word: "Write to Gwen"). One who is here has neither. When they
-  leave, the story's line reads "Mira has gone. · Message Mira".
+  leave, the story's line reads "Mira has gone. · 4:39 PM · Message Mira", the time before the link.
 - **From their chat to the Story:** the chat's "…" menu has "Meet Mira in Story" while their day has them somewhere
   the story can go and no visit or plan is on. It moves the story there, as "Go to Mira" does, and only opens the
   Story when it is there already. While a plan is under way somewhere the story can go, the outing's strip ends

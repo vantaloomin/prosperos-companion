@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canBeBackAt, canGoBack, canStayLonger, homeLine, inPerson, notTexting, storyLine, storyLink, stripAction, stripLine, talkingTo, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
+import { canBeBackAt, canGoBack, canStayLonger, homeLine, inPerson, notTexting, storyLine, storyLink, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
 import { shown } from '../../src/features/status/statusText.ts'
 
 const outing: WhereOuting = {
@@ -149,8 +149,8 @@ test('with them in the Story the strip says where, and a plan the Story can play
   const there: WhereState = { ...apart, story: { ...none, with: { place: 'Club Charles' } } }
   assert.deepEqual(storyLine(there), { lead: 'With you at Club Charles, in Story', place: null, tail: '' })
   assert.equal(storyLine({ ...apart, story: { ...none, with: { place: 'your place' } } })?.lead, 'With you at your place, in Story')
-  // Face to face there, the box says "Talk to"; texting habits are the chat's own and stay as they were.
-  assert.ok(talkingTo(there) && !notTexting(there) && !talkingTo(apart) && talkingTo(out))
+  // The chat itself is not told, so it stays a text: the box keeps "Message" and texting habits stay as they were.
+  assert.ok(!notTexting(there))
   // A plan under way: "play it out in Story" until the story is there, then "Back to the story".
   assert.equal(storyLink(out), null)
   assert.equal(storyLink({ ...out, story: { ...none, plan: 'o1' } }), 'play')

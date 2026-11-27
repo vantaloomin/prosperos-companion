@@ -199,7 +199,8 @@ export function onCall(where: WhereState | undefined): boolean {
 }
 
 /** "With you at Club Charles, in Story": the strip while time together in the Story is going on and nothing else
- * (a plan, a call, a visit) has the strip. They can still be texted: the strip only says where the two of them are. */
+ * (a plan, a call, a visit) has the strip. They can still be texted, and the box to write in stays "Message": their
+ * chat is told nothing new, so the strip only says where the two of them are. */
 export function storyLine(where: WhereState | undefined): StripLine | null {
   const place = where?.story?.with?.place
   return place ? { lead: `With you at ${place}, in Story`, place: null, tail: '' } : null
@@ -211,16 +212,6 @@ export function storyLink(where: WhereState | undefined): 'back' | 'play' | null
   const story = where?.story
   if (!story?.plan || story.plan !== where?.outing?.id || where.outing.state !== 'now') return null
   return story.with ? 'back' : 'play'
-}
-
-/** Face to face in the Story right now: the message box says "Talk to", as it does out together. */
-export function inStory(where: WhereState | undefined): boolean {
-  return !!where?.story?.with
-}
-
-/** The message box says "Talk to": together, on a call, or face to face in the Story. */
-export function talkingTo(where: WhereState | undefined): boolean {
-  return notTexting(where) || inStory(where)
 }
 
 /** Together or on a call: texting habits like bursts stop. */

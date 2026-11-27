@@ -287,7 +287,7 @@ function StoryLines({ messages, chapters, headed, lookFor, onEdit }: Pick<LogPro
 function MoveLine({ message, time }: { message: StoryMessage; time: ReactNode }) {
   const words = useEraWords()
   const gone = goneFrom(message)
-  return <p className="story-move">{message.text}{gone && <> · <a className="text-button inline" href={`#chat/${gone}`}>{say(words, 'message_to', message.name ?? '')}</a></>} {time}</p>
+  return <p className="story-move">{message.text} {time}{gone && <> · <a className="text-button inline" href={`#chat/${gone}`}>{say(words, 'message_to', message.name ?? '')}</a></>}</p>
 }
 
 function StoryLine({ message, began, look, onEdit }: { message: StoryMessage; began?: string; look?: CSSProperties; onEdit: (line: StoryMessage) => void }) {

@@ -35,7 +35,7 @@ import { AwayRecap } from './AwayRecap'
 import { WhereStrip } from './WhereStrip'
 import { ApartStrip } from './ApartStrip'
 import { useWhere } from './useWhere'
-import { WHERE_KEY, notTexting, talkingTo } from './whereText'
+import { WHERE_KEY, notTexting } from './whereText'
 import { TOGETHER_KEY } from '../today/outingText'
 import { ChatSidebar } from '../chats/ChatSidebar'
 import { openNewGroup } from '../chats/newGroupStore'
@@ -94,8 +94,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
   const [found, setFound] = useState<{ id: string; at: number } | null>(null)
   const draft = useDraft()
   // In person or on the phone, texting habits like bursts stop (companion/life/together.py, calls.py).
-  const where = useWhere().data
-  const together = notTexting(where)
+  const together = notTexting(useWhere().data)
   const ooc = useOoc()
   const transcript = useRef<HTMLDivElement>(null)
   const pinned = useRef(true)
@@ -319,7 +318,7 @@ export function Conversation({ companion, go }: { companion: Companion; go: (vie
             if (was && was.status !== 'complete') void client.invalidateQueries({ queryKey: HISTORY_KEY })
           }} />
         {declining && <DeclineDialog name={name} onCancel={() => setDeclining(null)} onConfirm={() => void decline(declining)} />}
-        <Composer name={name} chat={`companion:${companion.id}`} talking={talkingTo(where)} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
+        <Composer name={name} chat={`companion:${companion.id}`} talking={together} draft={draft} streaming={streaming} compact={scroll.away} onSend={send} onStop={() => writing.forEach((id) => void stop(id))} />
       </section>
     </div>
   )
