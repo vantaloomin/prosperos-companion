@@ -93,7 +93,7 @@ def test_clearing_the_pages_keeps_the_people_met_and_who_said_yes(client, clock,
     assert [(person['key'], person['matched']) for person in cleared['people']] == [(them['key'], True)]
     told(provider, 'A nod of welcome.')
     say(client, 'I look around.', 'story-0002')
-    assert 'The user has met them once and knows their name' in provider.requests[-1]['system']
+    assert 'The user has met them once and knows their name' in provider.requests[-1]['prompt']
     assert [line['chapter'] for line in ok(client.get('/api/story'))['messages']] == [1, 1]
 
 

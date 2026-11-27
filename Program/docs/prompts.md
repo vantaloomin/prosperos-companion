@@ -73,6 +73,12 @@ from one reply to the next; anything that changes with the time of day or with t
 Claude (Anthropic, or `anthropic/` models on OpenRouter) caches only what a request marks, so those requests mark
 the system prompt and the message before the latest one. Other providers cache on their own.
 
+Story follows the same rule (`companion/story.py`, `companion/story_cast.py`). The narrator's system prompt is its
+rules alone; the scene (the place, the clock, who is here) is a note with the user's latest line, so the story so far
+reads the same as it did a line ago. A companion's system prompt is the scene rules and their own sections; the scene
+and what has been said so far come with their turn. On a long world this took a Story line with a companion there
+from about 8.5 cents to about 2.5 on Claude Sonnet (A/B 2026-11-27).
+
 ## Storage and updates
 
 A rewording is kept in `prompt_overrides` (name, text, the default it replaced, time), so it

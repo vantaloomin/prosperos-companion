@@ -56,7 +56,8 @@ The app decides the scene, the same way the life sim decides the companion's day
   never placed by the townsfolk rules and the narrator never voices them.
 
 The narrator model only voices the scene. Its prompt is "The Story narrator" in Settings > Advanced
-(`NARRATOR`, [prompts.md](prompts.md)), followed by a `## Scene` section with the facts above. The
+(`NARRATOR`, [prompts.md](prompts.md)); a `## Scene` section with the facts above is sent as a note with
+the user's latest line, so that the start of the prompt stays the same from line to line. The
 narrator gets the names of the people present, with a rule not to use a name until that person
 gives it. The screen lists them only as the user would see them ("the barista", "a
 regular").
@@ -79,9 +80,10 @@ where they are.
   companion with where they are now and "Go to Mira" when that is somewhere the story can go.
 - **Who answers:** the narrator's reply comes first, then each companion in the scene in their own line,
   shown under their name. Each is one ordinary model call with the conversation's text model, the group
-  chat way: the scene rules ("Companions in the Story" in Settings > Advanced), the scene and the story
-  since they came in, the same for every speaker, then their own 1:1 sections with one "This scene"
-  section (where they are and why, who came to whom), then the turn. They talk in person: the texting
+  chat way. The system prompt holds what stays the same from line to line: the scene rules ("Companions in
+  the Story" in Settings > Advanced), then their own 1:1 sections. What changes is sent with the turn: the
+  scene and the story since they came in, the same for every speaker, then their notes for this reply with
+  one "This scene" section (where they are and why, who came to whom), then the ask. They talk in person: the texting
   habits go, as on an outing. A line that names only someone else in the scene ("Dana, could I get the
   bill?") is not theirs to answer, and neither is a message out of the story (OOC).
 - **What they know:** a companion reads the story only from the line they came in at (`story_cast`

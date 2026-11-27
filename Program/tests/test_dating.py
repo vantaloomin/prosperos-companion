@@ -243,7 +243,7 @@ def test_a_match_can_be_met_on_a_date_in_story_mode(client, clock, provider):
 
     provider.replies = [[Chunk('They wave you over.'), Chunk('', 'stop')]]
     ok(client.post('/api/story/messages', json={'text': 'I look for my date.', 'client_id': 'story-0001'}))
-    system = provider.requests[-1]['system']
+    system = provider.requests[-1]['prompt']
     assert 'On a date with the user (Sam)' in system and match['name'] in system
 
     ended = ok(client.delete('/api/dating/dates/current'))

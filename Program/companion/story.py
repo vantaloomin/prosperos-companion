@@ -38,7 +38,7 @@ from companion.clock import zone
 from companion.database import identifier, many, one, optional
 from companion.errors import DomainError, require
 from companion.life import agenda, ages, encounters, network, scene_now, where
-from companion.memory.context import NOTE_CLOSE
+from companion.memory.context import NOTE_CLOSE, NOTE_OPEN
 from companion.providers.chat import INCOMPLETE
 from companion.providers.scheduling import CONVERSATION
 from companion.text_models import CHAT, config_for, default_name, key_for, reply_config
@@ -531,25 +531,31 @@ def model_messages(rows: list[dict], budget_chars: int, pronouns: dict | None = 
     return chat
 
 
-def steered(chat: list[dict], steer: str) -> list[dict]:
-    """The story's author's note (companion/authors_note.py) right before the user's latest words."""
-    if not steer or not chat or chat[-1]['role'] != 'user':
-        return chat
-    return [*chat[:-1], {'role': 'user', 'content': f"{steer}\n{NOTE_CLOSE}\n{chat[-1]['content']}"}]
+def noted(chat: list[dict], scene_: str, steer: str) -> list[dict]:
+    """The scene as it stands, and the story's author's note (companion/authors_note.py), right before the user's
+    latest words. They are sent with the turn and not in the system prompt because they change with every line (the
+    clock, who is here): everything before them then reads the same as it did a turn ago, and a service that
+    reuses the start of a prompt (Claude's API by its marks, a local model by itself) reads only what is new
+    (real-model run of 1.5.2: no narrator turn reused anything; A/B 2026-11-27)."""
+    note = '\n'.join(part for part in (NOTE_OPEN, scene_, steer, NOTE_CLOSE) if part)
+    if not chat or chat[-1]['role'] != 'user':
+        return [*chat, {'role': 'user', 'content': note}]
+    return [*chat[:-1], {'role': 'user', 'content': f"{note}\n{chat[-1]['content']}"}]
 
 
 def prompt(connection, now: datetime, config: dict, latest: dict) -> dict:
     view = scene(connection, now)
-    system = prompt_library.text(connection, 'story-narrator') + '\n\n' + scene_text(view)
-    if in_character.out_of_character(latest['text']):
+    system, scene_ = prompt_library.text(connection, 'story-narrator'), scene_text(view)
+    aside = in_character.out_of_character(latest['text'])
+    if aside:
         system += '\n\n' + in_character.OUT_OF_CHARACTER_NOTE.format(name='the narrator', model=default_name(config))
-    budget = (config['context_tokens'] - config['max_output_tokens']) * CHARS_PER_TOKEN - len(system)
+    budget = (config['context_tokens'] - config['max_output_tokens']) * CHARS_PER_TOKEN - len(system) - len(scene_)
     rows = [row for row in messages(connection) if row['seq'] <= latest['seq']]
     chat = model_messages(rows, max(budget, 2000), {item['id']: item['pronouns'] for item in view['companions']},
                           story_private.tags(rows, view, skip=latest['id']))
+    chat = noted(chat, scene_, '' if aside else authors_note.prompt_text(connection, 'story'))
     ask = None
-    if not in_character.out_of_character(latest['text']):
-        chat = steered(chat, authors_note.prompt_text(connection, 'story'))
+    if not aside:
         # What the line whispers or shows to one person is for them alone (companion/story_private.py).
         chat = story_private.after(chat, None if latest.get('hidden') else story_private.read(
             latest['text'], view['companions'], view['people']))

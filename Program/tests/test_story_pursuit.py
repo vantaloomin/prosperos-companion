@@ -104,7 +104,7 @@ def test_someone_who_says_yes_is_a_match_who_can_become_a_companion(client, cloc
     assert match['in_story'] is True
     # From then on the narrator knows they said yes.
     say(client, provider, f'I wave to {name}.', 'story-0003')
-    assert 'Has said yes to seeing the user' in provider.requests[-1]['system']
+    assert 'Has said yes to seeing the user' in provider.requests[-1]['prompt']
 
     draft = ok(client.get('/api/companion/cast/draft', params={'key': sheet['key']}))
     assert draft['matched'] is True and draft['definition']['relationship'] == 'romance'

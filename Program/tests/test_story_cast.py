@@ -47,13 +47,13 @@ def test_a_companion_at_work_is_in_the_scene_and_answers_for_themself(client, ba
 
     narrator, own = provider.requests[-2], provider.requests[-1]
     # The narrator is told she speaks for herself, in the scene and again after the user's line.
-    assert 'Mira speaks and acts for' in narrator['system'] and 'keep your part short' in narrator['system']
+    assert 'Mira speaks and acts for' in narrator['prompt'] and 'keep your part short' in narrator['prompt']
     assert narrator['messages'][-1]['content'].endswith(
         '[Mira will answer in their own words right after you. Write nothing Mira says or does: leave that to them.]')
     # Her own request: the scene rules, the scene, the story since she was in it, then who she is.
     assert own['system'].startswith('This is a scene in a story the user is living in person.')
-    assert 'Place: Club Charles, a bar in Station North, Baltimore.' in own['system']
-    assert '## The scene so far\nUser: I look around.\nNarrator: The bar is dim and nearly empty.' in own['system']
+    assert 'Place: Club Charles, a bar in Station North, Baltimore.' in own['prompt']
+    assert '## The scene so far\nUser: I look around.\nNarrator: The bar is dim and nearly empty.' in own['prompt']
     assert 'You are Mira. For this whole conversation you are Mira' in own['system']
     assert 'Pictures: you send one only' not in own['system']  # In person, nobody texts.
     notes = own['messages'][-1]['content']
@@ -66,7 +66,7 @@ def test_a_companion_at_work_is_in_the_scene_and_answers_for_themself(client, ba
     say(client, 'How was the shift?', 'story-0002')
     told = provider.requests[-2]['messages']
     assert '[Mira, in their own words:]\nMira looks up from the taps. "You came."' in told[-1]['content']
-    assert 'Mira: Mira looks up from the taps. "You came."' in provider.requests[-1]['system']
+    assert 'Mira: Mira looks up from the taps. "You came."' in provider.requests[-1]['prompt']
 
 
 def test_asleep_or_at_home_they_are_not_in_the_story(client, barkeep, provider, clock):
@@ -96,7 +96,7 @@ def test_they_read_the_story_only_from_when_they_were_in_it_and_so_does_their_ch
     say(client, 'I sit at the bar.', 'story-0002')
     own = provider.requests[-1]
     assert 'wuzzle' not in own['system'] and 'wuzzle' not in own['messages'][-1]['content']
-    assert 'User: I sit at the bar.' in own['system']
+    assert 'User: I sit at the bar.' in own['messages'][-1]['content']
     # Their chat knows the time they spent together (companion/story_visits.py), never what was said before they came.
     script(provider, 'hi!')
     send(client, 'Hi Mira!', 'client-0001')
@@ -203,8 +203,8 @@ def test_a_companion_comes_home_with_the_user_unless_the_line_says_they_part(cli
     scene = ok(client.get('/api/story'))['scene']
     assert scene['place']['home'] and scene['around'] == ['Mira']
     narrator, own = provider.requests[-2], provider.requests[-1]
-    assert "Place: The user's own home, in" in narrator['system'] and 'Mira speaks and acts for' in narrator['system']
-    assert "Place: The user's own home, in" in own['system'] and 'at Your home' not in own['messages'][-1]['content']
+    assert "Place: The user's own home, in" in narrator['prompt'] and 'Mira speaks and acts for' in narrator['prompt']
+    assert "Place: The user's own home, in" in own['prompt'] and 'at Your home' not in own['messages'][-1]['content']
     assert "You are Mira, in person with the user at the user's own home." in own['messages'][-1]['content']
     # Back at the bar, a line that says goodnight and walks home leaves her there: only the narrator answers.
     at_work(client)

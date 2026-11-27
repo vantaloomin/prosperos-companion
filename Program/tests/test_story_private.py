@@ -164,7 +164,7 @@ def test_a_whisper_to_one_companion_is_theirs_alone(client, monkeypatch, provide
     assert knows(client, secret['id']) == {'Mira': 'origin'}
     # Later in the scene Sam reads that the line and her answer were private; the narrator too.
     say(client, 'I turn to Sam. "How is the beer?"', 'story-0002')
-    sam = provider.respond.asked['Sam'][-1]['system']
+    sam = provider.respond.asked['Sam'][-1]['notes']
     assert f'User: {whisper}\n{story_private.TAG.format(who="Mira")}' in sam
     assert f'Mira: "Keep it down," Mira says, low.\n{story_private.REPLY_TAG}' in sam
     assert story_private.OWN not in provider.respond.asked['Sam'][-1]['notes']
