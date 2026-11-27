@@ -125,12 +125,30 @@ def test_a_title_word_that_is_not_what_it_is_about_is_not_enough():
     assert work_said.said_done('the apprentices for the guild are all sorted', TITLE)
 
 
-def test_a_world_whose_companion_already_said_it_was_done_heals_with_the_next_reply(client, sett, monkeypatch):
-    real = work_said.notice
-    monkeypatch.setattr(work_said, 'notice', lambda *_args: False)  # As before 1.4.2: nothing reads the reply.
+def test_a_world_whose_companion_already_said_it_was_done_heals_before_the_next_reply(client, sett, monkeypatch):
+    real = work_said.notice, work_said.read_back
+    # As before 1.4.2: nothing reads the reply.
+    monkeypatch.setattr(work_said, 'notice', lambda *_args: False)
+    monkeypatch.setattr(work_said, 'read_back', lambda *_args: False)
     says(client, "register's done, finally.", 'work-said-6')
     assert project(client)['project']['title'] == TITLE
-    monkeypatch.setattr(work_said, 'notice', real)
-    says(client, 'long day, the usual', 'work-said-7')
+    monkeypatch.setattr(work_said, 'notice', real[0])
+    monkeypatch.setattr(work_said, 'read_back', real[1])
+    reconcile(client)  # The new version brings their days up to date, as it does when it starts.
     view = project(client)
     assert view['project']['title'] != TITLE and view['project'].get('read_back')
+    with client.app.state.database.connect() as connection:
+        lines = [line for _key, line in work.context_lines(connection, require_current(connection),
+                                                           client.app.state.database.clock.now())]
+    assert not any(f'in the middle of {TITLE}' in line for line in lines)
+    assert any(f'wrapped up {TITLE}' in line for line in lines)
+
+
+def test_the_read_back_happens_once_for_a_project(client, sett):
+    reconcile(client)
+    with client.app.state.database.connect(write=True) as connection:
+        companion = require_current(connection)
+        assert work.state(connection, companion['active_timeline_id'])['project'].get('read_back')
+        assert not work_said.read_back(connection, companion, client.app.state.database.clock.now())
+    says(client, "register's done, finally.", 'work-said-8')
+    assert project(client)['project']['title'] != TITLE
