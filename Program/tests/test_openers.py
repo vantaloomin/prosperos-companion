@@ -471,3 +471,68 @@ def test_an_unusable_reply_with_no_template_is_not_asked_for_again_at_once(clien
     clock.advance(openers.RETRY_AFTER)
     check(client)
     assert len(provider.requests) == asked + 2
+
+
+def day_event(client, clock, key, summary, hours=3):
+    from companion import events
+    from companion.models import EventProposal
+    database = client.app.state.database
+    with database.connect() as connection:
+        timeline_id = connection.execute('SELECT active_timeline_id FROM companions').fetchone()[0]
+    event = events.propose(database, EventProposal(
+        idempotency_key=key, kind='ordinary', summary=summary, details={},
+        starts_at=(clock.now() - timedelta(hours=hours)).isoformat(),
+        ends_at=(clock.now() - timedelta(hours=hours - 1)).isoformat(), inputs={}), timeline_id)
+    events.commit(database, event['id'])
+    return event
+
+
+def reminders(client):
+    database = client.app.state.database
+    with database.connect() as connection:
+        from companion.characters import current
+        return openers.reminders(connection, current(connection), database.clock.now())
+
+
+def test_one_shared_word_does_not_remind_them_of_a_memory():
+    """The joins of the real-model run: every one of them through a single everyday word, or their own name."""
+    def facts(*memories):
+        return [({'id': subject}, openers.words(subject), openers.words(f'{subject} {value}'))
+                for subject, value in memories]
+    job = facts(('Work', "couldn't afford a job"))
+    assert openers.touched(openers.words("Mira couldn't find her keys and ran 21 minutes late."), job) is None
+    date = facts(('First date', 'You had a first date last night'))
+    assert openers.touched(openers.words('Fight night at the Office got hectic, but Mira kept up with it.'), date) is None
+    # Two telling words in common, or the word the memory is named for, is a join; the closest memory wins.
+    tea = facts(('Coffee together at Foxfire Teahouse', 'Went out together for coffee at Foxfire Teahouse'),
+                ('Yoga', 'goes on Saturdays'), ('Teahouse manners', 'never takes sugar'))
+    assert openers.touched(openers.words('Mira took a proper lunch break at Foxfire Teahouse.'), tea)['id'] == \
+        'Coffee together at Foxfire Teahouse'
+    assert openers.touched(openers.words('Mira went to a yoga class at the studio.'), tea)['id'] == 'Yoga'
+
+
+def test_their_own_names_join_nothing_and_a_memory_used_rests_for_a_week(client, connected, provider, clock):
+    set_life(client, texts_first=True)
+    remember(client, layer='user_fact', subject='Preference', value='Prefers Mira over that boss')
+    yoga = remember(client, layer='user_fact', subject='Yoga', value='goes to a class on Saturdays')
+    day_event(client, clock, 'day:boots', 'Mira picked up the resoled boots and bought a spare pair of laces.')
+    assert reminders(client) == []
+    event = day_event(client, clock, 'day:yoga', 'Mira went to a yoga class at the studio.')
+    found = reminders(client)
+    assert [trigger.sources for trigger in found] == [(event['id'], yoga['id'])]
+    # Their day as it happened, and the memory with the day it is from: not "Earlier you Mira went...".
+    assert found[0].reason == (
+        'From your own day: Mira went to a yoga class at the studio. It brought to mind something the user told you '
+        'today (Yoga: goes to a class on Saturdays). That is from then, not from today: do not tell it as if it '
+        'happened today, or where you were today. Tell them, briefly.')
+    provider.replies = [[Chunk('went to yoga today and thought of you'), Chunk('', 'stop')]]
+    assert check(client)['kind'] == 'reminder'
+    send(client, 'Ha, nice', 'client-reminder-01')
+    clock.advance(timedelta(days=2))
+    day_event(client, clock, 'day:yoga-2', 'Mira went to a yoga class at the studio again.')
+    assert reminders(client) == []
+    clock.advance(timedelta(days=6))
+    again = day_event(client, clock, 'day:yoga-3', 'Mira squeezed in a yoga class before work.')
+    found = reminders(client)
+    assert [trigger.sources for trigger in found] == [(again['id'], yoga['id'])]
+    assert 'something the user told you on Monday, 8 days ago (Yoga:' in found[0].reason
