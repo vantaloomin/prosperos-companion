@@ -162,12 +162,19 @@ def test_a_whisper_to_one_companion_is_theirs_alone(client, monkeypatch, provide
     assert f"{whisper}\n\n{story_private.NOTE_OWN.format(who='Mira')}\n\n[Mira and Sam will answer" in \
         narrator_requests(provider)[-1]['messages'][-1]['content']
     assert knows(client, secret['id']) == {'Mira': 'origin'}
-    # Later in the scene Sam reads that the line and her answer were private; the narrator too.
+    # Later in the scene Sam reads that something passed between them, never the words; the narrator reads both.
     say(client, 'I turn to Sam. "How is the beer?"', 'story-0002')
-    sam = provider.respond.asked['Sam'][-1]['notes']
-    assert f'User: {whisper}\n{story_private.TAG.format(who="Mira")}' in sam
-    assert f'Mira: "Keep it down," Mira says, low.\n{story_private.REPLY_TAG}' in sam
-    assert story_private.OWN not in provider.respond.asked['Sam'][-1]['notes']
+    sam = provider.respond.asked['Sam'][-1]
+    assert story_private.UNHEARD.format(who='Mira') in sam['notes']
+    assert story_private.UNHEARD_REPLY.format(name='Mira') in sam['notes']
+    assert all(words not in sam['system'] + sam['notes'] for words in ('Lisbon', 'Keep it down', 'whisper'))
+    assert story_private.OWN not in sam['notes']
+    # Mira, who it was for, still reads the line and her own answer, marked as private.
+    say(client, 'I raise my glass to them both. "To Mondays."', 'story-0003')
+    own = provider.respond.asked['Mira'][-1]['notes']
+    assert f'User: {whisper}\n{story_private.TAG.format(who="Mira")}' in own
+    assert f'Mira: "Keep it down," Mira says, low.\n{story_private.REPLY_TAG}' in own
+    assert 'Lisbon' not in provider.respond.asked['Sam'][-1]['notes']
     told = '\n'.join(message['content'] for message in narrator_requests(provider)[-1]['messages'])
     assert story_private.TAG.format(who='Mira') in told and story_private.REPLY_TAG in told
     assert knows(client, secret['id']) == {'Mira': 'origin'}
@@ -190,6 +197,33 @@ def test_a_whisper_to_someone_else_is_not_for_the_companions_there(client, clock
     assert f"{whisper}\n\n{story_private.NOTE.format(who=person['sheet']['full'])}" in \
         narrator_requests(provider)[-1]['messages'][-1]['content']
     assert knows(client, secret['id']) == {'Mira': 'origin'}
+    # A companion who speaks next reads that something was said to that person, and not what.
+    say(client, 'I turn back to the bar. "Busy day?"', 'story-0002')
+    for name in ('Mira', 'Sam'):
+        notes = provider.respond.asked[name][-1]['notes']
+        assert 'alone. You did not see or hear what it was.]' in notes and 'I whisper to' not in notes
+    assert 'Lisbon' not in provider.respond.asked['Sam'][-1]['notes']
     # Said out loud, everyone there hears it, as before.
-    say(client, f'I say to {person["sheet"]["name"]}: "{SECRET}."', 'story-0002')
+    say(client, f'I say to {person["sheet"]["name"]}: "{SECRET}."', 'story-0003')
     assert knows(client, secret['id']) == {'Mira': 'origin', 'Sam': 'reveal'}
+    assert f'"{SECRET}."' in provider.respond.asked['Sam'][-1]['notes']
+
+
+def test_what_a_companion_did_not_hear_stays_unheard_after_the_story_moves_on(client, clock, monkeypatch, provider):
+    set_scene(client, monkeypatch)
+    with client.app.state.database.connect() as connection:
+        data = story.city_data(connection, 'baltimore')
+        moment = story.local_moment(data, clock.now())
+        person = next(found[0] for place in data['places']
+                      if (found := story.present(connection, data, place['id'], moment)))
+    monkeypatch.setattr(story, 'present', lambda _connection, _data, place_id, *_rest:
+                        [person] if place_id == 'club-charles' else [])
+    provider.respond = lines_say()
+    say(client, f'I whisper to {person["sheet"]["name"]}: "The keys are under the blue pot."', 'story-0001')
+    say(client, 'Mira and I walk back to my place.', 'story-0002')
+    say(client, 'I put the kettle on. "Tea?"', 'story-0003')
+    assert ok(client.get('/api/story'))['scene']['place']['home']
+    notes = provider.respond.asked['Mira'][-1]['notes']
+    # At home the person it was for is no longer in the scene: the line keeps who it was for, and stays unheard.
+    assert 'I put the kettle on.' in notes and 'blue pot' not in notes
+    assert story_private.UNHEARD.format(who='someone else') in notes

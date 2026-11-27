@@ -395,8 +395,14 @@ regular across the room could answer a name the user had written down and shown 
   is the only one who does, with "The user meant that for you alone. Nobody else here caught it. Keep your answer
   just as quiet." in their own notes. When the rules can't tell who it was for, companions answer as for any line.
 - **It stays marked:** for as long as the story stays at the place, the line carries "[Private: only the server saw
-  or heard this.]" in what the narrator and each companion read, and a companion's answer to one that was theirs
+  or heard this.]" in what the narrator and the one it was for read, and a companion's answer to one that was theirs
   carries "[Private: only the user heard this.]".
+- **A companion it was not for never reads the words** (1.5.2). In their scene so far the line is "[The user says or
+  shows something to Mira, for Mira alone. You did not see or hear what it was.]" and Mira's answer is "[Mira
+  answers the user too quietly for you to hear.]". The line keeps who it was for, so this holds after the story
+  moves somewhere else. With only the tag, a companion asked about it directly gave the words away in 11 of 68
+  replies across 12 models; with the words gone, in none (A/B 2026-11-27). A line the rules can't place stays as it
+  was, tagged, since the one it was for may be that companion.
 - **Who heard:** in the secrets and news ledgers a private line is heard only by the one it was for, and a
   companion's answer to one only by the user. Townsfolk are in neither ledger, so what is whispered to one goes no
   further. A line it was not for is not said to a companion either: no relationship step, nothing remembered from
