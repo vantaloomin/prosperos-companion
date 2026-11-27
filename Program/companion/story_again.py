@@ -172,8 +172,9 @@ def editable(row: dict) -> bool:
 def reword_reply(connection, row: dict, text: str, view: dict, met: list[tuple[dict, dict]], timestamp: str) -> dict:
     """The narrator's reply or a companion's line with the user's wording. `met` is (their `known` row, their sheet)
     for everyone the user has met."""
-    connection.execute('UPDATE story_messages SET text=? WHERE id=?', (text, row['id']))
-    changed = {**row, 'text': text}
+    # In the user's wording it is whole, whatever the service cut short before (companion/story_cut.py).
+    connection.execute('UPDATE story_messages SET text=?, cut=0 WHERE id=?', (text, row['id']))
+    changed = {**row, 'text': text, 'cut': 0}
     if row['role'] == 'narrator':
         for known, sheet in met:
             story_people.reworded(connection, known, sheet, row['text'], text)
@@ -202,4 +203,4 @@ def shown(row: dict) -> dict:
     """A story line as the API gives it: without what is kept for a retelling, and with whether Another reply on it
     can be undone (`undo`)."""
     return {**{key: value for key, value in row.items() if key not in ('met_before', 'told_before')},
-            'undo': bool(row.get('told_before'))}
+            'undo': bool(row.get('told_before')), 'cut': bool(row.get('cut'))}

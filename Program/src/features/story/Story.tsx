@@ -10,7 +10,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { InfoTip } from '../../components/InfoTip'
 import { TextArea } from '../../components/Fields'
 import { AiFooter, CrisisNote } from '../../components/Safety'
-import { againLabel, aroundText, chapterWhen, goHome, goneFrom, homeChoice, latestLine, numbered, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, toldAgain, whereText, writingText } from './storyText'
+import { againLabel, aroundText, chapterWhen, cutShort, goHome, goneFrom, homeChoice, latestLine, numbered, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, toldAgain, whereText, writingText } from './storyText'
 import { StoryPeople } from './StoryPeople'
 import { useEraWords } from '../world/useEraWords'
 import { say } from '../world/eraWords'
@@ -122,7 +122,7 @@ export function Story({ go }: { go: (view: View) => void }) {
       <Opening at="top" story={story.data} busy={busy} onStart={() => void start()} />
       <StoryLog messages={story.data.messages} pending={pending} companions={story.data.scene.companions} lookFor={lookFor}
         chapters={story.data.chapters} next={pending ? null : story.data.next_chapter} onUndo={() => void chapter('DELETE')}
-        onScrolled={onScrolled} busy={busy} onAgain={(line) => void again(line)} onUndoReply={() => void undo()} onEdit={(line) => { if (!busy) setEditing(line) }} />
+        onScrolled={onScrolled} busy={busy} onAgain={(line) => void again(line)} onUndoReply={() => void undo()} onEdit={(line) => { if (!busy) setEditing(line) }} onModels={() => go('settings/models')} />
       <Opening at="bottom" story={story.data} busy={busy} onStart={() => void start()} />
       {error && <div className="story-notice"><Notice tone="error">{error}</Notice></div>}
       <StoryComposer busy={busy} onSend={(text) => void send(text)} />
@@ -206,9 +206,11 @@ interface LogProps {
   chapters: StoryChapter[]; next: StoryChapter | null; onUndo: () => void  // `next` is null while a line is being answered.
   /** Under the newest reply (companion/story_again.py): told again, the one before brought back, a line edited. */
   busy: boolean; onAgain: (line: StoryMessage) => void; onUndoReply: () => void; onEdit: (line: StoryMessage) => void
+  /** Opens Settings > Models, where "Longest reply" is, from the note on a reply that was cut short. */
+  onModels: () => void
 }
 
-function StoryLog({ messages, pending, companions, lookFor, chapters, next, onUndo, onScrolled, busy, onAgain, onUndoReply, onEdit }: LogProps) {
+function StoryLog({ messages, pending, companions, lookFor, chapters, next, onUndo, onScrolled, busy, onAgain, onUndoReply, onEdit, onModels }: LogProps) {
   const end = useRef<HTMLDivElement>(null)
   const line = busy ? null : latestLine(messages)
   // Again once the replies are all in: Another reply and Edit your line show under them then.
@@ -216,7 +218,7 @@ function StoryLog({ messages, pending, companions, lookFor, chapters, next, onUn
   return (
     <div className="story-log" aria-live="polite" onScroll={(event) => onScrolled(event.currentTarget.scrollTop, event.currentTarget.scrollHeight - event.currentTarget.clientHeight)}>
       <StoryLines messages={messages} chapters={chapters} headed={numbered(chapters, next)} lookFor={lookFor} onEdit={onEdit} />
-      {line && <LatestActions messages={messages} line={line} onAgain={onAgain} onUndo={onUndoReply} onEdit={onEdit} />}
+      {line && <LatestActions messages={messages} line={line} onAgain={onAgain} onUndo={onUndoReply} onEdit={onEdit} onModels={onModels} />}
       {next && <ChapterHeading chapter={next} onUndo={onUndo} />}
       {pending && <Writing messages={messages} pending={pending} companions={companions} />}
       <div ref={end} />
@@ -234,12 +236,16 @@ function Writing({ messages, pending, companions }: { messages: StoryMessage[]; 
 /** Under the story's newest reply, as under a chat's: the reply told again in its place (Try again when one failed or
  * never came), and the line it answers said differently. A story has one course, so only the latest line has them,
  * and only until the story goes on. A line the app said to start a plan's scene is not the user's to change. After
- * Another reply, Undo brings back the reply that was there, until the next line is sent. */
-function LatestActions({ messages, line, onAgain, onUndo, onEdit }: Pick<LogProps, 'messages' | 'onAgain' | 'onEdit'> & { line: StoryMessage; onUndo: () => void }) {
+ * Another reply, Undo brings back the reply that was there, until the next line is sent. A reply the service cut
+ * short at the reply limit says so here, before the buttons, and only while it is the newest (Iris, 1.5.2): nothing
+ * failed, so it is a quiet line, and the reply above already ends on a full sentence. */
+function LatestActions({ messages, line, onAgain, onUndo, onEdit, onModels }: Pick<LogProps, 'messages' | 'onAgain' | 'onEdit' | 'onModels'> & { line: StoryMessage; onUndo: () => void }) {
+  const cut = cutShort(messages, line)
   // Pressing one must not take the cursor out of the message box: on a phone the tab bar comes back when it does,
   // everything moves up under the finger, and the tap lands on nothing.
   return (
     <div className="turn-actions story-actions" onMouseDown={(event) => event.preventDefault()}>
+      {cut && <p className="subtle story-cut">{cut} <a className="text-button inline" href="#settings/models" onClick={(event) => { event.preventDefault(); onModels() }}>longest reply limit</a></p>}
       <button type="button" className="text-button" onClick={() => onAgain(line)}><RotateCcw aria-hidden="true" />{againLabel(messages, line)}</button>
       {line.undo && <button type="button" className="text-button" onClick={onUndo}><Undo2 aria-hidden="true" />Undo<span className="visually-hidden">: bring back the reply before</span></button>}
       {!line.hidden && <button type="button" className="text-button" onClick={() => onEdit(line)}><Pencil aria-hidden="true" />Edit your line</button>}
