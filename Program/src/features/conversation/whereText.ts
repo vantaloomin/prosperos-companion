@@ -188,9 +188,10 @@ export function canGoBack(where: WhereState | undefined): boolean {
   return where?.outing?.state === 'now' && Boolean(where.outing.undo_move)
 }
 
-/** Whether the chat writes in person now: texting habits like bursts stop while they are together. */
+/** Whether the chat writes in person now: texting habits like bursts stop while they are together, out or at
+ * home, or face to face in the Story (companion/life/together.py `in_person`). */
 export function inPerson(where: WhereState | undefined): boolean {
-  return where?.state === 'together'
+  return where?.state === 'together' || !!where?.story?.with
 }
 
 /** Whether the chat is a phone call now: replies are spoken, so bursts stop, and a reply read aloud plays by itself. */
@@ -199,8 +200,8 @@ export function onCall(where: WhereState | undefined): boolean {
 }
 
 /** "With you at Club Charles, in Story": the strip while time together in the Story is going on and nothing else
- * (a plan, a call, a visit) has the strip. They can still be texted, and the box to write in stays "Message": their
- * chat is told nothing new, so the strip only says where the two of them are. */
+ * (a plan, a call, a visit) has the strip. Their chat is face to face for as long as it shows: the box to write in
+ * says "Talk to", and their replies are told the two are together (companion/story_visits.py `now_text`). */
 export function storyLine(where: WhereState | undefined): StripLine | null {
   const place = where?.story?.with?.place
   return place ? { lead: `With you at ${place}, in Story`, place: null, tail: '' } : null

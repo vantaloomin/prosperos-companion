@@ -10,7 +10,7 @@ from test_together import mira
 
 from companion import story_visits
 from companion.clock import parse
-from companion.life import steps
+from companion.life import steps, together
 from companion.memory import records
 
 
@@ -72,6 +72,31 @@ def test_their_chat_knows_the_scene_happened_and_how_it_ended(client, barkeep, p
         companion = story_visits.by_id(connection, ok(client.get('/api/story'))['companions'][0]['id'])
         later = client.app.state.database.clock.now() + timedelta(hours=40)
         assert story_visits.context_lines(connection, companion, later) == []
+
+
+def test_while_the_scene_goes_on_their_chat_is_face_to_face_until_a_goodbye(client, barkeep, provider):
+    def told():
+        return provider.requests[-1]['system'] + ''.join(str(message['content']) for message in provider.requests[-1]['messages'])
+    at_work(client)
+    talk(client, provider)
+    script(provider, 'Mira sets down the cloth. "Ten, if the night stays this quiet."')
+    send(client, 'So what time do you get off tonight?', 'chat-0001')
+    assert 'Right now you are with the user at Club Charles, in person. They came by while you were at work there. ' \
+           'Talk as if you are there together, face to face, not texting' in told()
+    assert 'The latest of what was said:\n  The user: I lean on the bar. "Mira, tell me about your day, part 1."' in told()
+    assert 'apart again' not in told()
+    with client.app.state.database.connect() as connection:
+        companion = story_visits.by_id(connection, ok(client.get('/api/story'))['companions'][0]['id'])
+        now = client.app.state.database.clock.now()
+        assert together.in_person(connection, companion, now)  # Read at once, no texting habits, no call or knock.
+    # A goodbye in the chat ends the time together, as it ends an outing: the chat is texting again.
+    script(provider, 'Get home safe.')
+    send(client, 'I should head home, see you tomorrow', 'chat-0002')
+    assert 'You are apart again now, texting. How it ended, in the words that were said:' in told()
+    assert 'Right now you are with the user' not in told()
+    assert ok(client.get('/api/life/where'))['story']['with'] is None
+    with client.app.state.database.connect() as connection:
+        assert not together.in_person(connection, companion, client.app.state.database.clock.now())
 
 
 def test_one_line_is_not_a_moment_and_a_day_leaves_one(client, barkeep, provider):
@@ -191,7 +216,7 @@ def test_their_chat_says_when_you_are_with_them_in_the_story_and_when_the_story_
     assert story_now() == {'with': None, 'meet': {'place': 'Club Charles', 'here': True}, 'plan': None}
     talk(client, provider, lines=1)
     assert story_now() == {'with': {'place': 'Club Charles'}, 'meet': None, 'plan': None}
-    assert ok(client.get('/api/life/where'))['state'] == 'apart'  # The chat's own state and prompt are as they were.
+    assert ok(client.get('/api/life/where'))['state'] == 'apart'  # The outing state is as it was: the strip and the box follow `story`.
     # Gone quiet for long enough, the visit is over whether or not it has been closed yet.
     clock.instant = clock.now() + story_visits.IDLE + timedelta(minutes=5)
     assert story_now()['with'] is None
