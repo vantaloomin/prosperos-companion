@@ -181,12 +181,15 @@ def fresh_lines(connection, companion: dict, user: dict, now: datetime) -> list[
 def lines_of(connection, visit: dict) -> list[dict]:
     """What the two of them said during the visit: the user's lines and the companion's own, in order. A line the
     user meant for someone else alone (companion/story_private.py) is not theirs to be told: their chat had "you
-    backed the other guy" from a bet whispered to the stagehand."""
+    backed the other guy" from a bet whispered to the stagehand. One the rules can't place is theirs only when they
+    answered it."""
     theirs = story_private.kept({'who': {'kind': 'companion', 'id': visit['companion_id']}})
-    return many(connection, "SELECT role, text FROM story_messages WHERE seq>=? AND seq<=? AND status='complete' AND hidden=0 AND "
-                "((role='user' AND (private_for IS NULL OR private_for IN (?, ?))) OR (role=? AND speaker=?)) ORDER BY seq",
-                (visit['first_seq'], visit['last_seq'], story_private.UNKNOWN, theirs, story_cast.ROLE,
-                 visit['companion_id']))
+    own = (story_cast.ROLE, visit['companion_id'])
+    return many(connection, "SELECT role, text FROM story_messages line WHERE seq>=? AND seq<=? AND status='complete' AND "
+                "hidden=0 AND ((role=? AND speaker=?) OR (role='user' AND (private_for IS NULL OR private_for=? OR "
+                "(private_for=? AND EXISTS (SELECT 1 FROM story_messages answer WHERE answer.reply_to=line.id AND "
+                "answer.role=? AND answer.speaker=? AND answer.status='complete'))))) ORDER BY seq",
+                (visit['first_seq'], visit['last_seq'], *own, theirs, story_private.UNKNOWN, *own))
 
 
 def excerpt(lines: list[dict]) -> list[dict]:

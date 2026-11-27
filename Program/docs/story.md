@@ -403,7 +403,7 @@ regular across the room could answer a name the user had written down and shown 
   ("Scenes count"). A line that was for someone else alone is left out of that, during the visit and after it:
   the line keeps who it was for (`story_messages.private_for`, set when it is saved or reworded) and
   `story_visits.lines_of` reads past it. Before 1.5.2 a bet whispered to a stagehand came back in the companion's
-  texts that night. A line the rules can't place stays, as it does in the scene.
+  texts that night. A line the rules can't place is theirs only when they answered it.
 - **The narrator's own wording** has one standing line for what the phrases miss: "People know only what they
   could see or hear from where they are. ..." Someone who reworded the narrator keeps their wording; everything
   above is code and works either way.

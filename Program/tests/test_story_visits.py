@@ -126,6 +126,17 @@ def test_a_line_whispered_to_someone_else_stays_out_of_their_chat(client, barkee
     # A whisper to her is hers to remember.
     script(provider, 'The bar hums quietly.', 'Mira nods. "Done."')
     say(client, 'I whisper to Mira, "save me the corner seat."', 'story-0004')
+    # One the rules can't place (nobody named, two people there) is hers only if she answers it.
+    script(provider, 'A glass clinks somewhere.', 'Mira leans in. "Go on."')
+    say(client, 'I whisper, "is the back door ever locked?"', 'story-0005')
+    with client.app.state.database.connect() as connection:
+        marks = [row['private_for'] for row in connection.execute("SELECT private_for FROM story_messages WHERE role='user' ORDER BY seq")]
+        visit = story_visits.open_visits(connection)[0]
+        assert marks == [None, None, f"person:{person['sheet']['key']}", f"companion:{visit['companion_id']}", '?']
+        assert 'is the back door ever locked' in str(story_visits.lines_of(connection, visit))
+        connection.execute("UPDATE story_messages SET status='failed' WHERE role='companion' AND text LIKE '%Go on.%'")
+        assert 'is the back door ever locked' not in str(story_visits.lines_of(connection, visit))
+        connection.rollback()
     # Afterwards too: what her chat is told of how it ended.
     leave(client)
     script(provider, 'It was good to see you.')

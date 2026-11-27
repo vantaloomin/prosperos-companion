@@ -17,7 +17,7 @@ What follows from it:
   townsfolk the narrator voices are in neither, so from them it goes no further.
 - A companion it was not for is not told of it in their own chat either, during the visit or after it: the line
   keeps who it was for (`mark`), and what their chat reads of the scene leaves it out (companion/story_visits.py,
-  `lines_of`).
+  `lines_of`). One the rules can't place is left out too, unless they answered it.
 
 The narrator's own wording has a standing line for what these phrases miss (companion/story.py, NARRATOR).
 """
