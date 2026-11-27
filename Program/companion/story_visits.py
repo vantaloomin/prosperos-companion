@@ -83,7 +83,8 @@ def going(connection, companion: dict, now: datetime) -> dict | None:
 def header(visit: dict) -> str:
     """The line in their chat's header while a visit goes on, worded as an outing's is (companion/life/status.py):
     'Together at Club Charles', 'At your place'."""
-    return 'At your place' if visit['place_name'] == AT_YOURS else f"Together at {visit['place_name']}"
+    from companion.life.together import TOGETHER_AT
+    return 'At your place' if visit['place_name'] == AT_YOURS else f"{TOGETHER_AT}{visit['place_name']}"
 
 
 # While the scene goes on ----------------------------------------------------------------------------

@@ -37,6 +37,12 @@ export function whereGlyph(where: StatusWhere | null | undefined): 'phone' | 'lu
   return where ? togetherGlyph(where) as 'luggage' | 'pin' | 'home' | 'book' : 'pin'
 }
 
+/** Together in one place (an outing, a Story visit, at home): their clock is yours, so a phone's chat header leaves
+ * their time out and gives its row to where you are (Iris, 2026-11-27). It is back the moment you part. */
+export function sameClock(status: CompanionStatus | null | undefined): boolean {
+  return status?.where?.state === 'together'
+}
+
 /** On a call, or ringing you (companion/life/calls.py). */
 
 export function onThePhone(where: StatusWhere | null | undefined): boolean {
