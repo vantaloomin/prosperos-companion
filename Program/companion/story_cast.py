@@ -244,11 +244,13 @@ def own_line(row: dict, pronouns: str | None = None) -> str:
 
 # A companion's own turn ---------------------------------------------------------------------------
 
-def line(row: dict, tags: dict | None = None) -> str:
-    """A line of the scene, the same for every speaker, their own included. `tags` marks the private ones
-    (companion/story_private.py)."""
+def line(row: dict, tags: dict | None = None, unheard: dict | None = None) -> str:
+    """A line of the scene, the same for every speaker, their own included. `tags` marks the private ones, and
+    `unheard` stands in for the ones this reader did not hear (companion/story_private.py)."""
     if row['role'] in ('scene', NOTE):
         return f"[{YOU.sub(lambda match: 'The user' + ('’s' if match[1] else ''), row['text'])}]"
+    if row['id'] in (unheard or {}):
+        return unheard[row['id']]
     return story_private.tagged(f"{LABELS.get(row['role'], row['name'])}: {row['text']}", row, tags)
 
 
@@ -295,7 +297,8 @@ def shared_part(connection, view: dict, item: dict, rows: list[dict], budget: in
     has been said so far, which changes with every line."""
     kept = window(rows, int(budget * TRANSCRIPT_SHARE))
     tags = story_private.tags(rows, view, seen)  # What was for one person alone says so, for everyone who reads it.
-    transcript = '## The scene so far\n' + ('\n'.join(line(row, tags) for row in kept) or
+    unheard = story_private.unheard(rows, view, item, seen)  # What was not for them, they do not read.
+    transcript = '## The scene so far\n' + ('\n'.join(line(row, tags, unheard) for row in kept) or
                                             '(Nothing has been said yet.)')
     return (prompt_library.text(connection, 'story-companion', name=item['name']),
             f'{scene_part(view, item, seen)}\n\n{transcript}')
