@@ -161,8 +161,8 @@ def scene_place(connection, data: dict) -> str | None:
     from companion import story
     if connection.execute('SELECT 1 FROM story_messages LIMIT 1').fetchone() is None:
         return None
-    row = story.scene_row(connection)
-    return row['place_id'] if row['city_id'] == data['id'] else None
+    city_id, place = story.place_now(connection)  # Where its lines have walked them, their own home included.
+    return place['id'] if city_id == data['id'] else None
 
 
 def place_view(place: dict, hood: dict, pins: set[str], events: list[dict], people: list[str], era=None) -> dict:
@@ -204,8 +204,10 @@ def build(connection, companion: dict, now) -> dict:
     theirs = home_pin(connection, companion, data, hoods, now)
     if theirs:
         theirs = {**theirs, 'drop_by': drop_by.offer(connection, companion, now, 'home')}
-    homes = [pin for pin in (theirs, your_pin(connection, data, hoods)) if pin] + \
-        known_pins(connection, companion, data, hoods, now)
+    yours = your_pin(connection, data, hoods)
+    if yours and scene == yours['id']:  # The story is at their own home.
+        yours = {**yours, 'pins': sorted({*yours['pins'], 'scene'})}
+    homes = [pin for pin in (theirs, yours) if pin] + known_pins(connection, companion, data, hoods, now)
     next_to = neighbours(list(hoods.values()))
     return {'city': {'id': data['id'], 'name': data['name'], 'lat': data['lat'], 'lon': data['lon'], 'real': real(data),
                      'enclosed': data.get('enclosed') is True},

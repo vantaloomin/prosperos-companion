@@ -3099,12 +3099,19 @@ CREATE TABLE IF NOT EXISTS story_visits (
 CREATE INDEX IF NOT EXISTS story_visits_timeline ON story_visits(timeline_id, last_at);
 
 -- Facts the user told a companion face to face in the Story (companion/story_said.py): the memory and the line it
--- came from, kept here because a new story clears the lines. A corrected memory's new version is linked too.
+-- came from, kept here because clearing the story's pages clears the lines. A corrected memory's new version is linked too.
 CREATE TABLE IF NOT EXISTS story_memories (
   memory_id TEXT PRIMARY KEY REFERENCES memories(id) ON DELETE CASCADE,
   companion_id TEXT NOT NULL,
   timeline_id TEXT NOT NULL,
   story_message_id TEXT NOT NULL,
   said TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+-- Chapters the user started in the Story (companion/story_chapters.py): the next line after `after_seq` begins one.
+-- A chapter that starts by itself, when the story is picked up again after a while, is read from the lines' times.
+CREATE TABLE IF NOT EXISTS story_chapters (
+  after_seq INTEGER PRIMARY KEY,
   created_at TEXT NOT NULL
 );

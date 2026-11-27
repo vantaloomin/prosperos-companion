@@ -4,7 +4,8 @@ The **Story** tab is the user's own free-form story: they play themself in one o
 narrator describes the place and voices the people there. When the story is where a companion is at
 that hour, they are in the scene and speak for themselves ([Companions in the scene](#companions-in-the-scene)).
 The story has its own tables (`story_scene`, `story_messages`, `story_cast`). Time spent with a companion
-there counts in their life together ([Scenes count](#scenes-count)).
+there counts in their life together ([Scenes count](#scenes-count)). It is one ongoing story in a world that keeps
+going: it is told in chapters and is never finished ([Chapters and times](#chapters-and-times)).
 
 ## Part of every world
 
@@ -23,9 +24,28 @@ feature.
 The app decides the scene, the same way the life sim decides the companion's day
 (`companion/story.py`):
 
-- **Where:** the city and place the user picked under "Go somewhere else…". A new story starts in
-  the companion's city (Baltimore without one) at its first cafe. Moving adds a line to the story
-  ("You arrive at …") that the narrator sees as a note.
+- **Where:** the city and place the user picked under "Go somewhere else…", then wherever the story's
+  own lines have walked them since. A new story starts in the companion's city (Baltimore without
+  one) at its first cafe. Moving by the picker adds a line to the story ("You arrive at …", or
+  "You're home.") that the narrator sees as a note.
+- **Moves in the text:** rules read the user's and the narrator's lines since the last picked move
+  (`scene_now.story_place`, phrases in `companion/world/data/scene_moves.json`), one after another,
+  and the scene follows: to a place the map knows ("I walk over to the Charles Theatre") and to the
+  user's own home ("She simply walks home", "I head back to my apartment", "You let yourself in at
+  your place"). No model is asked and nothing is confirmed; the header, the picker and the map's
+  "story is here" pin all read the same place (`story.place_now`). Only the user's own going counts:
+  "Dana walks home", "you should go home" and "I watch them head home" move nobody. A companion in
+  the scene comes along, unless the user's line says they part ("I say goodnight and walk home",
+  "I go home alone"), which ends the time together as a picked move does. Places the map does not
+  know, vehicles and other people's homes are not followed.
+- **Home:** where the user lives in this world (`companion/life/where.py`) is a place the story can
+  be at, in its own city only (`story.home_place`, id `~you`, "Your home"). "Go home" is the first
+  choice under "Go somewhere else…" and on their home's card on the map; the Place list names
+  "Your home" only while the story is there. At home the narrator is told "Place: The user's own
+  home, in Remington, Baltimore. They live here." and "Nobody else is here." instead of passers-by
+  (A/B on seven models, `/mnt/project-files/companion-story-home/ab/report.md`). No townsfolk are
+  placed there, and the rooms are only ones the user has named. With nobody there the screen says
+  "It's just you." where a public place says "Nobody you would notice is here."
 - **When:** the app clock (debug time included) in the city's own timezone.
 - **Weather:** the city's typical weather for the date (`generators.conditions`).
 - **Who is there:** the townsfolk rules at that moment (`encounters.present`): people seeded at the
@@ -65,7 +85,7 @@ where they are.
   habits go, as on an outing. A line that names only someone else in the scene ("Dana, could I get the
   bill?") is not theirs to answer, and neither is a message out of the story (OOC).
 - **What they know:** a companion reads the story only from the line they came in at (`story_cast`
-  keeps it), never what was said before or somewhere else. Going somewhere else or starting a new story
+  keeps it), never what was said before or somewhere else. Going somewhere else or clearing the pages
   leaves them behind.
 - **The narrator** is told who speaks for themself: in the scene, with a line to keep its own part
   short, and again after the user's latest line. It reads a companion's lines under their name.
@@ -74,6 +94,34 @@ where they are.
 - **Failures:** a companion's line that fails is shown as such; Try again writes only what failed and
   keeps the rest. With nothing failed it tells the whole reply again.
 
+## Another reply and Edit
+
+Under the story's newest reply, as under a chat's (`companion/story_again.py`, `LatestActions` in `Story.tsx`):
+
+- **Another reply** tells the replies to the user's latest line again: the narrator's, then each companion's. It
+  says **Try again** when a reply failed or never came, and then writes only what is missing.
+- **Edit your line** changes the user's latest line; the replies are then written again from the new words.
+
+A story has one course: it has no timelines and no earlier versions to page back to, as a chat has. So the replies
+told before are replaced, and both are offered only on the latest line, until the story goes on (going somewhere
+else puts the story past it). After Another reply, **Undo** in the same row brings back the replies that were there
+before, with what they had done, in place of the ones told since. It is one step back, and it goes once the next
+line is sent or the line is edited (`story_messages.told_before` on the user's line holds them; `put_back`). What the old replies had done is taken back where rules did it: nobody in the scene learned
+anything from them, someone first named in them is a stranger again and the sentences kept about anyone go
+(`story_messages.met_before` on the narrator's reply holds how those people were before it), a yes to being asked
+out is unsaid and their rules answer again, and what a companion said about themselves in them is off the record.
+An edited line is read as a new line is by the companions there (memories, steps, secrets), counted once. How a
+companion felt about the old words stays felt, a relationship step the old words settled stays settled, and a
+memory they left stays until the new words correct it or the user removes it.
+
+**Edit on a reply** changes the narrator's reply or a companion's own line in place, anywhere in the story, and
+nothing is written again: every later reply reads the new wording. With a mouse, Edit shows under the reply while it
+is hovered (and for the keyboard while it has focus); on a touch screen the reply is pressed and held for a sheet
+with Copy and Edit, as a chat's messages are. The sentences kept about the people met follow the new wording, so
+something cut from a reply is not remembered of them. A companion's reworded line is what they said: what it says
+about themselves is noted again, and while it is part of the latest exchange, a secret it no longer gives away was
+never let slip.
+
 The wording was chosen by A/B on ten models (`/mnt/project-files/companion-story-cast-ab/report.md`):
 without it the narrator wrote the companion's words in 50 of 85 replies, with it in 0 of 87.
 
@@ -81,16 +129,49 @@ without it the narrator wrote the companion's words in 50 of 85 replies, with it
 
 | Request | Does |
 | --- | --- |
-| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
-| `PUT /api/story/scene` `{city_id, place_id?}` | Moves there; a city alone means its opening place. 404 for an unknown city or place. |
+| `GET /api/story` | `{scene, messages, people, companions, ready, can_switch}`. `messages` each carry `chapter` (from 1) and `local_time` (when the line was written, on its city's clock, no offset); `chapters` are the chapters those lines are in with the `local_time` of each one's first line, and `next_chapter` is the one waiting for its first line (`{number, by, local_time}`, `by` 'asked' or 'time'), else null ([Chapters and times](#chapters-and-times)). `people` are those met, newest first, with `meetings`, `notes`, `doing` and `place` now. Each also has `matched` (they said yes to the user), `companion_id` and `ask` (`{label, line}` while they are in the scene and can be asked, else null). `companions` are every companion, the main one first, with `here` (in the scene) and `place` now (null when the story cannot go to them). `scene.plan` is the plan being played here and each companion's `plan` is theirs under way (`{outing_id, companion_id, name, what, until, place, storyline, people}`), else null. `scene.home` is the user's own home as somewhere to go (`{city_id, place_id, name, here}`, null when they have none) and `scene.place.home` is true while the story is there. `scene` has the city, place, `local_time` (city clock, no offset), `weather`, the city's `places`, `around` (who is there, named only once met; companions first) and `companions` (those in the scene). A message's `role` is `user`, `narrator`, `scene`, `companion` (with `speaker` and `name`) or `cast`. A `cast` line with no `speaker` says how asking someone out went. `ready` is false without a model. |
+| `GET /api/story/visits` | `{visits}`: the main companion's finished visits with something said to them, oldest first (the latest 60), each `{id, at, place, from, until, chapter}` for a line in their chat. `at` places it in the history, `from` and `until` are when it began and when the last thing was said, `chapter` is the chapter it can be read in or null. Empty while Story scenes count is off. |
+| `PUT /api/story/scene` `{city_id, place_id?}` | Moves there; a city alone means its opening place. `place_id` `~you` is the user's own home, in the city they live in. 404 for an unknown city or place. |
 | `POST /api/story/messages` `{text, client_id}` | Saves the user's line once per `client_id` and returns `{message, reply, replies}`: `reply` is the narrator's, `replies` all of them in order, a companion's own lines after it. A failed reply is saved with `status: failed` and its `error`. Sending the same `client_id` again returns the saved replies and writes only what is missing. 409 `no_connection` without a model; the line stays saved. |
 | `POST /api/story/find` `{key}` | Moves the story to where someone the user has met is now, or a companion (`companion:<id>`). 404 if not met, 409 if they are nowhere the story can go. |
 | `POST /api/story/plan` `{outing_id}` | Plays a plan under way as a scene: moves the story to where the plan is ([Playing a plan](#playing-a-plan)). 404 for an unknown outing, 409 when it is not under way or is somewhere the story cannot go. |
-| `POST /api/story/plan/begin` `{client_id}` | Starts the scene of the plan being played here with no line from the user: saves a hidden user line once per `client_id` and returns what `POST /api/story/messages` does. 409 with no plan under way here. |
-| `POST /api/story/retry` | Writes again what failed in the replies to the latest user line; with nothing failed, tells them all again. |
-| `DELETE /api/story` | Starts a new story: the history and the people met go, the scene stays. |
+| `POST /api/story/begin` `{client_id}` | Starts the scene with a companion who is here, with no line from the user: saves a hidden user line ("I turn to Mira.") once per `client_id` and returns what `POST /api/story/messages` does. It turns to the companion whose plan is played here, else the first companion in the scene. 409 with no companion here. `POST /api/story/plan/begin` is the same call under its old name. |
+| `POST /api/story/retry` | Writes again what failed in the replies to the latest user line; with nothing failed, tells them all again in their place ([Another reply and Edit](#another-reply-and-edit)). 409 once the story has gone on. |
+| `POST /api/story/retry/undo` | Undo on Another reply: the replies told before are back in place of the ones told since, returning what `POST /api/story/messages` does. Nothing is written. 409 with nothing to bring back, or once the story has gone on. A user's line carries `undo: true` while it can be. |
+| `PUT /api/story/messages/{id}` `{text}` | Edit. On the user's latest line: says it differently and answers it anew, returning what `POST /api/story/messages` does; 409 for an earlier line, or once the story has gone on. On the narrator's reply or a companion's line, anywhere in the story: the new wording in place, returning `{message}`. 409 for any other line, 404 for one that is gone. |
+| `POST /api/story/chapter` | Starts a new chapter: the next line begins it. Nothing is cleared. 409 with nothing in the story yet. Returns what `GET /api/story` does. |
+| `DELETE /api/story/chapter` | Takes back a chapter the user started, while nothing has been said in it. |
+| `DELETE /api/story` | Clears the pages: the lines and the chapters go. The people met, whoever said yes and the scene stay. |
 
 Start over and Delete character keep the story (it is in `start_over.WORKSPACE`).
+
+## Chapters and times
+
+The Story is one story that goes on as long as the world does. Nothing has to be finished or cleared to go on with
+it, and the page says so in two ways (`companion/story_chapters.py`). Both are for the page and the export only: no
+model reads a chapter or a line's time, and the narrator reads the story across chapters as before.
+
+- **The time on a line:** the user's own lines and the app's lines ("Mira is here. · 8:06 PM") show the hour they
+  were written, on the city's own clock, the same clock the scene's time is on (the companion's own clock in their
+  city). It is read from the line's `created_at`, so nothing new is stored. A line written on a later day than its
+  chapter began (played past midnight) says the day too ("Fri 12:10 AM"). A reply comes moments after its line, so
+  it shows no time of its own on the reading page; pointing at it says when (Iris).
+- **Chapters:** rules decide them from the lines' own times. A line that comes two hours or more after the one before
+  it starts a new chapter (`GAP`, the stretch a visit with a companion ends at). A reply never starts one, so a reply
+  told again the next day stays with its line. Each chapter has a heading above its first line: "Chapter 2" and
+  "Tuesday, October 6 · 7:50 AM". A story with one chapter shows no heading: "Chapter 1" appears once there is a
+  second, written or waiting. A story written before chapters existed is read the same way, so it has them too.
+- **Coming back:** when the story is opened two hours or more after its last line, the next chapter's heading is
+  already at the end, with "The same story goes on. Everything before it still happened." The next line
+  begins it.
+- **Start a new chapter:** the link under the box starts one now (`story_chapters`: the next line after `after_seq`
+  begins it). Nothing is cleared. Until something is said in it, Undo takes it back. Asked for and then left a
+  while, it is still one chapter.
+- **Clear the pages…:** the one thing that removes anything, and only the writing: the lines and the chapters. The
+  people met still know the user, whoever said yes still has, time with companions still counts and the scene stays
+  where it is. They are the world's, not the page's. The dialog says so and offers the export first.
+- **Exports:** the story's HTML and Markdown are in chapters ("Chapter 2 · Tuesday, October 6, 2026") with each
+  line's time on its city's clock ("Times are each city's own.").
 
 ## People you've met
 
@@ -111,14 +192,15 @@ profile says "Has met the user in person …".
 Other features that put the user with someone (a date, say) record the meeting with
 `story_people.meet(connection, sheet, city_id, now, local_day, notes)`.
 
-Starting a new story clears the people met too. Companions are not in this list's table: they are listed
-above it from their own days.
+Clearing the story's pages keeps the people met: they are part of the world, and they still know the user
+([Chapters and times](#chapters-and-times)). Companions are not in this list's table: they are listed above it from
+their own days.
 
 ## Scenes count
 
 Time the user spends with a companion in the Story is part of their life together (`companion/story_visits.py`,
 table `story_visits`). A visit is one stretch of the story with a companion in the scene. It opens with the
-user's first line while they are there. It ends when the user goes somewhere else or starts a new story, when the
+user's first line while they are there. It ends when the user goes somewhere else or clears the pages, when the
 companion's day takes them away, or when nothing has been said for two hours. Everything here is rules, with no
 model call:
 
@@ -147,12 +229,46 @@ model call:
 - **Their chat afterward:** for a day and a half, the 'where' section of their 1:1 chat says when and where they
   were together, who came to whom, and the last six lines the two of them said (`story_visits.context_lines`).
   After that it is the memory.
+- **A line in their chat:** a finished visit with something said to them shows as one of the app's own lines in
+  their 1:1 chat, at the point it happened: "In Story at Club Charles · 2:06 to 2:31 PM · Read it"
+  (`story_visits.chat_lines`, `GET /api/story/visits`). The times are on the clock the chat's own stamps are on
+  (the PC's, `clockRange` in `src/when.ts`), with the date first once it is not today ("Nov 16, 2:06 to 2:31 PM"):
+  the line sits between those stamps, so it reads on their clock, while "their time" stays in the header and the
+  city's clock in the Story. So the chat shows what their next text may refer to. "Read it" opens the Story at the chapter
+  the visit is in ([Chapters and times](#chapters-and-times)); it is left out once those pages are cleared or are
+  further back than the Story shows. The line is in every chat style, as the look-change lines are. It is shown, not
+  stored: no model reads it, and it is in no export.
 
-A line to someone else in the scene, or one out of the story (OOC: or ((...))), counts for nothing. A new story
-clears the lines but not the time spent: visits are settled before the lines go.
+A line to someone else in the scene, or one out of the story (OOC: or ((...))), counts for nothing. Clearing the
+pages clears the lines but not the time spent: visits are settled before the lines go.
 
 Settings > Realism > "Story scenes count" (`life_settings.story_counts`, on by default) turns all of it off. The
 story is then apart from the companion's life, as it was before 1.5.
+
+## Between the Story and the chat
+
+The Story and a companion's 1:1 chat point at each other, so neither is a dead end (Iris's 1.5.1 handoff spec).
+All of it is rules and links: nothing here changes what a model is told.
+
+- **Their chat while you are with them:** while a visit with them is open ([Scenes count](#scenes-count)), their
+  chat's where strip says "With you at Club Charles, in Story" with "Back to the story". Nothing is blocked, and the
+  box to write in stays "Message Mira": their chat is still a text, as its model is told nothing new. The strip goes when the visit ends: the user goes somewhere
+  else, the companion's day takes them away, or nothing has been said for two hours. An outing, a call or a visit
+  in chat keeps its own strip (`story` on `GET /api/life/where`, `story.for_chat`, `story_visits.going`).
+- **From the Story to their chat:** a companion who is not in the scene has "Message Mira" beside "Go to Mira" on
+  their card in People you know (the era's own word: "Write to Gwen"). One who is here has neither. When they
+  leave, the story's line reads "Mira has gone. · 4:39 PM · Message Mira", the time before the link.
+- **From their chat to the Story:** the chat's "…" menu has "Meet Mira in Story" while their day has them somewhere
+  the story can go and no visit or plan is on. It moves the story there, as "Go to Mira" does, and only opens the
+  Story when it is there already. While a plan is under way somewhere the story can go, the outing's strip ends
+  "· play it out in Story" ([Playing a plan](#playing-a-plan)), or "· Back to the story" once it is being played.
+  There is no tab or header button: the app does not push the user into the Story.
+- **Already here:** when a companion is in the scene and nothing has been said, the Story opens with one button,
+  Start the scene, as a plan does (`POST /api/story/begin`). It never offers "Find Mira" for someone who is here.
+
+`story` on `GET /api/life/where` is `{with, meet, plan}`: `with` is `{place}` while a visit with them is open;
+`meet` is `{place, here}` when the story can go to them and nothing is on (`here` when it is there already);
+`plan` is the outing's id while a plan of theirs under way can be played.
 
 ## Playing a plan
 
@@ -216,8 +332,8 @@ rules answer, the same ones the dating app reads (`companion/world/dating.py`). 
   story and Unmatch. They become a companion as a match does (`companion/cast.py`): a romance, in the town they
   were met in, starting as close as the times the user has met them, with a profile that says they met in person.
   The companion already there steps back and stays in the same world.
-- Starting a new story lets go of whoever said yes in it, unless they became a companion. Deleting the dating
-  profile keeps them: they were never the app's.
+- Someone who said yes stays a match when the story's pages are cleared, and when the dating profile is deleted:
+  they were never the page's or the app's.
 
 ## Secrets and news in a scene
 
@@ -242,3 +358,40 @@ ledger.
 - **A/B** (project files companion-story-secrets/ab, ten models): with no scene line, a sheet secret was told in
   front of the person it is kept from in 3 of 29 replies, 0 of 28 with it. The redraft worded "turn" gave nothing
   away in 56 replies; worded "message" (the group chat's), 1 away and 5 muddled.
+
+## Private moments
+
+What the user whispers, shows or passes to one person is for that person alone (`companion/story_private.py`).
+Rules only, no model call. The narrator voices everyone in the room from the user's whole line, so before 1.5.1 a
+regular across the room could answer a name the user had written down and shown only to the server.
+
+- **What counts:** plain words in the user's line, read as written (`PRIVATE`): a whisper, something said under
+  their breath, in someone's ear, quietly or in a low voice, a note slipped or passed, something shown "only to"
+  someone or "so nobody else sees", taking someone aside. Anything else is said in the open, and so is a line that
+  also says it is out loud (`OPEN`: "loud enough", "announce", a stage whisper). Out of character is never private.
+- **Who it was for:** the person in the scene the line names, by name or by what the screen calls them ("the
+  server", or another word for the same job: "waitress"), the one nearest the private words when it names several;
+  with nobody named, the only other person there. Otherwise the moment is private but for nobody the rules can
+  tell.
+- **Who answers:** only the one it was for. The narrator is told so right after the user's line ("[Private: that
+  was for Ahmad Wallace alone. Nobody else here saw or heard what it was. Only Ahmad Wallace answers it, quietly.
+  Everyone else carries on as if nothing was said.]"). A companion it was not for takes no turn; one it was for
+  is the only one who does, with "The user meant that for you alone. Nobody else here caught it. Keep your answer
+  just as quiet." in their own notes. When the rules can't tell who it was for, companions answer as for any line.
+- **It stays marked:** for as long as the story stays at the place, the line carries "[Private: only the server saw
+  or heard this.]" in what the narrator and each companion read, and a companion's answer to one that was theirs
+  carries "[Private: only the user heard this.]".
+- **Who heard:** in the secrets and news ledgers a private line is heard only by the one it was for, and a
+  companion's answer to one only by the user. Townsfolk are in neither ledger, so what is whispered to one goes no
+  further. A line it was not for is not said to a companion either: no relationship step, nothing remembered from
+  it (`story_cast.speakers`, read by `companion/story_visits.py`).
+- **The narrator's own wording** has one standing line for what the phrases miss: "People know only what they
+  could see or hear from where they are. ..." Someone who reworded the narrator keeps their wording; everything
+  above is code and works either way.
+- Not done: nobody overhears a whisper at any drama setting, and the private words are still in what a companion's
+  model reads (marked, not cut).
+- **A/B (2026-11-26, ten models, two runs each, a blind judge):** over four private scenes (the notepad, a whisper,
+  a slipped note, a question asked later) someone it was not for showed they knew it in 15 of 79 replies before
+  and 0 of 80 with the note, the tag and the standing line; the standing line alone gave 1 of 80. The one it was
+  for answered in 59 of 60, and a line said out loud was still reacted to by the room (17 of 18 against 18 of 20).
+  A tighter note ("... quietly, without saying it out loud") was no better and was dropped.

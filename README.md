@@ -25,7 +25,7 @@ It comes from the maker of [Prospero's Study](https://github.com/vantaloomin/pro
 
 ## Where it's at
 
-**Version 1.5, "A Most Majestic Vision", came out on November 26, 2026.** Things in your companion's life now come to include you, Story is a full part of every world with your companion in the scene, and companions who run their own place are treated that way at work. The [release notes](Program/docs/releases/v1.5.0.md) have the details and the [changelog](CHANGELOG.md) has every release before it.
+**Version 1.5, "A Most Majestic Vision", came out on November 26, 2026.** Things in your companion's life now come to include you, Story is a full part of every world with your companion in the scene, and companions who run their own place are treated that way at work. The [release notes](Program/docs/releases/v1.5.0.md) have the details, the latest update is [1.5.1](Program/docs/releases/v1.5.1.md), and the [changelog](CHANGELOG.md) has every release before it.
 
 Releases come often, usually a few a week, and each one is a full release with a Windows installer. Windows is the main platform. On a Mac it runs from the source scripts; there's no Mac app yet. See [Known issues](#known-issues) for what hasn't been tried on real setups.
 

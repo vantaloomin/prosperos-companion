@@ -14,11 +14,13 @@ plan under way is with (companion/story_plans.py). Townsfolk the narrator voices
   hears any news it tells, from whoever said it, as in a group. Only while Story scenes count
   (Settings > Realism, companion/story_visits.py); the check above runs either way. A line out of character, or the
   app's own hidden line, is not said in the scene, and the narrator holds no secrets, so its lines are not read.
+- A private moment (a whisper, a note passed, something shown to one person; companion/story_private.py) is heard
+  only by the one it was for, and a companion's answer to one that was theirs only by the user.
 - Telling the whole reply again takes back what its lines let people learn.
 """
 import hashlib
 
-from companion import in_character, news, secrets, story_plans, story_visits
+from companion import in_character, news, secrets, story_plans, story_private, story_visits
 from companion.database import encode
 from companion.life import pronouns as words
 
@@ -102,9 +104,14 @@ def heard(connection, row: dict, view: dict) -> list[str]:
         return []
     if row['role'] == 'user' and in_character.out_of_character(row['text']):
         return []
+    # A private moment is heard only by the one it was for (companion/story_private.py).
+    only = story_private.hearers(connection, row, view)
+    present = list(there(connection, view)) if only is None else only
+    if not present:
+        return []
     message = {'id': row['id'], 'text': row['text'], 'created_at': row['created_at'],
                'author': 'user' if row['role'] == 'user' else secrets.companion_key(row['speaker']),
-               'present': encode(list(there(connection, view)))}
+               'present': encode(present)}
     news.witness(connection, message)
     return secrets.witness(connection, message)
 

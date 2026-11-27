@@ -52,6 +52,9 @@ class Entry:
     mine: bool = False
     voice: bool = False
     pictures: list[Picture] = field(default_factory=list)
+    # The Story's own: the time on the city's clock and the chapter the line is in (companion/story_chapters.py).
+    local: datetime | None = None
+    chapter: int = 0
 
 
 @dataclass
@@ -145,7 +148,9 @@ def group_entries(connection, group_id: str) -> list[Entry]:
 
 
 def story(database) -> Transcript:
-    """The story so far, told by the narrator; arriving somewhere is a note, as the story shows it."""
+    """The story so far, told by the narrator, in its chapters and on each city's own clock, as the story shows it;
+    arriving somewhere is a note."""
+    from companion import story_chapters
     from companion.world import changes, custom
     now = database.clock.now()
     with database.connect() as connection:
@@ -155,10 +160,12 @@ def story(database) -> Transcript:
         for city_id in dict.fromkeys(row['city_id'] for row in rows):
             data = changes.resolve(city_id, cities)
             places.append(data['name'] if data else city_id)
+        starts, clocks = story_chapters.marks(connection, now)[0], story_chapters.zones(connection, rows)
         # A companion in the scene speaks under their own name (companion/story_cast.py).
         speakers = {'user': YOU, 'narrator': NARRATOR}
         entries = [Entry(row['name'] if row['role'] == 'companion' else speakers.get(row['role'], ''), row['text'],
-                         parse(row['created_at']), row['role'] == 'user') for row in rows]
+                         parse(row['created_at']), row['role'] == 'user', local=story_chapters.moment(row, clocks),
+                         chapter=story_chapters.number(starts, row['seq'])) for row in rows]
         return Transcript('Story', 'story', user_zone(connection), now, entries, places)
 
 
@@ -166,6 +173,11 @@ def story(database) -> Transcript:
 
 def local(transcript: Transcript, instant: datetime) -> datetime:
     return instant.astimezone(zone(transcript.zone))
+
+
+def when(transcript: Transcript, entry: Entry) -> datetime:
+    """When the entry shows: in the user's timezone, or for a line of the Story on its city's own clock."""
+    return entry.local or local(transcript, entry.at)
 
 
 def day_text(moment: datetime) -> str:
@@ -183,24 +195,29 @@ def time_text(moment: datetime) -> str:
 def span_text(transcript: Transcript) -> str:
     if not transcript.entries:
         return 'No messages yet'
-    first, last = (date_text(local(transcript, entry.at)) for entry in (transcript.entries[0], transcript.entries[-1]))
+    first, last = (date_text(when(transcript, entry)) for entry in (transcript.entries[0], transcript.entries[-1]))
     return first if first == last else f'{first} – {last}'
 
 
 def summary_lines(transcript: Transcript) -> list[str]:
     kind = transcript.kind[:1].upper() + transcript.kind[1:]
     where = f" in {', '.join(transcript.places)}" if transcript.places else ''
+    # The Story's times are the hour it was there, as the story shows them.
+    times = "Times are each city's own" if any(entry.local for entry in transcript.entries) else f'Times are in {transcript.zone}'
     return [f'{kind}{where} · {span_text(transcript)}',
-            f'Times are in {transcript.zone}. Exported from Prospero’s Companion on '
+            f'{times}. Exported from Prospero’s Companion on '
             f'{date_text(local(transcript, transcript.exported_at))}.']
 
 
 def by_day(transcript: Transcript) -> list[tuple[str, list[Entry]]]:
+    """The entries under their headings: each day, or for the Story each chapter with the day it began."""
     days: list[tuple[str, list[Entry]]] = []
+    mark = None
     for entry in transcript.entries:
-        day = day_text(local(transcript, entry.at))
-        if not days or days[-1][0] != day:
-            days.append((day, []))
+        day = day_text(when(transcript, entry))
+        if not days or (entry.chapter or day) != mark:
+            mark = entry.chapter or day
+            days.append((f'Chapter {entry.chapter} · {day}' if entry.chapter else day, []))
         days[-1][1].append(entry)
     return days
 
@@ -255,7 +272,7 @@ def picture_html(picture: Picture) -> str:
 
 
 def entry_html(transcript: Transcript, entry: Entry) -> str:
-    moment = local(transcript, entry.at)
+    moment = when(transcript, entry)
     if not entry.speaker:
         return f'<p class="note">{escaped(entry.text)} <time>{time_text(moment)}</time></p>'
     voice = ' <span class="tag">· voice note</span>' if entry.voice else ''
@@ -299,7 +316,7 @@ def md_name(name: str) -> str:
 
 
 def entry_md(transcript: Transcript, entry: Entry) -> str:
-    moment = local(transcript, entry.at)
+    moment = when(transcript, entry)
     if not entry.speaker:
         return f'*{md_line(entry.text)} ({time_text(moment)})*'
     voice = ' · voice note' if entry.voice else ''

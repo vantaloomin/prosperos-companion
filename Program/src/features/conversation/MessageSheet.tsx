@@ -1,15 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { Copy } from 'lucide-react'
-import type { Message } from '../../types'
-import type { Action } from './useMessageSheet'
+import type { Action, Held } from './useMessageSheet'
 
-function copy(message: Message) {
+function copy(message: Held) {
   void navigator.clipboard?.writeText(message.text).catch(() => undefined)
 }
 
 /** The actions of one message in a sheet from the bottom of the screen, under a preview of the message and a small
  * copy of the picture it sent, so it is clear which picture New picture or Remove picture changes. */
-export function MessageSheet({ message, actions, picture, onClose }: { message: Message; actions: Action[]; picture?: string | null; onClose: () => void }) {
+export function MessageSheet<T extends Held>({ message, actions, picture, onClose }: { message: T; actions: Action<T>[]; picture?: string | null; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null)
   // The finger that opened the sheet is still down; its release must not count as a tap on the sheet or outside it.
   const armed = useRef(false)
@@ -19,7 +18,7 @@ export function MessageSheet({ message, actions, picture, onClose }: { message: 
     element?.showModal()
     return () => { element?.close(); if (opener?.isConnected) opener.focus({ preventScroll: true }) }
   }, [])
-  const all: Action[] = message.text.trim() ? [['Copy', <Copy key="icon" aria-hidden="true" />, copy], ...actions] : actions
+  const all: Action<T>[] = message.text.trim() ? [['Copy', <Copy key="icon" aria-hidden="true" />, copy], ...actions] : actions
   const preview = message.text.length > 400 ? `${message.text.slice(0, 400)}…` : message.text
   return (
     <dialog ref={dialog} className={`message-sheet message-sheet-${message.role}`} aria-label="Message actions" onClose={onClose} onCancel={onClose}

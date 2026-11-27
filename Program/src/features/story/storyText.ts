@@ -1,13 +1,38 @@
 import type { StoryCompanion, StoryMessage, StoryPerson, StoryPlace, StoryPlan, StoryScene } from '../../types'
 import { timeText } from '../today/outingText.ts'
 
-/** "Tuesday, 9:40 AM" from the scene's local time, which is the city's own clock with no offset. */
-export function sceneTime(localTime: string): string {
-  const [day, clock] = localTime.split('T')
+/** The parts of a local time ("2026-11-26T20:06"), which is the city's own clock with no offset. */
+function parts(localTime: string): { day: Date; clock: string } {
+  const [day, time] = localTime.split('T')
   const [year, month, date] = day.split('-').map(Number)
-  const [hour, minute] = clock.split(':').map(Number)
-  const weekday = new Date(Date.UTC(year, month - 1, date)).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
-  return `${weekday}, ${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`
+  const [hour, minute] = time.split(':').map(Number)
+  return { day: new Date(Date.UTC(year, month - 1, date)), clock: `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}` }
+}
+
+const dayText = (day: Date, options: Intl.DateTimeFormatOptions) => day.toLocaleDateString('en-US', { ...options, timeZone: 'UTC' })
+
+/** "Tuesday, 9:40 AM" from the scene's local time. */
+export function sceneTime(localTime: string): string {
+  const { day, clock } = parts(localTime)
+  return `${dayText(day, { weekday: 'long' })}, ${clock}`
+}
+
+/** "Thursday, November 26 · 8:06 PM" under a chapter's number: when its first line was written. */
+export function chapterWhen(localTime: string): string {
+  const { day, clock } = parts(localTime)
+  return `${dayText(day, { weekday: 'long', month: 'long', day: 'numeric' })} · ${clock}`
+}
+
+/** "8:06 PM" on a line. On a later day than its chapter began (played past midnight) it says which: "Fri 12:10 AM". */
+export function lineTime(localTime: string, began?: string): string {
+  const { day, clock } = parts(localTime)
+  return began && began.slice(0, 10) !== localTime.slice(0, 10) ? `${dayText(day, { weekday: 'short' })} ${clock}` : clock
+}
+
+/** Whether chapters have headings yet: once the story has a second chapter, written or waiting. A book with one
+ * chapter needs no number (Iris). */
+export function numbered(chapters: { number: number }[], next: unknown): boolean {
+  return !!next || chapters.some((chapter) => chapter.number > 1)
 }
 
 const COUNTS = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
@@ -41,9 +66,10 @@ export function grouped(around: string[]): string[] {
   })
 }
 
-/** "Nobody you would notice is here.", "The barista is here.", "A regular and two neighbors are here." */
-export function aroundText(around: string[]): string {
-  if (!around.length) return 'Nobody you would notice is here.'
+/** "Nobody you would notice is here.", "The barista is here.", "A regular and two neighbors are here."; at the
+ * user's own home, where there are no passers-by, "It's just you." */
+export function aroundText(around: string[], home = false): string {
+  if (!around.length) return home ? "It's just you." : 'Nobody you would notice is here.'
   const names = grouped(around).map((who, index) => index ? who : who[0].toUpperCase() + who.slice(1))
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   return `${list} ${around.length === 1 ? 'is' : 'are'} here.`
@@ -56,8 +82,20 @@ export function placeGroups(places: StoryPlace[]): [string, StoryPlace[]][] {
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
 }
 
-export function whereText(scene: StoryScene): string {
-  return `${scene.place.name}, ${scene.place.neighborhood}, ${scene.city.name}`
+/** "Lupa, Fells Point, Baltimore"; "Your home, Canton, Baltimore", or without the neighbourhood where there is none. */
+export function whereText(scene: Pick<StoryScene, 'place' | 'city'>): string {
+  return [scene.place.name, scene.place.neighborhood, scene.city.name].filter(Boolean).join(', ')
+}
+
+/** The user's own home as the place picker's first choice while the story is there, so the picker says where they
+ * are; null anywhere else ("Go home" is how to get there). */
+export function homeChoice(scene: Pick<StoryScene, 'home'>): { id: string; name: string } | null {
+  return scene.home?.here ? { id: scene.home.place_id, name: scene.home.name } : null
+}
+
+/** Where "Go home" goes, or null when there is nowhere to go: they are home already, or have no home in this world. */
+export function goHome(scene: Pick<StoryScene, 'home'>): { city_id: string; place_id: string } | null {
+  return scene.home && !scene.home.here ? { city_id: scene.home.city_id, place_id: scene.home.place_id } : null
 }
 
 /** "Inside: the back patio, the bar seats" */
@@ -91,27 +129,37 @@ export function openingPlace(story: { scene: { plan?: StoryPlan | null }; messag
   return story.messages.some((message) => message.role === 'user') ? null : 'top'
 }
 
+/** "Mira has gone.": the app's line when a companion leaves the scene (companion/story_cast.py), which then offers
+ * their chat. Their id, or null for any other line. */
+export function goneFrom(message: Pick<StoryMessage, 'role' | 'text' | 'speaker' | 'name'>): string | null {
+  return message.role === 'cast' && message.speaker && message.text === `${message.name} has gone.` ? message.speaker : null
+}
+
 /** A story's first open, before anything is said: "Your own story in Baltimore, told by a narrator.", or with a
  * companion "Play out a scene with Mira, anywhere in Baltimore." When their day has them nowhere the story can go,
  * the line says so: "Play out a scene anywhere in Baltimore. Mira isn't out right now." With a plan under way
  * (companion/story_plans.py) somewhere else it is the plan: "You and Mira are at Lupa now, for dinner." Where the
- * plan is, the scene's own line already says it, so there is none. */
+ * plan is, or the companion is already here, the scene's own line already says it, so there is none. */
 export function openingText(scene: { city: { name: string }; plan?: StoryPlan | null }, companion?: StoryCompanion): string {
   if (scene.plan) return ''
   if (!companion) return `Your own story in ${scene.city.name}, told by a narrator.`
   if (companion.plan) return `You and ${companion.name} are at ${companion.plan.place} now, for ${companion.plan.what}.`
-  if (companion.here || companion.place) return `Play out a scene with ${companion.name}, anywhere in ${scene.city.name}.`
+  if (companion.here) return ''  // The scene's own line already says "Mira is here."
+  if (companion.place) return `Play out a scene with ${companion.name}, anywhere in ${scene.city.name}.`
   return `Play out a scene anywhere in ${scene.city.name}. ${companion.name} isn't out right now.`
 }
 
 /** What the first-open button says and the first line it sends for the user: finding the companion when the story
  * can go to them, else looking around. With a plan under way it says nothing for the user: "Go to Lupa" only goes
- * there, and "Start the scene" (`begin`) has the narrator open the scene the two are already in. */
+ * there, and "Start the scene" (`begin`) has the narrator open the scene the two are already in. A companion who is
+ * already here gets the same "Start the scene": never "Find Mira" for someone standing right there. */
 export function openingAction(companion?: StoryCompanion, plan?: StoryPlan | null): { label: string; line: string; find: string | null; begin?: boolean } {
   if (plan) return { label: 'Start the scene', line: '', find: null, begin: true }
   if (companion?.plan) return { label: `Go to ${companion.plan.place}`, line: '', find: companion.key }
-  if (!companion || !(companion.here || companion.place)) return { label: 'Look around', line: 'I look around.', find: null }
-  return { label: `Find ${companion.name}`, line: `I look around for ${companion.name}.`, find: companion.here ? null : companion.key }
+  // Already here: nobody to look for. The narrator opens the scene the two are in, as with a plan.
+  if (companion?.here) return { label: 'Start the scene', line: '', find: null, begin: true }
+  if (!companion?.place) return { label: 'Look around', line: 'I look around.', find: null }
+  return { label: `Find ${companion.name}`, line: `I look around for ${companion.name}.`, find: companion.key }
 }
 
 /** "Here with you", "Now at Club Charles" (with the city when it is another one), or "Not out right now"; with a
@@ -130,4 +178,27 @@ export function writingText(messages: StoryMessage[], clientId: string, companio
   const replies = sent ? messages.filter((message) => message.reply_to === sent.id && message.status === 'complete') : []
   const next = companions.find((companion) => !replies.some((reply) => reply.speaker === companion.id))
   return replies.some((reply) => reply.role === 'narrator') && next ? `${next.name} is answering…` : 'The narrator is writing…'
+}
+
+/** The user's latest line while its reply can still be told again or the line changed: nothing has come after it
+ * but its own replies (companion/story_again.py). Going somewhere else puts the story past it. */
+export function latestLine(messages: StoryMessage[]): StoryMessage | null {
+  const last = messages[messages.length - 1]
+  const line = [...messages].reverse().find((message) => message.role === 'user')
+  return line && last && (last.id === line.id || last.reply_to === line.id) ? line : null
+}
+
+/** What the button under the story's newest reply says: Try again when a reply failed or never came (it writes what
+ * is missing), Another reply when it is all there (it is told again in its place). */
+export function againLabel(messages: StoryMessage[], line: StoryMessage): 'Try again' | 'Another reply' {
+  const replies = messages.filter((message) => message.reply_to === line.id)
+  return !replies.length || replies.some((reply) => reply.status === 'failed') ? 'Try again' : 'Another reply'
+}
+
+/** The story while the latest line is answered again: its failed replies are gone at once, and with none failed all
+ * of them, as the server does. `text` is the line's new words when it was edited. */
+export function toldAgain(messages: StoryMessage[], line: StoryMessage, text?: string): StoryMessage[] {
+  const failed = messages.some((message) => message.reply_to === line.id && message.status === 'failed')
+  return messages.filter((message) => message.reply_to !== line.id || (failed && !text && message.status !== 'failed'))
+    .map((message) => (message.id === line.id && text ? { ...message, text } : message))
 }

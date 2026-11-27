@@ -22,7 +22,8 @@ what was said after it counts. Nothing is stored: the scene is worked out from t
 Lupa on the strip, for UNDO after a move, sets `scene_from` on the outing's place, and moves said before it no longer
 count. When the meetup ends, everything goes back to normal.
 
-Story mode (companion/story.py) reads the same moves from the story since the last place picked, for places only.
+Story mode (companion/story.py) reads the same moves from the story since the last place picked, one after another:
+places the map knows, and the user's own home ("walks home", "back to my place", `story_place`).
 """
 import json
 import re
@@ -100,9 +101,24 @@ SUBJECT = re.compile(r"\b(?P<who>i|you|we|he|she|they)\s+(?:\w+\s+)?$", re.IGNOR
 def bank() -> dict:
     """The phrase bank, each kind as one pattern, longest phrase first."""
     found = json.loads((catalog.DATA / 'scene_moves.json').read_text(encoding='utf-8'))
+    found['homeward'] = sorted(homeward_phrases(found))
     return {kind: re.compile(r'\b(?:' + '|'.join(re.escape(text) for text in sorted(found[kind], key=len,
                                                                                          reverse=True)) + r')\b',
-                             re.IGNORECASE) for kind in ('moves', 'arrivals', 'put_on', 'take_off')}
+                             re.IGNORECASE) for kind in ('moves', 'arrivals', 'put_on', 'take_off', 'homeward')}
+
+
+def homeward_phrases(found: dict) -> set[str]:
+    """Going home with no "to": every way of setting off or arriving with "home" where the place would be ("walk
+    back to" gives "walk back home", "heads for" gives "heads for home", "reach" gives "reach home"), and the bank's
+    own `home` list for what that does not make ("am home")."""
+    phrases = set(found.get('home', ()))
+    for text in (*found['moves'], *found['arrivals']):
+        lead, _space, last = text.rpartition(' ')
+        if last in ('to', 'at') and lead:
+            phrases.add(f'{lead} home')
+        elif last in ('toward', 'towards', 'for') or not lead:
+            phrases.add(f'{text} home')
+    return phrases
 
 
 # --- Reading the lines --------------------------------------------------------------------------------------------
@@ -222,16 +238,22 @@ def where_to(data, words: str, how: str, phrase: str, start: dict, people: tuple
             'label': f"on the way to {name}" if how == 'moves' else f"outside {name}"}
 
 
-def moves_in(sentence: str, data, start: dict, people: tuple) -> list[dict]:
-    """Each move or arrival a sentence makes, in order."""
+def moves_in(sentence: str, data, start: dict, people: tuple, story: tuple | None = None) -> list[dict]:
+    """Each move or arrival a sentence makes, in order. `story` (Story mode: the names of the people the user knows
+    there) reads whose home it is the Story's way, and going home with no "to"."""
     found = []
     for how, pattern in (('moves', bank()['moves']), ('arrivals', bank()['arrivals']), ('moves', TAKING)):
         for match in pattern.finditer(sentence):
             if NOUN_BEFORE.search(sentence[:match.start()]):
                 continue  # "tilts my head back to", "the walk to": a thing, not a move.
             words = destination(sentence[match.end():])
-            if (to := where_to(data, words, how, match.group(0), start, people)) is not None:
+            to = where_to(data, words, how, match.group(0), start, people)
+            if story is not None and to and to['kind'] != 'place' and HOME_OF.search(words):
+                to = {'kind': 'yours' if own_home(words, sentence, people[0] == 'user') else 'theirs'}
+            if to is not None:
                 found.append((match.start(), to))
+    if story is not None:
+        found += homeward(sentence, people[0] == 'user', story)
     return [to for _at, to in sorted(found, key=lambda pair: pair[0])]
 
 
@@ -567,13 +589,95 @@ def back(connection, companion: dict, outing_id: str, now: datetime) -> dict:
 
 # --- Story mode ----------------------------------------------------------------------------------------------------
 
-def story_place(data: dict, place: dict, rows: list[dict]) -> dict:
-    """Story mode: the place the story's own lines have moved to since the last place was picked, or `place`."""
+# In the Story the user writes as themself ("I", or about themself: "She walks home") and the narrator calls them "you".
+# Everyone else's home is somewhere the story cannot go.
+HOME_OF = re.compile(rf"\b(?P<who>my|our|your|his|her|their)\s+(?:own\s+)?{HOME_WORDS}\b|\b(?P<own>mine|ours|yours)\b",
+                     re.IGNORECASE)
+FIRST_PERSON = re.compile(r"\b(?:i|i'm|i've|i'd|i'll|me|my|mine|we|us|our)\b", re.IGNORECASE)
+ADVERBS = r"(?:(?:\w+ly|just|then|now|soon|also|only|still|even|all|at last|at once|and|so|both)\s+)*"
+# Who does it, right before the phrase: "she simply | walks home".
+DOER = re.compile(rf"\b(?P<who>i|we|you|he|she|they|the two of you|you two|you both)\s+{ADVERBS}$", re.IGNORECASE)
+# The same doer goes on: "pays the bill and | walks home".
+GOES_ON = re.compile(rf"(?:^|,|\b(?:and|then|before|after))\s*{ADVERBS}$", re.IGNORECASE)
+# Someone else doing it: "I watch Dana | walk home", "tells her to | go home".
+OTHERS_DO = re.compile(r"\b(?:watch|watches|watched|watching|see|sees|saw|seeing|let|lets|letting|tell|tells|told|"
+                       r"telling|ask|asks|asked|asking|send|sends|sent|sending|help|helps|helped|hear|hears|heard|"
+                       r"want|wants|wanted|wait for|waits for|waited for)\s+(?:[\w']+\s+){1,3}$", re.IGNORECASE)
+# Taken there: "Dana walks you home", "he sees me home".
+TAKEN_HOME = re.compile(r"\b(?:walk|walks|walked|walking|take|takes|took|taking|see|sees|saw|seeing|drive|drives|"
+                        r"drove|driving|carry|carries|carried|bring|brings|brought|escort|escorts|escorted|lead|"
+                        r"leads|led)\s+(?P<who>you|me|us)\s+(?:(?:back|safely|all the way)\s+)?home\b", re.IGNORECASE)
+NAME = re.compile(r"\b[A-Z][a-z]+")
+# Not the user: "nobody | is home", "everyone | goes home".
+ANYONE = re.compile(r"\b(?:nobody|no one|no-one|none|everyone|everybody|someone|somebody|anyone|anybody|who|people)\s+"
+                    rf"{ADVERBS}$", re.IGNORECASE)
+
+
+def own_home(words: str, sentence: str, mine: bool) -> bool:
+    """Whether a home these words name is the user's own: "my place" or "our place" in their own line, "her
+    apartment" when they write about themself in the third person (no "I" in it), "your place" in the narrator's."""
+    found = HOME_OF.search(words)
+    who = (found.group('who') or found.group('own')).lower() if found else ''
+    if not mine:
+        return who in ('your', 'yours')
+    return who in ('my', 'mine', 'our', 'ours') or who in ('his', 'her', 'their') and not FIRST_PERSON.search(sentence)
+
+
+def goes_home(before: str, mine: bool, known: tuple) -> bool:
+    """Whether it is the user who goes home, from the words of the sentence before "walks home". In their own line
+    it is, unless someone else does it: "you", someone they watch or tell, or someone they know who the sentence
+    opens on. In the narrator's it is only "you", said right there or still doing what the sentence opened on."""
+    if OTHERS_DO.search(before) or ANYONE.search(before):
+        return False
+    doer = DOER.search(before)
+    if mine:
+        opens_on = NAME.match(before.lstrip())
+        return not (doer and doer.group('who').lower().startswith('you')) and \
+            not (opens_on and opens_on.group(0) in known)
+    if doer:
+        return doer.group('who').lower() not in ('i', 'we', 'he', 'she', 'they')
+    opening = re.match(rf"\W*{ADVERBS}you\b(?P<rest>.*)$", before, re.IGNORECASE | re.DOTALL)
+    return bool(opening and GOES_ON.search(before) and not NAME.search(opening.group('rest')) and
+                not re.search(r'\b(?:he|she|they)\b', opening.group('rest'), re.IGNORECASE))
+
+
+def homeward(sentence: str, mine: bool, known: tuple) -> list[tuple[int, dict]]:
+    """Story mode: where in a sentence the user goes home with no "to" ("walks home", "gets back home", "Dana walks
+    you home"), as (position, move)."""
+    found = [match.start() for match in bank()['homeward'].finditer(sentence)
+             if not NOUN_BEFORE.search(sentence[:match.start()]) and goes_home(sentence[:match.start()], mine, known)]
+    found += [match.start() for match in TAKEN_HOME.finditer(sentence) if (match.group('who').lower() == 'you') != mine]
+    return [(at, {'kind': 'yours'}) for at in found]
+
+
+# A line that says they part: whoever was with the user does not come along when it walks them somewhere.
+PARTING = re.compile(r"\b(?:(?i:goodbye|good-bye|bye|farewell|good ?night|alone|by (?:my|her|him|them)sel(?:f|ves)|"
+                     r"on (?:my|her|his|their) own|take my leave|takes (?:her|his|their) leave|excuse myself|"
+                     r"excuses (?:her|him|them)sel(?:f|ves)|part ways|parts ways|see you (?:later|tomorrow|soon|around))|"
+                     r"(?i:leave|leaves|leaving) (?:(?i:her|him|them)|[A-Z][a-z]+)(?: (?:behind|there|to it))?)\b")
+TOGETHER = re.compile(r"\b(?:we|us|together|both|come with|comes with|coming with|with (?:me|her|him|them|you))\b",
+                      re.IGNORECASE)
+
+
+def parts(text: str) -> bool:
+    """Story mode: whether the user's line says they go on without whoever is with them ("I say goodnight and walk
+    home"). A companion they are talking with comes along otherwise, as they stay through a lull."""
+    return bool(PARTING.search(text or '')) and not TOGETHER.search(SPEECH.sub(' ', text or ''))
+
+
+def story_place(data: dict, place: dict, rows: list[dict], home: dict | None = None, known: tuple = ()) -> dict:
+    """Story mode: the place the story's own lines have moved to since the last place was picked, or `place`. Each
+    move starts from where the one before it ended, so the story can walk somewhere and back. `home` is the user's
+    own home as a place, when it is in this city; `known` the first names of the people they know."""
     if not ACTIVE:
         return place
     since = max((index for index, row in enumerate(rows) if row['role'] == 'scene'), default=-1)
-    told = [row for row in rows[since + 1:] if row['role'] in ('user', 'narrator') and row.get('status',
-                                                                                              'complete') == 'complete']
-    start = {'id': place['id'], 'name': place['name'], 'neighborhood': place['neighborhood']}
-    found = read(told, data, start, ('they',), narrated=True)['move']
-    return found['item'] if found and found['kind'] == 'place' else place
+    for row in rows[since + 1:]:
+        if row['role'] not in ('user', 'narrator') or row.get('status', 'complete') != 'complete':
+            continue
+        people = ('user' if row['role'] == 'user' else 'companion', ('they',))
+        for sentence in clauses(row['text'], True):
+            start = {'id': place['id'], 'name': place['name'], 'neighborhood': place['neighborhood']}
+            for to in moves_in(sentence, data, start, people, known):
+                place = to['item'] if to['kind'] == 'place' else home if to['kind'] == 'yours' and home else place
+    return place

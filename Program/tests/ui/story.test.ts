@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { aroundText, companionLine, openingAction, openingText, personLine, placeGroups, sceneTime, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
+import { visitText } from '../../src/features/conversation/storyVisits.ts'
+import { clockTime } from '../../src/when.ts'
+import { againLabel, aroundText, chapterWhen, companionLine, goHome, goneFrom, homeChoice, latestLine, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, toldAgain, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
@@ -8,8 +10,44 @@ test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T21:40'), 'Tuesday, 9:40 PM')
 })
 
+test('a chapter says the day and hour it began, and a line the hour it was written', () => {
+  assert.equal(chapterWhen('2026-11-26T20:06'), 'Thursday, November 26 · 8:06 PM')
+  assert.equal(lineTime('2026-11-26T20:06'), '8:06 PM')
+  assert.equal(lineTime('2026-11-26T23:58', '2026-11-26T20:06'), '11:58 PM')
+  // Played past midnight, a line says which day it is by then.
+  assert.equal(lineTime('2026-11-27T00:10', '2026-11-26T20:06'), 'Fri 12:10 AM')
+})
+
+test('chapters are numbered only once there is a second one, written or waiting', () => {
+  assert.equal(numbered([{ number: 1 }], null), false)
+  assert.equal(numbered([{ number: 1 }], { number: 2 }), true)
+  assert.equal(numbered([{ number: 1 }, { number: 2 }], null), true)
+  assert.equal(numbered([{ number: 7 }], null), true)  // Earlier chapters are further back than the page shows.
+})
+
+test('a finished visit reads as one line in their chat, on the clock its stamps are on', () => {
+  const at = (day: number, hour: number, minute: number) => new Date(2026, 10, day, hour, minute).toISOString()
+  const now = new Date(2026, 10, 16, 18, 0).getTime()
+  const clock = (value: string) => clockTime(value, now)
+  const visit = { place: 'Club Charles', from: at(16, 14, 6), until: at(16, 14, 31) }
+  // The same half of the day is said once, at the end ("2:06 to 2:31 PM"); across noon each time says its own.
+  const halves = (text: string) => (text.match(/[AP]M/gu) ?? []).length
+  assert.ok(visitText(visit, now).startsWith('In Story at Club Charles · 2:06 to '))
+  assert.ok(visitText(visit, now).endsWith(clock(visit.until)))
+  assert.ok(halves(visitText(visit, now)) <= 1)
+  const noon = { ...visit, from: at(16, 11, 50), until: at(16, 12, 20) }
+  assert.equal(visitText(noon, now), `In Story at Club Charles · ${clock(noon.from)} to ${clock(noon.until)}`)
+  assert.equal(visitText({ ...visit, from: visit.until }, now), `In Story at Club Charles · ${clock(visit.until)}`)
+  // On another day it says the date first, as a stamp does.
+  const earlier = { ...visit, from: at(12, 14, 6), until: at(12, 14, 31) }
+  assert.ok(visitText(earlier, now).startsWith('In Story at Club Charles · Nov 12, 2:06 to '))
+  assert.ok(clock(earlier.until).startsWith('Nov 12, '))
+})
+
 test('who is around reads as a sentence', () => {
   assert.equal(aroundText([]), 'Nobody you would notice is here.')
+  assert.equal(aroundText([], true), "It's just you.")
+  assert.equal(aroundText(['Mira'], true), 'Mira is here.')
   assert.equal(aroundText(['the barista']), 'The barista is here.')
   assert.equal(aroundText(['the barista', 'a regular', 'a neighbor']), 'The barista, a regular and a neighbor are here.')
 })
@@ -31,6 +69,22 @@ test('places are grouped by neighborhood', () => {
   const place = (id: string, neighborhood: string) => ({ id, name: id, kind: 'cafe', neighborhood })
   assert.deepEqual(placeGroups([place('b', 'Canton'), place('a', 'Fells Point'), place('c', 'Canton')]).map(([hood, items]) => [hood, items.map((item) => item.id)]),
     [['Canton', ['b', 'c']], ['Fells Point', ['a']]])
+})
+
+test('going home is one press from anywhere, and the picker names your home once you are there', () => {
+  const city = { id: 'baltimore', name: 'Baltimore', era: 'modern' }
+  const home = { city_id: 'baltimore', place_id: '~you', name: 'Your home', here: false }
+  // The picker lists their home only while the story is there, so it says where they are.
+  assert.deepEqual(homeChoice({ home: { ...home, here: true } }), { id: '~you', name: 'Your home' })
+  assert.equal(homeChoice({ home }), null)
+  assert.equal(homeChoice({ home: null }), null)
+  assert.deepEqual(goHome({ home }), { city_id: 'baltimore', place_id: '~you' })
+  // Nowhere to go once they are home, or with no home in this world.
+  assert.equal(goHome({ home: { ...home, here: true } }), null)
+  assert.equal(goHome({ home: null }), null)
+  const place = { id: '~you', name: 'Your home', kind: 'home', neighborhood: 'Canton', home: true }
+  assert.equal(whereText({ city, place }), 'Your home, Canton, Baltimore')
+  assert.equal(whereText({ city, place: { ...place, neighborhood: '' } }), 'Your home, Baltimore')
 })
 
 test('a person met says how often and where they are now', () => {
@@ -60,8 +114,10 @@ test('the first open names the companion and finds them when the story can go to
   assert.deepEqual(openingAction(), { label: 'Look around', line: 'I look around.', find: null })
   assert.equal(openingText(scene, mira), 'Play out a scene with Mira, anywhere in Baltimore.')
   assert.deepEqual(openingAction(mira), { label: 'Find Mira', line: 'I look around for Mira.', find: 'companion:1' })
-  // Already where the story is: nowhere to go first.
-  assert.deepEqual(openingAction({ ...mira, here: true }), { label: 'Find Mira', line: 'I look around for Mira.', find: null })
+  // Already where the story is: nobody to look for. The scene's own line says they are here, and the button has
+  // the narrator open the scene, as with a plan.
+  assert.equal(openingText(scene, { ...mira, here: true }), '')
+  assert.deepEqual(openingAction({ ...mira, here: true }), { label: 'Start the scene', line: '', find: null, begin: true })
   // At home or asleep: the story is still there to play, and the line says why they are not in it.
   const home = { ...mira, place: null, doing: '' }
   assert.equal(openingText(scene, home), "Play out a scene anywhere in Baltimore. Mira isn't out right now.")
@@ -101,7 +157,7 @@ test('a companion in the people list says where they are now', () => {
 
 test('while a line waits, the narrator writes first and then each companion in the scene answers', () => {
   const row = (id: string, role: 'user' | 'narrator' | 'companion', extra: object = {}) => ({ id, seq: 1, role, text: '', reply_to: null,
-    status: 'complete' as const, error: null, city_id: 'b', place_id: 'p', created_at: '', client_id: null, speaker: null, name: null, ...extra })
+    status: 'complete' as const, error: null, city_id: 'b', place_id: 'p', created_at: '', client_id: null, speaker: null, name: null, chapter: 1, local_time: '2026-10-06T09:05', ...extra })
   const cast = [{ id: '1', name: 'Mira' }]
   assert.equal(writingText([], 'c1', cast), 'The narrator is writing…')
   const sent = row('u1', 'user', { client_id: 'c1' })
@@ -110,4 +166,31 @@ test('while a line waits, the narrator writes first and then each companion in t
   assert.equal(writingText([sent, told], 'c1', cast), 'Mira is answering…')
   assert.equal(writingText([sent, told], 'c1', []), 'The narrator is writing…')
   assert.equal(writingText([sent, told, row('m1', 'companion', { reply_to: 'u1', speaker: '1', name: 'Mira' })], 'c1', cast), 'The narrator is writing…')
+})
+
+test('the line that says a companion has gone offers their chat, and no other line does', () => {
+  assert.equal(goneFrom({ role: 'cast', text: 'Mira has gone.', speaker: 'c1', name: 'Mira' }), 'c1')
+  assert.equal(goneFrom({ role: 'cast', text: 'Mira is here.', speaker: 'c1', name: 'Mira' }), null)
+  assert.equal(goneFrom({ role: 'cast', text: 'Rosa says yes.', speaker: null, name: null }), null)
+  assert.equal(goneFrom({ role: 'narrator', text: 'Mira has gone.', speaker: null, name: null }), null)
+})
+
+test('only the latest line can be told again or changed, until the story goes on', () => {
+  const row = (id: string, role: string, reply_to: string | null = null, status = 'complete') =>
+    ({ id, seq: 0, role, text: id, reply_to, status, error: null, city_id: 'c', place_id: 'p', created_at: '', client_id: null, speaker: null, name: null }) as never
+  const told = [row('u1', 'user'), row('n1', 'narrator', 'u1'), row('u2', 'user'), row('n2', 'narrator', 'u2'), row('m2', 'companion', 'u2')]
+  assert.equal(latestLine([])?.id, undefined)
+  assert.equal(latestLine(told)?.id, 'u2')
+  assert.equal(againLabel(told, told[2]), 'Another reply')
+  // A line still waiting for any reply, or with one that failed, is tried again: only what is missing is written.
+  assert.equal(latestLine(told.slice(0, 3))?.id, 'u2')
+  assert.equal(againLabel(told.slice(0, 3), told[2]), 'Try again')
+  const failed = [...told.slice(0, 4), row('m2', 'companion', 'u2', 'failed')]
+  assert.equal(againLabel(failed, failed[2]), 'Try again')
+  assert.deepEqual(toldAgain(failed, failed[2]).map((item: { id: string }) => item.id), ['u1', 'n1', 'u2', 'n2'])
+  // Told again, every reply goes at once; edited, the line shows its new words.
+  assert.deepEqual(toldAgain(told, told[2]).map((item: { id: string }) => item.id), ['u1', 'n1', 'u2'])
+  assert.deepEqual(toldAgain(failed, failed[2], 'new').map((item: { text: string }) => item.text), ['u1', 'n1', 'new'])
+  // Once the story has gone somewhere else, the line is part of what happened.
+  assert.equal(latestLine([...told, row('s', 'scene')]), null)
 })

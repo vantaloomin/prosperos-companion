@@ -207,19 +207,56 @@ a.button { color: inherit; text-decoration: none; }
 /* The plan being played here (companion/story_plans.py): what it is and until when. */
 .story-plan { font-weight: 600; }
 .story-go { flex-wrap: wrap; align-items: flex-end; margin-top: 6px; }
-.story-go label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8125rem; color: var(--muted); }
+/* Go home: first and on a line of its own, above the city and place. */
+.story-go-home { flex-basis: 100%; }
+.story-go label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8125rem; color: var(--muted); max-width: 100%; }
+.story-go select { max-width: 100%; }
 .story-log { flex: 1; overflow-y: auto; max-width: 760px; width: 100%; margin: 0 auto; padding: 20px 32px; }
 .story-narration { font-family: var(--read-font); font-size: 1.0625rem; line-height: 1.75; margin-bottom: 20px; overflow-wrap: anywhere; }
 .story-narration p { white-space: pre-wrap; margin-bottom: 1em; }
 /* A companion's own line in the scene (companion/story_cast.py): the same reading text, set off by a rule and their name. */
 .story-said { font-family: var(--read-font); font-size: 1.0625rem; line-height: 1.75; margin-bottom: 20px; padding-left: 14px; border-left: 3px solid var(--accent); overflow-wrap: anywhere; }
 .story-said p { white-space: pre-wrap; margin-bottom: 1em; }
-.story-said p:last-child { margin-bottom: 0; }
+.story-said p:last-of-type { margin-bottom: 0; }
 .story-said .story-speaker { font-family: var(--ui-font); font-size: 0.8125rem; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
 /* Their name in their own colour, as in their chats (Their look); the rule stays the app's accent. */
 .story-said.their-name .story-speaker { color: var(--their-name); }
 .story-user { margin: 0 0 20px auto; max-width: 85%; padding: 10px 14px; border-radius: 12px; background: var(--accent-tint); white-space: pre-wrap; overflow-wrap: anywhere; width: fit-content; }
+/* Under the newest reply: Another reply and Edit your line, as under a chat's (.turn-actions). */
+.story-actions { margin: -8px 0 20px; }
+/* A failed reply's notice has no space of its own under it. */
+.story-log .notice + .story-actions { margin-top: 6px; }
+/* A reply's own Edit: with a mouse it shows under the reply's last line, at the right, while the reply is hovered,
+   and for the keyboard while it has focus. It sits in the gap between replies, so it holds no room in the reading
+   column and covers no text. On a touch screen the reply is pressed and held for its sheet instead, as a chat's
+   messages are (useMessageSheet.tsx). */
+.story-reply { position: relative; }
+.story-tools { position: absolute; top: calc(100% - 2px); right: 0; z-index: 2; display: flex; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); box-shadow: 0 2px 8px var(--shadow); font-family: var(--ui-font); line-height: 1.4; opacity: 0; pointer-events: none; }
+/* The narration's last paragraph keeps its space under it: the button starts there. */
+.story-narration .story-tools { top: calc(100% - 1em); }
+.story-tools .text-button { font-size: 0.75rem; padding: 2px 0; }
+.story-reply:focus-within .story-tools { opacity: 1; pointer-events: auto; }
+@media (hover: hover) { .story-reply:hover .story-tools { opacity: 1; pointer-events: auto; } }
+@media (hover: none) {
+  /* Holding a reply must not select its text or open the browser's own menu; Copy is in the sheet. */
+  .story-reply { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: transform .18s ease; }
+  .story-reply.pressing { transform: scale(.98); }
+}
+@media (hover: none) and (prefers-reduced-motion: reduce) { :root:not([data-motion='full']) .story-reply { transition: none; } :root:not([data-motion='full']) .story-reply.pressing { transform: none; } }
+@media (hover: none) { :root[data-motion='reduce'] .story-reply { transition: none; } :root[data-motion='reduce'] .story-reply.pressing { transform: none; } }
 .story-move { margin-bottom: 20px; text-align: center; font-size: 0.8125rem; color: var(--muted); font-style: italic; }
+/* Chapters and times (companion/story_chapters.py): one ongoing story, a heading where a chapter begins, the hour on each line. */
+.story-chapter { margin: 28px 0 24px; text-align: center; color: var(--muted); font-size: 0.8125rem; }
+.story-chapter:first-child { margin-top: 4px; }
+.story-chapter h2 { display: flex; align-items: center; gap: 14px; margin: 0 0 4px; font-family: var(--read-font); font-size: 1.0625rem; font-weight: 500; color: var(--text); }
+.story-chapter h2::before, .story-chapter h2::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+.story-chapter p { margin: 0; }
+.story-chapter .text-button { font-size: inherit; }
+.story-time { font-family: var(--ui-font); font-size: 0.75rem; font-style: normal; color: var(--muted); white-space: nowrap; }
+.story-move .story-time::before { content: '· '; }
+.story-mine { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-bottom: 20px; }
+.story-mine .story-user { margin: 0; }
 .story-people summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); }
 .story-people ul { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: var(--card-gap); max-height: 40dvh; overflow-y: auto; }
 .story-people li { display: flex; flex-direction: column; gap: 6px; padding: var(--card-pad); border: 1px solid var(--border); border-radius: 10px; }
@@ -330,6 +367,7 @@ a.button { color: inherit; text-decoration: none; }
   .composer { padding: 10px 12px 12px; }
   .conversation-notice { padding: 0 12px 8px; }
   .story-header, .story-log, .story-opening, .story-notice, .story-footer { padding-left: 16px; padding-right: 16px; }
+  .story-actions .text-button { min-height: 44px; }
   /* Once the story is scrolled down, the header folds to the place and the people count; at the top it is whole again. */
   .story-header-folded { padding-top: 10px; padding-bottom: 8px; }
   .story-header-folded h1, .story-header-folded .story-scene > p:not(:first-child), .story-header-folded .story-scene > .form-actions:not(.story-go),
@@ -2322,6 +2360,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip .call-answer { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; }
 .where-strip .call-answer svg { width: 1rem; height: 1rem; }
 @media (max-width: 720px) { .where-strip .text-button, .where-strip .call-answer { min-height: 44px; } }
+/* The Story's links on the strip: "Back to the story" looks like the strip's other buttons, and "play it out in
+   Story" sits in the sentence, so it keeps the line's own height. */
+.where-strip a.text-button:not(.inline) { text-decoration: none; }
+.where-strip .text-button.inline { min-height: 0; }
 @keyframes ring-nudge { 0%, 70%, 100% { transform: rotate(0); } 75%, 85% { transform: rotate(-12deg); } 80%, 90% { transform: rotate(12deg); } }
 @media (prefers-reduced-motion: reduce) { .where-strip.ringing > svg { animation: none; } }
 
@@ -3213,6 +3255,7 @@ p.breakup-line { align-items: center; }
 }
 /* Step 4b: Character fields are a label and the field; the pen that helps write one sits at the end of its label line. */
 .field > .label-row { display: flex; width: 100%; }
+.field > .label-row.visually-hidden { width: 1px; }
 .label-row > .field-help { margin: 0 0 0 auto; gap: 4px 8px; }
 .label-row > .field-help.open { flex-basis: 100%; margin: 4px 0 0; }
 .field-pen { width: 32px; height: 32px; min-height: 0; color: var(--muted); }

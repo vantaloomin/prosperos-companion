@@ -16,7 +16,9 @@ export interface WhereVisit { id: string; direction: 'to-you' | 'host' | 'togeth
 export interface WhereHome { status: 'home' | 'out'; until?: string; they_home?: boolean }
 /** On their way home after a meetup (companion/life/heading_home.py): how ('walk', 'car', 'bus', ...), in words ("driving home"), and when they are back ('18:10'). */
 export interface WhereHeading { outing_id: string; place: string; by: string; words: string; back: string }
-export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string; outing: WhereOuting | null; call?: WhereCall | null; visit?: WhereVisit | null; home?: WhereHome | null; heading?: WhereHeading | null }
+/** The Story as their chat shows it (companion/story.py for_chat): `with` while time together in the Story is going on, `meet` when their day has them somewhere the Story can go, `plan` the outing under way that the Story can play. */
+export interface WhereStory { with: { place: string } | null; meet: { place: string; /** The story is at that place already. */ here?: boolean } | null; plan: string | null }
+export interface WhereState { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string; outing: WhereOuting | null; call?: WhereCall | null; visit?: WhereVisit | null; home?: WhereHome | null; heading?: WhereHeading | null; story?: WhereStory | null }
 export interface CompanionWhere { state: 'together' | 'apart' | 'call'; kind: WhereKind; text: string }
 
 /** What the strip says: a lead, the place (linked to the map when it is out in town) and how long. */
@@ -194,6 +196,22 @@ export function inPerson(where: WhereState | undefined): boolean {
 /** Whether the chat is a phone call now: replies are spoken, so bursts stop, and a reply read aloud plays by itself. */
 export function onCall(where: WhereState | undefined): boolean {
   return where?.state === 'call'
+}
+
+/** "With you at Club Charles, in Story": the strip while time together in the Story is going on and nothing else
+ * (a plan, a call, a visit) has the strip. They can still be texted, and the box to write in stays "Message": their
+ * chat is told nothing new, so the strip only says where the two of them are. */
+export function storyLine(where: WhereState | undefined): StripLine | null {
+  const place = where?.story?.with?.place
+  return place ? { lead: `With you at ${place}, in Story`, place: null, tail: '' } : null
+}
+
+/** The outing strip's way into the Story while its plan is under way where the Story can go: 'back' once the story
+ * is there with them, else 'play' ("play it out in Story", as Today says it). */
+export function storyLink(where: WhereState | undefined): 'back' | 'play' | null {
+  const story = where?.story
+  if (!story?.plan || story.plan !== where?.outing?.id || where.outing.state !== 'now') return null
+  return story.with ? 'back' : 'play'
 }
 
 /** Together or on a call: texting habits like bursts stop. */

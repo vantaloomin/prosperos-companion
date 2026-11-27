@@ -76,6 +76,30 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.5.1 (2026-11-27)
+
+- **Story: another reply, Undo and Edit (#645):** story_again.py; Another reply (Try again after a failure), Undo
+  for one step back, Edit your line, and Edit on the narrator's reply or a companion's line anywhere in the story.
+  What an old reply had done is taken back by rules and comes back with Undo. POST /api/story/retry/undo,
+  PUT /api/story/messages/{id}.
+- **Story chapters and times (#646):** story_chapters.py; a line two hours or more after the one before starts a
+  chapter, "Start a new chapter" starts one when asked, the user's lines show their time on the city's clock, and
+  "Start a new story" became "Clear the pages…", which keeps the people met, matches and time spent. Exports are in
+  chapters.
+- **A line in their chat for each finished Story visit (#647):** "In Story at Club Charles · 2:06 to 2:31 PM ·
+  Read it" (story_visits.chat_lines, GET /api/story/visits); shown, not stored, and only while Story scenes count.
+- **Private moments in Story (#648):** story_private.py; what the user whispers, shows or passes to one person is
+  for that person alone: only they answer, only they hear it in the secrets and news ledgers, and the line stays
+  tagged while the story is at the place. A/B on ten models: someone it was not for showed they knew it in 15 of 79
+  replies before and 0 of 80 after.
+- **Story follows you home (#649):** the user's home is a Story place ("Go home" in the picker and on the map), and
+  rules read moves in the story's own lines (scene_now.story_place, a `home` list in scene_moves.json). A companion
+  in the scene comes along unless the line says they part.
+- **Story and chat point at each other (#650):** the chat's where strip says "With you at …, in Story" with "Back to
+  the story"; "Message" on a not-here companion's Story card and on their leaving line; "Meet in Story" in the chat
+  menu; "Start the scene" when a companion is already here (POST /api/story/begin). `story` on GET /api/life/where.
+- **Fixes:** steadier observer test (#651).
+
 ## v1.5.0 "A Most Majestic Vision" (2026-11-26)
 
 - **Storylines you are part of (#616 #621 #624 #625 #627):** life/shared_storylines.py runs storylines with the user

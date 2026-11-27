@@ -20,7 +20,7 @@ leaves behind is companion/story_visits.py.
 import re
 from datetime import datetime, timedelta
 
-from companion import prompt_library, story_plans, texting
+from companion import prompt_library, story_plans, story_private, texting
 from companion.characters import by_id, current
 from companion.clock import parse, stamp
 from companion.database import decode, many, optional
@@ -112,6 +112,14 @@ def work_place(connection, companion: dict, data: dict, block: dict, now: dateti
     return (place, AT_WORK) if place and place in data['places'] else None
 
 
+def placed_now(connection, companion: dict, data: dict | None, now: datetime) -> tuple[tuple[dict, str] | None, dict | None]:
+    """((city place, what they are doing there) or None, their plan with the user under way or None). A plan under
+    way is where they are, whatever the rest of their day says (companion/story_plans.py)."""
+    plan = story_plans.under_way(connection, companion, now)
+    found = story_plans.placed(plan, data) if plan else place_now(connection, companion, data, now) if data else None
+    return found, plan
+
+
 def everyone(connection) -> list[tuple[dict, bool]]:
     """Every companion in the workspace with a character, the main one first."""
     rows = many(connection, 'SELECT id, slot FROM companions WHERE active_version_id IS NOT NULL '
@@ -129,9 +137,7 @@ def whereabouts(connection, data_for, now: datetime) -> list[dict]:
     result = []
     for companion, main in everyone(connection):
         data = data_for(newcomers.city_for(connection, companion['version']['definition'])['id'])
-        # A plan with the user under way is where they are, whatever the rest of their day says (story_plans.py).
-        plan = story_plans.under_way(connection, companion, now)
-        found = story_plans.placed(plan, data) if plan else place_now(connection, companion, data, now) if data else None
+        found, plan = placed_now(connection, companion, data, now)
         result.append({**member(companion, found[1] if found else '', main), 'place': found and found[0], 'city': data,
                        'plan': plan if found else None})
     return result
@@ -183,7 +189,7 @@ def sync(connection, add, present: list[dict], now: str, where: dict) -> None:
 
 
 def leave(connection) -> None:
-    """The user went somewhere else, or began a new story: nobody is with them any more."""
+    """The user went somewhere else, or cleared the pages: nobody is with them any more."""
     connection.execute('DELETE FROM story_cast')
 
 
@@ -195,8 +201,12 @@ def named(item: dict, text: str) -> bool:
 
 def speakers(present: list[dict], people: list[dict], text: str) -> list[dict]:
     """The companions who take a turn after the narrator, anyone the user named first. A line that names only
-    someone else in the scene ("Dana, could I get the bill?") is not theirs to answer."""
+    someone else in the scene ("Dana, could I get the bill?") is not theirs to answer, and a private moment is
+    answered only by the one it was for (companion/story_private.py)."""
     from companion import story_people
+    only = story_private.only(story_private.read(text, present, people), present)
+    if only is not None:
+        return only
     spoken_to = [item for item in present if named(item, text)]
     if not spoken_to and any(story_people.named(person['sheet'], text) for person in people):
         return []
@@ -234,11 +244,12 @@ def own_line(row: dict, pronouns: str | None = None) -> str:
 
 # A companion's own turn ---------------------------------------------------------------------------
 
-def line(row: dict) -> str:
-    """A line of the scene, the same for every speaker, their own included."""
+def line(row: dict, tags: dict | None = None) -> str:
+    """A line of the scene, the same for every speaker, their own included. `tags` marks the private ones
+    (companion/story_private.py)."""
     if row['role'] in ('scene', NOTE):
         return f"[{YOU.sub(lambda match: 'The user' + ('’s' if match[1] else ''), row['text'])}]"
-    return f"{LABELS.get(row['role'], row['name'])}: {row['text']}"
+    return story_private.tagged(f"{LABELS.get(row['role'], row['name'])}: {row['text']}", row, tags)
 
 
 def visible(connection, companion_id: str) -> list[dict]:
@@ -268,7 +279,9 @@ def scene_part(view: dict, item: dict, seen) -> str:
     part = townsfolk.part_of_day(moment.hour * 60 + moment.minute)
     around = story_plans.around(view['companions']) + [seen(person, view) for person in view['people']] + \
         [other['name'] for other in view['companions'] if other['id'] != item['id']]
-    lines = [f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {view['city']['name']}. "
+    from companion import story  # Imported here: it reads this module.
+    lines = [story.home_line(place, view['city']['name']) if place.get('home') else
+             f"Place: {place['name']}, a {place['kind']} in {place['neighborhood']}, {view['city']['name']}. "
              f"{place['summary']}".rstrip(),
              f"Local time: {moment:%A} {moment.day} {moment:%B}, {moment:%H:%M} ({part})."]
     if view['weather']:
@@ -279,7 +292,9 @@ def scene_part(view: dict, item: dict, seen) -> str:
 
 def shared_part(connection, view: dict, item: dict, rows: list[dict], budget: int, seen) -> str:
     kept = window(rows, int(budget * TRANSCRIPT_SHARE))
-    transcript = '## The scene so far\n' + ('\n'.join(line(row) for row in kept) or '(Nothing has been said yet.)')
+    tags = story_private.tags(rows, view, seen)  # What was for one person alone says so, for everyone who reads it.
+    transcript = '## The scene so far\n' + ('\n'.join(line(row, tags) for row in kept) or
+                                            '(Nothing has been said yet.)')
     return '\n\n'.join((prompt_library.text(connection, 'story-companion', name=item['name']),
                         scene_part(view, item, seen), transcript))
 
@@ -291,6 +306,7 @@ def story_lines(connection, view: dict, item: dict, rows: list[dict], now: datet
     lines = story_plans.own_lines(connection, item, view['place'], now) if item.get('plan') else \
         chance_lines(connection, view, item)
     lines.append(('story:sealed', 'What happens here is in person. You have seen only what the lines above show.'))
+    lines += story_private.own_lines(rows, view, item)  # The user's line was for them alone.
     if story_visits.counts(connection):  # How they feel right now, as their chat is told (companion/story_said.py).
         lines += story_said.feeling_lines(connection, item['companion'], now)
     for other in view['companions']:
@@ -304,9 +320,11 @@ def story_lines(connection, view: dict, item: dict, rows: list[dict], now: datet
 
 def chance_lines(connection, view: dict, item: dict) -> list[tuple[str, str]]:
     """With no plan between them: where they are and why, and who came to whom."""
+    from companion import story  # Imported here: it reads this module.
     place = view['place']
     doing = 'at work here' if item['doing'] == AT_WORK else 'here on your own time'
-    lines = [(f"story:{place['id']}", f"You are {item['name']}, in person with the user at {place['name']}. "
+    at = story.HOME_TOLD if place.get('home') else place['name']  # Their own home is not "Your home" to a companion.
+    lines = [(f"story:{place['id']}", f"You are {item['name']}, in person with the user at {at}. "
               f"You are {doing}.")]
     stay = optional(connection, 'SELECT since_seq FROM story_cast WHERE companion_id=?', (item['id'],))
     if here_first(connection, stay['since_seq'] if stay else 0):

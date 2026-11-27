@@ -24,6 +24,16 @@ def read(request: Request):
     return story.story(request.app.state.database)
 
 
+@router.get('/visits')
+def visits(request: Request):
+    """The main companion's finished visits, for a line each in their 1:1 chat (companion/story_visits.py)."""
+    from companion import story_visits
+    from companion.characters import current
+    with request.app.state.database.connect() as connection:
+        companion = current(connection)
+        return {'visits': story_visits.chat_lines(connection, companion) if companion else []}
+
+
 @router.put('/scene')
 def move(request: Request, body: StoryScene):
     return story.move(request.app.state.database, body.city_id, body.place_id)
@@ -51,7 +61,8 @@ class StoryBegin(Input):
     client_id: str = Field(min_length=8, max_length=100)
 
 
-@router.post('/plan/begin')
+@router.post('/begin')
+@router.post('/plan/begin')  # Its name while only a plan could be begun this way.
 async def begin(request: Request, body: StoryBegin):
     return await story.begin(request.app.state, body.client_id)
 
@@ -61,9 +72,33 @@ async def send(request: Request, body: StoryMessage):
     return await story.send(request.app.state, body.text, body.client_id)
 
 
+class StoryEdit(Input):
+    text: str = Field(min_length=1, max_length=40000)
+
+
+@router.put('/messages/{message_id}')
+async def edit(request: Request, message_id: str, body: StoryEdit):
+    return await story.edit(request.app.state, message_id, body.text)
+
+
 @router.post('/retry')
 async def retry(request: Request):
     return await story.retry(request.app.state)
+
+
+@router.post('/retry/undo')
+def undo(request: Request):
+    return story.undo(request.app.state.database)
+
+
+@router.post('/chapter')
+def new_chapter(request: Request):
+    return story.chapter(request.app.state.database, True)
+
+
+@router.delete('/chapter')
+def undo_chapter(request: Request):
+    return story.chapter(request.app.state.database, False)
 
 
 @router.delete('')
