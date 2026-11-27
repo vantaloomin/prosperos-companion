@@ -61,11 +61,12 @@ from companion.life import (
     their_people,
     together,
     trips,
+    upkeep,
     usual_hours,
     wedding,
 )
 from companion.life.mood import ABSENCE_HOURS, last_presence
-from companion.memory import context, pairs
+from companion.memory import context, own_words, pairs
 from companion.memory.records import OPEN_PLANS, eligible, from_old_chats, told
 from companion.memory.retrieval import terms
 from companion.providers.chat import INCOMPLETE
@@ -78,6 +79,8 @@ OPENER = Work(15, 'companion message', True)
 FOLLOW_UP_WITHIN = timedelta(days=3)
 FOLLOW_UP_AFTER = timedelta(hours=1)
 NEWS_WITHIN = timedelta(hours=24)
+# A memory that a "reminded of" text used is left alone this long.
+REMINDER_REST = timedelta(days=7)
 SILENCE = timedelta(hours=ABSENCE_HOURS * 2)
 MAX_LENGTH = 600
 # A first text the model wrote but that could not be used, with no template to fall back on, waits this long before
@@ -135,6 +138,8 @@ ASK = re.compile(r"\b(?:hear|tell me|fill me in|catch me up|ask you|check (?:in|
                  re.IGNORECASE)
 TOPIC = re.compile(r"\bhow ((?:the|your) [a-z][a-z' -]{1,40}?|[a-z][a-z' -]{1,40}?) (?:is|are|was|went|goes|'s) going\b",
                    re.IGNORECASE)
+REMINDED = ('From your own day: {summary} It brought to mind {what} {when} ({subject}: {value}). That is from then, '
+            'not from today: do not tell it as if it happened today, or where you were today. Tell them, briefly.')
 INSTRUCTION = (
     'The user has not written. Write one short message to them yourself, as a text that starts a new exchange '
     '(one to three sentences, no greeting formula unless it fits your voice). Why you are writing: {reason} '
@@ -204,20 +209,56 @@ def words(text: str) -> set[str]:
 
 
 def reminders(connection, companion, now) -> list[Trigger]:
-    """Something the companion did today that touches what the user told them about themselves."""
-    facts = [memory for memory in told(eligible(connection, companion, companion['active_timeline_id'], stamp(now)),
-                                       companion)
-             if memory['layer'] in {'user_fact', 'shared_experience'} and not memory['boundary']]
+    """Something the companion did today that touches what the user told them about themselves, or a time the two
+    of them had. A memory that was in one of these texts rests for a week."""
+    timeline_id = companion['active_timeline_id']
+    rested = reminded(connection, timeline_id, now)
+    # Their own names are in nearly every summary and many memories: they say nothing about what a day touched.
+    own = {word for name in [companion['version']['definition'].get('name', ''),
+                             *own_words.user_names(connection, timeline_id)] for word in words(name or '')}
+    facts = [(memory, words(memory['subject']) - own, words(f"{memory['subject']} {memory['value']}") - own)
+             for memory in told(eligible(connection, companion, timeline_id, stamp(now)), companion)
+             if memory['layer'] in {'user_fact', 'shared_experience'} and not memory['boundary']
+             and memory['id'] not in rested]
     result = []
-    for row in recent_events(connection, companion['active_timeline_id'], now, "kind='ordinary'"):
-        found = words(row['summary'])
-        match = next((memory for memory in facts if found & words(f"{memory['subject']} {memory['value']}")), None)
+    for row in recent_events(connection, timeline_id, now, "kind='ordinary'"):
+        match = touched(words(row['summary']) - own, facts)
         if match:
-            result.append(Trigger(
-                f"reminder:{row['id']}", 'reminder',
-                f'Earlier you {row["summary"]} It reminded you of something the user told you '
-                f"({match['subject']}: {match['value']}). Tell them, briefly.", None, (row['id'], match['id'])))
+            result.append(Trigger(f"reminder:{row['id']}", 'reminder', reminder_reason(row, match, companion, now),
+                                  None, (row['id'], match['id'])))
     return result
+
+
+def reminder_reason(row: dict, memory: dict, companion: dict, now) -> str:
+    """Their day, the memory it touched and when that memory is from. The line used to open "Earlier you" before a
+    summary that names them ("Earlier you Mira went to..."), and gave the memory with no day: "You had a first date
+    last night", saved three weeks before, was told as last night's (real-model run of 1.5.2; A/B 2026-11-27)."""
+    timezone = zone(companion['version']['timezone'])
+    then = parse(memory.get('applies_from') or memory.get('stated_at') or memory['created_at']).astimezone(timezone)
+    when = upkeep.days_ago(then.date(), now.astimezone(timezone).date())
+    what = 'a time the two of you had' if memory['layer'] == 'shared_experience' else 'something the user told you'
+    return REMINDED.format(summary=composer.said(row['summary'], companion['version']['definition']), what=what,
+                           when=when if when in ('today', 'yesterday') else f'on {when}', subject=memory['subject'],
+                           value=memory['value'])
+
+
+def touched(found: set[str], facts: list[tuple]) -> dict | None:
+    """The memory a day event touches: they share two telling words, or the word the memory is named for ("yoga" for
+    a memory called Yoga). One shared word anywhere joined every event on the tester's world to some memory, lost
+    keys to "couldn't afford a job" through "couldn't" (real-model run of 1.5.2). The most words in common wins."""
+    best, most = None, 0
+    for memory, subject, everything in facts:
+        shared = found & everything
+        if (len(shared) >= 2 or shared & subject) and len(shared) > most:
+            best, most = memory, len(shared)
+    return best
+
+
+def reminded(connection, timeline_id: str, now) -> set[str]:
+    """The memories a "reminded of" text used in the last week: the same one twice in two days read as a tic."""
+    rows = many(connection, "SELECT facts FROM openers WHERE timeline_id=? AND kind='reminder' AND created_at>?",
+                (timeline_id, stamp(now - REMINDER_REST)))
+    return {source for row in rows for source in decode(row['facts']).get('sources', [])[1:]}
 
 
 def silence(connection, companion, now) -> list[Trigger]:
