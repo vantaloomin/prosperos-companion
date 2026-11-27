@@ -2,24 +2,6 @@
 
 ## Unreleased
 
-- **Story: another reply, and editing:** the Story had no way to get a different reply or to change anything once
-  it was said. Under the newest reply there is now Another reply, which tells it again, and Edit your line, which
-  changes what you last said and has it answered anew. The narrator's reply and a companion's line can be edited
-  too, anywhere in the story, to cut or change something: hover over one and choose Edit, or press and hold it on a
-  phone. A story has one course, so the reply told before is replaced, and what it had made people know or remember
-  is taken back with it. Undo, next to Another reply, brings the earlier reply back until you send your next line.
-  On a phone, a short story can now always be scrolled to its newest lines.
-- **Your chat shows the scene you just played:** after time with a companion in the Story, their chat went straight
-  from one text to the next, even when their next text mentioned the drink at the bar. Their chat now has one quiet
-  line where it happened, "In Story at Club Charles · 2:06 to 2:31 PM", with "Read it" to open the Story at that
-  chapter. Its times are on the same clock as the chat's own. It follows Settings > Realism > "Story scenes count".
-- **Story chapters and times:** the Story never said whether it was finished, its lines had no times, and "Start a
-  new story" sounded like the way to carry on while it really wiped the page and the people you had met. The Story
-  is now told in chapters: when you come back to it after a couple of hours a new chapter starts by itself, with its
-  number, day and time above it, and "Start a new chapter" under the box starts one whenever you like. Nothing is
-  cleared either way. Your own lines show the time they were written, on the city's own clock like the time at the top.
-  "Start a new story" is now "Clear the pages…", and it only removes the writing: the people you've met still know
-  you, anyone who said yes is still a match, and time with companions still counts. Exports are in chapters too.
 - **Comment on posts:** "Talk about this" under a post looked like it would let you comment, but it sent a chat
   message. Posts now have a Comment button: your comment goes under the post, and whoever posted answers you there,
   your companion on their own posts and a friend on theirs, once they would have seen it (sooner or later by
@@ -93,6 +75,30 @@
 - **Duplicate a model profile:** each profile in Settings > Models has a Duplicate button that copies
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
+
+## v1.5.1 (2026-11-27)
+
+- **Story: another reply, Undo and Edit (#645):** story_again.py; Another reply (Try again after a failure), Undo
+  for one step back, Edit your line, and Edit on the narrator's reply or a companion's line anywhere in the story.
+  What an old reply had done is taken back by rules and comes back with Undo. POST /api/story/retry/undo,
+  PUT /api/story/messages/{id}.
+- **Story chapters and times (#646):** story_chapters.py; a line two hours or more after the one before starts a
+  chapter, "Start a new chapter" starts one when asked, the user's lines show their time on the city's clock, and
+  "Start a new story" became "Clear the pages…", which keeps the people met, matches and time spent. Exports are in
+  chapters.
+- **A line in their chat for each finished Story visit (#647):** "In Story at Club Charles · 2:06 to 2:31 PM ·
+  Read it" (story_visits.chat_lines, GET /api/story/visits); shown, not stored, and only while Story scenes count.
+- **Private moments in Story (#648):** story_private.py; what the user whispers, shows or passes to one person is
+  for that person alone: only they answer, only they hear it in the secrets and news ledgers, and the line stays
+  tagged while the story is at the place. A/B on ten models: someone it was not for showed they knew it in 15 of 79
+  replies before and 0 of 80 after.
+- **Story follows you home (#649):** the user's home is a Story place ("Go home" in the picker and on the map), and
+  rules read moves in the story's own lines (scene_now.story_place, a `home` list in scene_moves.json). A companion
+  in the scene comes along unless the line says they part.
+- **Story and chat point at each other (#650):** the chat's where strip says "With you at …, in Story" with "Back to
+  the story"; "Message" on a not-here companion's Story card and on their leaving line; "Meet in Story" in the chat
+  menu; "Start the scene" when a companion is already here (POST /api/story/begin). `story` on GET /api/life/where.
+- **Fixes:** steadier observer test (#651).
 
 ## v1.5.0 "A Most Majestic Vision" (2026-11-26)
 
