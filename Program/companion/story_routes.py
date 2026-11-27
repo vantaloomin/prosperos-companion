@@ -61,7 +61,8 @@ class StoryBegin(Input):
     client_id: str = Field(min_length=8, max_length=100)
 
 
-@router.post('/plan/begin')
+@router.post('/begin')
+@router.post('/plan/begin')  # Its name while only a plan could be begun this way.
 async def begin(request: Request, body: StoryBegin):
     return await story.begin(request.app.state, body.client_id)
 

@@ -619,6 +619,8 @@ def view(connection, companion: dict, now: datetime) -> dict:
     found['heading'] = heading_home.view(connection, companion, now) if found['kind'] == 'heading-home' else None
     from companion.life import moving_in
     found['home'] = moving_in.view_strip(connection, companion, now)  # Living together: home, or the user out.
+    from companion import story  # With them in the Story now, or somewhere the Story can go to them.
+    found['story'] = story.for_chat(connection, companion, now)
     return found
 
 

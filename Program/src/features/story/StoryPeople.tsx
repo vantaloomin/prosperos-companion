@@ -3,6 +3,8 @@ import type { StoryCompanion, StoryPerson } from '../../types'
 import { companionLine, personLine } from './storyText'
 import { useStartWith } from '../character/useSwitchBack'
 import { Notice } from '../../components/Feedback'
+import { useEraWords } from '../world/useEraWords'
+import { say } from '../world/eraWords'
 
 interface Props {
   people: StoryPerson[]; companions: StoryCompanion[]; city: string; canSwitch: boolean
@@ -15,6 +17,7 @@ interface Props {
  * they have met in it (theirs alone, not the companion's). */
 export function StoryPeople({ people, companions, city, canSwitch, go, onFind, onSay, busy }: Props) {
   const starting = useStartWith(go)
+  const words = useEraWords()
   if (!people.length && !companions.length) return null
   return (
     <details className="story-people">
@@ -25,8 +28,10 @@ export function StoryPeople({ people, companions, city, canSwitch, go, onFind, o
           <li key={companion.key}>
             <p><strong>{companion.name}</strong></p>
             <p className="subtle">{companionLine(companion, city)}</p>
-            {companion.place && !companion.here && <div className="form-actions">
-              <button type="button" className="text-button" onClick={() => onFind(companion.key)}>Go to {companion.name}</button>
+            {/* Not here: go to them when the story can, or text them. Here, you are face to face. */}
+            {!companion.here && <div className="form-actions">
+              {companion.place && <button type="button" className="text-button" onClick={() => onFind(companion.key)}>Go to {companion.name}</button>}
+              <button type="button" className="text-button" onClick={() => go(`chat/${companion.id}`)}>{say(words, 'message_to', companion.name)}</button>
             </div>}
           </li>))}
         {people.map((person) => (
