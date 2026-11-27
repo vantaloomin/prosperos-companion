@@ -105,6 +105,9 @@ SHORT = 6
 DETAILS = re.compile(r"\bat\s+\d{1,2}(?::\d{2})?\s*(?:[ap]\.?m\.?)?|\b(?:at|to)\s+(?:the\s+)?(?:[A-Z][\w'’&.-]*\s*)+")
 # Run-on messages join an ask to other news with "also", "btw" or "anyway".
 ASIDE = re.compile(r"\s+(?:also|btw|anyway|plus|oh and|and also)\s+", re.IGNORECASE)
+# "tuesday is a mess for me but do you want to get tea friday at 4": the ask starts after it, comma or not.
+TURN = re.compile(r"\s+(?:but|though|so)\s+(?=(?:do|does|did|can|could|shall|should|would|will|want|wanna|fancy|let's|lets|"
+                  r"how|what|maybe|are|is)\b)", re.IGNORECASE)
 WEEKEND = re.compile(r'\b(?:this|the) weekend\b', re.IGNORECASE)
 NOT_BUSY = {'work', 'study', 'sleep'}
 LOOK_DAYS = 7
@@ -213,7 +216,8 @@ def day_in(text: str, today: date, holidays: dict) -> date | None:
 
 def asking_clause(sentence: str) -> str | None:
     """The clause that asks to go out, when the sentence has others ("a walk Sunday also my sister ...")."""
-    parts = [part for clause in own_plans.CLAUSES.split(sentence) for part in ASIDE.split(clause or '') if part]
+    parts = [part for clause in own_plans.CLAUSES.split(sentence) for aside in ASIDE.split(clause or '')
+             for part in TURN.split(aside or '') if part]
     if len(parts) < 2:
         return None
     return next((part for part in parts if ASKING.search(part) or OUT.search(part) or any(
