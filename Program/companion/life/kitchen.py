@@ -870,10 +870,37 @@ def context_lines(connection, timeline_id: str, definition: dict, world, now, ti
         lines.append((f'kitchen:{timeline_id}:{yesterday["date"]}', f"- Last night you {you(text)}."))
     tonight = found.meal(today)
     if tonight['kind'] != 'away':
-        lines.append((f"kitchen:{timeline_id}:{tonight['date']}", f'- Dinner tonight: {dinner_text(tonight)}.'))
+        out = out_now(connection, timeline_id, timezone, now) if tonight['kind'] in AT_HOME else None
+        lines.append((f"kitchen:{timeline_id}:{tonight['date']}", tonight_text(tonight, out, era_modern)))
     if pantry := pantry_text(found.pantry(today)):
         lines.append((f'kitchen:{timeline_id}:pantry:{today.isoformat()}', f'- At home: {pantry}'))
     return lines
+
+
+# Dinners that are at their own home. The chat context tells one as "which you are cooking" all day, which is wrong
+# while they are out with the user (at the user's place, out for drinks): then it is told by the clock.
+AT_HOME = ('cook', 'leftovers', 'takeout', 'simple')
+
+
+def out_now(connection, timeline_id: str, timezone: str, now) -> dict | None:
+    """Today's outing with the user under way right now anywhere but their own home."""
+    from companion.life import outings
+    today = now.astimezone(zone(timezone)).date().isoformat()
+    return next((outing for outing in outings.in_force(connection, timeline_id, today)
+                 if outing['local_date'] == today and outings.state(outing, timezone, now) == 'now'
+                 and (outing['place'] or {}).get('id') != outings.HOME), None)
+
+
+def tonight_text(meal: dict, out: dict | None, era_modern: bool = True) -> str:
+    """The chat context's line for tonight's dinner. Out with the user since after dinner time, a dinner at home is
+    behind them; out since before it, it waits until they are back."""
+    if not out:
+        return f'- Dinner tonight: {dinner_text(meal)}.'
+    if out['at_time'] > DINNER_AT:
+        return f'- Dinner tonight, at home before you came out: you {meal_text(meal, era_modern)}.'
+    if meal['kind'] == 'cook':
+        return f"- Dinner tonight: {meal['dish']}, which you will cook once you are back home. Nothing is cooking now."
+    return f'- Dinner tonight: {dinner_text(meal)}, once you are back home.'
 
 
 def you(text: str) -> str:

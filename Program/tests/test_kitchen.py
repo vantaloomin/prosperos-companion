@@ -308,3 +308,60 @@ def test_a_dinner_still_ahead_is_told_as_a_plan():
         'You plan to pick up pad thai from Thai Landing and set the table.'
     assert kitchen.planned_menu({'dish': 'mushroom risotto', 'bake': 'lemon bars', 'takeout': None}) == \
         'You plan to cook mushroom risotto, with lemon bars for dessert.'
+
+
+def test_out_with_the_user_a_dinner_at_home_is_told_by_the_clock():
+    """Not "which you are cooking" while they sit at the user's place: eaten before they came, or waiting at home."""
+    cook = {'kind': 'cook', 'dish': 'black bean chili', 'bake': None, 'mishap': None, 'takeout': None}
+    late, early = {'at_time': '20:00'}, {'at_time': '17:50'}
+    assert kitchen.tonight_text(cook, None) == '- Dinner tonight: black bean chili, which you are cooking.'
+    assert kitchen.tonight_text(cook, late) == \
+        '- Dinner tonight, at home before you came out: you made black bean chili.'
+    assert kitchen.tonight_text(cook, early) == \
+        '- Dinner tonight: black bean chili, which you will cook once you are back home. Nothing is cooking now.'
+    takeout = {'kind': 'takeout', 'takeout': {'dish': 'pad thai', 'source': 'Thai Landing'}, 'bake': None,
+               'mishap': None}
+    assert kitchen.tonight_text(takeout, late) == \
+        '- Dinner tonight, at home before you came out: you ordered pad thai from Thai Landing.'
+    assert kitchen.tonight_text(takeout, early) == \
+        '- Dinner tonight: takeout, pad thai from Thai Landing, once you are back home.'
+    leftovers = {'kind': 'leftovers', 'dish': 'lasagna', 'bake': None}
+    assert kitchen.tonight_text(leftovers, late) == \
+        '- Dinner tonight, at home before you came out: you had leftover lasagna.'
+    simple = {'kind': 'simple', 'dish': 'eggs on toast', 'bake': None}
+    assert kitchen.tonight_text(simple, early) == \
+        '- Dinner tonight: something simple, eggs on toast, once you are back home.'
+
+
+def dinner_line(provider):
+    return next(line for line in provider.requests[-1]['prompt'].splitlines() if line.startswith('- Dinner tonight'))
+
+
+@pytest.mark.parametrize('hours, told', [(8, 'at home before you came out: you '), (5.5, 'once you are back home')])
+def test_at_the_users_place_dinner_at_home_is_not_cooking_now(client, kim, provider, clock, monkeypatch, hours, told):
+    monkeypatch.setattr(kitchen.Day, 'held', lambda *_args: None)  # a dinner at home, whatever their evening drew
+    clock.advance(timedelta(hours=hours))  # 20:00, after dinner time; or 17:30, before it.
+    provider.replies.append([Chunk('On my way.'), Chunk('', 'stop')])
+    send(client, 'wanna come over now?', 'client-kitchen-out-1')
+    [visit] = client.get('/api/life/outings').json()['outings']
+    assert visit['activity'] == 'visit-yours' and visit['state'] == 'now'
+    with day_for(client) as found:
+        kind = found.meal(TODAY)['kind']
+    assert kind in kitchen.AT_HOME
+    provider.replies.append([Chunk('Hey.'), Chunk('', 'stop')])
+    send(client, 'are you hungry?', 'client-kitchen-out-2')
+    assert told in dinner_line(provider) and 'which you are cooking' not in dinner_line(provider)
+
+
+def test_with_the_user_over_at_theirs_dinner_is_told_as_before(client, kim, provider, clock, monkeypatch):
+    monkeypatch.setattr(kitchen.Day, 'held', lambda *_args: None)
+    clock.advance(timedelta(hours=8))  # 20:00.
+    provider.replies.append([Chunk('Come on over.'), Chunk('', 'stop')])
+    send(client, 'can I come over now?', 'client-kitchen-out-3')
+    [visit] = client.get('/api/life/outings').json()['outings']
+    assert visit['activity'] == 'visit-in' and visit['state'] == 'now'
+    with day_for(client) as found:
+        assert found.meal(TODAY)['kind'] in kitchen.AT_HOME
+    provider.replies.append([Chunk('Hey.'), Chunk('', 'stop')])
+    send(client, 'are you hungry?', 'client-kitchen-out-4')
+    assert 'came out' not in dinner_line(provider) and 'back home' not in dinner_line(provider)
