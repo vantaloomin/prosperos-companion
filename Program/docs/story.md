@@ -415,8 +415,8 @@ regular across the room could answer a name the user had written down and shown 
 - **The narrator's own wording** has one standing line for what the phrases miss: "People know only what they
   could see or hear from where they are. ..." Someone who reworded the narrator keeps their wording; everything
   above is code and works either way.
-- Not done: nobody overhears a whisper at any drama setting, and the private words are still in what a companion's
-  model reads (marked, not cut).
+- Not done: nobody overhears a whisper at any drama setting, and the narrator still reads the private words
+  (marked), so what it writes about the answer is read by everyone.
 - **A/B (2026-11-26, ten models, two runs each, a blind judge):** over four private scenes (the notepad, a whisper,
   a slipped note, a question asked later) someone it was not for showed they knew it in 15 of 79 replies before
   and 0 of 80 with the note, the tag and the standing line; the standing line alone gave 1 of 80. The one it was
