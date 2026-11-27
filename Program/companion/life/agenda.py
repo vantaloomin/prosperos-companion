@@ -66,6 +66,7 @@ from companion.life import (
     wardrobe,
     wedding,
     work,
+    work_said,
 )
 from companion.memory import pairs
 from companion.workspace import overlapping_pause
@@ -173,6 +174,7 @@ def extend(connection, companion, world, now) -> dict:
     outings.finish_due(connection, companion, now)
     from companion import story_visits  # Imported here: the Story reads the agenda.
     story_visits.settle(connection, now)  # Time together in the Story that has ended.
+    work_said.read_back(connection, companion, now)  # A project they already said was done, before a day names it.
     if work.plan_ahead(connection, companion, world, now).get('shifts'):
         companion = by_id(connection, companion['id'])  # This week's shifts or gigs shape the days ahead.
     admin.plan_ahead(connection, companion, world, now)
