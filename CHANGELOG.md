@@ -76,6 +76,19 @@
   its provider, model, settings and saved key into "… copy". Jobs stay with the original, and a new
   key on either one leaves the other's alone. Profile buttons also wrap on narrow windows now.
 
+## v1.5.3 (2026-11-27)
+
+- **A full context never leaves out where the companion is right now (#665):** `memory/context.py fill` offered
+  the "right now" lines (visit, outing, call, trip, plans agreed with the user) after the conversation, memories and
+  the companion's own life, so on a world at its context limit they were the ones dropped, and a companion at the
+  user's place took the room for their own. `offer_together` now runs right after the time lines. The written order
+  is unchanged, so a prompt that fits is byte for byte the same.
+- **Out with the user, dinner at home is told by the clock (#666):** `kitchen.out_now` and `kitchen.tonight_text`.
+  Out since after dinner time: "Dinner tonight, at home before you came out: you made X." Out since before it: "X,
+  which you will cook once you are back home. Nothing is cooking now." A/B on five models, 360 replies: the dish was
+  cooking right then in 6 of 120 replies with the old line and 0 of 120 with the new one.
+- **Fixes:** the Story whisper test no longer fails on a random character sheet that holds the word "whisper" (#666).
+
 ## v1.5.2 (2026-11-27)
 
 - **Chat is face to face during a Story visit (#653 #654):** while a visit is going on the companion's 1:1 chat is
