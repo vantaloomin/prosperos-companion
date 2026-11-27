@@ -366,3 +366,22 @@ def test_two_companions_at_your_place_know_the_other_is_there(client, nearby, pr
     says(provider)
     send(client, 'nice having you here', 'client-together-33')
     assert 'also visiting the user' not in notes(provider)
+
+
+def test_a_full_context_still_says_they_are_at_your_place(client, nearby, provider, clock):
+    """Sections added last are left out of a full context: where they are right now is never one of them."""
+    from companion.memory import context
+    clock.advance(timedelta(hours=6))  # 18:00, free.
+    says(provider)
+    send(client, 'wanna come over now?', 'client-together-40')
+    for index in range(6):  # A long talk, enough to fill a small context on its own.
+        says(provider, 'And then what happened? ' * 60)
+        send(client, 'So the thing about the garden is this. ' * 60, f'client-together-4{index + 1}')
+    line = "Right now you are over at the user's place"
+    with client.app.state.database.connect() as connection:
+        companion = current(connection)
+        roomy = context.build(connection, companion, clock.now(), 200000)
+        tight = context.build(connection, companion, clock.now(), roomy['receipt']['estimated_tokens'] // 2)
+    assert line in roomy['note'] and not roomy['receipt']['omitted']
+    assert tight['receipt']['omitted'].get('conversation')  # Too full for the whole talk, let alone what follows it.
+    assert line in tight['note']
