@@ -149,8 +149,8 @@ test('with them in the Story the strip says where, and a plan the Story can play
   const there: WhereState = { ...apart, story: { ...none, with: { place: 'Club Charles' } } }
   assert.deepEqual(storyLine(there), { lead: 'With you at Club Charles, in Story', place: null, tail: '' })
   assert.equal(storyLine({ ...apart, story: { ...none, with: { place: 'your place' } } })?.lead, 'With you at your place, in Story')
-  // The chat itself is not told, so it stays a text: the box keeps "Message" and texting habits stay as they were.
-  assert.ok(!notTexting(there))
+  // The chat is face to face while the strip shows: the box says "Talk to" and texting habits stop.
+  assert.ok(notTexting(there) && !notTexting(apart))
   // A plan under way: "play it out in Story" until the story is there, then "Back to the story".
   assert.equal(storyLink(out), null)
   assert.equal(storyLink({ ...out, story: { ...none, plan: 'o1' } }), 'play')

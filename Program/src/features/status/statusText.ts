@@ -1,6 +1,6 @@
 /** Status messages (companion/life/status.py): what shows, kept apart from the components for tests. */
 
-export type AwayGlyph = 'moon' | 'briefcase' | 'pin' | 'phone' | 'luggage' | 'home'
+export type AwayGlyph = 'moon' | 'briefcase' | 'pin' | 'phone' | 'luggage' | 'home' | 'book'
 /** Together or apart (companion/life/together.py), or on a call (companion/life/calls.py), in plain words; the text is empty while apart in the same city. */
 /** `short` is the phone's wording when it differs (away together: just the place, "Lisbon"). */
 export interface StatusWhere { state: 'together' | 'apart' | 'call'; kind: string; text: string; short?: string }
@@ -21,18 +21,20 @@ function togetherLine(where: StatusWhere): { text: string; away: AwayGlyph; shor
 }
 
 /** A weekend visit across the distance (companion/life/long_distance.py) shows luggage, like the chat strip; home
- * together (companion/life/moving_in.py) the house, and together somewhere out the pin. */
+ * together (companion/life/moving_in.py) the house, together in the Story (companion/story_visits.py) the book, and
+ * together somewhere out the pin. */
 function togetherGlyph(where: StatusWhere): AwayGlyph {
+  if (where.kind === 'story') return 'book'
   // At your place shows the house too, like the chat strip (Iris, 2026-11-10).
   if (where.kind === 'home' || where.kind === 'yours' || where.kind === 'knock') return 'home'
   return where.kind === 'staying' || where.kind === 'hosting' || where.kind === 'away' ? 'luggage' : 'pin'
 }
 
 /** The glyph beside where they are on the chat list: a phone on a call, luggage on a weekend visit, the house at home
- * together, else a pin. */
-export function whereGlyph(where: StatusWhere | null | undefined): 'phone' | 'luggage' | 'pin' | 'home' {
+ * together, the book in the Story, else a pin. */
+export function whereGlyph(where: StatusWhere | null | undefined): 'phone' | 'luggage' | 'pin' | 'home' | 'book' {
   if (onThePhone(where)) return 'phone'
-  return where ? togetherGlyph(where) as 'luggage' | 'pin' | 'home' : 'pin'
+  return where ? togetherGlyph(where) as 'luggage' | 'pin' | 'home' | 'book' : 'pin'
 }
 
 /** On a call, or ringing you (companion/life/calls.py). */

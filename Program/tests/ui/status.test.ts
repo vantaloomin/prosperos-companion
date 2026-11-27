@@ -35,5 +35,8 @@ test('the chat list shows luggage on a weekend visit, a phone on a call, else a 
   assert.equal(whereGlyph({ state: 'together', kind: 'home', text: 'Home together' }), 'home')
   assert.equal(whereGlyph({ state: 'call', kind: 'call', text: 'On a call' }), 'phone')
   assert.equal(whereGlyph({ state: 'apart', kind: 'long-distance', text: 'Long distance, London, 5 hours ahead' }), 'pin')
+  // With you in the Story (companion/story_visits.py): the outing's words, and the book where the pin goes.
+  assert.equal(whereGlyph({ state: 'together', kind: 'story', text: 'Together at Club Charles' }), 'book')
+  assert.deepEqual(shown({ text: 'coffee first', set_by: 'app', away: null, where: { state: 'together', kind: 'story', text: 'Together at Club Charles' } }), { text: 'Together at Club Charles', away: 'book' })
   assert.equal(whereGlyph(null), 'pin')
 })

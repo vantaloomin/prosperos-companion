@@ -226,9 +226,10 @@ model call:
   flowers"), with a grin or a nudge making it teasing. A promise said in person stays with chat. Their own line can
   make up ("We're good"). Their line in the scene is written knowing their mood and any rough patch with the user
   (`story_said.feeling_lines`; A/B in project files companion-story-stick/ab: shown 20/117 before, 97/117 after).
-- **Their chat afterward:** for a day and a half, the 'where' section of their 1:1 chat says when and where they
-  were together, who came to whom, and the last six lines the two of them said (`story_visits.context_lines`).
-  After that it is the memory.
+- **Their chat afterward:** once the visit is over, for a day and a half, the 'where' section of their 1:1 chat
+  says when and where they were together, who came to whom, and the last six lines the two of them said
+  (`story_visits.context_lines`). After that it is the memory. While the visit is still going on the chat is face
+  to face instead ([Between the Story and the chat](#between-the-story-and-the-chat)).
 - **A line in their chat:** a finished visit with something said to them shows as one of the app's own lines in
   their 1:1 chat, at the point it happened: "In Story at Club Charles · 2:06 to 2:31 PM · Read it"
   (`story_visits.chat_lines`, `GET /api/story/visits`). The times are on the clock the chat's own stamps are on
@@ -248,13 +249,25 @@ story is then apart from the companion's life, as it was before 1.5.
 ## Between the Story and the chat
 
 The Story and a companion's 1:1 chat point at each other, so neither is a dead end (Iris's 1.5.1 handoff spec).
-All of it is rules and links: nothing here changes what a model is told.
+The links are rules; the one thing a model is told is that the two are together while a visit goes on.
 
-- **Their chat while you are with them:** while a visit with them is open ([Scenes count](#scenes-count)), their
-  chat's where strip says "With you at Club Charles, in Story" with "Back to the story". Nothing is blocked, and the
-  box to write in stays "Message Mira": their chat is still a text, as its model is told nothing new. The strip goes when the visit ends: the user goes somewhere
-  else, the companion's day takes them away, or nothing has been said for two hours. An outing, a call or a visit
-  in chat keeps its own strip (`story` on `GET /api/life/where`, `story.for_chat`, `story_visits.going`).
+- **Their chat while you are with them:** while a visit with them is going on ([Scenes count](#scenes-count)),
+  their 1:1 chat is face to face, as it is on an outing. Its where strip says "With you at Club Charles, in Story"
+  with "Back to the story", the header and the chat list say "Together at Club Charles" with the book where an
+  outing has the pin (`status.where`, kind `story`), and the box to write in says "Talk to Mira". Their reply is told "Right now you are with
+  the user at Club Charles, in person. They came by while you were at work there. Talk as if you are there
+  together, face to face, not texting…" with the latest six lines said in the scene (`story_visits.now_text`), in
+  place of "You are apart again now, texting". A/B on ten models, 300 replies
+  (`/mnt/project-files/companion-story-together/ab/report.md`): told they were apart, the reply treated the two as
+  together in 33 of 100 and spoke from somewhere else in 42; told this, 99 and 0. By rules, as on an outing (`together.in_person`): the reply is read
+  at once, their texting habits stop, they do not text or call first, nobody else knocks, and a picture is of the
+  scene. One test decides all of it and the strip (`story_visits.going`): the user has said something in the scene
+  while they were there, they are still in it, and the last line is under two hours old.
+- **How that ends:** the user goes somewhere else in the Story, the companion's day takes them away, nothing is
+  said for two hours, or the user says goodbye in the chat ("I should head home"), which ends it as it ends an
+  outing (`together.story_goodbye`). The story itself stays where it is. From then on their chat is told what the
+  next section says ("Their chat afterward"). An outing, a call or a visit in chat keeps its own strip, and a plan
+  played in the Story is an outing already (`story` on `GET /api/life/where`, `story.for_chat`).
 - **From the Story to their chat:** a companion who is not in the scene has "Message Mira" beside "Go to Mira" on
   their card in People you know (the era's own word: "Write to Gwen"). One who is here has neither. When they
   leave, the story's line reads "Mira has gone. · 4:39 PM · Message Mira", the time before the link.
