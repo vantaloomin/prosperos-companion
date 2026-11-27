@@ -333,3 +333,40 @@ ledger.
 - **A/B** (project files companion-story-secrets/ab, ten models): with no scene line, a sheet secret was told in
   front of the person it is kept from in 3 of 29 replies, 0 of 28 with it. The redraft worded "turn" gave nothing
   away in 56 replies; worded "message" (the group chat's), 1 away and 5 muddled.
+
+## Private moments
+
+What the user whispers, shows or passes to one person is for that person alone (`companion/story_private.py`).
+Rules only, no model call. The narrator voices everyone in the room from the user's whole line, so before 1.5.1 a
+regular across the room could answer a name the user had written down and shown only to the server.
+
+- **What counts:** plain words in the user's line, read as written (`PRIVATE`): a whisper, something said under
+  their breath, in someone's ear, quietly or in a low voice, a note slipped or passed, something shown "only to"
+  someone or "so nobody else sees", taking someone aside. Anything else is said in the open, and so is a line that
+  also says it is out loud (`OPEN`: "loud enough", "announce", a stage whisper). Out of character is never private.
+- **Who it was for:** the person in the scene the line names, by name or by what the screen calls them ("the
+  server", or another word for the same job: "waitress"), the one nearest the private words when it names several;
+  with nobody named, the only other person there. Otherwise the moment is private but for nobody the rules can
+  tell.
+- **Who answers:** only the one it was for. The narrator is told so right after the user's line ("[Private: that
+  was for Ahmad Wallace alone. Nobody else here saw or heard what it was. Only Ahmad Wallace answers it, quietly.
+  Everyone else carries on as if nothing was said.]"). A companion it was not for takes no turn; one it was for
+  is the only one who does, with "The user meant that for you alone. Nobody else here caught it. Keep your answer
+  just as quiet." in their own notes. When the rules can't tell who it was for, companions answer as for any line.
+- **It stays marked:** for as long as the story stays at the place, the line carries "[Private: only the server saw
+  or heard this.]" in what the narrator and each companion read, and a companion's answer to one that was theirs
+  carries "[Private: only the user heard this.]".
+- **Who heard:** in the secrets and news ledgers a private line is heard only by the one it was for, and a
+  companion's answer to one only by the user. Townsfolk are in neither ledger, so what is whispered to one goes no
+  further. A line it was not for is not said to a companion either: no relationship step, nothing remembered from
+  it (`story_cast.speakers`, read by `companion/story_visits.py`).
+- **The narrator's own wording** has one standing line for what the phrases miss: "People know only what they
+  could see or hear from where they are. ..." Someone who reworded the narrator keeps their wording; everything
+  above is code and works either way.
+- Not done: nobody overhears a whisper at any drama setting, and the private words are still in what a companion's
+  model reads (marked, not cut).
+- **A/B (2026-11-26, ten models, two runs each, a blind judge):** over four private scenes (the notepad, a whisper,
+  a slipped note, a question asked later) someone it was not for showed they knew it in 15 of 79 replies before
+  and 0 of 80 with the note, the tag and the standing line; the standing line alone gave 1 of 80. The one it was
+  for answered in 59 of 60, and a line said out loud was still reacted to by the room (17 of 18 against 18 of 20).
+  A tighter note ("... quietly, without saying it out loud") was no better and was dropped.

@@ -20,7 +20,7 @@ leaves behind is companion/story_visits.py.
 import re
 from datetime import datetime, timedelta
 
-from companion import prompt_library, story_plans, texting
+from companion import prompt_library, story_plans, story_private, texting
 from companion.characters import by_id, current
 from companion.clock import parse, stamp
 from companion.database import decode, many, optional
@@ -195,8 +195,12 @@ def named(item: dict, text: str) -> bool:
 
 def speakers(present: list[dict], people: list[dict], text: str) -> list[dict]:
     """The companions who take a turn after the narrator, anyone the user named first. A line that names only
-    someone else in the scene ("Dana, could I get the bill?") is not theirs to answer."""
+    someone else in the scene ("Dana, could I get the bill?") is not theirs to answer, and a private moment is
+    answered only by the one it was for (companion/story_private.py)."""
     from companion import story_people
+    only = story_private.only(story_private.read(text, present, people), present)
+    if only is not None:
+        return only
     spoken_to = [item for item in present if named(item, text)]
     if not spoken_to and any(story_people.named(person['sheet'], text) for person in people):
         return []
@@ -234,11 +238,12 @@ def own_line(row: dict, pronouns: str | None = None) -> str:
 
 # A companion's own turn ---------------------------------------------------------------------------
 
-def line(row: dict) -> str:
-    """A line of the scene, the same for every speaker, their own included."""
+def line(row: dict, tags: dict | None = None) -> str:
+    """A line of the scene, the same for every speaker, their own included. `tags` marks the private ones
+    (companion/story_private.py)."""
     if row['role'] in ('scene', NOTE):
         return f"[{YOU.sub(lambda match: 'The user' + ('’s' if match[1] else ''), row['text'])}]"
-    return f"{LABELS.get(row['role'], row['name'])}: {row['text']}"
+    return story_private.tagged(f"{LABELS.get(row['role'], row['name'])}: {row['text']}", row, tags)
 
 
 def visible(connection, companion_id: str) -> list[dict]:
@@ -281,7 +286,9 @@ def scene_part(view: dict, item: dict, seen) -> str:
 
 def shared_part(connection, view: dict, item: dict, rows: list[dict], budget: int, seen) -> str:
     kept = window(rows, int(budget * TRANSCRIPT_SHARE))
-    transcript = '## The scene so far\n' + ('\n'.join(line(row) for row in kept) or '(Nothing has been said yet.)')
+    tags = story_private.tags(rows, view, seen)  # What was for one person alone says so, for everyone who reads it.
+    transcript = '## The scene so far\n' + ('\n'.join(line(row, tags) for row in kept) or
+                                            '(Nothing has been said yet.)')
     return '\n\n'.join((prompt_library.text(connection, 'story-companion', name=item['name']),
                         scene_part(view, item, seen), transcript))
 
@@ -293,6 +300,7 @@ def story_lines(connection, view: dict, item: dict, rows: list[dict], now: datet
     lines = story_plans.own_lines(connection, item, view['place'], now) if item.get('plan') else \
         chance_lines(connection, view, item)
     lines.append(('story:sealed', 'What happens here is in person. You have seen only what the lines above show.'))
+    lines += story_private.own_lines(rows, view, item)  # The user's line was for them alone.
     if story_visits.counts(connection):  # How they feel right now, as their chat is told (companion/story_said.py).
         lines += story_said.feeling_lines(connection, item['companion'], now)
     for other in view['companions']:
