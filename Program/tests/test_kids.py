@@ -1,6 +1,7 @@
 """Companions who already have kids (companion/life/kids.py): children read from their description or kept from their
 life as a townsperson or seeded for a new companion, their other parent and where they live, meeting them and the
 user as their step-parent, a love-life partner's kids, and the limits children keep."""
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -289,8 +290,10 @@ def test_in_an_older_city_seeded_kids_live_with_them_and_no_rota(client, monkeyp
     view = panel(client)
     assert view['how'] == 'seeded' and view['kids'] and view['other'] is None and view['pattern'] == 'sole'
     assert view['pattern_how'] == 'seeded'  # Not "Read from their description".
-    # The rota's words, not just 'weekend': a seeded perception line can say "what they did at the weekend".
-    assert 'every other weekend' not in prompt(client) and 'a week with' not in prompt(client)
+    # The rota's words, not just 'weekend': a seeded perception line can say "what they did at the weekend", and
+    # one says "Vanishing for a week without anyone fussing sounds like bliss", which is no rota either.
+    told = prompt(client)
+    assert 'every other weekend' not in told and not re.search(r'a week with\b', told)
 
 
 def test_in_an_older_city_the_ex_the_description_names_is_still_the_other_parent(client):
