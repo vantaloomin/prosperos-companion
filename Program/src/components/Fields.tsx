@@ -6,31 +6,32 @@ import { SuggestInput } from './SuggestInput'
 /** Help for a control: `hint` shows under it, `tip` sits behind a "?" next to its label. Both are read out with it.
  * `action` sits at the end of the label's line, such as the pen that helps write the field. */
 interface Help { hint?: ReactNode; tip?: string; action?: ReactNode }
-interface FieldProps extends Help { label: string; children: (id: string, describedBy?: string) => ReactNode }
+interface FieldProps extends Help { label: string; labelHidden?: boolean; children: (id: string, describedBy?: string) => ReactNode }
 
 function joinIds(...ids: (string | false | undefined)[]) {
   return ids.filter(Boolean).join(' ') || undefined
 }
 
-/** A labelled control with an optional hint and tip read out with it. */
-export function Field({ label, hint, tip, action, children }: FieldProps) {
+/** A labelled control with an optional hint and tip read out with it. `labelHidden` keeps the label for screen
+ * readers only, where a dialog's title already says it. */
+export function Field({ label, labelHidden, hint, tip, action, children }: FieldProps) {
   const id = useId()
   const hintId = hint ? `${id}-hint` : undefined
   const tipId = tip ? `${id}-tip` : undefined
   return (
     <div className="field">
-      <span className="label-row"><label htmlFor={id}>{label}</label>{tip && tipId && <InfoTip id={tipId} label={label} text={tip} />}{action}</span>
+      <span className={labelHidden ? 'label-row visually-hidden' : 'label-row'}><label htmlFor={id}>{label}</label>{tip && tipId && <InfoTip id={tipId} label={label} text={tip} />}{action}</span>
       {children(id, joinIds(hintId, tipId))}
       {hint && <small id={hintId}>{hint}</small>}
     </div>
   )
 }
 
-interface TextAreaProps extends Help { label: string; value: string; onChange: (value: string) => void; onBlur?: () => void; rows?: number; maxLength?: number; placeholder?: string; grows?: boolean }
+interface TextAreaProps extends Help { label: string; value: string; onChange: (value: string) => void; onBlur?: () => void; rows?: number; maxLength?: number; placeholder?: string; grows?: boolean; labelHidden?: boolean }
 
 /** `grows` makes it two lines tall, growing with its text (or placeholder) to about five. */
-export function TextArea({ label, hint, tip, action, value, onChange, onBlur, rows = 3, maxLength, placeholder, grows }: TextAreaProps) {
-  return <Field label={label} hint={hint} tip={tip} action={action}>{(id, describedBy) => <textarea id={id} rows={grows ? 2 : rows} className={grows ? 'grows' : undefined} value={value} maxLength={maxLength} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} />}</Field>
+export function TextArea({ label, labelHidden, hint, tip, action, value, onChange, onBlur, rows = 3, maxLength, placeholder, grows }: TextAreaProps) {
+  return <Field label={label} labelHidden={labelHidden} hint={hint} tip={tip} action={action}>{(id, describedBy) => <textarea id={id} rows={grows ? 2 : rows} className={grows ? 'grows' : undefined} value={value} maxLength={maxLength} placeholder={placeholder} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} />}</Field>
 }
 
 interface TextInputProps extends Help { label: string; value: string; onChange: (value: string) => void; required?: boolean; maxLength?: number; suggestions?: string[]; type?: string; placeholder?: string; min?: number; max?: number; step?: number }

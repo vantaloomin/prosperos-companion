@@ -179,3 +179,26 @@ export function writingText(messages: StoryMessage[], clientId: string, companio
   const next = companions.find((companion) => !replies.some((reply) => reply.speaker === companion.id))
   return replies.some((reply) => reply.role === 'narrator') && next ? `${next.name} is answering…` : 'The narrator is writing…'
 }
+
+/** The user's latest line while its reply can still be told again or the line changed: nothing has come after it
+ * but its own replies (companion/story_again.py). Going somewhere else puts the story past it. */
+export function latestLine(messages: StoryMessage[]): StoryMessage | null {
+  const last = messages[messages.length - 1]
+  const line = [...messages].reverse().find((message) => message.role === 'user')
+  return line && last && (last.id === line.id || last.reply_to === line.id) ? line : null
+}
+
+/** What the button under the story's newest reply says: Try again when a reply failed or never came (it writes what
+ * is missing), Another reply when it is all there (it is told again in its place). */
+export function againLabel(messages: StoryMessage[], line: StoryMessage): 'Try again' | 'Another reply' {
+  const replies = messages.filter((message) => message.reply_to === line.id)
+  return !replies.length || replies.some((reply) => reply.status === 'failed') ? 'Try again' : 'Another reply'
+}
+
+/** The story while the latest line is answered again: its failed replies are gone at once, and with none failed all
+ * of them, as the server does. `text` is the line's new words when it was edited. */
+export function toldAgain(messages: StoryMessage[], line: StoryMessage, text?: string): StoryMessage[] {
+  const failed = messages.some((message) => message.reply_to === line.id && message.status === 'failed')
+  return messages.filter((message) => message.reply_to !== line.id || (failed && !text && message.status !== 'failed'))
+    .map((message) => (message.id === line.id && text ? { ...message, text } : message))
+}

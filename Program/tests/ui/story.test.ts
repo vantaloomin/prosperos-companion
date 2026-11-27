@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { visitText } from '../../src/features/conversation/storyVisits.ts'
 import { clockTime } from '../../src/when.ts'
-import { aroundText, chapterWhen, companionLine, goHome, goneFrom, homeChoice, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
+import { againLabel, aroundText, chapterWhen, companionLine, goHome, goneFrom, homeChoice, latestLine, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, toldAgain, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
@@ -173,4 +173,24 @@ test('the line that says a companion has gone offers their chat, and no other li
   assert.equal(goneFrom({ role: 'cast', text: 'Mira is here.', speaker: 'c1', name: 'Mira' }), null)
   assert.equal(goneFrom({ role: 'cast', text: 'Rosa says yes.', speaker: null, name: null }), null)
   assert.equal(goneFrom({ role: 'narrator', text: 'Mira has gone.', speaker: null, name: null }), null)
+})
+
+test('only the latest line can be told again or changed, until the story goes on', () => {
+  const row = (id: string, role: string, reply_to: string | null = null, status = 'complete') =>
+    ({ id, seq: 0, role, text: id, reply_to, status, error: null, city_id: 'c', place_id: 'p', created_at: '', client_id: null, speaker: null, name: null }) as never
+  const told = [row('u1', 'user'), row('n1', 'narrator', 'u1'), row('u2', 'user'), row('n2', 'narrator', 'u2'), row('m2', 'companion', 'u2')]
+  assert.equal(latestLine([])?.id, undefined)
+  assert.equal(latestLine(told)?.id, 'u2')
+  assert.equal(againLabel(told, told[2]), 'Another reply')
+  // A line still waiting for any reply, or with one that failed, is tried again: only what is missing is written.
+  assert.equal(latestLine(told.slice(0, 3))?.id, 'u2')
+  assert.equal(againLabel(told.slice(0, 3), told[2]), 'Try again')
+  const failed = [...told.slice(0, 4), row('m2', 'companion', 'u2', 'failed')]
+  assert.equal(againLabel(failed, failed[2]), 'Try again')
+  assert.deepEqual(toldAgain(failed, failed[2]).map((item: { id: string }) => item.id), ['u1', 'n1', 'u2', 'n2'])
+  // Told again, every reply goes at once; edited, the line shows its new words.
+  assert.deepEqual(toldAgain(told, told[2]).map((item: { id: string }) => item.id), ['u1', 'n1', 'u2'])
+  assert.deepEqual(toldAgain(failed, failed[2], 'new').map((item: { text: string }) => item.text), ['u1', 'n1', 'new'])
+  // Once the story has gone somewhere else, the line is part of what happened.
+  assert.equal(latestLine([...told, row('s', 'scene')]), null)
 })

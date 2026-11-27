@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Story: another reply, and editing:** the Story had no way to get a different reply or to change anything once
+  it was said. Under the newest reply there is now Another reply, which tells it again, and Edit your line, which
+  changes what you last said and has it answered anew. The narrator's reply and a companion's line can be edited
+  too, anywhere in the story, to cut or change something: hover over one and choose Edit, or press and hold it on a
+  phone. A story has one course, so the reply told before is replaced, and what it had made people know or remember
+  is taken back with it. Undo, next to Another reply, brings the earlier reply back until you send your next line.
+  On a phone, a short story can now always be scrolled to its newest lines.
 - **Your chat shows the scene you just played:** after time with a companion in the Story, their chat went straight
   from one text to the next, even when their next text mentioned the drink at the bar. Their chat now has one quiet
   line where it happened, "In Story at Club Charles · 2:06 to 2:31 PM", with "Read it" to open the Story at that

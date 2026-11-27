@@ -58,6 +58,19 @@ def note_exchange(connection, people: list[dict], city_id: str, said: str, reply
             meet(connection, sheet, city_id, now, day, about(sheet, reply))
 
 
+def reworded(connection, row: dict, sheet: dict, old: str, new: str) -> None:
+    """A reply's wording was changed by the user (companion/story_again.py): the sentences kept from the old wording
+    go, and what the new wording says of them stands in their place. `row` is theirs from `known`."""
+    gone, said = about(sheet, old), about(sheet, new)
+    kept = [note for note in row['notes'] if note not in gone]
+    if len(kept) == len(row['notes']):
+        return  # Nothing of this reply was kept about them.
+    at = next(index for index, note in enumerate(row['notes']) if note in gone)
+    at = len([note for note in row['notes'][:at] if note not in gone])
+    notes = kept[:at] + [note for note in said if note not in kept] + kept[at:]
+    connection.execute('UPDATE story_people SET notes=? WHERE key=?', (encode(notes[-NOTES:]), row['key']))
+
+
 def remembered(row: dict | None) -> str:
     """What the narrator is told about someone the user has met, or '' for a stranger."""
     if not row:

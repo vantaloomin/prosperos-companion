@@ -2,16 +2,18 @@ import { useEffect, useRef, useState, type MouseEvent, type PointerEvent, type R
 import type { Message } from '../../types'
 import { MessageSheet } from './MessageSheet'
 
-export type Act = (message: Message) => void
+/** What a sheet needs of a message: a chat's, or a line of the Story (src/features/story/Story.tsx). */
+export interface Held { text: string; role: string }
+export type Act<T extends Held = Message> = (message: T) => void
 /** A label, its icon, what it does and, for one that takes something away, `danger` (shown last, in the danger colour). */
-export type Action = [string, ReactNode, Act, 'danger'?]
+export type Action<T extends Held = Message> = [string, ReactNode, Act<T>, 'danger'?]
 
 const HOLD_MS = 450
 const SLOP_PX = 10
 
 /** Phones: press and hold a message, as in Messages, WhatsApp or Google Messages, to open its actions in a sheet
  * from the bottom of the screen. Only touch starts it; a mouse keeps the hover actions (TurnView.tsx). */
-export function useMessageSheet(message: Message, actions: Action[], picture?: string | null) {
+export function useMessageSheet<T extends Held = Message>(message: T, actions: Action<T>[], picture?: string | null) {
   const [open, setOpen] = useState(false)
   const [pressing, setPressing] = useState(false)
   const timer = useRef<number | undefined>(undefined)
