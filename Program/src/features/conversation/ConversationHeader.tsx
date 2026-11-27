@@ -8,6 +8,7 @@ import { usePhone } from '../../components/usePhone'
 import { usePortrait } from './portrait'
 import { useLocalTime } from './clock'
 import { StatusText } from '../status/StatusLine'
+import { sameClock } from '../status/statusText'
 import { ListButton } from '../chats/ListButton'
 import { useSidecarOpen, useSidecarWaiting } from '../sidecar/store'
 import { toggleSidecar } from '../sidecar/toggle'
@@ -89,12 +90,13 @@ function WideButtons({ call, searching, searchButton, onSearch }: { call: MenuIt
 /**
  * One line under the name: what they're up to, their time and the neighbourhood ("just vibing · 2:22 PM their time ·
  * Fells Point"). A phone keeps only the status and the time ("just vibing · 9:51 PM"), and the status gives way first so
- * the time always shows. A side timeline leads, so it is never mistaken for the main one.
+ * the time always shows; together in one place it keeps only where ("Club Charles"), since their clock is yours. A side
+ * timeline leads, so it is never mistaken for the main one.
  */
 function StatusLine({ companion, timeline, phone }: { companion: Companion; timeline: string | null; phone: boolean }) {
   const { timezone, location } = companion.version.definition
   const time = useLocalTime(timezone, phone)
-  const when = phone ? time : time && `${time} their time`
+  const when = phone ? !sameClock(companion.status) && time : time && `${time} their time`
   const place = phone ? null : location?.split(',')[0]
   const rest = [timeline, when, place].filter(Boolean).join(' · ')
   return (

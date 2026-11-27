@@ -254,8 +254,8 @@ The links are rules; the one thing a model is told is that the two are together 
 - **Their chat while you are with them:** while a visit with them is going on ([Scenes count](#scenes-count)),
   their 1:1 chat is face to face, as it is on an outing. Its where strip says "With you at Club Charles, in Story"
   with "Back to the story", the header and the chat list say "Together at Club Charles" with the book where an
-  outing has the pin (`status.where`, kind `story`; on a phone just "Club Charles" beside the icon, as for an
-  outing), and the box to write in says "Talk to Mira". Their reply is told "Right now you are with
+  outing has the pin (`status.where`, kind `story`; on a phone just "Club Charles" beside the icon and no time, as for
+  an outing), and the box to write in says "Talk to Mira". Their reply is told "Right now you are with
   the user at Club Charles, in person. They came by while you were at work there. Talk as if you are there
   together, face to face, not texting…" with the latest six lines said in the scene (`story_visits.now_text`), in
   place of "You are apart again now, texting". A/B on ten models, 300 replies
