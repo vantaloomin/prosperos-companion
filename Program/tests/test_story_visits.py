@@ -10,7 +10,7 @@ from test_together import mira
 
 from companion import story_visits
 from companion.clock import parse
-from companion.life import steps, together
+from companion.life import status, steps, together
 from companion.memory import records
 
 
@@ -89,6 +89,8 @@ def test_while_the_scene_goes_on_their_chat_is_face_to_face_until_a_goodbye(clie
         companion = story_visits.by_id(connection, ok(client.get('/api/story'))['companions'][0]['id'])
         now = client.app.state.database.clock.now()
         assert together.in_person(connection, companion, now)  # Read at once, no texting habits, no call or knock.
+        # Their chat's header and the chat list read as on an outing, with the book where the pin goes.
+        assert status.view(connection, companion, now)['where'] == {'state': 'together', 'kind': 'story', 'text': 'Together at Club Charles'}
     # A goodbye in the chat ends the time together, as it ends an outing: the chat is texting again.
     script(provider, 'Get home safe.')
     send(client, 'I should head home, see you tomorrow', 'chat-0002')
@@ -97,6 +99,7 @@ def test_while_the_scene_goes_on_their_chat_is_face_to_face_until_a_goodbye(clie
     assert ok(client.get('/api/life/where'))['story']['with'] is None
     with client.app.state.database.connect() as connection:
         assert not together.in_person(connection, companion, client.app.state.database.clock.now())
+        assert status.view(connection, companion, client.app.state.database.clock.now())['where']['state'] == 'apart'
 
 
 def test_one_line_is_not_a_moment_and_a_day_leaves_one(client, barkeep, provider):

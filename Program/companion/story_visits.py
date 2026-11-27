@@ -80,6 +80,12 @@ def going(connection, companion: dict, now: datetime) -> dict | None:
     return visit if visit and now - parse(visit['last_at']) <= IDLE else None
 
 
+def header(visit: dict) -> str:
+    """The line in their chat's header while a visit goes on, worded as an outing's is (companion/life/status.py):
+    'Together at Club Charles', 'At your place'."""
+    return 'At your place' if visit['place_name'] == AT_YOURS else f"Together at {visit['place_name']}"
+
+
 # While the scene goes on ----------------------------------------------------------------------------
 
 def start(connection, item: dict, user: dict, view: dict, now: datetime) -> dict:
