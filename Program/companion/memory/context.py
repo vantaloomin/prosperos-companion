@@ -1143,6 +1143,10 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     for identity, text in so_far.lines(connection, companion, now):
         packet.offer('time', identity, text)
     offer_hours(packet, connection, companion, now, group)
+    # Where they are with the user right now (a visit, an outing, a call, a trip) and the plans they agreed to go in
+    # before the turns and everything after them: in a context that fills up, the sections added last are left out,
+    # and a companion never told they are at the user's place takes their own home, listed further up, for the room.
+    offer_together(packet, connection, companion, now, recent, group)
     conversation = fit_conversation(packet, recent)
     own_words.offer(packet, connection, timeline_id, version['definition'], messages, group)
     if mood := moods.active(connection, companion, now):
@@ -1167,7 +1171,6 @@ def fill(packet, connection, companion, now: datetime, turns: tuple, extra: dict
     offer_daily(packet, connection, version, now)
     people.offer(packet, connection, companion, groups['people'], groups['boundaries'], now, since)
     offer_life(packet, connection, companion, now)
-    offer_together(packet, connection, companion, now, recent, group)
     packet.offer('newcomers', *newcomers.context_line(connection, version, timeline_id))
     latest = next((message for message in reversed(recent) if message['role'] == 'user'), None)
     before = next((message['text'] for message in reversed(recent) if message['role'] == 'companion'
