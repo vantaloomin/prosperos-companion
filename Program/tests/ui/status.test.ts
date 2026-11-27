@@ -38,5 +38,7 @@ test('the chat list shows luggage on a weekend visit, a phone on a call, else a 
   // With you in the Story (companion/story_visits.py): the outing's words, and the book where the pin goes.
   assert.equal(whereGlyph({ state: 'together', kind: 'story', text: 'Together at Club Charles' }), 'book')
   assert.deepEqual(shown({ text: 'coffee first', set_by: 'app', away: null, where: { state: 'together', kind: 'story', text: 'Together at Club Charles' } }), { text: 'Together at Club Charles', away: 'book' })
+  // The phone's header shows the place alone beside the icon (companion/life/status.py `short`).
+  assert.deepEqual(shown({ text: '', set_by: 'app', away: null, where: { state: 'together', kind: 'story', text: 'Together at Club Charles', short: 'Club Charles' } }), { text: 'Together at Club Charles', away: 'book', short: 'Club Charles' })
   assert.equal(whereGlyph(null), 'pin')
 })

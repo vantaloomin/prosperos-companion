@@ -316,9 +316,17 @@ def where(connection, companion: dict, now) -> dict:
     found = together.state(connection, companion, now)
     visit = story_visits.going(connection, companion, now) if found['state'] == 'apart' else None
     if visit:
-        return {'state': 'together', 'kind': 'story', 'text': story_visits.header(visit)}
-    return {'state': found['state'], 'kind': found['kind'], 'text': found['text'],
-            **({'short': found['short']} if found.get('short') else {})}
+        found = {'state': 'together', 'kind': 'story', 'text': story_visits.header(visit)}
+    return {'state': found['state'], 'kind': found['kind'], 'text': found['text'], **short(found)}
+
+
+def short(found: dict) -> dict:
+    """The phone's wording where it differs. Together somewhere, the phone's header shows the place alone ("Club
+    Charles"): its icon, the pin or the book, says together, and the strip under it says the rest (Iris, 2026-11-27)."""
+    from companion.life.together import TOGETHER_AT
+    if found.get('short'):
+        return {'short': found['short']}
+    return {'short': found['text'][len(TOGETHER_AT):]} if found['text'].startswith(TOGETHER_AT) else {}
 
 
 def for_all(connection, now) -> dict[str, dict]:

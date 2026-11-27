@@ -90,7 +90,8 @@ def test_while_the_scene_goes_on_their_chat_is_face_to_face_until_a_goodbye(clie
         now = client.app.state.database.clock.now()
         assert together.in_person(connection, companion, now)  # Read at once, no texting habits, no call or knock.
         # Their chat's header and the chat list read as on an outing, with the book where the pin goes.
-        assert status.view(connection, companion, now)['where'] == {'state': 'together', 'kind': 'story', 'text': 'Together at Club Charles'}
+        assert status.view(connection, companion, now)['where'] == {
+            'state': 'together', 'kind': 'story', 'text': 'Together at Club Charles', 'short': 'Club Charles'}
     # A goodbye in the chat ends the time together, as it ends an outing: the chat is texting again.
     script(provider, 'Get home safe.')
     send(client, 'I should head home, see you tomorrow', 'chat-0002')

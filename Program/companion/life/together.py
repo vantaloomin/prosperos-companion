@@ -558,6 +558,9 @@ def kind_of(outing: dict) -> str:
     return 'theirs' if outing['place']['kind'] == 'home' else 'out'
 
 
+TOGETHER_AT = 'Together at '  # The plain case; a phone's header shows the place alone (companion/life/status.py).
+
+
 def together_text(outing: dict, companion: dict) -> str:
     """'Together at Lupa', 'At your place', "At Mira's place"."""
     place = outing['place']
@@ -573,7 +576,7 @@ def together_text(outing: dict, companion: dict) -> str:
         return f"Your wedding at {place['name']}"
     if place.get('big_day') and place.get('title'):  # companion/life/big_days.py
         return f"At {place['title']} at {place['name']}"
-    return f"Together at {place['name']}"
+    return f"{TOGETHER_AT}{place['name']}"
 
 
 def hours_apart(connection, companion: dict, now: datetime) -> str:
