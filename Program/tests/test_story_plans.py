@@ -51,8 +51,8 @@ def test_a_plan_under_way_is_played_where_it_is_with_the_companion_who_came_too(
     assert 'I turn to Mira.' not in client.get('/api/export/story').text
     assert [row['role'] for row in sent['replies']] == ['narrator', 'companion']
     narrator, own = provider.requests[-2], provider.requests[-1]
-    assert 'here with the user, for dinner: a plan the two of them made' in narrator['system']
-    assert 'The plan: the user and Mira came here together for dinner, until about' in narrator['system']
+    assert 'here with the user, for dinner: a plan the two of them made' in narrator['prompt']
+    assert 'The plan: the user and Mira came here together for dinner, until about' in narrator['prompt']
     notes = own['messages'][-1]['content']
     assert f"You are Mira, in person with the user at {outing['place']['name']}. You are here together: dinner at" in notes
     assert 'You came here together. Neither of you is surprised to see the other' in notes
@@ -97,11 +97,11 @@ def test_the_people_a_plan_is_with_are_in_the_scene_for_the_narrator_to_voice(cl
     say(client, 'I say hello.', 'story-0001')
     narrator, own = provider.requests[-2], provider.requests[-1]
     assert f"- {friend['name']}, Mira's close friend, here with them for the evening. It is the first time {first} " \
-           f"is meeting the user. {first} is polite and has a lot of questions for the user. You voice {first}" in narrator['system']
+           f"is meeting the user. {first} is polite and has a lot of questions for the user. You voice {first}" in narrator['prompt']
     notes = own['messages'][-1]['content']
     assert f"Here with you: your close friend {friend['name']}. It is the first time they are meeting the user. " \
            'The narrator speaks for them; you speak only as yourself.' in notes
-    assert f"Also here: {first}, Mira's close friend" in own['system']
+    assert f"Also here: {first}, Mira's close friend" in own['prompt']
 
 
 def test_a_plan_played_in_the_story_leaves_the_plans_own_memory_and_tells_their_chat(client, provider, clock, monkeypatch):
