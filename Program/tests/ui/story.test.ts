@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { visitText } from '../../src/features/conversation/storyVisits.ts'
 import { clockTime } from '../../src/when.ts'
-import { aroundText, chapterWhen, companionLine, goHome, homeChoice, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
+import { aroundText, chapterWhen, companionLine, goHome, goneFrom, homeChoice, lineTime, numbered, openingAction, openingText, personLine, placeGroups, sceneTime, whereText, writingText, openingPlace, planText } from '../../src/features/story/storyText.ts'
 
 test('the scene time is the city clock as written', () => {
   assert.equal(sceneTime('2026-10-06T09:05'), 'Tuesday, 9:05 AM')
@@ -114,8 +114,10 @@ test('the first open names the companion and finds them when the story can go to
   assert.deepEqual(openingAction(), { label: 'Look around', line: 'I look around.', find: null })
   assert.equal(openingText(scene, mira), 'Play out a scene with Mira, anywhere in Baltimore.')
   assert.deepEqual(openingAction(mira), { label: 'Find Mira', line: 'I look around for Mira.', find: 'companion:1' })
-  // Already where the story is: nowhere to go first.
-  assert.deepEqual(openingAction({ ...mira, here: true }), { label: 'Find Mira', line: 'I look around for Mira.', find: null })
+  // Already where the story is: nobody to look for. The scene's own line says they are here, and the button has
+  // the narrator open the scene, as with a plan.
+  assert.equal(openingText(scene, { ...mira, here: true }), '')
+  assert.deepEqual(openingAction({ ...mira, here: true }), { label: 'Start the scene', line: '', find: null, begin: true })
   // At home or asleep: the story is still there to play, and the line says why they are not in it.
   const home = { ...mira, place: null, doing: '' }
   assert.equal(openingText(scene, home), "Play out a scene anywhere in Baltimore. Mira isn't out right now.")
@@ -164,4 +166,11 @@ test('while a line waits, the narrator writes first and then each companion in t
   assert.equal(writingText([sent, told], 'c1', cast), 'Mira is answering…')
   assert.equal(writingText([sent, told], 'c1', []), 'The narrator is writing…')
   assert.equal(writingText([sent, told, row('m1', 'companion', { reply_to: 'u1', speaker: '1', name: 'Mira' })], 'c1', cast), 'The narrator is writing…')
+})
+
+test('the line that says a companion has gone offers their chat, and no other line does', () => {
+  assert.equal(goneFrom({ role: 'cast', text: 'Mira has gone.', speaker: 'c1', name: 'Mira' }), 'c1')
+  assert.equal(goneFrom({ role: 'cast', text: 'Mira is here.', speaker: 'c1', name: 'Mira' }), null)
+  assert.equal(goneFrom({ role: 'cast', text: 'Rosa says yes.', speaker: null, name: null }), null)
+  assert.equal(goneFrom({ role: 'narrator', text: 'Mira has gone.', speaker: null, name: null }), null)
 })

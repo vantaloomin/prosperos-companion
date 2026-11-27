@@ -44,7 +44,9 @@ def test_a_plan_under_way_is_played_where_it_is_with_the_companion_who_came_too(
 
     script(provider, 'Candles on every table.', 'Mira pulls out a chair. "Finally."')
     # Start the scene says nothing as the user: the models read a line said for them, the screen and the export do not.
-    sent = ok(client.post('/api/story/plan/begin', json={'client_id': 'story-0001'}))
+    assert ok(client.get('/api/life/where'))['story'] == {'with': None, 'meet': None, 'plan': outing['id']}
+    sent = ok(client.post('/api/story/begin', json={'client_id': 'story-0001'}))
+    assert ok(client.post('/api/story/plan/begin', json={'client_id': 'story-0001'}))['message']['id'] == sent['message']['id']
     assert sent['message']['hidden'] == 1 and sent['message']['text'] == 'I turn to Mira.'
     assert 'I turn to Mira.' not in client.get('/api/export/story').text
     assert [row['role'] for row in sent['replies']] == ['narrator', 'companion']

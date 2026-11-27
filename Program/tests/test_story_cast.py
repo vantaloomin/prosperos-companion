@@ -216,3 +216,16 @@ def test_a_companion_comes_home_with_the_user_unless_the_line_says_they_part(cli
     assert [row['role'] for row in sent['replies']] == ['narrator'] and len(provider.requests) == before + 1
     scene = ok(client.get('/api/story'))['scene']
     assert scene['place']['home'] and scene['around'] == [] and 'Mira speaks' not in provider.requests[-1]['system']
+
+
+def test_start_the_scene_turns_to_a_companion_who_is_already_here(client, barkeep, provider):
+    at_work(client)
+    script(provider, 'The bar is quiet this early.', 'Mira looks up from the taps. "You again."')
+    # Nothing is said as the user: the models read a line said for them and the screen does not show it.
+    sent = ok(client.post('/api/story/begin', json={'client_id': 'story-0001'}))
+    assert sent['message']['hidden'] == 1 and sent['message']['text'] == 'I turn to Mira.'
+    assert [row['role'] for row in sent['replies']] == ['narrator', 'companion']
+    # With nobody they know in the scene there is nobody to turn to.
+    ok(client.put('/api/story/scene', json={'city_id': 'baltimore', 'place_id': 'patterson-park'}))
+    refused = client.post('/api/story/begin', json={'client_id': 'story-0002'})
+    assert refused.status_code == 409 and refused.json()['detail'] == 'Nobody you know is here to turn to.'

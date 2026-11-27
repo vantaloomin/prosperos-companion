@@ -2336,6 +2336,10 @@ img.avatar, img.portrait { object-fit: cover; object-position: center top; paddi
 .where-strip .call-answer { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; }
 .where-strip .call-answer svg { width: 1rem; height: 1rem; }
 @media (max-width: 720px) { .where-strip .text-button, .where-strip .call-answer { min-height: 44px; } }
+/* The Story's links on the strip: "Back to the story" looks like the strip's other buttons, and "play it out in
+   Story" sits in the sentence, so it keeps the line's own height. */
+.where-strip a.text-button:not(.inline) { text-decoration: none; }
+.where-strip .text-button.inline { min-height: 0; }
 @keyframes ring-nudge { 0%, 70%, 100% { transform: rotate(0); } 75%, 85% { transform: rotate(-12deg); } 80%, 90% { transform: rotate(12deg); } }
 @media (prefers-reduced-motion: reduce) { .where-strip.ringing > svg { animation: none; } }
 

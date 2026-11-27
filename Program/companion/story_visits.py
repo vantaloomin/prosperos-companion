@@ -61,6 +61,18 @@ def open_visits(connection) -> list[dict]:
     return many(connection, 'SELECT * FROM story_visits WHERE ended_at IS NULL ORDER BY started_at')
 
 
+def going(connection, companion: dict, now: datetime) -> dict | None:
+    """A companion's visit that is going on right now, for their chat ("With you at Club Charles, in Story"): open,
+    with them still in the scene and something said lately. One that has gone quiet is over, whether or not `settle`
+    has closed it yet."""
+    if not counts(connection):
+        return None
+    visit = optional(connection, 'SELECT v.* FROM story_visits v JOIN story_cast c ON c.companion_id=v.companion_id '
+                     'WHERE v.companion_id=? AND v.timeline_id=? AND v.ended_at IS NULL ORDER BY v.started_at DESC '
+                     'LIMIT 1', (companion['id'], companion['active_timeline_id']))
+    return visit if visit and now - parse(visit['last_at']) <= IDLE else None
+
+
 # While the scene goes on ----------------------------------------------------------------------------
 
 def start(connection, item: dict, user: dict, view: dict, now: datetime) -> dict:

@@ -403,6 +403,25 @@ def find(database, key: str) -> dict:
     return move(database, place['city_id'], place['id'])
 
 
+def for_chat(connection, companion: dict, now: datetime) -> dict:
+    """The Story as a companion's own chat shows it (the where strip and the chat's menu, companion/life/together.py):
+    `with` while time together in the Story is going on ({place}), `meet` when their day has them somewhere the
+    Story can go and the two are not together already ({place, here}; `here` when the story is at that place
+    already, so there is nowhere to go first), and `plan`, the id of their plan with the user under way that the
+    Story can play. Rules only; nothing is told to a model."""
+    visit = story_visits.going(connection, companion, now)
+    try:
+        data = city_data(connection, newcomers.city_for(connection, companion['version']['definition'])['id'])
+    except DomainError:
+        data = None
+    found, plan = story_cast.placed_now(connection, companion, data, now) if story_cast.ACTIVE else (None, None)
+    at = place_now(connection) if found else None
+    here = bool(at) and at[0] == data['id'] and at[1]['id'] == found[0]['id']
+    return {'with': {'place': visit['place_name']} if visit else None,
+            'meet': {'place': found[0]['name'], 'here': here} if found and not plan and not visit else None,
+            'plan': plan['id'] if found and plan else None}
+
+
 def play(database, outing_id: str) -> dict:
     """Play a plan under way as a scene: the story goes to where the plan is (companion/story_plans.py). The
     companion and the people it is with are there because the plan is, not because the story came."""
@@ -676,13 +695,15 @@ async def send(state, text: str, client_id: str) -> dict:
 
 
 async def begin(state, client_id: str) -> dict:
-    """Start the scene of the plan being played here without a line from the user: the narrator opens it and the
-    companion speaks, as if the user had turned to them (companion/story_plans.py)."""
+    """Start the scene with a companion who is here without a line from the user: the narrator opens it and the
+    companion speaks, as if the user had turned to them. The one whose plan is being played here
+    (companion/story_plans.py), else the first companion in the scene, the main character before the others."""
     database = state.database
     with database.connect() as connection:
         found = scene(connection, database.clock.now())
-    item = next((item for item in found['companions'] if item.get('plan')), None)
-    require(item is not None, "There is no plan under way here.", 409)
+    item = next((item for item in found['companions'] if item.get('plan')), None) or \
+        next(iter(found['companions']), None)
+    require(item is not None, 'Nobody you know is here to turn to.', 409)
     user = record(database, story_plans.BEGIN.format(name=item['name']), client_id, hidden=True)
     replies_ = await answer(state, user)
     return {'message': user, 'reply': replies_[0], 'replies': replies_}

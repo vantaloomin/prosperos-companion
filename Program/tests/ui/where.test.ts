@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canBeBackAt, canGoBack, canStayLonger, homeLine, inPerson, stripAction, stripLine, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
+import { canBeBackAt, canGoBack, canStayLonger, homeLine, inPerson, notTexting, storyLine, storyLink, stripAction, stripLine, talkingTo, type WhereOuting, type WhereState } from '../../src/features/conversation/whereText.ts'
 import { shown } from '../../src/features/status/statusText.ts'
 
 const outing: WhereOuting = {
@@ -139,4 +139,22 @@ test('somewhere again, the strip says until when; and first names only', () => {
   const walked: WhereState = { ...out, outing: { ...outing, scene: { back: false, to: 'Ouzo Bay', kind: 'place' } } }
   assert.match(stripLine(walked, 'Mira')?.tail ?? '', /^ until 9:00/)
   assert.equal(stripLine(yours, 'Dana Reyes')?.lead, 'Dana is at your place')
+})
+
+test('with them in the Story the strip says where, and a plan the Story can play offers the way in', () => {
+  const apart: WhereState = { state: 'apart', kind: 'apart', text: '', outing: null }
+  const none = { with: null, meet: null, plan: null }
+  assert.equal(storyLine(apart), null)
+  assert.equal(storyLine({ ...apart, story: { ...none, meet: { place: 'Club Charles' } } }), null)
+  const there: WhereState = { ...apart, story: { ...none, with: { place: 'Club Charles' } } }
+  assert.deepEqual(storyLine(there), { lead: 'With you at Club Charles, in Story', place: null, tail: '' })
+  assert.equal(storyLine({ ...apart, story: { ...none, with: { place: 'your place' } } })?.lead, 'With you at your place, in Story')
+  // Face to face there, the box says "Talk to"; texting habits are the chat's own and stay as they were.
+  assert.ok(talkingTo(there) && !notTexting(there) && !talkingTo(apart) && talkingTo(out))
+  // A plan under way: "play it out in Story" until the story is there, then "Back to the story".
+  assert.equal(storyLink(out), null)
+  assert.equal(storyLink({ ...out, story: { ...none, plan: 'o1' } }), 'play')
+  assert.equal(storyLink({ ...out, story: { with: { place: 'Ouzo Bay' }, meet: null, plan: 'o1' } }), 'back')
+  assert.equal(storyLink({ ...out, story: { ...none, plan: 'another' } }), null)
+  assert.equal(storyLink({ ...out, outing: { ...outing, state: 'done' }, story: { ...none, plan: 'o1' } }), null)
 })

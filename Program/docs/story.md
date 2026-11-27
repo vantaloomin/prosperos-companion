@@ -107,7 +107,7 @@ without it the narrator wrote the companion's words in 50 of 85 replies, with it
 | `POST /api/story/messages` `{text, client_id}` | Saves the user's line once per `client_id` and returns `{message, reply, replies}`: `reply` is the narrator's, `replies` all of them in order, a companion's own lines after it. A failed reply is saved with `status: failed` and its `error`. Sending the same `client_id` again returns the saved replies and writes only what is missing. 409 `no_connection` without a model; the line stays saved. |
 | `POST /api/story/find` `{key}` | Moves the story to where someone the user has met is now, or a companion (`companion:<id>`). 404 if not met, 409 if they are nowhere the story can go. |
 | `POST /api/story/plan` `{outing_id}` | Plays a plan under way as a scene: moves the story to where the plan is ([Playing a plan](#playing-a-plan)). 404 for an unknown outing, 409 when it is not under way or is somewhere the story cannot go. |
-| `POST /api/story/plan/begin` `{client_id}` | Starts the scene of the plan being played here with no line from the user: saves a hidden user line once per `client_id` and returns what `POST /api/story/messages` does. 409 with no plan under way here. |
+| `POST /api/story/begin` `{client_id}` | Starts the scene with a companion who is here, with no line from the user: saves a hidden user line ("I turn to Mira.") once per `client_id` and returns what `POST /api/story/messages` does. It turns to the companion whose plan is played here, else the first companion in the scene. 409 with no companion here. `POST /api/story/plan/begin` is the same call under its old name. |
 | `POST /api/story/retry` | Writes again what failed in the replies to the latest user line; with nothing failed, tells them all again. |
 | `POST /api/story/chapter` | Starts a new chapter: the next line begins it. Nothing is cleared. 409 with nothing in the story yet. Returns what `GET /api/story` does. |
 | `DELETE /api/story/chapter` | Takes back a chapter the user started, while nothing has been said in it. |
@@ -214,6 +214,31 @@ pages clears the lines but not the time spent: visits are settled before the lin
 
 Settings > Realism > "Story scenes count" (`life_settings.story_counts`, on by default) turns all of it off. The
 story is then apart from the companion's life, as it was before 1.5.
+
+## Between the Story and the chat
+
+The Story and a companion's 1:1 chat point at each other, so neither is a dead end (Iris's 1.5.1 handoff spec).
+All of it is rules and links: nothing here changes what a model is told.
+
+- **Their chat while you are with them:** while a visit with them is open ([Scenes count](#scenes-count)), their
+  chat's where strip says "With you at Club Charles, in Story" with "Back to the story", and the box to write in
+  reads as it does face to face. Nothing is blocked. The strip goes when the visit ends: the user goes somewhere
+  else, the companion's day takes them away, or nothing has been said for two hours. An outing, a call or a visit
+  in chat keeps its own strip (`story` on `GET /api/life/where`, `story.for_chat`, `story_visits.going`).
+- **From the Story to their chat:** a companion who is not in the scene has "Message Mira" beside "Go to Mira" on
+  their card in People you know (the era's own word: "Write to Gwen"). One who is here has neither. When they
+  leave, the story's line reads "Mira has gone. · Message Mira".
+- **From their chat to the Story:** the chat's "…" menu has "Meet Mira in Story" while their day has them somewhere
+  the story can go and no visit or plan is on. It moves the story there, as "Go to Mira" does, and only opens the
+  Story when it is there already. While a plan is under way somewhere the story can go, the outing's strip ends
+  "· play it out in Story" ([Playing a plan](#playing-a-plan)), or "· Back to the story" once it is being played.
+  There is no tab or header button: the app does not push the user into the Story.
+- **Already here:** when a companion is in the scene and nothing has been said, the Story opens with one button,
+  Start the scene, as a plan does (`POST /api/story/begin`). It never offers "Find Mira" for someone who is here.
+
+`story` on `GET /api/life/where` is `{with, meet, plan}`: `with` is `{place}` while a visit with them is open;
+`meet` is `{place, here}` when the story can go to them and nothing is on (`here` when it is there already);
+`plan` is the outing's id while a plan of theirs under way can be played.
 
 ## Playing a plan
 

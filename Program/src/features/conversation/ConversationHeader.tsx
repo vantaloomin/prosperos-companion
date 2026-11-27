@@ -1,6 +1,6 @@
 import type { RefObject } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, GitBranch, Lightbulb, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
+import { BookOpen, ChevronLeft, GitBranch, Lightbulb, Phone, Search, Sparkles, UsersRound } from 'lucide-react'
 import { api } from '../../api'
 import type { Companion } from '../../types'
 import type { MenuEntry, MenuItem } from '../../components/Menu'
@@ -16,6 +16,7 @@ import { say } from '../world/eraWords'
 import { useWhere } from './useWhere'
 import { WHERE_KEY, canCall, type WhereState } from './whereText'
 import { ChatMenu } from './ChatMenu'
+import { firstName } from '../watch/watchText'
 
 type Props = { companion: Companion; searching: boolean; searchButton: RefObject<HTMLButtonElement | null>; onSearch: () => void; timeline: string | null; onTimelines: () => void; onGroups?: () => void; onBack?: () => void; onProfile: () => void }
 
@@ -29,8 +30,10 @@ export function ConversationHeader({ companion, searching, searchButton, onSearc
   const portrait = usePortrait()
   const phone = usePhone()
   const call = useCall(name)
+  const meet = useMeetInStory(companion)
   const items: MenuEntry[] = [
     ...(phone ? phoneItems(call, onSearch) : []),
+    ...(meet ? [meet] : []),
     { label: 'Timelines', icon: GitBranch, onSelect: onTimelines },
     ...(onGroups ? [{ label: `Start a group with ${name}`, icon: UsersRound, onSelect: onGroups }] : []),
   ]
@@ -52,6 +55,22 @@ export function ConversationHeader({ companion, searching, searchButton, onSearc
       <ChatMenu threadId={companion.active_timeline_id} items={items} />
     </header>
   )
+}
+
+/** "Meet Mira in Story" under ⋯, while their day has them somewhere the Story can go and the two are not together
+ * there already (companion/story.py for_chat): the story goes to them, as "Go to Mira" does in the Story. */
+function useMeetInStory(companion: Companion): MenuItem | null {
+  const client = useQueryClient()
+  const where = useWhere().data
+  const found = where?.story?.meet
+  if (!found) return null
+  const meet = async () => {
+    // Already where they are: there is nowhere to go first.
+    if (!found.here) try { await api('/story/find', { key: `companion:${companion.id}` }) } catch { /* The Story says where it is when it opens. */ }
+    void client.invalidateQueries({ queryKey: ['story'] })
+    window.location.hash = '#story'
+  }
+  return { label: `Meet ${firstName(companion.version.name)} in Story`, icon: BookOpen, onSelect: () => void meet() }
 }
 
 /** On a phone, Call and Search wait under ⋯ so the name keeps its room. */

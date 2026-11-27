@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
+import { Fragment, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Home, Map as MapIcon, MapPin, RotateCcw, Send } from 'lucide-react'
 import { api, newId } from '../../api'
@@ -8,8 +8,10 @@ import { Loading, Notice } from '../../components/Feedback'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { InfoTip } from '../../components/InfoTip'
 import { AiFooter, CrisisNote } from '../../components/Safety'
-import { aroundText, chapterWhen, goHome, homeChoice, numbered, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, whereText, writingText } from './storyText'
+import { aroundText, chapterWhen, goHome, goneFrom, homeChoice, numbered, openingAction, openingPlace, openingText, placeGroups, planText, sceneTime, spotsText, whereText, writingText } from './storyText'
 import { StoryPeople } from './StoryPeople'
+import { useEraWords } from '../world/useEraWords'
+import { say } from '../world/eraWords'
 import { ChapterHeading, LineTime, StoryFooter } from './StoryChapters'
 import { useStoryScroll } from './useStoryScroll'
 import { CityOptions } from '../world/CityOptions'
@@ -71,7 +73,7 @@ export function Story({ go }: { go: (view: View) => void }) {
   const start = () => {
     const action = openingAction(main, story.data.scene.plan)
     const clientId = newId()
-    if (action.begin) return run({ text: '', clientId }, () => api('/story/plan/begin', { client_id: clientId }))
+    if (action.begin) return run({ text: '', clientId }, () => api('/story/begin', { client_id: clientId }))
     if (!action.line) return run(null, () => find(action.find ?? ''))
     return run({ text: action.line, clientId }, async () => {
       if (action.find) await find(action.find)
@@ -203,9 +205,17 @@ function StoryLines({ messages, chapters, headed, lookFor }: Pick<LogProps, 'mes
   })}</>
 }
 
+/** One of the app's own lines: an arrival, or who came and went. When a companion leaves, the line offers their
+ * chat: the two of them are apart again. */
+function MoveLine({ message, time }: { message: StoryMessage; time: ReactNode }) {
+  const words = useEraWords()
+  const gone = goneFrom(message)
+  return <p className="story-move">{message.text}{gone && <> · <a className="text-button inline" href={`#chat/${gone}`}>{say(words, 'message_to', message.name ?? '')}</a></>} {time}</p>
+}
+
 function StoryLine({ message, began, look }: { message: StoryMessage; began?: string; look?: CSSProperties }) {
   const time = <LineTime at={message.local_time} began={began} />
-  if (message.role === 'scene' || message.role === 'cast') return <p className="story-move">{message.text} {time}</p>
+  if (message.role === 'scene' || message.role === 'cast') return <MoveLine message={message} time={time} />
   if (message.hidden) return null
   if (message.role === 'user') return <><div className="story-mine"><p className="story-user">{message.text}</p>{time}</div>{message.crisis_help && <CrisisNote />}</>
   const parts = message.text.split(/\n{2,}/).map((part, index) => <p key={index}>{part}</p>)

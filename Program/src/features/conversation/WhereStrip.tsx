@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Bike, Bus, Car, DoorOpen, EyeOff, Footprints, Home, Hourglass, Luggage, Navigation, Ship, TrainFront, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
+import { Bike, BookOpen, Bus, Car, DoorOpen, EyeOff, Footprints, Home, Hourglass, Luggage, Navigation, Ship, TrainFront, MapPin, Moon, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Sparkles, Undo2 } from 'lucide-react'
 import { api } from '../../api'
 import { appNow } from '../../appTime.ts'
 import { BackTo } from '../today/OutTogether'
@@ -9,7 +9,7 @@ import { HomeStrip } from './HomeStrip'
 import { useWhere } from './useWhere'
 import { useEraWords, useMagicCalls } from '../world/useEraWords'
 import { say, type EraWords } from '../world/eraWords'
-import { WHERE_KEY, callActions, canBeBackAt, canGoBack, canStayLonger, callClock, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
+import { WHERE_KEY, callActions, canBeBackAt, canGoBack, canStayLonger, callClock, storyLine, storyLink, stripAction, stripLine, type CallAction, type StripAction, type StripLine, type WhereCall, type WhereState } from './whereText'
 
 const ACTION_GLYPHS = { 'Head home': Home, 'Call it a night': Moon, Undo: Undo2 } as Record<string, typeof Home>
 // On their way home after a meetup, by how they travel (companion/life/heading_home.py).
@@ -36,11 +36,45 @@ export function WhereStrip({ name }: { name: string }) {
     void client.invalidateQueries({ queryKey: WHERE_KEY })
     void client.invalidateQueries({ queryKey: ['chats'] })
   }
-  if (where.data?.home && !line) return <HomeStrip where={where.data} name={name} onDone={refresh} />
-  if (!line || !where.data) return null
+  if (!line) return <OtherStrip where={where.data} name={name} onDone={refresh} />
+  if (!where.data) return null
   if (call) return <CallStrip call={call} lead={line.lead} short={line.short} tail={line.tail} name={name} words={words} onDone={refresh} />
   if (where.data.heading || where.data.visit) return <PlainStrip where={where.data} line={line} />
   return <OutingStrip where={where.data} line={line} onDone={refresh} />
+}
+
+/** Nothing of the chat's own for the strip: with them in the Story, or living together, or nothing at all. */
+function OtherStrip({ where, name, onDone }: { where: WhereState | undefined; name: string; onDone: () => void }) {
+  const story = storyLine(where)
+  if (story) return <StoryStrip line={story} />
+  return where?.home ? <HomeStrip where={where} name={name} onDone={onDone} /> : null
+}
+
+/** With them in the Story right now (companion/story_visits.py): where, and the way back to the scene. Nothing is
+ * blocked: they can still be texted. */
+function StoryStrip({ line }: { line: StripLine }) {
+  return (
+    <aside className="where-strip" aria-label="Where you are" aria-live="polite">
+      <BookOpen aria-hidden="true" />
+      <span>{line.lead}</span>
+      <a className="text-button" href="#story">Back to the story</a>
+    </aside>
+  )
+}
+
+/** A plan under way where the Story can go: play it there as a scene, as Today offers (companion/story_plans.py),
+ * or go back to it once the story is there. */
+function StoryLink({ where }: { where: WhereState }) {
+  const client = useQueryClient()
+  const link = storyLink(where)
+  if (!link) return null
+  if (link === 'back') return <> · <a className="text-button inline" href="#story">Back to the story</a></>
+  const play = async () => {
+    try { await api('/story/plan', { outing_id: where.story?.plan }) } catch { /* The Story says what is wrong when it opens. */ }
+    void client.invalidateQueries({ queryKey: ['story'] })
+    window.location.hash = '#story'
+  }
+  return <> · <button type="button" className="text-button inline" onClick={() => void play()}>play it out in Story</button></>
 }
 
 /** A strip with no buttons: a weekend visit across the distance, or them on their way home after a meetup. */
@@ -71,7 +105,7 @@ function OutingStrip({ where, line, onDone }: { where: WhereState; line: StripLi
     // With two buttons the phone puts them on a row of their own under the text (Iris, 2026-11-02).
     <aside className={two ? 'where-strip two-actions' : 'where-strip'} aria-label="Where you are" aria-live="polite">
       <Glyph aria-hidden="true" />
-      <StripText line={line} />
+      <StripText line={line} more={<StoryLink where={where} />} />
       {two ? <div className="where-strip-actions">
         <StayOrBack where={where} act={act} />
         {action && <StripButton action={action} onClick={() => void act(action.action)} />}
@@ -95,9 +129,9 @@ function BackAt({ where, onClick }: { where: WhereState; onClick: () => void }) 
 }
 
 /** Where, until when, and where next: places link to the map. */
-function StripText({ line }: { line: StripLine }) {
+function StripText({ line, more }: { line: StripLine; more?: ReactNode }) {
   if (line.clip) return <span className="where-strip-clip" title={`${line.lead}${line.tail}`}>{line.lead}{line.tail}</span>
-  return <span>{line.lead}{line.place && <StripPlace place={line.place} />}{line.tail}{line.then && <StripPlace place={line.then} />}</span>
+  return <span>{line.lead}{line.place && <StripPlace place={line.place} />}{line.tail}{line.then && <StripPlace place={line.then} />}{more}</span>
 }
 
 /** A place on the strip, linked to the map. */

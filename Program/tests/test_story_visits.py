@@ -179,3 +179,27 @@ def test_a_finished_visit_is_a_line_in_their_chat_that_opens_its_chapter(client,
     # With "Story scenes count" off the story stays apart from their chat.
     set_life(client, story_counts=False)
     assert ok(client.get('/api/story/visits'))['visits'] == []
+
+
+def test_their_chat_says_when_you_are_with_them_in_the_story_and_when_the_story_can_go_to_them(client, barkeep, provider, clock):
+    def story_now():
+        return ok(client.get('/api/life/where'))['story']
+    # Mira is on shift at the bar and the story is somewhere else: the chat can offer to meet her there.
+    assert story_now() == {'with': None, 'meet': {'place': 'Club Charles', 'here': False}, 'plan': None}
+    at_work(client)
+    # Standing there is not time together until something is said, and there is nowhere to go first.
+    assert story_now() == {'with': None, 'meet': {'place': 'Club Charles', 'here': True}, 'plan': None}
+    talk(client, provider, lines=1)
+    assert story_now() == {'with': {'place': 'Club Charles'}, 'meet': None, 'plan': None}
+    assert ok(client.get('/api/life/where'))['state'] == 'apart'  # The chat's own state and prompt are as they were.
+    # Gone quiet for long enough, the visit is over whether or not it has been closed yet.
+    clock.instant = clock.now() + story_visits.IDLE + timedelta(minutes=5)
+    assert story_now()['with'] is None
+    clock.instant = clock.now() - story_visits.IDLE - timedelta(minutes=5)
+    leave(client)
+    assert story_now() == {'with': None, 'meet': {'place': 'Club Charles', 'here': False}, 'plan': None}
+    # With "Story scenes count" off there are no visits, and the Story can still go to them.
+    at_work(client)
+    set_life(client, story_counts=False)
+    talk(client, provider, lines=1, start=2)
+    assert story_now() == {'with': None, 'meet': {'place': 'Club Charles', 'here': True}, 'plan': None}
