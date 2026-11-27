@@ -490,6 +490,8 @@ ADDED_COLUMNS = (
     # On the user's line, when it was for one person alone (companion/story_private.py `kept`): who, so a companion
     # it was not for is not told of it in their chat either. NULL is a line said in the open.
     ('story_messages', 'private_for', 'TEXT'),
+    # A reply the service stopped at the reply limit, trimmed to its last full sentence (companion/story_cut.py).
+    ('story_messages', 'cut', 'INTEGER NOT NULL DEFAULT 0'),
 )
 
 # CHECK constraints widened after a table first shipped, as (table, text the current definition
