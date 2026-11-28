@@ -167,7 +167,8 @@ def test_a_whisper_to_one_companion_is_theirs_alone(client, monkeypatch, provide
     sam = provider.respond.asked['Sam'][-1]
     assert story_private.UNHEARD.format(who='Mira') in sam['notes']
     assert story_private.UNHEARD_REPLY.format(name='Mira') in sam['notes']
-    assert all(words not in sam['system'] + sam['notes'] for words in ('Lisbon', 'Keep it down', 'whisper'))
+    # The user's own line, not the bare word: a character sheet drawn from the bank can say "whispers" of them.
+    assert all(words not in sam['system'] + sam['notes'] for words in ('Lisbon', 'Keep it down', 'I whisper to Mira'))
     assert story_private.OWN not in sam['notes']
     # Mira, who it was for, still reads the line and her own answer, marked as private.
     say(client, 'I raise my glass to them both. "To Mondays."', 'story-0003')
